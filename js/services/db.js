@@ -280,6 +280,12 @@ export const dbService = {
         await db.sets.update(id, { deletedAt: now, updatedAt: now });
     },
 
+    /** Все живые подходы. Нужны статистике, которой важен каждый подход. */
+    async allSets() {
+        const all = await db.sets.toArray();
+        return all.filter(alive);
+    },
+
     /**
      * Тренировки со сводкой по подходам — для истории, календаря и статистики.
      *

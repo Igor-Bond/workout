@@ -93,7 +93,7 @@ function recordsBlock({ last, best, kind }) {
                 <span class="rec-label">Лучший результат</span>
                 <span class="rec-value">${records.describe(best, kind)}</span>
                 ${kind === 'weight' && best.weight && best.reps ? ui.html`
-                    <span class="rec-when">≈ ${format.weight(records.epley(best.weight, best.reps))} кг разово</span>
+                    <span class="rec-when">≈ ${format.decimal(records.epley(best.weight, best.reps), 0)} кг разово</span>
                 ` : ''}
             </div>
         ` : ''}

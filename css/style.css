@@ -823,6 +823,87 @@ table.log tr:last-child td { border-bottom: none; }
 td.cell-tools { width: 34px; text-align: right; }
 td.cell-tools .icon-btn { width: 26px; height: 26px; font-size: 13px; }
 
+/* ================== ГРАФИКИ (§27) ================== */
+
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+
+.chart-value { font-size: 9px; fill: var(--text); font-weight: bold; }
+.chart-label { font-size: 8px; fill: var(--text-dim); }
+
+.chart-title {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 16px 0 8px;
+}
+
+.chart-empty { color: var(--text-dim); font-size: 12px; padding: 14px 0; text-align: center; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); }
+.legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.legend .dot.is-accent { background: var(--accent); }
+.legend .dot.is-blue { background: var(--blue); }
+.legend .dot.is-dim { background: var(--text-dim); }
+
+/* Тепловая карта года: узкая и длинная, поэтому прокручивается вбок */
+.heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
+svg.heatmap { display: block; }
+
+.heat { fill: var(--panel-2); stroke: var(--line); stroke-width: 0.5; }
+.heat-1 { fill: #3a2418; stroke: none; }
+.heat-2 { fill: #6b3a1d; stroke: none; }
+.heat-3 { fill: #a8501f; stroke: none; }
+.heat-4 { fill: var(--accent); stroke: none; }
+
+/* Изменение показателя к предыдущему периоду (§23.1) */
+.tile-delta { display: block; font-size: 10px; margin-top: 2px; letter-spacing: 0; text-transform: none; }
+.tile-delta.is-up { color: var(--good); }
+.tile-delta.is-down { color: var(--bad); }
+
+/* ================== ЛИЧНЫЕ РЕКОРДЫ (§24.1) ================== */
+
+.pr-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--line);
+    border-left: 3px solid transparent;
+    color: var(--text);
+    font-family: inherit;
+    padding: 10px 0 10px 8px;
+    cursor: pointer;
+}
+
+.pr-row:last-child { border-bottom: none; }
+.pr-row.is-fresh { border-left-color: var(--accent); }
+
+.pr-main { min-width: 0; }
+.pr-name { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.pr-value { flex: none; font-size: 13px; font-weight: 700; color: var(--accent); }
+
+/* ================== КАРТОЧКА УПРАЖНЕНИЯ ================== */
+
+.ex-hist-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.ex-hist-row:last-child { border-bottom: none; }
+.ex-hist-date { flex: none; color: var(--text-dim); font-size: 12px; }
+.ex-hist-sets { text-align: right; }
+
 /* ================== ЧИПЫ ================== */
 
 .chips {

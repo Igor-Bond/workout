@@ -19,7 +19,7 @@ import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
 import { app } from '../app.js';
 
-const TYPES = ['Силовая', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
+const TYPES = ['Силовая', 'Зарядка', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
 
 const KIND_HINT = {
     weight: 'повторения и вес',
@@ -311,11 +311,15 @@ actions.on('plan-add', async () => {
     const last = records.lastSession(history);
     const previous = last?.sets[0];
 
+    // У зарядки по смыслу один подход на упражнение — подставлять три и
+    // заставлять исправлять каждую строку незачем
+    const defaultSets = draft.type === 'Зарядка' ? 1 : 3;
+
     draft.items.push({
         exerciseId: exercise.id,
         name: exercise.name,
         kind: exercise.kind,
-        plannedSets: last?.sets.length || 3,
+        plannedSets: last?.sets.length || defaultSets,
         targetReps: previous?.reps ?? null,
         weight: previous?.weight || 0,
         lastLine: last ? records.describeSession(last.sets, exercise.kind) : null

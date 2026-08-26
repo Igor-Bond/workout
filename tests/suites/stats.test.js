@@ -1,0 +1,293 @@
+/**
+ * Расчёты статистики (§23–§26.1 ТЗ).
+ *
+ * Неверная цифра выглядит ровно так же убедительно, как верная, поэтому
+ * проверяется каждая.
+ */
+
+import { describe, it, equal, assert } from '../runner.js';
+import { stats } from '../../js/core/stats.js';
+
+const DAY = 86400000;
+const NOW = new Date(2026, 7, 27, 12, 0, 0).getTime();   // четверг
+
+/** Свод одной тренировки в том виде, в каком его отдаёт база. */
+const entry = (daysAgo, over = {}) => {
+    const startedAt = NOW - daysAgo * DAY;
+
+    return {
+        workout: { id: `w${daysAgo}`, startedAt, finishedAt: startedAt + 3600000, type: 'Силовая' },
+        sets: 10, reps: 100, volume: 5000,
+        exerciseIds: ['a'],
+        ...over
+    };
+};
+
+describe('Границы периодов', () => {
+
+    it('месяц сравнивается с предыдущим месяцем', () => {
+        const { current, previous } = stats.ranges('month', NOW);
+
+        equal(Math.round((current.to - current.from) / DAY), 30);
+        equal(previous.to, current.from, 'предыдущий период примыкает к текущему');
+    });
+
+    it('всё время сравнивать не с чем', () => {
+        equal(stats.ranges('all', NOW), { current: null, previous: null });
+    });
+});
+
+describe('Свод за период', () => {
+
+    const entries = [entry(1), entry(10), entry(40), entry(100)];
+
+    it('в месяц попадают только тренировки месяца', () => {
+        const { current } = stats.ranges('month', NOW);
+
+        equal(stats.aggregate(entries, current).workouts, 2);
+    });
+
+    it('без периода считается вся история', () => {
+        equal(stats.aggregate(entries, null).workouts, 4);
+    });
+
+    it('складывает подходы, повторения и тоннаж', () => {
+        const result = stats.aggregate([entry(1), entry(2)], null);
+
+        equal(result.sets, 20);
+        equal(result.reps, 200);
+        equal(result.volume, 10000);
+    });
+
+    it('считает средние на тренировку и на подход', () => {
+        const result = stats.aggregate([
+            entry(1, { sets: 10, reps: 100 }),
+            entry(2, { sets: 20, reps: 100 })
+        ], null);
+
+        equal(result.avgSets, 15);
+        equal(result.avgReps, 200 / 30);
+    });
+
+    it('пустой период не делит на ноль', () => {
+        const result = stats.aggregate([], null);
+
+        equal(result.workouts, 0);
+        equal(result.avgReps, 0);
+        equal(result.avgDuration, 0);
+    });
+});
+
+describe('Сравнение с предыдущим периодом', () => {
+
+    it('считает и разницу, и проценты', () => {
+        const result = stats.compare({ workouts: 12 }, { workouts: 9 });
+
+        equal(result.workouts.delta, 3);
+        equal(Math.round(result.workouts.percent), 33);
+    });
+
+    it('падение показывается отрицательным', () => {
+        const result = stats.compare({ sets: 80 }, { sets: 100 });
+
+        equal(result.sets.delta, -20);
+        equal(result.sets.percent, -20);
+    });
+
+    it('без предыдущего периода сравнения нет', () => {
+        const result = stats.compare({ workouts: 5 }, { workouts: 0 });
+
+        equal(result.workouts.value, 5);
+        equal(result.workouts.delta, null, 'проценты относительно пустоты вводят в заблуждение');
+    });
+
+    it('отсутствующий предыдущий период не роняет расчёт', () => {
+        equal(stats.compare({ workouts: 5 }, null).workouts.delta, null);
+    });
+});
+
+describe('Дни недели', () => {
+
+    it('понедельник идёт первым', () => {
+        // NOW — четверг, это индекс 3
+        const counts = stats.weekdays([entry(0)], null);
+
+        equal(counts[3], 1);
+        equal(counts.reduce((a, b) => a + b, 0), 1);
+    });
+});
+
+describe('Серии', () => {
+
+    const days = (list) => list.map((d) => new Date(2026, 7, d).getTime());
+
+    it('дни подряд считаются подряд', () => {
+        const result = stats.streaks(days([10, 11, 12, 20]), new Date(2026, 7, 20, 12).getTime());
+
+        equal(result.longestDays, 3);
+    });
+
+    it('вчерашняя серия не обнуляется в полночь', () => {
+        const result = stats.streaks(days([25, 26]), new Date(2026, 7, 27, 12).getTime());
+
+        equal(result.days, 2, 'пропущен всего один день — серия жива');
+    });
+
+    it('после двух пропущенных дней серия обнулена', () => {
+        const result = stats.streaks(days([20, 21]), new Date(2026, 7, 27, 12).getTime());
+
+        equal(result.days, 0);
+    });
+
+    it('недели подряд — то, что имеет смысл при трёх тренировках в неделю', () => {
+        // 3, 5, 7 августа — одна неделя; 10, 12 — следующая; 17 — третья
+        const result = stats.streaks(days([3, 5, 7, 10, 12, 17]), new Date(2026, 7, 20, 12).getTime());
+
+        equal(result.longestWeeks, 3);
+        assert(result.longestDays < 3, 'дневная серия здесь ничего не сказала бы');
+    });
+
+    it('пустая история серий не даёт', () => {
+        equal(stats.streaks([], NOW), { days: 0, longestDays: 0, weeks: 0, longestWeeks: 0 });
+    });
+});
+
+describe('Объём по группам мышц', () => {
+
+    const exercises = {
+        bench: { group: 'Грудь' },
+        squat: { group: 'Ноги' },
+        nogroup: {}
+    };
+
+    const sets = [
+        { exerciseId: 'bench', performedAt: NOW, reps: 10, weight: 60 },
+        { exerciseId: 'bench', performedAt: NOW, reps: 8, weight: 60 },
+        { exerciseId: 'squat', performedAt: NOW, reps: 10, weight: 100 },
+        { exerciseId: 'nogroup', performedAt: NOW, reps: 20 }
+    ];
+
+    it('считает подходы и тоннаж по группам', () => {
+        const result = stats.muscleVolume(sets, exercises, null);
+        const chest = result.find((g) => g.group === 'Грудь');
+
+        equal(chest.sets, 2);
+        equal(chest.volume, 1080);
+    });
+
+    it('доли считаются по подходам', () => {
+        const result = stats.muscleVolume(sets, exercises, null);
+
+        equal(result.find((g) => g.group === 'Ноги').share, 25);
+    });
+
+    it('упражнения без группы собираются отдельно', () => {
+        const result = stats.muscleVolume(sets, exercises, null);
+
+        assert(result.some((g) => g.group === 'Без группы'), 'иначе их объём просто исчезнет');
+    });
+
+    it('группы идут от большей к меньшей', () => {
+        const result = stats.muscleVolume(sets, exercises, null);
+
+        equal(result[0].group, 'Грудь');
+    });
+});
+
+describe('Динамика упражнения', () => {
+
+    const set = (workoutId, at, reps, weight) => ({ workoutId, performedAt: at, reps, weight });
+
+    const sets = [
+        set('w2', NOW - 2 * DAY, 8, 65),
+        set('w2', NOW - 2 * DAY, 7, 65),
+        set('w1', NOW - 9 * DAY, 10, 60),
+        set('w1', NOW - 9 * DAY, 9, 60)
+    ];
+
+    it('одна точка — одна тренировка, старые слева', () => {
+        const series = stats.exerciseSeries(sets, 'weight');
+
+        equal(series.length, 2);
+        equal(series.map((p) => p.top), [60, 65], 'хронологический порядок');
+    });
+
+    it('рабочий результат — лучший подход того раза', () => {
+        equal(stats.exerciseSeries(sets, 'weight')[1].top, 65);
+    });
+
+    it('объём считается отдельно от веса', () => {
+        // 8×65 + 7×65 = 975
+        equal(stats.exerciseSeries(sets, 'weight')[1].volume, 975);
+    });
+
+    it('у упражнения на время берётся длительность', () => {
+        const plank = [
+            { workoutId: 'p1', performedAt: NOW, duration: 60 },
+            { workoutId: 'p1', performedAt: NOW, duration: 75 }
+        ];
+
+        equal(stats.exerciseSeries(plank, 'time')[0].top, 75);
+    });
+});
+
+describe('Скользящее среднее', () => {
+
+    it('сглаживает одиночный провал', () => {
+        const smoothed = stats.movingAverage([10, 10, 4, 10], 3);
+
+        assert(smoothed[2] > 4, 'провал не должен утаскивать линию вниз целиком');
+        equal(smoothed[2], 8);
+    });
+
+    it('первые точки считаются по тому, что есть', () => {
+        equal(stats.movingAverage([10, 20], 3), [10, 15]);
+    });
+});
+
+describe('Разрывы в линии', () => {
+
+    it('пауза дольше трёх недель разрывает линию', () => {
+        const points = [
+            { at: NOW - 60 * DAY }, { at: NOW - 58 * DAY },
+            { at: NOW - 2 * DAY }
+        ];
+
+        equal(stats.segments(points).length, 2, 'иначе прямая нарисуется через пропуск');
+    });
+
+    it('обычные промежутки линию не рвут', () => {
+        const points = [{ at: NOW - 6 * DAY }, { at: NOW - 3 * DAY }, { at: NOW }];
+
+        equal(stats.segments(points).length, 1);
+    });
+
+    it('пустой ряд не роняет разбор', () => {
+        equal(stats.segments([]), []);
+    });
+});
+
+describe('Тепловая карта', () => {
+
+    it('покрывает год целыми неделями', () => {
+        const days = stats.heatmap([], NOW);
+
+        assert(days.length >= 365, 'год должен помещаться целиком');
+        equal(days.length % 7, (stats.heatmap([], NOW).length) % 7);
+        equal(new Date(days[0].day).getDay(), 1, 'начинается с понедельника');
+    });
+
+    it('насыщенность растёт ступенями', () => {
+        const days = stats.heatmap([
+            entry(1, { sets: 3 }), entry(2, { sets: 10 }), entry(3, { sets: 25 })
+        ], NOW);
+
+        const levels = days.filter((d) => d.sets > 0).map((d) => d.level).sort();
+
+        equal(levels, [1, 2, 4]);
+    });
+
+    it('день без тренировки имеет нулевой уровень', () => {
+        equal(stats.heatmap([], NOW).every((d) => d.level === 0), true);
+    });
+});
