@@ -10,12 +10,13 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
+import { records } from '../core/records.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { app } from '../app.js';
 
 /** Строка подхода: показываем только те величины, которые есть. */
-function setRow(set) {
+function setRow(set, recordId) {
     const value = set.reps !== undefined ? String(set.reps)
         : set.duration !== undefined ? format.seconds(set.duration)
         : '—';
@@ -24,10 +25,17 @@ function setRow(set) {
         : set.distance !== undefined ? format.distance(set.distance)
         : '—';
 
-    return ui.html`<tr><td>${String(set.setNumber)}</td><td>${value}</td><td>${extra}</td></tr>`;
+    return ui.html`
+        <tr class="${set.id === recordId ? 'is-record' : ''}">
+            <td>${String(set.setNumber)}${set.id === recordId ? ui.raw(' <span class="record-mark" title="Новый рекорд">★</span>') : ''}</td>
+            <td>${value}</td>
+            <td>${extra}</td>
+        </tr>
+        ${set.note ? ui.html`<tr class="log-note"><td colspan="3">${set.note}</td></tr>` : ''}
+    `;
 }
 
-function block(b) {
+function block(b, note) {
     const line = [
         format.count(b.sets.length, format.WORDS.set),
         b.reps ? format.count(b.reps, format.WORDS.rep) : null,
@@ -42,12 +50,19 @@ function block(b) {
                 <span>${b.name}</span>
                 <span class="sub">${line}</span>
             </div>
+
+            ${b.record ? ui.html`
+                <div class="record-line">★ Новый рекорд: ${records.describe(b.record, b.kind)}</div>
+            ` : ''}
+
             <div class="table-scroll">
                 <table class="log">
                     <thead><tr><th>Подход</th><th>Значение</th><th>Вес / дистанция</th></tr></thead>
-                    <tbody>${b.sets.map(setRow)}</tbody>
+                    <tbody>${b.sets.map((s) => setRow(s, b.record?.id))}</tbody>
                 </table>
             </div>
+
+            ${note ? ui.html`<p class="note-shown">${note}</p>` : ''}
         </div>
     `;
 }
@@ -88,11 +103,26 @@ export const summary = {
             plan: workout.plan, sets, exercises, durationMs
         });
 
+        // Рекорд ищется в подходах, сделанных до этой тренировки: сравнивать
+        // её саму с собой бессмысленно (§15)
+        await Promise.all(blocks.map(async (b) => {
+            const history = await dbService.listSetsByExercise(b.exerciseId);
+            const before = history.filter((s) => s.workoutId !== workout.id);
+
+            b.record = records.recordSet(b.sets, records.best(before, b.kind), b.kind);
+        }));
+
+        const notes = Object.fromEntries(
+            (workout.plan || []).map((p) => [p.exerciseId, p.note])
+        );
+
         return ui.html`
             ${ui.title('Итоги тренировки',
                 `${workout.type} · ${dates.formatDateTime(workout.startedAt)}`)}
 
-            ${blocks.length ? blocks.map(block) : ui.empty('Ни одного подхода не записано.')}
+            ${blocks.length
+                ? blocks.map((b) => block(b, notes[b.exerciseId]))
+                : ui.empty('Ни одного подхода не записано.')}
 
             <div class="card">
                 <div class="tiles">
@@ -105,9 +135,13 @@ export const summary = {
                 </div>
             </div>
 
-            ${workout.note ? ui.html`
-                <div class="card"><div class="card-title">Заметка</div><p>${workout.note}</p></div>
-            ` : ''}
+            <div class="card">
+                <div class="card-title">Заметка к тренировке</div>
+                ${workout.note ? ui.html`<p>${workout.note}</p>` : ui.empty('Не заполнена.')}
+                <button class="btn btn-ghost btn-sm" data-action="summary-note" data-id="${workout.id}">
+                    ${workout.note ? 'Изменить' : 'Добавить заметку'}
+                </button>
+            </div>
 
             <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
             <button class="btn btn-ghost" data-action="nav" data-screen="history">В историю</button>
@@ -115,6 +149,22 @@ export const summary = {
         `;
     }
 };
+
+actions.on('summary-note', async (el) => {
+    const workout = await dbService.getWorkout(el.dataset.id);
+    if (!workout) return;
+
+    const values = await dialog.form({
+        title: 'Заметка к тренировке',
+        text: 'Самочувствие, общие впечатления, что учесть в следующий раз.',
+        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: workout.note || '' }]
+    });
+
+    if (!values) return;
+
+    await dbService.updateWorkout(workout.id, { note: values.note });
+    app.render();
+});
 
 actions.on('summary-delete', async (el) => {
     const ok = await dialog.confirm({

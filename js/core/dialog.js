@@ -123,6 +123,10 @@ export const dialog = {
                             <option value="${o.value}" ${ui.raw(o.value === f.value ? 'selected' : '')}>${o.label}</option>
                         `)}
                     </select>`
+                : f.type === 'textarea'
+                ? ui.html`
+                    <textarea id="${id}" name="${f.name}" rows="${f.rows || 4}"
+                              placeholder="${f.placeholder || ''}">${f.value ?? ''}</textarea>`
                 : ui.html`
                     <input id="${id}" name="${f.name}" type="${f.type || 'text'}"
                            value="${f.value ?? ''}" placeholder="${f.placeholder || ''}"

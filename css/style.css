@@ -551,6 +551,90 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .prog-count { font-size: 14px; font-weight: 700; color: var(--accent); }
 .prog-state { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
+/* Прошлый и лучший результат (§15) */
+.rec-block { margin-bottom: 16px; }
+
+.rec-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px 8px;
+    font-size: 12px;
+    padding: 3px 0;
+}
+
+.rec-label { color: var(--text-dim); }
+.rec-value { color: var(--text); font-weight: 700; }
+.rec-when { color: var(--text-dim); font-size: 11px; }
+.rec-empty { color: var(--text-dim); font-style: italic; }
+
+.record-mark { color: var(--accent); }
+tr.is-record td { color: var(--accent); }
+
+.record-line {
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+/* Полоса отдыха (§16) */
+.rest-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--panel-2);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    margin-top: 10px;
+}
+
+.rest-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.rest-bar strong { font-size: 18px; color: var(--accent); min-width: 64px; }
+.rest-bar .chip { min-height: 32px; padding: 5px 10px; }
+
+/* Заметки (§20) */
+.note-row { margin-bottom: 14px; }
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px;
+}
+
+input.note-input {
+    width: 100%;
+    margin-top: 8px;
+    font-size: 14px;
+    padding: 8px 10px;
+}
+
+.note-shown {
+    font-size: 12px;
+    color: var(--text-dim);
+    border-left: 2px solid var(--line);
+    padding-left: 10px;
+    margin-top: 10px;
+    text-align: left;
+}
+
+tr.log-note td {
+    font-size: 11px;
+    color: var(--text-dim);
+    padding-top: 0;
+    padding-bottom: 8px;
+}
+
+.plan-row-last { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
 /* ================== ИТОГИ ================== */
 
 table.log { width: 100%; border-collapse: collapse; font-size: 14px; }

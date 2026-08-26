@@ -10,6 +10,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
+import { records } from '../core/records.js';
 import { app } from '../app.js';
 
 const TYPES = ['Силовая', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
@@ -42,7 +43,10 @@ function itemRow(item, index, total) {
     return ui.html`
         <div class="plan-row">
             <div class="plan-row-head">
-                <div class="plan-row-name">${item.name}</div>
+                <div>
+                    <div class="plan-row-name">${item.name}</div>
+                    ${item.lastLine ? ui.html`<div class="plan-row-last">Последний раз: ${item.lastLine}</div>` : ''}
+                </div>
                 <div class="plan-row-tools">
                     <button class="icon-btn" data-action="plan-up" data-index="${index}"
                             ${ui.raw(index === 0 ? 'disabled' : '')} title="Выше">↑</button>
@@ -181,13 +185,24 @@ actions.on('plan-add', async () => {
 
     if (!exercise) return;
 
+    // Прошлый результат подставляется в исходный вес, чтобы не начинать
+    // каждую тренировку с подбора числа заново (§10).
+    //
+    // Берётся первый подход прошлого раза, а не последний: последний обычно
+    // самый лёгкий — сил к концу упражнения меньше, вес сбрасывают. Подставив
+    // его, приложение каждый раз предлагало бы начинать слабее, чем в прошлый.
+    const history = await dbService.listSetsByExercise(exercise.id);
+    const last = records.lastSession(history);
+    const previous = last?.sets[0];
+
     draft.items.push({
         exerciseId: exercise.id,
         name: exercise.name,
         kind: exercise.kind,
-        plannedSets: 3,
-        targetReps: null,
-        weight: 0
+        plannedSets: last?.sets.length || 3,
+        targetReps: previous?.reps ?? null,
+        weight: previous?.weight || 0,
+        lastLine: last ? records.describeSession(last.sets, exercise.kind) : null
     });
 
     app.render();

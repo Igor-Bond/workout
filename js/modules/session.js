@@ -14,14 +14,18 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine, STATE } from '../core/engine.js';
+import { records } from '../core/records.js';
+import { restTimer } from '../core/timer.js';
 import { config } from '../config.js';
 import { format } from '../core/format.js';
+import { dates } from '../core/dates.js';
 import { app } from '../app.js';
 
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
 let currentId = null;
 let mode = null;
 let ticker = 0;
+let unsubscribe = [];
 
 /** Данные последней отрисовки — чтобы обработчики не ходили в базу заново. */
 let view = null;
@@ -51,7 +55,63 @@ async function load() {
     const valid = rows.some((r) => r.exerciseId === currentId && r.state !== STATE.SKIPPED);
     if (!valid) currentId = engine.nextStep(workout.plan, sets)?.exerciseId || rows[0]?.exerciseId || null;
 
-    return { workout, sets, exercises, rows };
+    // История нужна только по текущему упражнению: тянуть её по всем сразу
+    // означало бы читать половину базы ради двух строк на экране
+    const kind = exercises[currentId]?.kind || 'weight';
+    const history = currentId ? await dbService.listSetsByExercise(currentId) : [];
+
+    return {
+        workout, sets, exercises, rows, kind,
+        last: records.lastSession(history, workout.id),
+        best: records.best(history, kind, workout.id)
+    };
+}
+
+/**
+ * Ориентиры перед подходом (§15).
+ *
+ * Текущая тренировка в рекорд не входит, пока не завершена: иначе «лучший
+ * результат» обновлялся бы прямо во время выполнения и сравнивать было бы
+ * не с чем.
+ */
+function recordsBlock({ last, best, kind }) {
+    if (!last && !best) {
+        return ui.html`<div class="rec-line rec-empty">Первый раз — ориентиров пока нет</div>`;
+    }
+
+    return ui.html`
+        ${last ? ui.html`
+            <div class="rec-line">
+                <span class="rec-label">Последний раз</span>
+                <span class="rec-value">${records.describeSession(last.sets, kind)}</span>
+                <span class="rec-when">${dates.formatDayLabel(last.performedAt)}</span>
+            </div>
+        ` : ''}
+
+        ${best ? ui.html`
+            <div class="rec-line">
+                <span class="rec-label">Лучший результат</span>
+                <span class="rec-value">${records.describe(best, kind)}</span>
+                ${kind === 'weight' && best.weight && best.reps ? ui.html`
+                    <span class="rec-when">≈ ${format.weight(records.epley(best.weight, best.reps))} кг разово</span>
+                ` : ''}
+            </div>
+        ` : ''}
+    `;
+}
+
+/** Полоса отдыха. Ввод следующего подхода она не перекрывает (§16). */
+function restBar() {
+    if (!restTimer.running) return '';
+
+    return ui.html`
+        <div class="rest-bar">
+            <span class="rest-label">Отдых</span>
+            <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
+            <button class="chip" data-action="rest-extend">+30 с</button>
+            <button class="chip" data-action="rest-skip">Пропустить</button>
+        </div>
+    `;
 }
 
 /** Поля ввода зависят от вида упражнения (§6). */
@@ -107,7 +167,10 @@ function currentCard({ workout, sets, exercises, rows }) {
             <td>${s.reps ?? (s.duration ? format.seconds(s.duration) : '—')}</td>
             <td>${s.weight ? format.weight(s.weight) : (s.distance ? format.distance(s.distance) : '—')}</td>
         </tr>
+        ${s.note ? ui.html`<tr class="log-note"><td colspan="3">${s.note}</td></tr>` : ''}
     `);
+
+    const planItem = workout.plan.find((p) => p.exerciseId === currentId);
 
     return ui.html`
         <div class="card session-card">
@@ -118,16 +181,31 @@ function currentCard({ workout, sets, exercises, rows }) {
                     : `Подход ${row.done + 1}`}
             </div>
 
+            <div class="rec-block">${recordsBlock(view)}</div>
+
             ${fields(exercise.kind || 'weight', prefill)}
 
+            <div class="note-row">
+                <button class="link-btn" data-action="sess-note-toggle">＋ заметка к подходу</button>
+                <input type="text" id="f-note" class="note-input" hidden
+                       placeholder="техника, самочувствие, особенности" autocomplete="off">
+            </div>
+
             <button class="btn btn-done btn-lg" data-action="sess-done">Выполнено</button>
+
+            ${restBar()}
 
             <div class="sess-tools">
                 <button class="btn btn-ghost btn-sm" data-action="sess-skip">Пропустить упражнение</button>
                 ${own.length ? ui.html`
                     <button class="btn btn-ghost btn-sm" data-action="sess-undo">Отменить последний подход</button>
                 ` : ''}
+                <button class="btn btn-ghost btn-sm" data-action="sess-note-exercise">
+                    ${planItem?.note ? 'Заметка к упражнению ✎' : 'Заметка к упражнению'}
+                </button>
             </div>
+
+            ${planItem?.note ? ui.html`<p class="note-shown">${planItem.note}</p>` : ''}
 
             ${own.length ? ui.html`
                 <table class="log">
@@ -205,6 +283,14 @@ export const session = {
                 <div class="sess-side">${exerciseList(view)}</div>
             </div>
 
+            ${workout.note ? ui.html`
+                <div class="card"><div class="card-title">Заметка к тренировке</div><p>${workout.note}</p></div>
+            ` : ''}
+
+            <button class="btn btn-ghost" data-action="sess-note-workout">
+                ${workout.note ? 'Изменить заметку к тренировке' : 'Заметка к тренировке'}
+            </button>
+
             <button class="btn ${complete ? 'btn-accent' : 'btn-ghost'}" data-action="sess-finish">
                 Завершить тренировку
             </button>
@@ -218,9 +304,10 @@ export const session = {
      */
     mount() {
         clearInterval(ticker);
+        unsubscribe.forEach((off) => off());
+        unsubscribe = [];
 
-        const el = document.getElementById('sess-elapsed');
-        if (!el || !view) return;
+        if (!view) return;
 
         ticker = setInterval(() => {
             const live = document.getElementById('sess-elapsed');
@@ -228,10 +315,22 @@ export const session = {
 
             live.textContent = format.duration(Date.now() - view.workout.startedAt);
         }, 1000);
+
+        // Полоса отдыха обновляется на месте: перерисовывать экран раз в
+        // секунду означало бы вырывать фокус из поля ввода
+        unsubscribe.push(restTimer.on('tick', () => {
+            const el = document.getElementById('rest-remaining');
+            if (el) el.textContent = format.seconds(restTimer.remaining);
+        }));
+
+        // А вот исчезновение полосы — уже смена состава экрана
+        unsubscribe.push(restTimer.on('finish', () => app.render()));
     },
 
     unmount() {
         clearInterval(ticker);
+        unsubscribe.forEach((off) => off());
+        unsubscribe = [];
     }
 };
 
@@ -283,13 +382,20 @@ actions.on('sess-done', async () => {
     const values = readFields(kind);
     if (!values) return;
 
+    const note = document.getElementById('f-note')?.value.trim();
+
     await dbService.addSet({
         workoutId: workout.id,
         exerciseId: currentId,
         order: engine.nextOrder(sets),
         setNumber: engine.nextSetNumber(sets, currentId),
+        note: note || undefined,
         ...values
     });
+
+    // Отдых запускается от нажатия, а не от отрисовки: пользователь уже
+    // взаимодействовал со страницей, и браузер разрешит звук в конце
+    restTimer.start(config.get('restSeconds'), currentId);
 
     // В режиме «по плану» приложение само переводит к следующему шагу,
     // в свободном — остаётся там, где стоял пользователь (§11)
@@ -298,6 +404,64 @@ actions.on('sess-done', async () => {
         if (next) currentId = next.exerciseId;
     }
 
+    app.render();
+});
+
+// ================== ОТДЫХ ==================
+
+actions.on('rest-skip', () => {
+    restTimer.stop();
+    app.render();
+});
+
+actions.on('rest-extend', () => restTimer.extend(30));
+
+// ================== ЗАМЕТКИ (§20) ==================
+
+actions.on('sess-note-toggle', (el) => {
+    const input = document.getElementById('f-note');
+    if (!input) return;
+
+    // Без перерисовки: поле открывается рядом с уже введёнными значениями,
+    // и терять их ради показа одной строки незачем
+    input.hidden = !input.hidden;
+    el.textContent = input.hidden ? '＋ заметка к подходу' : '− заметка к подходу';
+
+    if (!input.hidden) input.focus();
+});
+
+actions.on('sess-note-exercise', async () => {
+    if (!view || !currentId) return;
+
+    const item = view.workout.plan.find((p) => p.exerciseId === currentId);
+
+    const values = await dialog.form({
+        title: `Заметка: ${view.exercises[currentId]?.name || 'упражнение'}`,
+        text: 'Относится к этому упражнению в текущей тренировке.',
+        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: item?.note || '' }]
+    });
+
+    if (!values) return;
+
+    const plan = view.workout.plan.map((p) =>
+        p.exerciseId === currentId ? { ...p, note: values.note || undefined } : p);
+
+    await dbService.updateWorkout(view.workout.id, { plan });
+    app.render();
+});
+
+actions.on('sess-note-workout', async () => {
+    if (!view) return;
+
+    const values = await dialog.form({
+        title: 'Заметка к тренировке',
+        text: 'Самочувствие, общие впечатления, что учесть в следующий раз.',
+        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: view.workout.note || '' }]
+    });
+
+    if (!values) return;
+
+    await dbService.updateWorkout(view.workout.id, { note: values.note });
     app.render();
 });
 
@@ -420,6 +584,7 @@ actions.on('sess-finish', async () => {
 
     await dbService.finishWorkout(workout.id);
 
+    restTimer.stop();
     currentId = null;
     mode = null;
 
