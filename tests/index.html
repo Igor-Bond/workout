@@ -75,6 +75,7 @@
     import { run } from './runner.js';
 
     // Наборы регистрируют проверки самим фактом импорта
+    await import('./suites/engine.test.js');
     await import('./suites/migrations.test.js');
     await import('./suites/db.test.js');
 

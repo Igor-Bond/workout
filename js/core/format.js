@@ -36,6 +36,12 @@ export const format = {
         return String(rounded).replace('.', ',');
     },
 
+    /** Дробное число с запятой: 13,3. Точка в русском тексте выглядит чужой. */
+    decimal(value, digits = 1) {
+        if (!Number.isFinite(value)) return '—';
+        return value.toFixed(digits).replace('.', ',');
+    },
+
     /** Дистанция: 800 м, 1,2 км. */
     distance(m) {
         if (!m) return '—';

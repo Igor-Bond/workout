@@ -410,6 +410,229 @@ input[type=checkbox] {
 /* Поле, не прошедшее проверку в диалоге */
 .is-invalid { border-color: var(--bad) !important; }
 
+/* ================== ПЛАН ТРЕНИРОВКИ ================== */
+
+.plan-row {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.plan-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.plan-row-name {
+    font-size: 14px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.plan-row-tools { display: flex; gap: 4px; flex: none; }
+
+.plan-row-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+}
+
+.plan-row-fields .field { margin-bottom: 0; }
+.plan-row-fields input { padding: 8px 10px; }
+
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+
+/* ================== ВЫПОЛНЕНИЕ ================== */
+
+.sess-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.sess-type { font-size: 18px; font-weight: 700; }
+.sess-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.sess-meta strong { color: var(--accent); }
+.sess-head .chips { margin-bottom: 0; }
+
+.session-card { text-align: center; }
+
+.sess-name {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+}
+
+.sess-set { font-size: 14px; color: var(--accent); margin-bottom: 16px; }
+
+/*
+ * Селектор начинается с input не для красоты: правило input[type=number]
+ * выше по весу, чем один класс, и без уточнения поле растянулось бы на всю
+ * ширину карточки вместо крупного квадрата по центру.
+ */
+input.big-input {
+    display: block;
+    width: 140px;
+    margin: 0 auto 6px;
+    font-family: inherit;
+    font-size: 44px;
+    text-align: center;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 6px 0;
+}
+
+input.big-input:focus { outline: none; border-color: var(--accent); }
+
+.big-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+.inline-field {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.inline-field input { width: 100px; padding: 8px; text-align: center; }
+.inline-field span { font-size: 12px; color: var(--text-dim); }
+
+.sess-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.sess-tools .btn { flex: 1; margin-bottom: 0; min-width: 150px; }
+.btn-sm { padding: 9px 12px; font-size: 13px; min-height: 38px; }
+
+/* Список упражнений с прогрессом «Бицепс 2/3» */
+.prog-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+
+.prog-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    padding: 10px 12px;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.prog-row.is-current { border-color: var(--accent); }
+.prog-row.is-done    { border-left-color: var(--good); }
+.prog-row.is-active  { border-left-color: var(--accent); }
+.prog-row.is-skipped { opacity: 0.5; }
+.prog-row.is-extra   { border-left-color: var(--blue); }
+
+.prog-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.prog-count { font-size: 14px; font-weight: 700; color: var(--accent); }
+.prog-state { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ================== ИТОГИ ================== */
+
+table.log { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+table.log th {
+    text-align: left;
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 4px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+}
+
+table.log td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+table.log tr:last-child td { border-bottom: none; }
+
+/* Широкая таблица прокручивается внутри себя, а не распирает страницу */
+.table-scroll { overflow-x: auto; }
+
+.ex-block {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+
+.ex-block-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.ex-block-title .sub { color: var(--text-dim); font-weight: 400; font-size: 12px; }
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 10px;
+}
+
+.tile { text-align: center; }
+.tile strong { display: block; color: var(--accent); font-size: 19px; }
+.tile span { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* ================== ГЛАВНЫЙ ЭКРАН ================== */
+
+.active-type { font-size: 16px; font-weight: 700; }
+.active-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; margin-bottom: 14px; }
+
+.history-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    padding: 12px 14px;
+    cursor: pointer;
+}
+
+.history-item .h-date {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+}
+
+.history-item .h-badge { color: var(--accent); }
+.history-item .h-stats { display: block; font-size: 13px; }
+
 /* ================== ЧИПЫ ================== */
 
 .chips {
@@ -513,10 +736,28 @@ input[type=checkbox] {
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
 
+/* Диалог с поиском: список прокручивается, кнопки остаются на виду */
+.dialog-tall { display: flex; flex-direction: column; max-height: 80vh; }
+.dialog-tall .dialog-options { overflow-y: auto; flex: 1; min-height: 80px; }
+
+.dialog-search {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 16px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.dialog-search:focus { outline: none; border-color: var(--accent-dim); }
+
 /* ================== КОМПЬЮТЕР (§32) ================== */
 
 @media (min-width: 900px) {
-    :root { --content: 720px; }
+    :root { --content: 900px; }
 
     .shell { flex-direction: row; }
 
@@ -572,4 +813,26 @@ input[type=checkbox] {
     .dialog-actions .btn { min-width: 0; flex: 1; }
 
     .dialog-backdrop { align-items: center; }
+
+    /*
+     * Экран выполнения в две колонки (§32): ввод подхода слева, список
+     * упражнений справа. На телефоне список пришлось бы искать прокруткой,
+     * здесь он всё время перед глазами.
+     */
+    .sess-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+        gap: 16px;
+        align-items: start;
+    }
+
+    .sess-layout .card { margin-bottom: 0; }
+    .sess-layout + .btn { margin-top: 16px; }
+
+    input.big-input { width: 180px; font-size: 52px; }
+
+    /* Поля плана шире: на широкой строке они иначе выглядят обрубками */
+    .plan-row-fields { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+
+    .tiles { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
 }

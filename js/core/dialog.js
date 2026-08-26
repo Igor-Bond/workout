@@ -20,7 +20,7 @@ function ensureRoot() {
  * Общий каркас. onResolve вызывается со значением, выбранным пользователем;
  * закрытие по фону, крестику или Esc даёт значение по умолчанию.
  */
-function open(innerHtml, defaultValue, collect = null) {
+function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
     return new Promise((resolve) => {
         const host = ensureRoot();
 
@@ -67,6 +67,10 @@ function open(innerHtml, defaultValue, collect = null) {
 
         // Фокус на главной кнопке: с клавиатуры диалог закрывается пробелом
         backdrop.querySelector('[data-primary]')?.focus();
+
+        // Диалогам с живым поведением — поиском, проверкой на лету — нужен
+        // доступ к своим узлам и возможность закрыться самим
+        setup?.(backdrop, finish);
     });
 }
 
@@ -162,7 +166,67 @@ export const dialog = {
                     <button class="btn btn-accent" data-value="ok" data-submit data-primary>${confirmText}</button>
                 </div>
             </div>
-        `, null, collect);
+        `, null, { collect });
+    },
+
+    /**
+     * Выбор из длинного списка с поиском.
+     *
+     * Справочник упражнений — три десятка позиций и растёт: без поиска выбор
+     * превращается в прокрутку. Возвращает value выбранного, либо
+     * { create: 'название' }, если разрешено создание и ничего не подошло.
+     */
+    pick({ title, text, items, placeholder = 'Поиск', createLabel = null, cancelText = 'Отмена' }) {
+        const option = (item) => ui.html`
+            <button class="dialog-option" data-value="${item.value}">
+                <span class="dialog-option-label">${item.label}</span>
+                ${item.hint ? ui.raw(`<span class="dialog-option-hint">${ui.esc(item.hint)}</span>`) : ''}
+            </button>
+        `;
+
+        const setup = (backdrop, finish) => {
+            const search = backdrop.querySelector('.dialog-search');
+            const list = backdrop.querySelector('.dialog-options');
+            const create = backdrop.querySelector('[data-create]');
+
+            const refresh = () => {
+                const query = search.value.trim().toLowerCase();
+
+                const matched = query
+                    ? items.filter((i) => i.label.toLowerCase().includes(query))
+                    : items;
+
+                list.innerHTML = matched.length
+                    ? String(ui.html`${matched.map(option)}`)
+                    : '<div class="empty-note">Ничего не найдено</div>';
+
+                // Создание предлагается только когда введено что-то своё:
+                // пустая кнопка «создать» посреди списка сбивает с толку
+                if (create) {
+                    create.hidden = !query;
+                    create.textContent = `${createLabel}: «${search.value.trim()}»`;
+                }
+            };
+
+            search.addEventListener('input', refresh);
+            create?.addEventListener('click', () => finish({ create: search.value.trim() }));
+
+            refresh();
+            search.focus();
+        };
+
+        return open(ui.html`
+            <div class="dialog dialog-tall" role="dialog" aria-modal="true">
+                <div class="dialog-title">${title}</div>
+                ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
+                <input class="dialog-search" type="text" placeholder="${placeholder}" autocomplete="off">
+                <div class="dialog-options"></div>
+                ${createLabel ? ui.raw('<button class="btn btn-ghost" data-create hidden></button>') : ''}
+                <div class="dialog-actions">
+                    <button class="btn btn-ghost" data-value="">${cancelText}</button>
+                </div>
+            </div>
+        `, null, { setup });
     },
 
     /**
