@@ -1,2 +1,20 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Единый вид переносов строк в репозитории.
+#
+# Windows пишет CRLF, Linux и macOS — LF. Без этого файла git при каждом
+# коммите предупреждает «LF will be replaced by CRLF», а при работе с двух
+# машин показывает весь файл изменённым из-за невидимых символов.
+#
+# В репозитории всё хранится с LF; в рабочей копии git подставляет то,
+# что принято в системе.
+
+* text=auto eol=lf
+
+# Двоичные файлы трогать нельзя
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.pdf   binary

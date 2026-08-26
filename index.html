@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14110f">
+<meta name="description" content="Журнал тренировок: подходы, повторения, прогресс">
+<title>Трекер тренировок</title>
+
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<!--
+    Строка состояния: black, а не black-translucent. С translucent iOS
+    отдаёт окно высотой «экран минус строка состояния», но прижимает его
+    к самому верху — нижние точки остаются вне окна, и меню визуально
+    висит над краем экрана, хотя по измерениям стоит на нём.
+
+    Учесть при установке: iOS запоминает эти метки в момент добавления
+    значка на экран «Домой». Уже установленному приложению обновление их
+    не поменяет — значок нужно удалить и добавить заново.
+-->
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Трекер">
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="shell">
+
+    <!--
+        Меню статично в разметке, а не собирается скриптом: так оно
+        появляется вместе со страницей, до загрузки модулей.
+        На телефоне прижато к низу, на компьютере — боковая колонка (§32).
+    -->
+    <nav class="nav" aria-label="Разделы приложения">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="nav-brand-mark">▚</span>
+                <span class="nav-brand-text">Трекер</span>
+            </div>
+
+            <button class="nav-btn" data-nav="workout" data-action="nav" data-screen="home">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="2" y="9" width="3" height="6" rx="1"/>
+                    <rect x="6" y="6" width="3" height="12" rx="1"/>
+                    <rect x="15" y="6" width="3" height="12" rx="1"/>
+                    <rect x="19" y="9" width="3" height="6" rx="1"/>
+                    <rect x="9" y="11" width="6" height="2"/>
+                </svg>
+                <span>Тренировка</span>
+            </button>
+
+            <button class="nav-btn" data-nav="history" data-action="nav" data-screen="history">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 7v5.2l3.4 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>История</span>
+            </button>
+
+            <button class="nav-btn" data-nav="stats" data-action="nav" data-screen="stats">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="13" width="4" height="8" rx="1"/>
+                    <rect x="10" y="7" width="4" height="14" rx="1"/>
+                    <rect x="17" y="3" width="4" height="18" rx="1"/>
+                </svg>
+                <span>Статистика</span>
+            </button>
+
+            <button class="nav-btn" data-nav="profile" data-action="nav" data-screen="profile">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="8" r="4"/>
+                    <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>
+                </svg>
+                <span>Профиль</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="content">
+        <div id="banners" class="banners"></div>
+        <main id="screen" class="screen">
+            <div class="loading">Загрузка…</div>
+        </main>
+    </div>
+
+</div>
+
+<div id="dialog-root"></div>
+
+<noscript>
+    <div class="noscript">Приложению нужен JavaScript — включите его в настройках браузера.</div>
+</noscript>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

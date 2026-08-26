@@ -1,0 +1,530 @@
+/*
+ * Трекер тренировок — стили (§30 ТЗ).
+ *
+ * Все цвета объявлены переменными в одном месте и нигде не дублируются:
+ * ни в других правилах, ни в JavaScript. Графики (§27) берут цвета отсюда
+ * же через getComputedStyle.
+ */
+
+:root {
+    --bg:        #14110f;
+    --panel:     #1d1916;
+    --panel-2:   #241f1b;
+    --line:      #332c26;
+    --accent:    #ff7a33;
+    --accent-dim:#c9572f;
+    --text:      #f3ede4;
+    --text-dim:  #a89a8a;
+    --good:      #6fae6f;
+    --bad:       #c0392b;
+    --blue:      #5b9bd5;
+    --purple:    #a87fd1;
+
+    --radius:    10px;
+    --radius-sm: 8px;
+    --content:   520px;
+
+    /* Заполняются из viewport.js — 100dvh поддерживают не все браузеры */
+    --app-height: 100vh;
+    --keyboard-inset: 0px;
+
+    --safe-top:    env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+    /* Высота нижнего меню: на неё отступает содержимое */
+    --nav-height: 62px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 15px;
+    line-height: 1.45;
+    min-height: var(--app-height);
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.01em; }
+p { margin: 0 0 10px; }
+p:last-child { margin-bottom: 0; }
+
+/* ================== КАРКАС ================== */
+
+.shell {
+    min-height: var(--app-height);
+    display: flex;
+    flex-direction: column;
+}
+
+.content {
+    flex: 1;
+    width: 100%;
+    max-width: var(--content);
+    margin: 0 auto;
+    padding: calc(16px + var(--safe-top)) 14px
+             calc(var(--nav-height) + var(--safe-bottom) + 24px);
+}
+
+.screen { display: block; }
+
+.loading {
+    color: var(--text-dim);
+    text-align: center;
+    padding: 40px 0;
+    font-size: 13px;
+}
+
+.noscript {
+    padding: 20px;
+    color: var(--text);
+    text-align: center;
+}
+
+/* ================== МЕНЮ ================== */
+
+.nav {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding-bottom: var(--safe-bottom);
+    z-index: 40;
+}
+
+.nav-inner {
+    width: 100%;
+    max-width: var(--content);
+    margin: 0 auto;
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px;
+}
+
+/* Название приложения нужно только боковой колонке на компьютере */
+.nav-brand { display: none; }
+
+.nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding: 7px 2px;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.nav-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+}
+
+.nav-btn.is-active {
+    color: var(--accent);
+    background: var(--panel-2);
+}
+
+/*
+ * Клавиатура перекрывает нижнюю часть окна, а не уменьшает его (§31).
+ * Меню под ней всё равно не видно — убираем, чтобы оно не занимало место
+ * над клавиатурой и не отжимало вниз кнопку «Выполнено».
+ */
+.keyboard-open .nav { display: none; }
+.keyboard-open .content { padding-bottom: 24px; }
+
+/* ================== ЗАГОЛОВКИ ЭКРАНА ================== */
+
+.screen-head { margin-bottom: 18px; }
+.screen-head h1 { font-size: 22px; }
+
+.screen-sub {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.section { margin-top: 24px; }
+
+.section-title {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+/* ================== КАРТОЧКИ ================== */
+
+.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.card-title {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+}
+
+.empty-note {
+    color: var(--text-dim);
+    font-size: 13px;
+    padding: 6px 0;
+}
+
+.hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+}
+
+.info-row:last-of-type { border-bottom: none; }
+.info-row span { color: var(--text-dim); }
+
+/* ================== ЗАГЛУШКИ ================== */
+
+/*
+ * Нереализованный раздел выглядит намеренно незаконченным: пунктир, никакой
+ * заливки. Так его нельзя перепутать с готовым экраном, у которого просто
+ * нет данных.
+ */
+.stub {
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    color: var(--text-dim);
+}
+
+.stub-stage {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-dim);
+    border: 1px solid var(--accent-dim);
+    border-radius: 20px;
+    padding: 2px 9px;
+    margin-bottom: 10px;
+}
+
+.stub-title {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.stub p { font-size: 12px; }
+
+/* ================== КНОПКИ ================== */
+
+.btn {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-bottom: 10px;
+    min-height: 44px;
+}
+
+.btn:last-child { margin-bottom: 0; }
+
+.btn-lg { font-size: 16px; padding: 16px; }
+
+.btn-accent { background: var(--accent); color: #1a1310; }
+.btn-accent:active { background: var(--accent-dim); }
+
+.btn-done { background: var(--good); color: #102310; }
+.btn-done:active { filter: brightness(0.9); }
+
+.btn-ghost {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.btn-ghost:active { border-color: var(--text-dim); }
+
+.btn-danger {
+    background: transparent;
+    border: 1px solid var(--bad);
+    color: var(--bad);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.btn-danger-solid { background: var(--bad); color: #fff; }
+
+/* ================== ПОЛЯ ================== */
+
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+
+label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+}
+
+label strong { color: var(--accent); }
+
+input[type=text],
+input[type=number],
+select,
+textarea {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    /* 16px обязательны: при меньшем размере Safari масштабирует страницу
+       при фокусе в поле, и вернуть масштаб обратно нечем */
+    font-size: 16px;
+    padding: 10px 12px;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-dim);
+}
+
+input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    height: 32px;
+}
+
+input[type=checkbox] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--accent);
+    flex: none;
+}
+
+.setting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.setting:last-child { border-bottom: none; }
+
+.setting-text { display: block; }
+.setting-label { display: block; font-size: 14px; color: var(--text); }
+.setting-hint { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ================== ЧИПЫ ================== */
+
+.chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.chip {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 8px 14px;
+    cursor: pointer;
+    min-height: 36px;
+}
+
+.chip.is-active { border-color: var(--accent); color: var(--accent); }
+
+/* ================== ПОЛОСЫ УВЕДОМЛЕНИЙ ================== */
+
+.banners { margin-bottom: 14px; }
+
+.banner {
+    background: var(--panel-2);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.banner-btn {
+    background: var(--accent);
+    color: #1a1310;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 36px;
+}
+
+/* ================== ДИАЛОГИ ================== */
+
+.dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 16px;
+    padding-bottom: calc(16px + var(--safe-bottom));
+    z-index: 100;
+}
+
+.dialog {
+    width: 100%;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+}
+
+.dialog-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.dialog-text { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+
+.dialog-options { margin-bottom: 14px; }
+
+.dialog-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.dialog-option.is-danger { border-color: var(--bad); color: var(--bad); }
+.dialog-option-label { display: block; font-size: 14px; }
+.dialog-option-hint { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+.dialog-actions { display: flex; gap: 8px; }
+.dialog-actions .btn { margin-bottom: 0; }
+
+/* ================== КОМПЬЮТЕР (§32) ================== */
+
+@media (min-width: 900px) {
+    :root { --content: 720px; }
+
+    .shell { flex-direction: row; }
+
+    .nav {
+        position: sticky;
+        top: 0;
+        left: auto; right: auto; bottom: auto;
+        align-self: flex-start;
+        height: var(--app-height);
+        width: 230px;
+        flex: none;
+        border-top: none;
+        border-right: 1px solid var(--line);
+        padding: 20px 12px;
+    }
+
+    .nav-inner {
+        flex-direction: column;
+        gap: 4px;
+        padding: 0;
+        max-width: none;
+    }
+
+    .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 10px 20px;
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .nav-brand-mark { color: var(--accent); }
+
+    .nav-btn {
+        flex: none;
+        flex-direction: row;
+        justify-content: flex-start;
+        gap: 12px;
+        font-size: 13px;
+        letter-spacing: 0;
+        text-transform: none;
+        padding: 11px 12px;
+    }
+
+    .content { padding: 32px 28px 60px; margin: 0; }
+
+    .screen-head h1 { font-size: 26px; }
+
+    /* Кнопки не растягиваются во всю ширину широкой колонки */
+    .btn { width: auto; min-width: 220px; }
+    .btn-lg { min-width: 280px; }
+    .dialog-actions .btn { min-width: 0; flex: 1; }
+
+    .dialog-backdrop { align-items: center; }
+}
