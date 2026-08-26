@@ -278,6 +278,77 @@ export const stats = {
     },
 
     /**
+     * Поиск веса тела на дату (§26.3).
+     *
+     * Берётся ближайшее взвешивание не позже нужной даты. Если таких нет —
+     * самое раннее известное: иначе у всех тренировок до первого взвешивания
+     * нагрузка была бы нулевой, и на графике появился бы обрыв в день начала
+     * взвешиваний, неотличимый от настоящего скачка нагрузки.
+     *
+     * Возвращает функцию, а не значение: она вызывается для каждого подхода,
+     * и пересобирать список на каждый вызов было бы расточительно.
+     */
+    bodyWeightLookup(entries = []) {
+        const sorted = [...entries].sort((a, b) => a.at - b.at);
+        if (sorted.length === 0) return () => null;
+
+        return (ts) => {
+            let found = null;
+
+            for (const entry of sorted) {
+                if (entry.at > ts) break;
+                found = entry;
+            }
+
+            return (found || sorted[0]).weight;
+        };
+    },
+
+    /**
+     * Нагрузка подхода с учётом веса тела.
+     *
+     * Для подтягиваний и отжиманий поднимается собственный вес, и без него
+     * такие подходы в объёме считаются нулевыми — то есть как будто их не
+     * было. Доп. отягощение прибавляется к весу тела.
+     */
+    load(set, kind, bodyWeight) {
+        const reps = set.reps || 0;
+
+        if (kind === 'reps') {
+            if (!bodyWeight) return 0;
+            return reps * (bodyWeight + (set.weight || 0));
+        }
+
+        return set.weight ? reps * set.weight : 0;
+    },
+
+    /** Точки графика веса тела: {at, weight}. */
+    bodySeries(entries = [], range = null) {
+        return entries
+            .filter((e) => stats.inRange(e.at, range))
+            .sort((a, b) => a.at - b.at)
+            .map((e) => ({ at: e.at, weight: e.weight }));
+    },
+
+    /**
+     * Изменение веса за период: первое и последнее взвешивание.
+     * Одно взвешивание изменением не является.
+     */
+    bodyChange(series = []) {
+        if (series.length < 2) return null;
+
+        const first = series[0];
+        const last = series[series.length - 1];
+
+        return {
+            from: first.weight,
+            to: last.weight,
+            delta: last.weight - first.weight,
+            days: Math.round((last.at - first.at) / DAY)
+        };
+    },
+
+    /**
      * Тепловая карта: клетка на день за последний год (§26).
      * Возвращает дни по возрастанию с уровнем насыщенности 0–4.
      */

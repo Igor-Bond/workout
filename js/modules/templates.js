@@ -65,7 +65,7 @@ export const templates = {
             ${ui.title('Шаблоны', 'Сохранённая тренировка, которую можно запускать сколько угодно раз')}
 
             ${list.length
-                ? list.map((t) => card(t, names))
+                ? ui.html`<div class="grid-2">${list.map((t) => card(t, names))}</div>`
                 : ui.empty('Шаблонов пока нет. Их можно создать здесь или сохранить из проведённой тренировки в её итогах.')}
 
             <button class="btn btn-ghost" data-action="tpl-new">+ Создать шаблон</button>

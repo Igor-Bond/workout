@@ -267,6 +267,66 @@ describe('Разрывы в линии', () => {
     });
 });
 
+describe('Вес тела', () => {
+
+    const weights = [
+        { at: NOW - 30 * DAY, weight: 80 },
+        { at: NOW - 10 * DAY, weight: 78 },
+        { at: NOW, weight: 77.5 }
+    ];
+
+    it('на дату берётся ближайшее взвешивание не позже неё', () => {
+        const at = stats.bodyWeightLookup(weights);
+
+        equal(at(NOW - 5 * DAY), 78);
+        equal(at(NOW), 77.5);
+    });
+
+    it('до первого взвешивания берётся самое раннее известное', () => {
+        const at = stats.bodyWeightLookup(weights);
+
+        equal(at(NOW - 100 * DAY), 80, 'иначе на графике появился бы обрыв в день начала взвешиваний');
+    });
+
+    it('без взвешиваний веса нет', () => {
+        equal(stats.bodyWeightLookup([])(NOW), null);
+    });
+
+    it('изменение считается по первому и последнему', () => {
+        const change = stats.bodyChange(stats.bodySeries(weights, null));
+
+        equal(change.delta, -2.5);
+        equal(change.days, 30);
+    });
+
+    it('одно взвешивание изменением не является', () => {
+        equal(stats.bodyChange([{ at: NOW, weight: 80 }]), null);
+    });
+});
+
+describe('Нагрузка с весом тела', () => {
+
+    it('подтягивания без веса тела дают нулевой объём', () => {
+        equal(stats.load({ reps: 10 }, 'reps', null), 0, 'считать их нулём — значит считать, что их не было');
+    });
+
+    it('с весом тела объём появляется', () => {
+        equal(stats.load({ reps: 10 }, 'reps', 78), 780);
+    });
+
+    it('дополнительное отягощение прибавляется к весу тела', () => {
+        equal(stats.load({ reps: 8, weight: 10 }, 'reps', 78), 704);
+    });
+
+    it('силовое упражнение вес тела не учитывает', () => {
+        equal(stats.load({ reps: 10, weight: 60 }, 'weight', 78), 600);
+    });
+
+    it('упражнение на время объёма не даёт', () => {
+        equal(stats.load({ duration: 60 }, 'time', 78), 0);
+    });
+});
+
 describe('Тепловая карта', () => {
 
     it('покрывает год целыми неделями', () => {

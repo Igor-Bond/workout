@@ -32,6 +32,17 @@ db.version(1).stores({
     settings:  'key'
 });
 
+// Версия 2: вес тела (§26.3). Отдельная таблица, а не поле в тренировке:
+// взвешиваются не только в дни занятий, и одно к другому не привязано.
+db.version(2).stores({
+    exercises: 'id, nameKey, kind, updatedAt',
+    templates: 'id, name, updatedAt',
+    workouts:  'id, startedAt, status, updatedAt',
+    sets:      'id, workoutId, exerciseId, performedAt, updatedAt, [workoutId+order], [exerciseId+performedAt]',
+    settings:  'key',
+    bodyWeight: 'id, at, updatedAt'
+});
+
 /**
  * Базовый справочник кладётся при создании базы, а не при каждом запуске:
  * иначе удалённые пользователем упражнения воскресали бы после перезагрузки.
@@ -72,6 +83,13 @@ function newId() {
 
 /** Живые записи: удалённые мягко не показываются и не считаются (§36). */
 const alive = (record) => !!record && !record.deletedAt;
+
+/** Полночь дня, которому принадлежит момент. Вес тела хранится по дням. */
+function startOfDay(ts) {
+    const d = new Date(ts);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+}
 
 export const dbService = {
 
@@ -358,6 +376,51 @@ export const dbService = {
     async deleteTemplate(id) {
         const now = Date.now();
         await db.templates.update(id, { deletedAt: now, updatedAt: now });
+    },
+
+    // ================== ВЕС ТЕЛА (§26.3) ==================
+
+    /**
+     * Запись веса. На день приходится одна запись: взвешиваться можно
+     * сколько угодно раз, но в истории веса нужна одна точка на день,
+     * иначе график превратится в шум от утренних и вечерних измерений.
+     */
+    async setBodyWeight({ at = Date.now(), weight, note = '' }) {
+        const day = startOfDay(at);
+        const now = Date.now();
+
+        const existing = await db.bodyWeight.where('at').equals(day).first();
+
+        if (existing) {
+            await db.bodyWeight.update(existing.id, { weight, note, deletedAt: undefined, updatedAt: now });
+            return dbService.getBodyWeightOn(day);
+        }
+
+        const record = { id: newId(), at: day, weight, note, updatedAt: now };
+        await db.bodyWeight.add(record);
+        return record;
+    },
+
+    async getBodyWeightOn(at) {
+        const found = await db.bodyWeight.where('at').equals(startOfDay(at)).first();
+        return alive(found) ? found : null;
+    },
+
+    /** Все взвешивания по возрастанию даты. */
+    async listBodyWeight() {
+        const all = await db.bodyWeight.orderBy('at').toArray();
+        return all.filter(alive);
+    },
+
+    /** Последнее взвешивание. */
+    async lastBodyWeight() {
+        const all = await dbService.listBodyWeight();
+        return all[all.length - 1] || null;
+    },
+
+    async deleteBodyWeight(id) {
+        const now = Date.now();
+        await db.bodyWeight.update(id, { deletedAt: now, updatedAt: now });
     },
 
     // ================== НАСТРОЙКИ ==================

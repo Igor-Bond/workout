@@ -218,9 +218,10 @@ function currentCard({ workout, sets, exercises, rows }) {
 }
 
 function exerciseList({ exercises, rows }) {
-    const items = rows.map((row) => ui.html`
+    const items = rows.map((row, i) => ui.html`
         <button class="prog-row ${row.exerciseId === currentId ? 'is-current' : ''} is-${row.state}"
                 data-action="sess-select" data-id="${row.exerciseId}">
+            ${i < 9 ? ui.html`<span class="prog-key">${String(i + 1)}</span>` : ''}
             <span class="prog-name">${exercises[row.exerciseId]?.name || 'Упражнение'}</span>
             <span class="prog-count">${row.planned > 0 ? `${row.done}/${row.planned}` : String(row.done)}</span>
             <span class="prog-state">${STATE_LABEL[row.state]}</span>
@@ -232,6 +233,7 @@ function exerciseList({ exercises, rows }) {
             <div class="card-title">Упражнения</div>
             <div class="prog-list">${items}</div>
             <button class="btn btn-ghost btn-sm" data-action="sess-add">+ Добавить упражнение</button>
+            <p class="hint keys-hint">Цифра — выбрать упражнение, Enter — записать подход, пробел — пропустить отдых.</p>
         </div>
     `;
 }
@@ -325,12 +327,69 @@ export const session = {
 
         // А вот исчезновение полосы — уже смена состава экрана
         unsubscribe.push(restTimer.on('finish', () => app.render()));
+
+        keyboard.attach();
     },
 
     unmount() {
         clearInterval(ticker);
         unsubscribe.forEach((off) => off());
         unsubscribe = [];
+
+        keyboard.detach();
+    }
+};
+
+/**
+ * Клавиатура на экране выполнения (§32).
+ *
+ * За компьютером руки уже на клавиатуре, и тянуться мышью к списку
+ * упражнений после каждого подхода — лишнее движение. Цифра выбирает
+ * упражнение по его номеру в списке, Enter записывает подход (это делает
+ * data-enter на поле), пробел пропускает отдых.
+ *
+ * Обработчик снимается при уходе с экрана: иначе цифры продолжали бы
+ * что-то выбирать в истории и статистике.
+ */
+const keyboard = {
+
+    handler: null,
+
+    attach() {
+        keyboard.detach();
+
+        keyboard.handler = (e) => {
+            // В поле ввода цифры — это цифры, а не команды.
+            // Цель события не всегда элемент, поэтому проверка через ?.
+            if (e.target?.matches?.('input, textarea, select')) return;
+            if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+            if (e.code === 'Space' && restTimer.running) {
+                e.preventDefault();
+                restTimer.stop();
+                return app.render();
+            }
+
+            const digit = Number(e.key);
+            if (!Number.isInteger(digit) || digit < 1 || digit > 9) return;
+
+            const row = view?.rows[digit - 1];
+            if (!row) return;
+
+            e.preventDefault();
+            currentId = row.exerciseId;
+            mode = 'free';
+            app.render();
+        };
+
+        document.addEventListener('keydown', keyboard.handler);
+    },
+
+    detach() {
+        if (!keyboard.handler) return;
+
+        document.removeEventListener('keydown', keyboard.handler);
+        keyboard.handler = null;
     }
 };
 

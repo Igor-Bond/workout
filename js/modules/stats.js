@@ -8,6 +8,7 @@
 
 import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
+import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
@@ -62,22 +63,67 @@ function monthLabels(days) {
     return labels.slice(1);
 }
 
+/**
+ * Вес тела (§26.3).
+ *
+ * Отдельная карточка, а не строка в общих показателях: это не результат
+ * тренировок, а условие, в котором они проходят.
+ */
+function bodyBlock(weights, range) {
+    const series = calc.bodySeries(weights, range);
+    const change = calc.bodyChange(series);
+    const last = weights[weights.length - 1];
+
+    return ui.html`
+        <div class="card">
+            <div class="card-title">Вес тела</div>
+
+            ${last ? ui.html`
+                <div class="tiles">
+                    ${tile('Сейчас, кг', format.weight(last.weight))}
+                    ${change ? tile(
+                        'За период, кг',
+                        `${change.delta > 0 ? '+' : change.delta < 0 ? '−' : ''}${format.weight(Math.abs(change.delta))}`
+                    ) : ''}
+                    ${tile('Взвешиваний', String(series.length))}
+                </div>
+
+                ${series.length >= 2 ? chart.line([{
+                    color: 'var(--purple)',
+                    segments: [series.map((p) => ({
+                        x: p.at, y: p.weight, key: String(p.at),
+                        label: dates.formatDate(p.at).slice(0, 5)
+                    }))]
+                }], { height: 130 }) : ''}
+
+                <p class="hint">Последнее взвешивание — ${dates.formatDayLabel(last.at).toLowerCase()}.</p>
+            ` : ui.empty('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.')}
+
+            <button class="btn btn-ghost btn-sm" data-action="body-add">
+                ${last ? 'Отметить вес' : 'Отметить вес сегодня'}
+            </button>
+        </div>
+    `;
+}
+
 export const stats = {
 
     title: 'Статистика',
     nav: 'stats',
 
     async render() {
-        const [entries, sets, exerciseList] = await Promise.all([
+        const [entries, sets, exerciseList, weights] = await Promise.all([
             dbService.listWorkoutSummaries(),
             dbService.allSets(),
-            dbService.listExercises({ includeArchived: true })
+            dbService.listExercises({ includeArchived: true }),
+            dbService.listBodyWeight()
         ]);
 
         if (entries.length === 0) {
             return ui.html`
                 ${ui.title('Статистика')}
                 ${ui.empty('Нет данных — сначала проведи тренировку.')}
+                ${bodyBlock(weights, null)}
             `;
         }
 
@@ -138,6 +184,8 @@ export const stats = {
                 ${chart.bars(recent, { maxLabel: 5 })}
             </div>
 
+            ${bodyBlock(weights, current)}
+
             <div class="card">
                 <div class="card-title">Постоянство</div>
 
@@ -188,5 +236,27 @@ export const stats = {
 
 actions.on('stats-period', (el) => {
     period = el.dataset.period;
+    app.render();
+});
+
+actions.on('body-add', async () => {
+    const today = await dbService.getBodyWeightOn(Date.now());
+    const last = today || await dbService.lastBodyWeight();
+
+    const values = await dialog.form({
+        title: 'Вес тела',
+        text: today
+            ? 'Сегодня вес уже отмечен — новое значение заменит прежнее.'
+            : 'Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.',
+        fields: [
+            { name: 'weight', label: 'Вес, кг', type: 'number', required: true, value: last?.weight ?? '' },
+            { name: 'note', label: 'Заметка (необязательно)', value: today?.note || '' }
+        ],
+        confirmText: 'Сохранить'
+    });
+
+    if (!values || !values.weight) return;
+
+    await dbService.setBodyWeight({ weight: values.weight, note: values.note });
     app.render();
 });

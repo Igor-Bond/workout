@@ -115,7 +115,7 @@ export const history = {
                 </div>
 
                 ${shown.length
-                    ? shown.map((entry) => item(entry, names))
+                    ? ui.html`<div class="grid-2">${shown.map((entry) => item(entry, names))}</div>`
                     : ui.empty('Под фильтры ничего не подходит.')}
             `}
         `;

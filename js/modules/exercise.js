@@ -81,7 +81,10 @@ export const exercise = {
             `;
         }
 
-        const sets = await dbService.listSetsByExercise(record.id);
+        const [sets, weights] = await Promise.all([
+            dbService.listSetsByExercise(record.id),
+            dbService.listBodyWeight()
+        ]);
 
         if (sets.length === 0) {
             return ui.html`
@@ -104,6 +107,28 @@ export const exercise = {
         const series = calc.exerciseSeries([...sets].reverse(), record.kind);
         const oneRep = record.kind === 'weight' && best?.weight
             ? records.epley(best.weight, best.reps)
+            : 0;
+
+        /*
+         * Вес тела (§26.3) добавляет две величины, каждую — своему виду
+         * упражнения:
+         *
+         *   собственный вес → нагрузка, которой иначе просто нет: подтягивания
+         *     без веса тела считаются нулевым объёмом, то есть как будто их
+         *     не делали;
+         *   силовое → отношение к своему весу. Жим 80 кг при своих 70 и при
+         *     своих 95 — разные достижения, и без этого числа они выглядят
+         *     одинаково.
+         */
+        const bodyAt = calc.bodyWeightLookup(weights);
+        const currentBody = weights[weights.length - 1]?.weight || null;
+
+        const bodyLoad = record.kind === 'reps'
+            ? sets.reduce((sum, s) => sum + calc.load(s, 'reps', bodyAt(s.performedAt)), 0)
+            : 0;
+
+        const relative = record.kind === 'weight' && best?.weight && currentBody
+            ? best.weight / currentBody
             : 0;
 
         const byWorkout = new Map();
@@ -135,8 +160,17 @@ export const exercise = {
                     ${tile('Подходов', String(sets.length))}
                     ${reps ? tile('Повторений', String(reps)) : ''}
                     ${volume ? tile('Тоннаж, кг', format.decimal(volume, 0)) : ''}
+                    ${bodyLoad ? tile('С весом тела, кг', format.decimal(bodyLoad, 0)) : ''}
+                    ${relative ? tile('К своему весу', `×${format.decimal(relative, 2)}`) : ''}
                     ${tile('Последний раз', daysAgo === 0 ? 'сегодня' : format.count(daysAgo, format.WORDS.day))}
                 </div>
+
+                ${record.kind === 'reps' && !bodyLoad ? ui.html`
+                    <p class="hint">
+                        Объём не считается: не отмечен вес тела.
+                        <button class="link-btn" data-action="nav" data-screen="stats">Отметить в статистике</button>
+                    </p>
+                ` : ''}
             </div>
 
             ${series.length >= 2 ? ui.html`
