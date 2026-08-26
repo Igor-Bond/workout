@@ -11,6 +11,7 @@ import { config } from '../config.js';
 import { install } from '../core/install.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
+import { dbService } from '../services/db.js';
 import { app } from '../app.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
@@ -47,9 +48,12 @@ export const profile = {
     title: 'Профиль',
     nav: 'profile',
 
-    render() {
+    async render() {
         const rest = config.get('restSeconds');
         const mode = config.get('mode');
+
+        const counts = await dbService.stats();
+        const imported = await dbService.getSetting('v1ImportSummary');
 
         return ui.html`
             ${ui.raw(ui.title('Профиль'))}
@@ -86,6 +90,22 @@ export const profile = {
 
             <div class="card">
                 <div class="card-title">Данные</div>
+
+                <div class="info-row"><span>Упражнений</span><strong>${counts.exercises}${counts.archived ? ` (${counts.archived} в архиве)` : ''}</strong></div>
+                <div class="info-row"><span>Тренировок</span><strong>${counts.workouts}</strong></div>
+                <div class="info-row"><span>Подходов</span><strong>${counts.sets}</strong></div>
+                <div class="info-row"><span>Шаблонов</span><strong>${counts.templates}</strong></div>
+                ${imported ? ui.html`
+                    <div class="info-row">
+                        <span>Перенесено из версии 1</span>
+                        <strong>${imported.workouts} трен. / ${imported.sets} подх.</strong>
+                    </div>
+                ` : ''}
+
+                <button class="btn btn-ghost" data-action="nav" data-screen="exercises">
+                    Справочник упражнений
+                </button>
+
                 ${ui.raw(ui.stub(
                     'Синхронизация и резервная копия',
                     8,
@@ -101,7 +121,7 @@ export const profile = {
             <div class="card">
                 <div class="card-title">О приложении</div>
                 <div class="info-row"><span>Версия</span><strong>${VERSION}</strong></div>
-                <div class="info-row"><span>Хранилище</span><strong>localStorage</strong></div>
+                <div class="info-row"><span>Хранилище</span><strong>IndexedDB + localStorage</strong></div>
                 <button class="btn btn-danger" data-action="reset-settings">Сбросить настройки</button>
             </div>
         `;

@@ -20,7 +20,7 @@ function ensureRoot() {
  * Общий каркас. onResolve вызывается со значением, выбранным пользователем;
  * закрытие по фону, крестику или Esc даёт значение по умолчанию.
  */
-function open(innerHtml, defaultValue) {
+function open(innerHtml, defaultValue, collect = null) {
     return new Promise((resolve) => {
         const host = ensureRoot();
 
@@ -50,6 +50,15 @@ function open(innerHtml, defaultValue) {
 
             const raw = btn.getAttribute('data-value');
             if (raw === '') return finish(defaultValue);   // кнопка отмены
+
+            // Диалог с полями: значения собираются перед закрытием, а
+            // возврат null означает «не прошло проверку, окно не закрывать»
+            if (collect && btn.hasAttribute('data-submit')) {
+                const collected = collect(backdrop);
+                if (collected === null) return;
+                return finish(collected);
+            }
+
             finish(raw === 'true' ? true : raw === 'false' ? false : raw);
         });
 
@@ -89,6 +98,71 @@ export const dialog = {
                 </div>
             </div>
         `, false);
+    },
+
+    /**
+     * Диалог с полями ввода.
+     *
+     * fields — [{ name, label, type: 'text' | 'number' | 'select', value,
+     *             options: [{value, label}], required, placeholder }].
+     * Возвращает объект со значениями или null, если пользователь отказался.
+     * Обязательное пустое поле подсвечивается, и диалог не закрывается.
+     */
+    form({ title, text, fields, confirmText = 'Сохранить', cancelText = 'Отмена' }) {
+        const controls = fields.map((f) => {
+            const id = `dlg-${f.name}`;
+
+            const control = f.type === 'select'
+                ? ui.html`
+                    <select id="${id}" name="${f.name}">
+                        ${f.options.map((o) => ui.html`
+                            <option value="${o.value}" ${ui.raw(o.value === f.value ? 'selected' : '')}>${o.label}</option>
+                        `)}
+                    </select>`
+                : ui.html`
+                    <input id="${id}" name="${f.name}" type="${f.type || 'text'}"
+                           value="${f.value ?? ''}" placeholder="${f.placeholder || ''}"
+                           autocomplete="off">`;
+
+            return ui.html`
+                <div class="field">
+                    <label for="${id}">${f.label}</label>
+                    ${ui.raw(control)}
+                </div>
+            `;
+        });
+
+        const collect = (backdrop) => {
+            const values = {};
+
+            for (const f of fields) {
+                const el = backdrop.querySelector(`[name="${f.name}"]`);
+                const value = el.value.trim();
+
+                if (f.required && !value) {
+                    el.focus();
+                    el.classList.add('is-invalid');
+                    return null;
+                }
+
+                el.classList.remove('is-invalid');
+                values[f.name] = f.type === 'number' ? Number(value) : value;
+            }
+
+            return values;
+        };
+
+        return open(ui.html`
+            <div class="dialog" role="dialog" aria-modal="true">
+                <div class="dialog-title">${title}</div>
+                ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
+                ${controls}
+                <div class="dialog-actions">
+                    <button class="btn btn-ghost" data-value="">${cancelText}</button>
+                    <button class="btn btn-accent" data-value="ok" data-submit data-primary>${confirmText}</button>
+                </div>
+            </div>
+        `, null, collect);
     },
 
     /**

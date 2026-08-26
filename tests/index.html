@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Проверки</title>
+<style>
+    body {
+        background: #14110f;
+        color: #f3ede4;
+        font-family: 'Courier New', Courier, monospace;
+        margin: 0;
+        padding: 24px 16px 60px;
+        line-height: 1.5;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    .lead { color: #a89a8a; font-size: 12px; margin-bottom: 20px; }
+    .total {
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 20px;
+        font-weight: bold;
+    }
+    .total.ok   { background: #1e2d1e; color: #6fae6f; border: 1px solid #6fae6f; }
+    .total.fail { background: #2d1a18; color: #e07b6b; border: 1px solid #c0392b; }
+    .suite { margin-bottom: 22px; }
+    .suite h2 {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #ff7a33;
+        margin: 0 0 8px;
+    }
+    .test {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+        font-size: 13px;
+        padding: 4px 0;
+        border-bottom: 1px solid #241f1b;
+        flex-wrap: wrap;
+    }
+    .test .mark { flex: none; width: 14px; }
+    .test.ok .mark { color: #6fae6f; }
+    .test.fail { color: #e07b6b; }
+    .test.fail .mark { color: #c0392b; }
+    .error {
+        width: 100%;
+        color: #a89a8a;
+        font-size: 12px;
+        padding: 6px 0 6px 24px;
+    }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>Проверки</h1>
+    <p class="lead">
+        Отдельная база <code>WorkoutTrackerTestDB</code>: настоящая история не затрагивается.
+    </p>
+    <div id="results">Выполняются…</div>
+</div>
+
+<!--
+    Имя базы подменяется обычным скриптом, а не модульным: модули
+    выполняются после разбора всей страницы, и db.js успел бы открыть
+    настоящую базу пользователя раньше, чем сюда дошла бы очередь.
+-->
+<script>
+    globalThis.__WORKOUT_DB__ = 'WorkoutTrackerTestDB';
+</script>
+
+<script type="module">
+    import { run } from './runner.js';
+
+    // Наборы регистрируют проверки самим фактом импорта
+    await import('./suites/migrations.test.js');
+    await import('./suites/db.test.js');
+
+    const summary = await run(document.getElementById('results'));
+    console.log('[Проверки]', summary);
+</script>
+</body>
+</html>

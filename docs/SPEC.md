@@ -640,6 +640,7 @@
 - Календарь;
 - Статистика;
 - Карточка упражнения;
+- Справочник упражнений;
 - Профиль и настройки.
 
 Разделы верхнего уровня: Тренировка, История, Статистика, Профиль.
@@ -718,7 +719,7 @@ js/services/db.js
 
 ```js
 db.version(1).stores({
-    exercises: "id, name, kind, updatedAt",
+    exercises: "id, nameKey, kind, updatedAt",
     templates: "id, name, updatedAt",
     workouts:  "id, startedAt, status, updatedAt",
     sets:      "id, workoutId, exerciseId, performedAt, updatedAt, [workoutId+order], [exerciseId+performedAt]",
@@ -729,7 +730,7 @@ db.version(1).stores({
 Состав записей:
 
 ```text
-exercises  { id, name, kind, muscleGroup, archived, createdAt, updatedAt, deletedAt }
+exercises  { id, name, nameKey, kind, group, archived, createdAt, updatedAt, deletedAt }
 
 templates  { id, name, type, order, updatedAt, deletedAt,
              items: [ { exerciseId, plannedSets, targetReps, weight } ] }
@@ -746,6 +747,9 @@ settings   { key, value }
 
 Пояснения:
 
+- `nameKey` — название в нижнем регистре, без «ё» и лишних пробелов.
+  Индексируется именно оно: «Жим лёжа», «жим лежа» и «Жим  лёжа» обязаны
+  находить одну запись, иначе история упражнения рассыпается (§5);
 - `plan` внутри тренировки — снимок на момент старта (§4);
 - `order` — сквозной номер подхода в тренировке, задаёт фактический
   порядок; `setNumber` — номер подхода внутри своего упражнения;
@@ -1007,7 +1011,8 @@ workout/
 │       ├── history.js
 │       ├── calendar.js
 │       ├── stats.js
-│       ├── exercise.js
+│       ├── exercise.js       карточка одного упражнения
+│       ├── exercises.js      справочник упражнений
 │       └── profile.js
 │
 ├── tests/

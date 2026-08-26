@@ -19,11 +19,12 @@ import { history } from './modules/history.js';
 import { calendar } from './modules/calendar.js';
 import { stats } from './modules/stats.js';
 import { exercise } from './modules/exercise.js';
+import { exercises } from './modules/exercises.js';
 import { profile } from './modules/profile.js';
 
 const SCREENS = {
     home, templates, plan, session, summary,
-    history, calendar, stats, exercise, profile
+    history, calendar, stats, exercise, exercises, profile
 };
 
 const DEFAULT_SCREEN = 'home';

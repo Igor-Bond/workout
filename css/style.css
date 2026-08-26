@@ -365,6 +365,51 @@ input[type=checkbox] {
 .setting-label { display: block; font-size: 14px; color: var(--text); }
 .setting-hint { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
+/* ================== СПРАВОЧНИК УПРАЖНЕНИЙ ================== */
+
+.ex-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.ex-row:last-child { border-bottom: none; }
+
+.ex-main { flex: 1; min-width: 0; }
+
+.ex-name {
+    font-size: 14px;
+    /* Длинное название не должно распирать строку и уводить кнопки за край */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ex-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+.ex-actions { display: flex; gap: 4px; flex: none; }
+
+.icon-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1;
+    width: 34px;
+    height: 34px;
+    cursor: pointer;
+}
+
+.icon-btn:active { border-color: var(--text-dim); }
+.icon-btn.is-danger { color: var(--bad); border-color: rgba(192, 57, 43, 0.4); }
+
+/* Поле, не прошедшее проверку в диалоге */
+.is-invalid { border-color: var(--bad) !important; }
+
 /* ================== ЧИПЫ ================== */
 
 .chips {

@@ -25,15 +25,20 @@ export const ui = {
     /**
      * Шаблонная строка с автоматическим экранированием подстановок:
      *   html`<div>${name}</div>`
+     *
      * Массивы склеиваются без разделителя — удобно для списков.
-     * Готовую разметку помечать ui.raw(), иначе она экранируется тоже.
+     *
+     * Результат помечен как готовая разметка, поэтому шаблоны вкладываются
+     * друг в друга без оговорок: экранируются только простые значения.
+     * Сырую строку из чужого источника помечать ui.raw() вручную.
      */
     html(strings, ...values) {
-        return strings.reduce((acc, part, i) => {
+        const out = strings.reduce((acc, part, i) => {
             if (i === 0) return part;
-            const value = values[i - 1];
-            return acc + ui.render(value) + part;
+            return acc + ui.render(values[i - 1]) + part;
         }, '');
+
+        return ui.raw(out);
     },
 
     render(value) {
@@ -43,9 +48,19 @@ export const ui = {
         return ui.esc(value);
     },
 
-    /** Пометить строку как готовую разметку, не требующую экранирования. */
+    /**
+     * Пометить строку как готовую разметку, не требующую экранирования.
+     *
+     * toString обязателен: помеченная разметка попадает и в innerHTML, и в
+     * обычные шаблонные строки, а там объект должен превращаться в свой текст
+     * сам, без вызова .value на каждой площадке.
+     */
     raw(value) {
-        return { __raw: true, value: String(value ?? '') };
+        return {
+            __raw: true,
+            value: String(value ?? ''),
+            toString() { return this.value; }
+        };
     },
 
     /** Заголовок экрана. */

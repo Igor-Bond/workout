@@ -11,6 +11,10 @@ import { app } from './app.js';
 import { actions } from './core/actions.js';
 import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
+import { ui } from './core/ui.js';
+import { dbService } from './services/db.js';
+import { migrations } from './services/migrations.js';
+import { format } from './core/format.js';
 
 // ================== ОБЩИЕ ДЕЙСТВИЯ ==================
 
@@ -22,6 +26,8 @@ actions.on('install', async () => {
 });
 
 actions.on('reload', () => location.reload());
+
+actions.on('dismiss-banner', (el) => app.hideBanner(el.dataset.banner));
 
 // ================== СЕРВИС-ВОРКЕР ==================
 
@@ -62,12 +68,47 @@ function registerServiceWorker() {
 
 // ================== СТАРТ ==================
 
-install.init();
+/**
+ * База открывается до первой отрисовки: экраны читают её прямо в render(),
+ * и рисовать их раньше означало бы показать пустоту, а через миг заменить
+ * её данными.
+ *
+ * Приватный режим и запрет на хранилище — не выдуманный случай: там
+ * IndexedDB просто нет. Приложение в этом случае обязано открыться и
+ * объяснить, что происходит, а не остаться на надписи «Загрузка».
+ */
+async function boot() {
+    install.init();
 
-// До первой отрисовки: иначе меню встанет по неверной высоте экрана
-viewport.init();
+    // До первой отрисовки: иначе меню встанет по неверной высоте экрана
+    viewport.init();
 
-actions.init();
-app.init();
+    actions.init();
+
+    try {
+        await dbService.open();
+
+        const imported = await migrations.runV1Import(dbService);
+
+        if (imported) {
+            app.showBanner('import', ui.html`
+                <span>Перенесено из прошлой версии:
+                    ${format.count(imported.workouts, format.WORDS.workout)},
+                    ${format.count(imported.sets, format.WORDS.set)}</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="import">Понятно</button>
+            `);
+        }
+    } catch (e) {
+        console.error('[База] Не удалось открыть хранилище:', e);
+
+        app.showBanner('db-error', ui.html`
+            <span>Нет доступа к хранилищу браузера. Записи не сохранятся — проверьте, не открыто ли приватное окно.</span>
+        `);
+    }
+
+    app.init();
+}
+
+boot();
 
 window.addEventListener('load', registerServiceWorker);
