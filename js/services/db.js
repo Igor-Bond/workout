@@ -280,6 +280,50 @@ export const dbService = {
         await db.sets.update(id, { deletedAt: now, updatedAt: now });
     },
 
+    /**
+     * Тренировки со сводкой по подходам — для истории, календаря и статистики.
+     *
+     * Все подходы читаются одним проходом и группируются в памяти. Запрос на
+     * каждую тренировку отдельно выглядел бы аккуратнее, но при сотне
+     * тренировок это сотня обращений к базе ради одного списка.
+     */
+    async listWorkoutSummaries({ status = 'done' } = {}) {
+        const [workouts, sets] = await Promise.all([
+            db.workouts.orderBy('startedAt').reverse().toArray(),
+            db.sets.toArray()
+        ]);
+
+        const grouped = new Map();
+
+        for (const set of sets) {
+            if (!alive(set)) continue;
+
+            const entry = grouped.get(set.workoutId)
+                || { sets: 0, reps: 0, volume: 0, exerciseIds: new Set() };
+
+            entry.sets += 1;
+            entry.reps += set.reps || 0;
+            if (set.weight) entry.volume += (set.reps || 0) * set.weight;
+            entry.exerciseIds.add(set.exerciseId);
+
+            grouped.set(set.workoutId, entry);
+        }
+
+        return workouts
+            .filter((w) => alive(w) && (!status || w.status === status))
+            .map((workout) => {
+                const entry = grouped.get(workout.id);
+
+                return {
+                    workout,
+                    sets: entry?.sets || 0,
+                    reps: entry?.reps || 0,
+                    volume: entry?.volume || 0,
+                    exerciseIds: entry ? [...entry.exerciseIds] : []
+                };
+            });
+    },
+
     // ================== ШАБЛОНЫ (§8) ==================
 
     async listTemplates() {

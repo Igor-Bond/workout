@@ -1,9 +1,15 @@
 /**
- * Составление плана тренировки (§10 ТЗ).
+ * Составление плана (§10 ТЗ) — и он же редактор шаблона (§8).
  *
- * План — это намерение: какие упражнения и сколько подходов. Он копируется
- * внутрь тренировки при старте и дальше не меняется (§4), поэтому здесь
- * важно дать поправить всё до нажатия «Начать».
+ * Экран один на два случая: и там и там это список упражнений с количеством
+ * подходов, целевыми повторениями и весом. Разница только в том, что
+ * получается на выходе — начатая тренировка или сохранённый шаблон.
+ *
+ * Маршруты:
+ *   #/plan                     новая тренировка с нуля
+ *   #/plan/from/<id>           новая тренировка по шаблону
+ *   #/plan/repeat              повтор прошлой тренировки (§9)
+ *   #/plan/template/<id>       правка шаблона
  */
 
 import { ui } from '../core/ui.js';
@@ -28,13 +34,81 @@ const KIND_HINT = {
  */
 let draft = null;
 
-function blank() {
-    return { type: TYPES[0], customType: '', items: [] };
+/** Для какого маршрута собран черновик — чтобы не пересобирать его при каждой отрисовке. */
+let loadedFor = null;
+
+/**
+ * Дополнение упражнения тем, что лежит в базе: название, вид и прошлый
+ * результат. В шаблоне хранится только идентификатор — остальное могло
+ * измениться с прошлого раза.
+ */
+async function decorate(items) {
+    return Promise.all(items.map(async (item) => {
+        const exercise = await dbService.getExercise(item.exerciseId);
+        const history = await dbService.listSetsByExercise(item.exerciseId);
+        const last = records.lastSession(history);
+
+        return {
+            ...item,
+            name: exercise?.name || 'Упражнение',
+            kind: exercise?.kind || 'weight',
+            lastLine: last ? records.describeSession(last.sets, exercise?.kind) : null
+        };
+    }));
 }
 
-function ensureDraft() {
-    if (!draft) draft = blank();
-    return draft;
+async function build(params) {
+    const [what, id] = params;
+
+    if (what === 'template' || what === 'from') {
+        const template = await dbService.getTemplate(id);
+
+        if (template) {
+            return {
+                mode: what === 'template' ? 'template' : 'workout',
+                templateId: template.id,
+                name: template.name,
+                type: TYPES.includes(template.type) ? template.type : 'Своё',
+                customType: TYPES.includes(template.type) ? '' : template.type,
+                items: await decorate(template.items)
+            };
+        }
+    }
+
+    // Повтор прошлой тренировки (§9): за основу берётся фактически
+    // выполненное, а не то, что планировалось
+    if (what === 'repeat') {
+        const [last] = await dbService.listWorkouts({ limit: 1 });
+
+        if (last) {
+            const sets = await dbService.listSets(last.id);
+            const byExercise = new Map();
+
+            for (const set of sets) {
+                const own = byExercise.get(set.exerciseId) || [];
+                own.push(set);
+                byExercise.set(set.exerciseId, own);
+            }
+
+            const items = [...byExercise.entries()].map(([exerciseId, own]) => ({
+                exerciseId,
+                plannedSets: own.length,
+                targetReps: own[0].reps ?? null,
+                weight: own[0].weight || 0
+            }));
+
+            return {
+                mode: 'workout',
+                templateId: null,
+                name: '',
+                type: TYPES.includes(last.type) ? last.type : 'Своё',
+                customType: TYPES.includes(last.type) ? '' : last.type,
+                items: await decorate(items)
+            };
+        }
+    }
+
+    return { mode: 'workout', templateId: null, name: '', type: TYPES[0], customType: '', items: [] };
 }
 
 const typeLabel = () => (draft.type === 'Своё' ? draft.customType.trim() || 'Тренировка' : draft.type);
@@ -91,8 +165,15 @@ export const plan = {
     title: 'План',
     nav: 'workout',
 
-    async render() {
-        ensureDraft();
+    async render(params) {
+        const key = params.join('/');
+
+        if (!draft || loadedFor !== key) {
+            draft = await build(params);
+            loadedFor = key;
+        }
+
+        const isTemplate = draft.mode === 'template';
 
         const chips = [...TYPES, 'Своё'].map((t) => ui.html`
             <button class="chip ${draft.type === t ? 'is-active' : ''}"
@@ -100,15 +181,27 @@ export const plan = {
         `);
 
         return ui.html`
-            ${ui.title('План тренировки', 'Порядок можно будет нарушить: приложение считает подходы, а не командует')}
+            ${ui.title(
+                isTemplate ? 'Шаблон' : 'План тренировки',
+                isTemplate
+                    ? 'Изменения не тронут уже проведённые тренировки — их план сохранён внутри них'
+                    : 'Порядок можно будет нарушить: приложение считает подходы, а не командует')}
 
             <div class="card">
+                ${isTemplate ? ui.html`
+                    <div class="field">
+                        <label for="p-name">Название шаблона</label>
+                        <input id="p-name" type="text" value="${draft.name}"
+                               placeholder="Грудь + трицепс" data-change="plan-name">
+                    </div>
+                ` : ''}
+
                 <div class="card-title">Тип тренировки</div>
                 <div class="chips">${chips}</div>
 
                 ${draft.type === 'Своё' ? ui.html`
                     <div class="field">
-                        <label for="p-custom">Название</label>
+                        <label for="p-custom">Название типа</label>
                         <input id="p-custom" type="text" value="${draft.customType}"
                                placeholder="Например: йога" data-change="plan-custom">
                     </div>
@@ -125,27 +218,48 @@ export const plan = {
                 <button class="btn btn-ghost" data-action="plan-add">+ Добавить упражнение</button>
             </div>
 
-            <button class="btn btn-accent btn-lg" data-action="plan-start"
-                    ${ui.raw(draft.items.length ? '' : 'disabled')}>
-                Начать тренировку
-            </button>
-
-            <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
+            ${isTemplate ? ui.html`
+                <button class="btn btn-accent btn-lg" data-action="plan-save-template">Сохранить шаблон</button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="templates">← К шаблонам</button>
+            ` : ui.html`
+                <button class="btn btn-accent btn-lg" data-action="plan-start"
+                        ${ui.raw(draft.items.length ? '' : 'disabled')}>
+                    Начать тренировку
+                </button>
+                <button class="btn btn-ghost" data-action="plan-as-template"
+                        ${ui.raw(draft.items.length ? '' : 'disabled')}>
+                    Сохранить как шаблон
+                </button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
+            `}
         `;
     }
 };
 
-// ================== ДЕЙСТВИЯ ==================
+/** Черновик сбрасывается после того, как из него что-то получилось. */
+function reset() {
+    draft = null;
+    loadedFor = null;
+}
+
+/** Состав шаблона: в нём хранятся только идентификаторы и числа. */
+const toItems = () => draft.items.map((item) => ({
+    exerciseId: item.exerciseId,
+    plannedSets: item.plannedSets,
+    targetReps: item.targetReps,
+    weight: item.weight || 0
+}));
+
+// ================== ПОЛЯ ==================
 
 actions.on('plan-type', (el) => {
     draft.type = el.dataset.type;
     app.render();
 });
 
-actions.onChange('plan-custom', (el) => {
-    // Без перерисовки: она бы забрала фокус из поля посреди набора
-    draft.customType = el.value;
-});
+// Без перерисовки: она бы забрала фокус из поля посреди набора
+actions.onChange('plan-custom', (el) => { draft.customType = el.value; });
+actions.onChange('plan-name', (el) => { draft.name = el.value; });
 
 actions.onChange('plan-field', (el) => {
     const item = draft.items[Number(el.dataset.index)];
@@ -162,6 +276,8 @@ actions.onChange('plan-field', (el) => {
     // не быть, и подставлять вместо них ноль неправильно
     item[key] = value === '' ? null : Number(value);
 });
+
+// ================== СОСТАВ ==================
 
 actions.on('plan-add', async () => {
     const all = await dbService.listExercises();
@@ -225,6 +341,46 @@ actions.on('plan-down', (el) => {
     app.render();
 });
 
+// ================== ШАБЛОНЫ ==================
+
+actions.on('plan-save-template', async () => {
+    if (!draft.name.trim()) {
+        const values = await dialog.form({
+            title: 'Название шаблона',
+            fields: [{ name: 'name', label: 'Название', required: true }]
+        });
+
+        if (!values) return;
+        draft.name = values.name;
+    }
+
+    await dbService.saveTemplate({
+        id: draft.templateId,
+        name: draft.name,
+        type: typeLabel(),
+        items: toItems()
+    });
+
+    reset();
+    app.go('templates');
+});
+
+actions.on('plan-as-template', async () => {
+    const values = await dialog.form({
+        title: 'Сохранить как шаблон',
+        text: 'Состав и подходы запомнятся, тренировка при этом не начнётся.',
+        fields: [{ name: 'name', label: 'Название', required: true, value: typeLabel() }]
+    });
+
+    if (!values) return;
+
+    await dbService.saveTemplate({ name: values.name, type: typeLabel(), items: toItems() });
+
+    await dialog.alert({ title: 'Шаблон сохранён', text: `«${values.name}» теперь в списке шаблонов.` });
+});
+
+// ================== СТАРТ ==================
+
 actions.on('plan-start', async () => {
     if (draft.items.length === 0) return;
 
@@ -250,15 +406,10 @@ actions.on('plan-start', async () => {
 
     const workout = await dbService.createWorkout({
         type: typeLabel(),
-        plan: draft.items.map((item) => ({
-            exerciseId: item.exerciseId,
-            plannedSets: item.plannedSets,
-            targetReps: item.targetReps,
-            weight: item.weight || 0,
-            skipped: false
-        }))
+        templateId: draft.templateId,
+        plan: toItems().map((item) => ({ ...item, skipped: false }))
     });
 
-    draft = null;
+    reset();
     app.go('session', workout.id);
 });

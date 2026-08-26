@@ -30,8 +30,12 @@ function setRow(set, recordId) {
             <td>${String(set.setNumber)}${set.id === recordId ? ui.raw(' <span class="record-mark" title="Новый рекорд">★</span>') : ''}</td>
             <td>${value}</td>
             <td>${extra}</td>
+            <td class="cell-tools">
+                <button class="icon-btn is-danger" data-action="summary-drop-set" data-id="${set.id}"
+                        title="Удалить подход">×</button>
+            </td>
         </tr>
-        ${set.note ? ui.html`<tr class="log-note"><td colspan="3">${set.note}</td></tr>` : ''}
+        ${set.note ? ui.html`<tr class="log-note"><td colspan="4">${set.note}</td></tr>` : ''}
     `;
 }
 
@@ -57,12 +61,16 @@ function block(b, note) {
 
             <div class="table-scroll">
                 <table class="log">
-                    <thead><tr><th>Подход</th><th>Значение</th><th>Вес / дистанция</th></tr></thead>
+                    <thead><tr><th>Подход</th><th>Значение</th><th>Вес / дистанция</th><th></th></tr></thead>
                     <tbody>${b.sets.map((s) => setRow(s, b.record?.id))}</tbody>
                 </table>
             </div>
 
             ${note ? ui.html`<p class="note-shown">${note}</p>` : ''}
+
+            <button class="link-btn" data-action="summary-note-exercise" data-exercise="${b.exerciseId}">
+                ${note ? 'изменить заметку' : '＋ заметка к упражнению'}
+            </button>
         </div>
     `;
 }
@@ -144,11 +152,89 @@ export const summary = {
             </div>
 
             <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
+            <button class="btn btn-ghost" data-action="summary-as-template" data-id="${workout.id}">Сохранить как шаблон</button>
             <button class="btn btn-ghost" data-action="nav" data-screen="history">В историю</button>
             <button class="btn btn-danger" data-action="summary-delete" data-id="${workout.id}">Удалить тренировку</button>
         `;
     }
 };
+
+/**
+ * Правка проведённой тренировки ограничена удалением подхода и заметками
+ * (§21.1): всё остальное задевает рекорды, статистику и обмен с облаком, и
+ * это отдельная работа.
+ */
+actions.on('summary-drop-set', async (el) => {
+    const ok = await dialog.confirm({
+        title: 'Удалить подход?',
+        text: 'Итоги, рекорды и статистика пересчитаются.',
+        confirmText: 'Удалить',
+        danger: true
+    });
+
+    if (!ok) return;
+
+    await dbService.deleteSet(el.dataset.id);
+    app.render();
+});
+
+actions.on('summary-note-exercise', async (el) => {
+    const id = app.route.params[0];
+    const workout = await dbService.getWorkout(id);
+    if (!workout) return;
+
+    const exerciseId = el.dataset.exercise;
+    const item = workout.plan.find((p) => p.exerciseId === exerciseId);
+
+    const values = await dialog.form({
+        title: 'Заметка к упражнению',
+        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: item?.note || '' }]
+    });
+
+    if (!values) return;
+
+    // Упражнения могло не быть в плане — его добавили по ходу тренировки
+    const plan = item
+        ? workout.plan.map((p) => (p.exerciseId === exerciseId ? { ...p, note: values.note || undefined } : p))
+        : [...workout.plan, { exerciseId, plannedSets: 0, targetReps: null, weight: 0, note: values.note }];
+
+    await dbService.updateWorkout(workout.id, { plan });
+    app.render();
+});
+
+actions.on('summary-as-template', async (el) => {
+    const workout = await dbService.getWorkout(el.dataset.id);
+    const sets = await dbService.listSets(workout.id);
+
+    // В шаблон уходит фактически выполненное, а не задуманное: пропущенное
+    // упражнение в шаблоне никому не нужно
+    const byExercise = new Map();
+    for (const set of sets) {
+        byExercise.set(set.exerciseId, [...(byExercise.get(set.exerciseId) || []), set]);
+    }
+
+    if (byExercise.size === 0) return;
+
+    const values = await dialog.form({
+        title: 'Сохранить как шаблон',
+        fields: [{ name: 'name', label: 'Название', required: true, value: workout.type }]
+    });
+
+    if (!values) return;
+
+    await dbService.saveTemplate({
+        name: values.name,
+        type: workout.type,
+        items: [...byExercise.entries()].map(([exerciseId, own]) => ({
+            exerciseId,
+            plannedSets: own.length,
+            targetReps: own[0].reps ?? null,
+            weight: own[0].weight || 0
+        }))
+    });
+
+    await dialog.alert({ title: 'Шаблон сохранён', text: `«${values.name}» теперь в списке шаблонов.` });
+});
 
 actions.on('summary-note', async (el) => {
     const workout = await dbService.getWorkout(el.dataset.id);
