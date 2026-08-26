@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14110f">
+<title>Трекер тренировок</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg: #14110f;
+    --panel: #1d1916;
+    --panel-2: #241f1b;
+    --line: #332c26;
+    --accent: #ff7a33;
+    --accent-dim: #c9572f;
+    --text: #f3ede4;
+    --text-dim: #a89a8a;
+    --good: #6fae6f;
+    --bad: #c0392b;
+    --blue: #5b9bd5;
+    --purple: #a87fd1;
+    safe-top: env(safe-area-inset-top);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding: calc(16px + env(safe-area-inset-top)) 14px 90px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app{ width:100%; max-width:480px; }
+
+  header{
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 14px;
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+  }
+  header .eyebrow{ color: var(--accent); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; }
+  header h1{ font-size: 22px; margin: 6px 0 0; font-weight: 700; letter-spacing: -0.01em; }
+  .nav-link{ background:none; border:none; color: var(--text-dim); font-family: inherit; font-size: 12px; text-decoration: underline; cursor:pointer; padding:0; }
+
+  /* Нижняя навигация (вкладки) */
+  .tabbar{
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    display:flex;
+    justify-content:center;
+    padding: 8px calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-bottom) + 8px);
+    z-index: 50;
+  }
+  .tabbar-inner{ width:100%; max-width:480px; display:flex; gap:6px; }
+  .tab-btn{
+    flex:1; background:none; border:none; color: var(--text-dim);
+    font-family: inherit; font-size: 11px; padding: 8px 4px; border-radius: 8px;
+    cursor:pointer; text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .tab-btn.active{ color: var(--accent); background: var(--panel-2); }
+
+  .card{ background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
+
+  .field{ margin-bottom: 14px; }
+  .field:last-child{margin-bottom:0;}
+  label{ display:block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; letter-spacing: 0.04em; }
+  input[type=text], input[type=number], select{
+    width:100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    color: var(--text); font-family: inherit; font-size: 16px; padding: 10px 12px;
+  }
+  input:focus, select:focus{ outline:none; border-color: var(--accent-dim); }
+  .hint{ font-size:11px; color:var(--text-dim); margin-top:4px; }
+
+  .btn{
+    width:100%; border: none; border-radius: 8px; padding: 13px 16px; font-family: inherit;
+    font-size: 15px; font-weight: 700; letter-spacing: 0.03em; cursor: pointer; text-transform: uppercase;
+  }
+  .btn-start{ background: var(--accent); color: #1a1310; }
+  .btn-start:active{ background: var(--accent-dim); }
+  .btn-done{ background: var(--good); color: #102310; }
+  .btn-done:active{ filter: brightness(0.9); }
+  .btn-ghost{ background: transparent; border: 1px solid var(--line); color: var(--text-dim); text-transform:none; font-weight:400; letter-spacing:0; }
+  .btn-danger{ background: transparent; border: 1px solid var(--bad); color: var(--bad); text-transform:none; font-weight:400; }
+  .btn-sm{ padding: 9px 12px; font-size: 13px; }
+
+  .hidden{ display:none !important; }
+
+  /* выбор типа тренировки */
+  .type-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 14px; }
+  .type-card{
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 10px; text-align:center; cursor:pointer; font-size:13px;
+  }
+  .type-card .ic{ font-size:22px; display:block; margin-bottom:4px; }
+  .type-card.selected{ border-color: var(--accent); color: var(--accent); }
+
+  /* список упражнений в плане */
+  .exercise-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:14px; }
+  .exercise-row{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; display:flex; align-items:center; gap:10px; }
+  .exercise-row .ex-fields{ flex:1; display:flex; flex-direction:column; gap:8px; }
+  .ex-fields .ex-top-row{ display:grid; grid-template-columns: 1fr; gap:8px; }
+  .ex-fields .ex-bottom-row{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+  .exercise-row input, .exercise-row select{ padding:7px 8px; font-size:14px; }
+  .remove-x{ background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer; line-height:1; padding:0 4px; align-self:flex-start; }
+  .remove-x:active{ color: var(--bad); }
+
+  .picker-row{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .picker-chip{
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px;
+    padding: 7px 12px; font-size: 12px; cursor:pointer; color: var(--text-dim);
+  }
+  .picker-chip.selected{ border-color: var(--accent); color: var(--accent); }
+
+  /* рабочий экран */
+  .session-card{ text-align:center; }
+  .exercise-name{ font-size: 13px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .set-counter{ font-size: 14px; color: var(--accent); margin-bottom: 4px; }
+  .ex-progress{ font-size:11px; color: var(--text-dim); margin-bottom: 6px; }
+  .elapsed-time{ font-size: 11px; color: var(--text-dim); margin-bottom: 14px; letter-spacing:0.05em; }
+  .elapsed-time strong{ color: var(--accent); }
+
+  .big-input{
+    font-size: 48px; width: 130px; text-align:center; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 10px; color: var(--text); padding: 8px 0; margin: 0 auto 6px; display:block; font-family: inherit;
+  }
+  .big-input:focus{ outline:none; border-color: var(--accent); }
+  .reps-label{ font-size: 12px; color: var(--text-dim); letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .weight-inline{ display:flex; align-items:center; justify-content:center; gap:8px; margin-bottom: 18px; }
+  .weight-inline input{ width:90px; padding:7px 8px; font-size:14px; text-align:center; }
+  .weight-inline span{ font-size:12px; color:var(--text-dim); }
+
+  .session-actions{ display:grid; gap:8px; margin-top:4px; }
+
+  table.log{ width:100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  table.log th{ text-align:left; color: var(--text-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  table.log td{ padding: 7px 4px; border-bottom: 1px solid var(--line); }
+  table.log tr:last-child td{ border-bottom:none; }
+
+  .ex-block{ margin-bottom: 18px; }
+  .ex-block-title{ font-size: 14px; font-weight:700; color: var(--text); margin-bottom: 6px; display:flex; justify-content:space-between; }
+  .ex-block-title span.sub{ color: var(--text-dim); font-weight:400; font-size:12px; }
+
+  .totals{ margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; display:flex; flex-wrap: wrap; gap: 10px; }
+  .totals div{ text-align:center; flex:1 1 30%; }
+  .totals strong{ color: var(--accent); font-size: 18px; display:block; }
+  .totals label2{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.04em; }
+
+  .finish-actions{ margin-top: 18px; display:grid; gap: 10px; }
+
+  /* история */
+  .history-item{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; cursor:pointer; }
+  .history-item .h-date{ font-size:11px; color:var(--text-dim); margin-bottom:4px; display:flex; justify-content:space-between; }
+  .history-item .h-type-badge{ color: var(--accent); }
+  .history-item .h-name{ font-size:15px; font-weight:700; }
+  .history-item .h-stats{ font-size:12px; color: var(--text-dim); margin-top:4px; }
+  .empty-note{ color:var(--text-dim); font-size:13px; text-align:center; padding: 20px 0; }
+
+  /* статистика / визуализация */
+  .stat-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat-box{ background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px; text-align:center; }
+  .stat-box strong{ font-size: 20px; color: var(--accent); display:block; }
+  .stat-box label2{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.03em; }
+
+  .chart-wrap{ margin-bottom: 18px; }
+  .chart-title{ font-size: 13px; color: var(--text-dim); margin-bottom: 8px; text-transform:uppercase; letter-spacing:0.05em; }
+  svg.chart{ width:100%; height:auto; display:block; }
+  .bar-label{ font-size: 9px; fill: var(--text-dim); }
+  .bar-value{ font-size: 10px; fill: var(--text); font-weight:bold; }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .install-banner{
+    background: var(--panel-2); border: 1px solid var(--accent-dim); border-radius: 8px;
+    padding: 12px 14px; margin-bottom:16px; font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .install-banner button{ background: var(--accent); color:#1a1310; border:none; border-radius:6px; padding:8px 12px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div>
+      <div class="eyebrow">Журнал тренировки</div>
+      <h1>Трекер</h1>
+    </div>
+  </header>
+
+  <div id="installBanner" class="install-banner hidden">
+    <span>Установи приложение на главный экран</span>
+    <button id="installBtn">Установить</button>
+  </div>
+
+  <!-- ========== ЭКРАН: ВЫБОР ТИПА ТРЕНИРОВКИ ========== -->
+  <div id="typeScreen">
+    <div class="card">
+      <label style="margin-bottom:10px;display:block;">Тип тренировки</label>
+      <div class="type-grid" id="typeGrid"></div>
+      <div class="field" id="customTypeField" style="display:none;">
+        <label>Свой вариант названия</label>
+        <input type="text" id="customTypeName" placeholder="Например: йога">
+      </div>
+    </div>
+    <button class="btn btn-start" id="toPlanBtn">Далее: упражнения →</button>
+  </div>
+
+  <!-- ========== ЭКРАН: ПЛАН ТРЕНИРОВКИ (СПИСОК УПРАЖНЕНИЙ) ========== -->
+  <div class="hidden" id="setupScreen">
+    <div class="card">
+      <label style="margin-bottom:8px;display:block;">Быстро добавить из списка</label>
+      <div class="picker-row" id="presetPicker"></div>
+      <div class="exercise-list" id="exerciseList"></div>
+      <button class="btn btn-ghost btn-sm" id="addExerciseBtn">+ Добавить своё упражнение</button>
+    </div>
+    <button class="btn btn-start" id="startBtn">Начать тренировку</button>
+    <button class="nav-link" id="backToType" style="display:block;text-align:center;margin-top:14px;width:100%;">← Изменить тип тренировки</button>
+  </div>
+
+  <!-- ========== ЭКРАН: ВЫПОЛНЕНИЕ ========== -->
+  <div class="card session-card hidden" id="sessionScreen">
+    <div class="exercise-name" id="sessExerciseName">—</div>
+    <div class="set-counter" id="setProgress">Подход 1 из 3</div>
+    <div class="ex-progress" id="exProgress">Упражнение 1 из 2</div>
+    <div class="elapsed-time">Время тренировки: <strong id="elapsedTime">00:00</strong></div>
+
+    <input type="number" class="big-input" id="repsInput" min="0" placeholder="0" inputmode="numeric">
+    <div class="reps-label">повторений</div>
+
+    <div class="weight-inline" id="weightInline">
+      <span>вес:</span>
+      <input type="number" id="repsWeight" min="0" step="0.5" placeholder="—">
+      <span>кг</span>
+    </div>
+
+    <div class="session-actions">
+      <button class="btn btn-done" id="doneBtn">Выполнено</button>
+      <button class="btn btn-ghost btn-sm" id="skipExBtn">Пропустить упражнение →</button>
+    </div>
+
+    <table class="log" id="logTable" style="display:none;">
+      <thead><tr><th>Подход</th><th>Повторы</th><th>Вес</th></tr></thead>
+      <tbody id="logBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ========== ЭКРАН: ИТОГИ ========== -->
+  <div class="card hidden" id="summaryScreen">
+    <h2 id="summaryTitle" style="margin:0 0 4px;font-size:18px;color:var(--accent);">Итоги тренировки</h2>
+    <div id="summaryMeta" style="font-size:12px;color:var(--text-dim);margin-bottom:14px;"></div>
+    <div id="summaryBlocks"></div>
+    <div class="totals">
+      <div><label2>Упражнений</label2><strong id="totalExercises">0</strong></div>
+      <div><label2>Подходов</label2><strong id="totalSets">0</strong></div>
+      <div><label2>Повторений</label2><strong id="totalReps">0</strong></div>
+      <div><label2>Время</label2><strong id="totalTime">0</strong></div>
+      <div id="totalVolumeWrap" class="hidden"><label2>Тоннаж, кг</label2><strong id="totalVolume">0</strong></div>
+      <div><label2>Сред. повт/подх</label2><strong id="avgReps">0</strong></div>
+    </div>
+    <div class="finish-actions">
+      <button class="btn btn-start" id="restartBtn">Новая тренировка</button>
+    </div>
+  </div>
+
+  <!-- ========== ЭКРАН: ИСТОРИЯ ========== -->
+  <div class="hidden" id="historyScreen">
+    <div class="filter-row" id="historyFilter"></div>
+    <div id="historyList"></div>
+    <button class="btn btn-danger btn-sm hidden" id="clearHistoryBtn" style="margin-top:14px;">Очистить историю</button>
+  </div>
+
+  <!-- ========== ЭКРАН: СТАТИСТИКА ========== -->
+  <div class="hidden" id="statsScreen">
+    <div id="statsContent"></div>
+  </div>
+
+</div>
+
+<div class="tabbar">
+  <div class="tabbar-inner">
+    <button class="tab-btn active" id="tabWorkout">Тренировка</button>
+    <button class="tab-btn" id="tabHistory">История</button>
+    <button class="tab-btn" id="tabStats">Статистика</button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
