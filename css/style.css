@@ -857,6 +857,24 @@ svg.heatmap { display: block; }
 .heat-3 { fill: #a8501f; stroke: none; }
 .heat-4 { fill: var(--accent); stroke: none; }
 
+/* Лучший месяц за всё время (§23.1) */
+.best-month {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-top: 1px solid var(--line);
+    margin-top: 12px;
+    padding-top: 12px;
+    font-size: 12px;
+}
+
+.best-label {
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
 /* Изменение показателя к предыдущему периоду (§23.1) */
 .tile-delta { display: block; font-size: 10px; margin-top: 2px; letter-spacing: 0; text-transform: none; }
 .tile-delta.is-up { color: var(--good); }

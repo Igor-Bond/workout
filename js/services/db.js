@@ -736,6 +736,38 @@ export const dbService = {
         return { exercises: exercises.length, workouts: workouts.length, sets: sets.length };
     },
 
+    /**
+     * Физическое удаление давно стёртых записей (§36).
+     *
+     * Мягкое удаление нужно, чтобы стирание доехало до других устройств:
+     * запись остаётся с отметкой deletedAt и служит надгробием. Но вечно
+     * хранить надгробия незачем — через положенный срок их можно убрать.
+     *
+     * Момент `before` считает вызывающий, и это принципиально: убирать
+     * надгробие можно только после того, как удаление уехало в облако.
+     * Иначе на втором устройстве запись останется живой и вернётся обратно
+     * при следующем обмене — то есть удаление отменится само.
+     */
+    async purgeDeleted({ before }) {
+        if (!Number.isFinite(before) || before <= 0) return {};
+
+        const removed = {};
+        const tables = ['exercises', 'templates', 'workouts', 'sets', 'bodyWeight'];
+
+        for (const name of tables) {
+            const doomed = await db[name]
+                .filter((r) => r.deletedAt && r.deletedAt < before)
+                .primaryKeys();
+
+            if (doomed.length === 0) continue;
+
+            await db[name].bulkDelete(doomed);
+            removed[name] = doomed.length;
+        }
+
+        return removed;
+    },
+
     /** Полная очистка. Используется тестами и кнопкой в профиле. */
     async wipe() {
         await db.transaction('rw', db.exercises, db.templates, db.workouts, db.sets, db.settings, async () => {

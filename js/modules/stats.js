@@ -44,6 +44,12 @@ function tile(label, value, change) {
     `;
 }
 
+/** «Июнь 2026» — для лучшего месяца (§23.1). */
+function monthName(at) {
+    const d = new Date(at);
+    return `${dates.MONTHS_NOM[d.getMonth()].toLowerCase()} ${d.getFullYear()}`;
+}
+
 /** Подписи месяцев над тепловой картой: столбец — неделя. */
 function monthLabels(days) {
     const labels = [];
@@ -134,6 +140,10 @@ export const stats = {
         const was = previous ? calc.aggregate(entries, previous) : null;
         const change = calc.compare(now, was);
 
+        // Лучший месяц считается по всей истории, а не по выбранному
+        // периоду: «лучший за месяц» — бессмыслица (§23.1)
+        const best = calc.bestMonth(entries);
+
         const days = calc.days(entries, current);
         const streaks = calc.streaks(calc.days(entries, null));
         const weekdays = calc.weekdays(entries, current);
@@ -177,6 +187,24 @@ export const stats = {
                 ` : ui.html`
                     <p class="hint">Сравнивать не с чем: за всё время предыдущего периода нет.</p>
                 `}
+
+                ${best ? ui.html`
+                    <div class="best-month">
+                        <span class="best-label">Лучший месяц за всё время</span>
+                        <span>
+                            ${monthName(best.byWorkouts.at)} —
+                            ${format.count(best.byWorkouts.workouts, format.WORDS.workout)}
+                        </span>
+                        ${best.byVolume && best.byVolume.key !== best.byWorkouts.key ? ui.html`
+                            <span>
+                                по тоннажу ${monthName(best.byVolume.at)} —
+                                ${format.decimal(best.byVolume.volume, 0)} кг
+                            </span>
+                        ` : best.byVolume ? ui.html`
+                            <span>он же лучший по тоннажу: ${format.decimal(best.byVolume.volume, 0)} кг</span>
+                        ` : ''}
+                    </div>
+                ` : ''}
             </div>
 
             <div class="card">

@@ -122,6 +122,79 @@ describe('Справочник упражнений', () => {
     });
 });
 
+describe('Уборка давно удалённых записей', () => {
+
+    const DAY = 86400000;
+
+    /** Тренировка с подходом, удалённая указанное количество дней назад. */
+    async function buried(daysAgo) {
+        const ex = await dbService.createExercise({ name: `Упражнение ${daysAgo}` });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10 });
+        await dbService.finishWorkout(w.id);
+        await dbService.deleteWorkout(w.id);
+
+        // Отодвигаем отметку удаления в прошлое
+        const at = Date.now() - daysAgo * DAY;
+        await db.workouts.update(w.id, { deletedAt: at });
+
+        for (const key of await db.sets.where('workoutId').equals(w.id).primaryKeys()) {
+            await db.sets.update(key, { deletedAt: at });
+        }
+
+        return w;
+    }
+
+    it('надгробие старше срока убирается совсем', async () => {
+        await reset();
+        const w = await buried(100);
+
+        await dbService.purgeDeleted({ before: Date.now() - 90 * DAY });
+
+        equal(await db.workouts.get(w.id), undefined, 'записи больше нет физически');
+        equal((await db.sets.where('workoutId').equals(w.id).count()), 0, 'подходы тоже убраны');
+    });
+
+    it('свежее удаление не трогается', async () => {
+        await reset();
+        const w = await buried(10);
+
+        await dbService.purgeDeleted({ before: Date.now() - 90 * DAY });
+
+        assert(await db.workouts.get(w.id), 'иначе удаление не доедет до второго устройства');
+    });
+
+    it('живые записи не задеваются', async () => {
+        await reset();
+        const ex = await dbService.createExercise({ name: 'Живое' });
+
+        await dbService.purgeDeleted({ before: Date.now() });
+
+        assert(await dbService.getExercise(ex.id));
+    });
+
+    it('нулевая граница ничего не убирает', async () => {
+        await reset();
+        const w = await buried(1000);
+
+        // Так выглядит «синхронизация включена, но обмена ещё не было»
+        equal(await dbService.purgeDeleted({ before: 0 }), {});
+        assert(await db.workouts.get(w.id), 'до первого обмена надгробия трогать нельзя');
+    });
+
+    it('сообщает, что и сколько убрано', async () => {
+        await reset();
+        await buried(100);
+        await buried(200);
+
+        const removed = await dbService.purgeDeleted({ before: Date.now() - 90 * DAY });
+
+        equal(removed.workouts, 2);
+        equal(removed.sets, 2);
+    });
+});
+
 describe('Слияние упражнений', () => {
 
     /** Два упражнения-дубля, у каждого своя история. */

@@ -101,6 +101,48 @@ export const stats = {
         return result;
     },
 
+    /**
+     * Лучший месяц за всё время (§23.1) — по тренировкам и по тоннажу
+     * отдельно: месяц может быть частым и лёгким или редким и тяжёлым.
+     *
+     * Месяцы календарные, а не скользящие окна: «июнь» человек понимает
+     * сразу, а «с 20 мая по 19 июня» требует вчитываться.
+     *
+     * Пока месяц один, лучшего среди них не бывает — тогда null.
+     */
+    bestMonth(entries = []) {
+        const months = new Map();
+
+        for (const entry of entries) {
+            const d = new Date(entry.workout.startedAt);
+            const key = `${d.getFullYear()}-${d.getMonth()}`;
+
+            const month = months.get(key) || {
+                key,
+                at: new Date(d.getFullYear(), d.getMonth(), 1).getTime(),
+                workouts: 0,
+                volume: 0
+            };
+
+            month.workouts += 1;
+            month.volume += entry.volume || 0;
+
+            months.set(key, month);
+        }
+
+        if (months.size < 2) return null;
+
+        const all = [...months.values()];
+        const pick = (field) => all.reduce((best, m) => (m[field] > best[field] ? m : best), all[0]);
+
+        const byVolume = pick('volume');
+
+        return {
+            byWorkouts: pick('workouts'),
+            byVolume: byVolume.volume > 0 ? byVolume : null
+        };
+    },
+
     /** Тренировочные дни за период, по возрастанию. */
     days(entries = [], range = null) {
         const set = new Set(

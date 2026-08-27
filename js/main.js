@@ -132,6 +132,37 @@ async function boot() {
     // Обмен с облаком — после первой отрисовки и молча: он не должен
     // задерживать запуск, а без входа его вообще не будет (§39)
     sync.run({ silent: true }).catch(() => {});
+
+    purgeOldTombstones().catch((e) => console.warn('[База] Очистка не удалась:', e));
+}
+
+/**
+ * Уборка надгробий от давно удалённых записей (§36).
+ *
+ * Мягкое удаление оставляет запись с отметкой deletedAt, чтобы стирание
+ * доехало до других устройств. Через 90 дней надгробие уже никому не нужно.
+ *
+ * Но убрать его можно только после того, как удаление уехало в облако:
+ * иначе на втором устройстве запись жива, и при следующем обмене она
+ * вернётся — то есть удаление отменится само. Поэтому при включённой
+ * синхронизации граница не может быть новее последнего успешного обмена,
+ * а до первого обмена уборка не делается вовсе.
+ */
+async function purgeOldTombstones() {
+    const DAY = 86400000;
+
+    // Раз в сутки: перебирать таблицы при каждом запуске незачем
+    const lastRun = Number(await dbService.getSetting('lastPurgeAt', 0));
+    if (Date.now() - lastRun < DAY) return;
+
+    const ninetyDays = Date.now() - 90 * DAY;
+    const before = sync.available ? Math.min(ninetyDays, sync.getLastSync()) : ninetyDays;
+
+    const removed = await dbService.purgeDeleted({ before });
+    await dbService.setSetting('lastPurgeAt', Date.now());
+
+    const total = Object.values(removed).reduce((sum, n) => sum + n, 0);
+    if (total > 0) console.log('[База] Убрано давно удалённых записей:', removed);
 }
 
 boot();

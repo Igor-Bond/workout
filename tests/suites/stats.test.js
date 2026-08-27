@@ -106,6 +106,64 @@ describe('Сравнение с предыдущим периодом', () => {
     });
 });
 
+describe('Лучший месяц за всё время', () => {
+
+    /** Тренировка в конкретном месяце. */
+    const inMonth = (month, day, volume = 0) => ({
+        workout: { id: `${month}-${day}`, startedAt: new Date(2026, month, day, 12).getTime(),
+            finishedAt: new Date(2026, month, day, 13).getTime(), type: 'Силовая' },
+        sets: 10, reps: 100, volume, exerciseIds: ['a']
+    });
+
+    it('находит месяц с наибольшим числом тренировок', () => {
+        const best = stats.bestMonth([
+            inMonth(5, 1), inMonth(5, 3), inMonth(5, 5),
+            inMonth(6, 1)
+        ]);
+
+        equal(new Date(best.byWorkouts.at).getMonth(), 5);
+        equal(best.byWorkouts.workouts, 3);
+    });
+
+    it('лучший по тоннажу считается отдельно', () => {
+        const best = stats.bestMonth([
+            inMonth(5, 1, 100), inMonth(5, 3, 100), inMonth(5, 5, 100),
+            inMonth(6, 1, 5000)
+        ]);
+
+        equal(new Date(best.byWorkouts.at).getMonth(), 5, 'частый месяц');
+        equal(new Date(best.byVolume.at).getMonth(), 6, 'тяжёлый месяц');
+    });
+
+    it('без тоннажа лучшего по нему не бывает', () => {
+        const best = stats.bestMonth([inMonth(5, 1), inMonth(6, 1)]);
+
+        equal(best.byVolume, null, 'у упражнений с собственным весом тоннаж нулевой');
+    });
+
+    it('одного месяца для сравнения мало', () => {
+        equal(stats.bestMonth([inMonth(5, 1), inMonth(5, 2)]), null,
+            'лучший среди одного — не лучший');
+    });
+
+    it('пустая история лучшего месяца не даёт', () => {
+        equal(stats.bestMonth([]), null);
+    });
+
+    it('месяцы разных лет не сливаются', () => {
+        const прошлыйГод = {
+            workout: { id: 'old', startedAt: new Date(2025, 5, 1, 12).getTime(),
+                finishedAt: new Date(2025, 5, 1, 13).getTime(), type: 'Силовая' },
+            sets: 10, reps: 100, volume: 9999, exerciseIds: ['a']
+        };
+
+        const best = stats.bestMonth([прошлыйГод, inMonth(5, 1, 1), inMonth(5, 2, 1)]);
+
+        equal(new Date(best.byVolume.at).getFullYear(), 2025);
+        equal(best.byWorkouts.workouts, 2, 'июнь 2026 — две тренировки, июнь 2025 — одна');
+    });
+});
+
 describe('Дни недели', () => {
 
     it('понедельник идёт первым', () => {
