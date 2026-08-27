@@ -1,4 +1,4 @@
-# Локальный сервер для разработки.
+﻿# Локальный сервер для разработки.
 #
 # Модули ES и сервис-воркер не работают через file:// — нужен http.
 # Node в проекте не используется, поэтому сервер здесь: обычный HttpListener
@@ -48,7 +48,11 @@ while ($listener.IsListening) {
     $res = $context.Response
 
     $path = [System.Uri]::UnescapeDataString($req.Url.AbsolutePath)
-    if ($path -eq '/') { $path = '/index.html' }
+
+    # Каталог отдаётся своим index.html — так же, как это делает GitHub
+    # Pages. Без этого проверить работу приложения из подкаталога
+    # (/имя-репозитория/) на локальном сервере невозможно.
+    if ($path.EndsWith('/')) { $path = $path + 'index.html' }
 
     $file = Join-Path $Root ($path.TrimStart('/') -replace '/', '\')
 

@@ -18,3 +18,8 @@
 *.woff  binary
 *.woff2 binary
 *.pdf   binary
+
+# Скрипты PowerShell остаются с CRLF: Windows PowerShell 5.1 читает .ps1
+# как файл системной кодировки, если в нём нет BOM, и кириллица в них
+# превращается в мусор. Сохранять их только в UTF-8 с BOM.
+*.ps1 text eol=crlf

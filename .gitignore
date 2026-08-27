@@ -10,3 +10,7 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# Выгрузки истории: это личные данные, им не место в репозитории
+workout-v1-*.json
+workout-????-??-??.json
