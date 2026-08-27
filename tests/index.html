@@ -63,6 +63,20 @@
 </div>
 
 <!--
+    Узлы, которые приложение считает всегда существующими.
+
+    Проверки нажимают настоящие кнопки — иначе до состояния, спрятанного
+    внутри модуля, не добраться, — а обработчики в ответ вызывают
+    app.render() и диалоги. Без этих узлов каждое такое нажатие роняло бы
+    обработчик на пустом месте и засоряло вывод.
+-->
+<div hidden>
+    <main id="screen"></main>
+    <div id="banners"></div>
+</div>
+<div id="dialog-root"></div>
+
+<!--
     Имя базы подменяется обычным скриптом, а не модульным: модули
     выполняются после разбора всей страницы, и db.js успел бы открыть
     настоящую базу пользователя раньше, чем сюда дошла бы очередь.
@@ -89,6 +103,7 @@
     await import('./suites/merge.test.js');
     await import('./suites/migrations.test.js');
     await import('./suites/db.test.js');
+    await import('./suites/screens.test.js');
 
     const summary = await run(document.getElementById('results'));
     console.log('[Проверки]', summary);

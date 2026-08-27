@@ -23,12 +23,35 @@ import { exercises } from './modules/exercises.js';
 import { recordsScreen } from './modules/records.js';
 import { profile } from './modules/profile.js';
 
-const SCREENS = {
-    home, templates, plan, session, summary,
-    history, calendar, stats, exercise, exercises,
-    records: recordsScreen,
-    profile
-};
+/**
+ * Список экранов собирается при первом обращении, а не при загрузке модуля.
+ *
+ * Здесь круговая зависимость: app.js импортирует экраны, а каждый экран
+ * импортирует app.js ради перехода и перерисовки. Модули ES такое допускают,
+ * но пока модуль не доисполнен, его переменные недоступны.
+ *
+ * Пока приложение запускается через main.js, первым исполняется app.js, и
+ * порядок сходится. Стоит же импортировать любой экран первым — как это
+ * делают проверки, — и сборка списка прямо в теле модуля падает с
+ * «Cannot access 'home' before initialization», причём падает весь запуск.
+ *
+ * Отложенная сборка снимает зависимость от порядка: к первому render() все
+ * модули уже исполнены.
+ */
+let SCREENS = null;
+
+function screens() {
+    if (!SCREENS) {
+        SCREENS = {
+            home, templates, plan, session, summary,
+            history, calendar, stats, exercise, exercises,
+            records: recordsScreen,
+            profile
+        };
+    }
+
+    return SCREENS;
+}
 
 const DEFAULT_SCREEN = 'home';
 
@@ -40,7 +63,7 @@ function parseRoute() {
     const parts = raw.split('/').filter(Boolean).map(decodeURIComponent);
     const name = parts.shift() || DEFAULT_SCREEN;
 
-    return SCREENS[name]
+    return screens()[name]
         ? { name, params: parts }
         : { name: DEFAULT_SCREEN, params: [] };
 }
@@ -65,7 +88,7 @@ export const app = {
 
     async render() {
         const route = parseRoute();
-        const screen = SCREENS[route.name];
+        const screen = screens()[route.name];
         const host = document.getElementById('screen');
 
         /*
