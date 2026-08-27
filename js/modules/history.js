@@ -16,6 +16,21 @@ import { app } from '../app.js';
 /** Фильтры переживают уход на карточку тренировки и возврат назад. */
 let filter = { type: 'all', exerciseId: null, query: '' };
 
+/**
+ * Сколько тренировок показано (§21.2).
+ *
+ * За пять лет занятий история — это восемьсот карточек: почти пять тысяч
+ * узлов разметки и страница высотой в восемьдесят метров. Нужную строку в
+ * ней всё равно ищут фильтром, а не прокруткой.
+ */
+const PAGE = 30;
+let shown = PAGE;
+
+/** Любая смена отбора начинает показ заново: иначе счётчик врёт. */
+function resetPage() {
+    shown = PAGE;
+}
+
 function item(entry, names) {
     const { workout } = entry;
 
@@ -76,7 +91,10 @@ export const history = {
 
         const names = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
         const types = [...new Set(entries.map((e) => e.workout.type))];
-        const shown = apply(entries, names);
+
+        const matched = apply(entries, names);
+        const page = matched.slice(0, shown);
+        const rest = matched.length - page.length;
 
         const typeChips = ['all', ...types].map((t) => ui.html`
             <button class="chip ${filter.type === t ? 'is-active' : ''}"
@@ -109,14 +127,20 @@ export const history = {
                 </div>
 
                 <div class="hist-count">
-                    ${shown.length === entries.length
+                    ${matched.length === entries.length
                         ? format.count(entries.length, format.WORDS.workout)
-                        : `${shown.length} из ${entries.length}`}
+                        : `Подходит: ${matched.length} из ${entries.length}`}
                 </div>
 
-                ${shown.length
-                    ? ui.html`<div class="grid-2">${shown.map((entry) => item(entry, names))}</div>`
+                ${page.length
+                    ? ui.html`<div class="grid-2">${page.map((entry) => item(entry, names))}</div>`
                     : ui.empty('Под фильтры ничего не подходит.')}
+
+                ${rest > 0 ? ui.html`
+                    <button class="btn btn-ghost" data-action="hist-more">
+                        Показать ещё ${String(Math.min(PAGE, rest))} из ${String(rest)}
+                    </button>
+                ` : ''}
             `}
         `;
     },
@@ -133,15 +157,17 @@ export const history = {
 
 // ================== ФИЛЬТРЫ ==================
 
-actions.on('hist-type', (el) => {
+actions.on("hist-type", (el) => {
     filter.type = el.dataset.type;
+    resetPage();
     app.render();
 });
 
 let searchDelay = 0;
 
-actions.onChange('hist-search', (el) => {
+actions.onChange("hist-search", (el) => {
     filter.query = el.value;
+    resetPage();
     app.render();
 });
 
@@ -151,11 +177,22 @@ document.addEventListener('input', (e) => {
     if (e.target.id !== 'hist-search') return;
 
     filter.query = e.target.value;
+    resetPage();
     clearTimeout(searchDelay);
     searchDelay = setTimeout(() => app.render(), 250);
 });
 
+actions.on('hist-more', () => {
+    shown += PAGE;
+
+    // Перерисовка на месте прокрутку сохраняет, поэтому список
+    // достраивается там, где пользователь остановился
+    app.render();
+});
+
 actions.on('hist-exercise', async () => {
+    resetPage();
+
     if (filter.exerciseId) {
         filter.exerciseId = null;
         return app.render();
@@ -175,7 +212,8 @@ actions.on('hist-exercise', async () => {
     app.render();
 });
 
-actions.on('hist-reset', () => {
-    filter = { type: 'all', exerciseId: null, query: '' };
+actions.on("hist-reset", () => {
+    filter = { type: "all", exerciseId: null, query: "" };
+    resetPage();
     app.render();
 });

@@ -68,6 +68,21 @@ export const app = {
         const screen = SCREENS[route.name];
         const host = document.getElementById('screen');
 
+        /*
+         * Переход на другой экран начинается сверху, перерисовка на месте —
+         * с того места, где пользователь стоял.
+         *
+         * Разница существенная: render() вызывается после каждого действия —
+         * записи подхода, архивации упражнения, показа следующей страницы
+         * истории. Без этой проверки каждое такое действие выбрасывало бы
+         * наверх, и до нужной строки приходилось бы доскролливать заново.
+         */
+        const navigated = !current
+            || current.name !== route.name
+            || current.params.join('/') !== route.params.join('/');
+
+        const scroll = navigated ? 0 : document.scrollingElement.scrollTop;
+
         current?.screen?.unmount?.();
 
         host.innerHTML = '<div class="loading">Загрузка…</div>';
@@ -87,8 +102,10 @@ export const app = {
 
         app.syncNav(screen.nav || route.name);
         document.title = screen.title ? `${screen.title} · Трекер` : 'Трекер тренировок';
-        host.scrollTop = 0;
-        window.scrollTo(0, 0);
+
+        // Возвращать прокрутку надо после вставки разметки: до неё высота
+        // страницы ещё прежняя, и браузер обрежет значение по ней
+        document.scrollingElement.scrollTop = scroll;
 
         screen.mount?.(route.params);
     },
