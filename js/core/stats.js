@@ -12,6 +12,7 @@
  */
 
 import { dates } from './dates.js';
+import { records } from './records.js';
 
 const DAY = 86400000;
 
@@ -221,10 +222,14 @@ export const stats = {
             byWorkout.set(set.workoutId, own);
         }
 
+        // Величина выводится из самих подходов, если вид упражнения им не
+        // соответствует: иначе смена вида превращала бы график в нули
+        const measure = records.measure(sets, kind);
+
         const value = (s) => (
-            kind === 'time' ? (s.duration || 0)
-            : kind === 'distance' ? (s.distance || 0)
-            : kind === 'reps' ? (s.reps || 0)
+            measure === 'time' ? (s.duration || 0)
+            : measure === 'distance' ? (s.distance || 0)
+            : measure === 'reps' ? (s.reps || 0)
             : (s.weight || 0)
         );
 

@@ -73,8 +73,15 @@
 
 <script type="module">
     import { run } from './runner.js';
+    import { actions } from '../js/core/actions.js';
+
+    // Делегирование событий нужно поднять: проверки на него нажимают
+    // настоящие кнопки, а слушатели вешает именно init()
+    actions.init();
 
     // Наборы регистрируют проверки самим фактом импорта
+    await import('./suites/actions.test.js');
+    await import('./suites/wakelock.test.js');
     await import('./suites/engine.test.js');
     await import('./suites/records.test.js');
     await import('./suites/rhythm.test.js');

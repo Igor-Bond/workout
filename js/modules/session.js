@@ -16,6 +16,7 @@ import { dbService } from '../services/db.js';
 import { engine, STATE } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { restTimer } from '../core/timer.js';
+import { wakeLock } from '../core/wakelock.js';
 import { config } from '../config.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
@@ -329,6 +330,10 @@ export const session = {
         unsubscribe.push(restTimer.on('finish', () => app.render()));
 
         keyboard.attach();
+
+        // Между подходами проходит минута-полторы, и экран успевает
+        // погаснуть ровно к моменту записи результата (§28)
+        wakeLock.enable();
     },
 
     unmount() {
@@ -337,6 +342,7 @@ export const session = {
         unsubscribe = [];
 
         keyboard.detach();
+        wakeLock.disable();
     }
 };
 

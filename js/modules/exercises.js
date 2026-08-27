@@ -149,6 +149,24 @@ actions.on('ex-edit', async (el) => {
         return;
     }
 
+    // Смена вида у упражнения с историей: записанные подходы не меняются, и
+    // новые поля им взяться неоткуда. Показывать историю приложение всё
+    // равно будет по тому, что в подходах записано, но при вводе следующих
+    // подходов появятся другие поля — и в истории окажется вперемешку
+    if (values.kind !== exercise.kind) {
+        const used = await dbService.countSetsOfExercise(exercise.id);
+
+        if (used > 0) {
+            const ok = await dialog.confirm({
+                title: 'Изменить вид упражнения?',
+                text: `В истории ${format.count(used, format.WORDS.set)}. Они останутся как есть, но следующие подходы будут записываться другими величинами, и в истории окажется два вида сразу.`,
+                confirmText: 'Изменить'
+            });
+
+            if (!ok) return;
+        }
+    }
+
     await dbService.updateExercise(exercise.id, values);
     app.render();
 });

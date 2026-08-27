@@ -38,9 +38,49 @@ const COMPARE = {
     }
 };
 
+/** Какое поле подхода отвечает за каждый вид упражнения. */
+const FIELD = { weight: 'reps', reps: 'reps', time: 'duration', distance: 'distance' };
+
 export const records = {
 
     COMPARE,
+
+    /**
+     * Есть ли в подходах то, что предполагает заявленный вид упражнения.
+     *
+     * Вид у упражнения можно поменять в справочнике, а записанные подходы
+     * от этого не меняются. Отжимания, ставшие «упражнением на время», в
+     * своих подходах по-прежнему хранят повторения.
+     */
+    supports(sets = [], kind) {
+        const field = FIELD[kind];
+        return !!field && sets.some((s) => s && s[field] !== undefined);
+    },
+
+    /**
+     * По какой величине сравнивать и что показывать.
+     *
+     * Заявленный вид уважается, пока данные его подтверждают. Если нет —
+     * величина выводится из самих подходов: они и есть правда, а вид — лишь
+     * подсказка, какие поля показывать при вводе.
+     *
+     * Без этого смена вида в справочнике превращала всю историю упражнения
+     * в «00:00», а его рекорд — в ноль.
+     */
+    measure(sets = [], kind = null) {
+        // Противоречить виду нечему: подходов ещё нет, и заявленный вид —
+        // единственное, что известно. Это обычное состояние упражнения,
+        // которое делают в первый раз.
+        if (sets.length === 0) return kind || 'reps';
+
+        if (kind && records.supports(sets, kind)) return kind;
+
+        if (sets.some((s) => s?.distance !== undefined)) return 'distance';
+        if (sets.some((s) => s?.duration !== undefined)) return 'time';
+        if (sets.some((s) => s?.weight !== undefined)) return 'weight';
+
+        return 'reps';
+    },
 
     /**
      * Лучший подход за всю историю.
@@ -49,7 +89,7 @@ export const records = {
      * завершена (§15) — отсюда exceptWorkoutId.
      */
     best(sets = [], kind = 'weight', exceptWorkoutId = null) {
-        const compare = COMPARE[kind] || COMPARE.weight;
+        const compare = COMPARE[records.measure(sets, kind)] || COMPARE.weight;
 
         return sets.reduce((champion, set) => {
             if (exceptWorkoutId && set.workoutId === exceptWorkoutId) return champion;
@@ -110,13 +150,17 @@ export const records = {
         return champion;
     },
 
-    /** Короткая запись подхода: «60 кг × 9», «20 повт.», «1:00». */
+    /** Короткая запись подхода: «60 кг × 9», «20 повт.», «01:00». */
     describe(set, kind = 'weight') {
         if (!set) return '—';
 
-        if (kind === 'time') return format.seconds(set.duration || 0);
+        // Показываем то, что записано в подходе: вид упражнения мог
+        // измениться уже после того, как подход был выполнен
+        const measure = records.measure([set], kind);
 
-        if (kind === 'distance') {
+        if (measure === 'time') return format.seconds(set.duration || 0);
+
+        if (measure === 'distance') {
             const parts = [];
             if (set.distance) parts.push(format.distance(set.distance));
             if (set.duration) parts.push(format.seconds(set.duration));
@@ -131,8 +175,10 @@ export const records = {
     describeSession(sets = [], kind = 'weight') {
         if (sets.length === 0) return '—';
 
-        if (kind !== 'weight') {
-            return sets.map((s) => records.describe(s, kind)).join(', ');
+        const measure = records.measure(sets, kind);
+
+        if (measure !== 'weight') {
+            return sets.map((s) => records.describe(s, measure)).join(', ');
         }
 
         // Вес повторяется у большинства подходов — во втором и далее его

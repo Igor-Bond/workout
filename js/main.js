@@ -11,7 +11,9 @@ import { app } from './app.js';
 import { actions } from './core/actions.js';
 import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
+import { wakeLock } from './core/wakelock.js';
 import { ui } from './core/ui.js';
+import { dialog } from './core/dialog.js';
 import { dbService } from './services/db.js';
 import { migrations } from './services/migrations.js';
 import { sync } from './services/sync.js';
@@ -29,6 +31,20 @@ actions.on('install', async () => {
 actions.on('reload', () => location.reload());
 
 actions.on('dismiss-banner', (el) => app.hideBanner(el.dataset.banner));
+
+/**
+ * Упавшее действие обязано быть видно.
+ *
+ * Молча потерянный подход — худшее, что может сделать журнал тренировок:
+ * пользователь решит, что промахнулся по кнопке, и запишет его ещё раз или
+ * не запишет вовсе.
+ */
+actions.onError((error) => {
+    dialog.alert({
+        title: 'Не удалось выполнить действие',
+        text: `${error?.message || error}\n\nЕсли это повторяется — проверьте, есть ли место на устройстве и не открыто ли приложение в другой вкладке.`
+    });
+});
 
 // ================== СЕРВИС-ВОРКЕР ==================
 
@@ -83,6 +99,10 @@ async function boot() {
 
     // До первой отрисовки: иначе меню встанет по неверной высоте экрана
     viewport.init();
+
+    // Система снимает удержание экрана при сворачивании — подписка
+    // возвращает его, когда вкладку показывают снова
+    wakeLock.init();
 
     actions.init();
 

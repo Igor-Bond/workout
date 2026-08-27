@@ -145,6 +145,48 @@ describe('Отметка нового рекорда', () => {
     });
 });
 
+describe('Смена вида упражнения не ломает историю', () => {
+
+    /*
+     * Вид упражнения можно поменять в справочнике, а записанные подходы от
+     * этого не меняются. Раньше отображение считалось по текущему виду, и
+     * силовая история превращалась в «00:00», а рекорд — в ноль.
+     */
+    const силовые = [
+        s({ id: 'a', weight: 60, reps: 10 }),
+        s({ id: 'b', weight: 65, reps: 8 })
+    ];
+
+    it('заявленный вид уважается, пока данные его подтверждают', () => {
+        equal(records.measure(силовые, 'weight'), 'weight');
+        equal(records.measure([s({ duration: 60 })], 'time'), 'time');
+    });
+
+    it('вид, которому данные не соответствуют, выводится из подходов', () => {
+        equal(records.measure(силовые, 'time'), 'weight', 'в подходах нет длительности');
+        equal(records.measure([s({ duration: 60 })], 'weight'), 'time');
+        equal(records.measure([s({ distance: 5000 })], 'reps'), 'distance');
+    });
+
+    it('рекорд не обнуляется после смены вида', () => {
+        equal(records.describe(records.best(силовые, 'time'), 'time'), '65 кг × 8');
+    });
+
+    it('история не превращается в нули', () => {
+        equal(records.describeSession(силовые, 'time'), '60 кг × 10, 65 × 8');
+    });
+
+    it('подход показывается по тому, что в нём записано', () => {
+        equal(records.describe(s({ reps: 20 }), 'distance'), '20 повт.');
+        equal(records.describe(s({ duration: 90 }), 'weight'), '01:30');
+    });
+
+    it('пустые подходы вида не меняют', () => {
+        equal(records.measure([], 'time'), 'time');
+        equal(records.measure([]), 'reps');
+    });
+});
+
 describe('Разовый максимум', () => {
 
     it('считается по формуле Эпли', () => {
