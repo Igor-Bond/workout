@@ -9,6 +9,7 @@
 import { describe, it, equal, assert } from '../runner.js';
 import { merge } from '../../js/core/merge.js';
 import { backup } from '../../js/services/backup.js';
+import { config } from '../../js/config.js';
 
 const rec = (over = {}) => ({ id: 'a', updatedAt: 100, ...over });
 
@@ -203,6 +204,49 @@ describe('Разбор файла копии', () => {
         try { backup.parse('<html>'); } catch (e) { message = e.message; }
 
         assert(message.includes('не JSON'));
+    });
+});
+
+describe('Настройки в резервной копии', () => {
+
+    it('переносимые настройки попадают в копию', () => {
+        const portable = config.getPortable();
+
+        equal(Object.keys(portable).sort(), [...config.PORTABLE].sort());
+    });
+
+    it('привязанное к устройству не переносится', () => {
+        const portable = config.getPortable();
+
+        assert(!('syncEnabled' in portable), 'иначе новое устройство решит, что вход выполнен');
+        assert(!('lastSync' in portable), 'у нового устройства своя история обменов');
+    });
+
+    it('применяются только знакомые ключи', () => {
+        const было = config.get('restSeconds');
+
+        const applied = config.setPortable({ restSeconds: 120, чужойКлюч: 'мусор' });
+
+        equal(applied, 1);
+        equal(config.get('restSeconds'), 120);
+
+        config.set('restSeconds', было);
+    });
+
+    it('значение не того типа отбрасывается', () => {
+        const было = config.get('restEnabled');
+
+        config.setPortable({ restEnabled: 'да' });
+
+        equal(config.get('restEnabled'), было, 'файл могли поправить руками');
+    });
+
+    it('отсутствующие ключи не сбрасывают текущие', () => {
+        config.set('mode', 'free');
+        config.setPortable({ restSeconds: 90 });
+
+        equal(config.get('mode'), 'free');
+        config.set('mode', 'plan');
     });
 });
 

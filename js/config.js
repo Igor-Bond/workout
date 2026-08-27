@@ -39,9 +39,51 @@ const DEFAULTS = {
     syncEnabled: false
 };
 
+/**
+ * Настройки, которые имеет смысл переносить на другое устройство (§41).
+ *
+ * Всё остальное к устройству и привязано: включено ли здесь облако, когда
+ * здесь был последний обмен, переносилась ли здесь версия 1. Перенести их
+ * вместе с копией значило бы соврать новому устройству о его собственном
+ * состоянии — например, объявить синхронизацию включённой там, где вход не
+ * выполнялся.
+ */
+const PORTABLE = ['mode', 'restEnabled', 'restSeconds', 'restSound', 'restVibration', 'keepAwake'];
+
 export const config = {
 
     DEFAULTS,
+    PORTABLE,
+
+    /** Настройки для резервной копии — только переносимые. */
+    getPortable() {
+        const result = {};
+        for (const key of PORTABLE) result[key] = config.get(key);
+        return result;
+    },
+
+    /**
+     * Применение настроек из копии.
+     *
+     * Незнакомые ключи и значения не того типа отбрасываются: файл могли
+     * сделать другой версией приложения или поправить руками, и принимать
+     * из него что попало нельзя.
+     */
+    setPortable(values = {}) {
+        let applied = 0;
+
+        for (const key of PORTABLE) {
+            if (!(key in values)) continue;
+
+            const value = values[key];
+            if (typeof value !== typeof DEFAULTS[key]) continue;
+
+            config.set(key, value);
+            applied += 1;
+        }
+
+        return applied;
+    },
 
     get(key) {
         const raw = localStorage.getItem(PREFIX + key);

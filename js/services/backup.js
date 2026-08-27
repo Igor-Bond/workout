@@ -10,6 +10,7 @@
 import { dbService } from './db.js';
 import { migrations } from './migrations.js';
 import { merge, SYNCED } from '../core/merge.js';
+import { config } from '../config.js';
 
 /** Версия формата файла. Растёт, когда меняется состав или смысл полей. */
 const FORMAT = 1;
@@ -30,7 +31,12 @@ export const backup = {
             format: FORMAT,
             app: 'workout',
             exportedAt: Date.now(),
-            data
+            data,
+
+            // Только переносимые: длительность отдыха и режим выполнения
+            // человек подбирает под себя один раз, и восстанавливать их
+            // вручную на новом устройстве — лишняя работа (§41)
+            settings: config.getPortable()
         };
     },
 
@@ -205,6 +211,11 @@ export const backup = {
 
             counts[name] = accepted.length + workouts.length;
         }
+
+        // Настройки не версионируются метками времени, поэтому правило
+        // «побеждает свежее» к ним неприменимо: раз файл выбран, берём то,
+        // что в нём
+        if (payload.settings) counts.settings = config.setPortable(payload.settings);
 
         return counts;
     }
