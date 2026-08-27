@@ -19,7 +19,7 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v17';
+const APP_VERSION = 'v18';
 const CACHE_NAME = `workout-${APP_VERSION}`;
 
 const NETWORK_TIMEOUT = 3000;
@@ -81,18 +81,22 @@ const PRECACHE_URLS = [
 
 // ================== УСТАНОВКА ==================
 
+/**
+ * Поштучно, а не addAll: тот падает целиком из-за одного файла, и тогда
+ * офлайн не работает вообще ничего.
+ */
+async function precache() {
+    const cache = await caches.open(CACHE_NAME);
+
+    await Promise.all(PRECACHE_URLS.map((url) => cache.add(url).catch((e) => {
+        console.warn('[SW] Не удалось закэшировать', url, e);
+    })));
+
+    return (await cache.keys()).length;
+}
+
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            // Поштучно, а не addAll: тот падает целиком из-за одного файла,
-            // и тогда офлайн не работает вообще ничего
-            .then((cache) => Promise.all(
-                PRECACHE_URLS.map((url) => cache.add(url).catch((e) => {
-                    console.warn('[SW] Не удалось закэшировать', url, e);
-                }))
-            ))
-            .then(() => self.skipWaiting())
-    );
+    event.waitUntil(precache().then(() => self.skipWaiting()));
 });
 
 // ================== АКТИВАЦИЯ ==================
@@ -105,6 +109,42 @@ self.addEventListener('activate', (event) => {
             ))
             .then(() => self.clients.claim())
     );
+});
+
+// ================== ВОССТАНОВЛЕНИЕ КЭША ==================
+
+/**
+ * Проверка запаса по просьбе страницы.
+ *
+ * Предварительный кэш собирается один раз — при установке воркера. Но
+ * установка запускается только когда меняется сам файл воркера, а
+ * содержимое кэша браузер может вытеснить в любой момент: при нехватке
+ * места, при чистке данных сайта, по решению самого браузера.
+ *
+ * После такого приложение продолжает работать в сети, а офлайн молча
+ * отказывает — и остаётся отказывать до следующего изменения версии, то
+ * есть неопределённо долго. Поэтому страница при запуске просит проверить
+ * запас, и недостающее докачивается.
+ */
+self.addEventListener('message', (event) => {
+    if (event.data?.type !== 'verify-precache') return;
+
+    event.waitUntil((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        const have = (await cache.keys()).length;
+
+        // Небольшая недостача — обычное дело: часть адресов могла осесть
+        // под другим ключом. Восстанавливаем, только когда запас явно
+        // растерян.
+        if (have >= PRECACHE_URLS.length) {
+            return event.source?.postMessage({ type: 'precache-ok', have });
+        }
+
+        console.warn(`[SW] В кэше ${have} из ${PRECACHE_URLS.length}, докачиваю`);
+
+        const restored = await precache();
+        event.source?.postMessage({ type: 'precache-restored', have, restored });
+    })());
 });
 
 // ================== СТРАТЕГИИ ==================

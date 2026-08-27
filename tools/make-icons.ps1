@@ -45,39 +45,85 @@ function New-Icon {
     $g = [System.Drawing.Graphics]::FromImage($bmp)
     $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
 
-    $bgBrush = New-Object System.Drawing.SolidBrush($bg)
+    # Фон с уходом в тёмное к низу: плоская заливка на значке выглядит
+    # безжизненно, а градиент даёт объём, не отвлекая от знака
+    $bgTop = [System.Drawing.ColorTranslator]::FromHtml('#26201b')
+    $bgBottom = [System.Drawing.ColorTranslator]::FromHtml('#14110f')
 
     if ($Maskable) {
-        # Фон на весь холст: обрезать будут именно его края
-        $g.FillRectangle($bgBrush, 0, 0, $Size, $Size)
+        $rect = New-Object System.Drawing.Rectangle(0, 0, $Size, $Size)
+        $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $bgTop, $bgBottom, 90)
+        $g.FillRectangle($grad, $rect)
+        $grad.Dispose()
     } else {
-        # Обычная иконка: скруглённая плитка с отступом от края
         $pad = $Size * 0.08
         $tile = New-RoundedPath -X $pad -Y $pad -W ($Size - $pad*2) -H ($Size - $pad*2) -R ($Size * 0.22)
 
-        $g.FillPath($bgBrush, $tile)
-        $pen = New-Object System.Drawing.Pen($line, [float]($Size * 0.006))
+        $rect = New-Object System.Drawing.Rectangle(0, 0, $Size, $Size)
+        $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect, $bgTop, $bgBottom, 90)
+        $g.FillPath($grad, $tile)
+        $grad.Dispose()
+
+        $pen = New-Object System.Drawing.Pen($line, [float]($Size * 0.008))
         $g.DrawPath($pen, $tile)
         $pen.Dispose()
         $tile.Dispose()
     }
 
-    # Гантель. У maskable рисунок меньше: он обязан уместиться в круг
-    # диаметром 80% холста при любой форме обрезки.
-    $scale = if ($Maskable) { 0.52 } else { 0.62 }
+    <#
+        Знак: гриф штанги, а над ним — растущий столбик прогресса.
 
-    $barW   = $Size * $scale            # общая ширина
-    $plateW = $barW * 0.17              # ширина крайних блинов
-    $plateH = $barW * 0.52              # их высота
-    $gripH  = $barW * 0.15              # толщина грифа
+        Одна гантель говорит «тут про железо», но не говорит, что это
+        журнал. Три поднимающихся столбика — говорят: приложение про то,
+        что результат растёт от раза к разу. Столбики над грифом читаются
+        и в мелком размере, где мелкие детали пропадают.
+    #>
+    $scale = if ($Maskable) { 0.58 } else { 0.68 }
+    $unit = $Size * $scale
+
+    $barY   = $Size * 0.71              # гриф в нижней трети
+    $barW   = $unit
+    $plateW = $unit * 0.085
+    $plateH = $unit * 0.26
+    $gripH  = $unit * 0.085             # тоньше столбиков: главное здесь рост
 
     $left = ($Size - $barW) / 2
-    $midY = $Size / 2
 
-    $brush = New-Object System.Drawing.SolidBrush($accent)
+    $accentBrush = New-Object System.Drawing.SolidBrush($accent)
 
-    $grip = New-RoundedPath -X $left -Y ($midY - $gripH/2) -W $barW -H $gripH -R ($gripH * 0.35)
-    $g.FillPath($brush, $grip)
+    <#
+        Ступени яркости, а не один тусклый тон: на значке в сорок восемь
+        точек слабый цвет сливается с фоном, и вместо трёх столбиков
+        видно один. Каждый следующий ближе к акцентному — рост читается
+        и цветом, и высотой.
+    #>
+    $step1 = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml('#8a4a28'))
+    $step2 = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml('#c2622c'))
+
+    # --- столбики прогресса
+    $colW = $unit * 0.18
+    $gap = $unit * 0.10
+    $groupW = $colW * 3 + $gap * 2
+    $colLeft = ($Size - $groupW) / 2
+    $baseY = $barY - $gripH * 2.2
+
+    $heights = @(($unit * 0.24), ($unit * 0.42), ($unit * 0.62))
+    $brushes = @($step1, $step2, $accentBrush)
+
+    for ($i = 0; $i -lt 3; $i++) {
+        $h = $heights[$i]
+        $x = $colLeft + $i * ($colW + $gap)
+        $col = New-RoundedPath -X $x -Y ($baseY - $h) -W $colW -H $h -R ($colW * 0.32)
+        $g.FillPath($brushes[$i], $col)
+        $col.Dispose()
+    }
+
+    $step1.Dispose()
+    $step2.Dispose()
+
+    # --- гриф с блинами
+    $grip = New-RoundedPath -X $left -Y ($barY - $gripH/2) -W $barW -H $gripH -R ($gripH * 0.5)
+    $g.FillPath($accentBrush, $grip)
     $grip.Dispose()
 
     # Оба положения считаются заранее: внутри @(...) запятая связывает
@@ -86,13 +132,12 @@ function New-Icon {
     $positions = @($left, $rightX)
 
     foreach ($x in $positions) {
-        $plate = New-RoundedPath -X $x -Y ($midY - $plateH/2) -W $plateW -H $plateH -R ($plateW * 0.3)
-        $g.FillPath($brush, $plate)
+        $plate = New-RoundedPath -X $x -Y ($barY - $plateH/2) -W $plateW -H $plateH -R ($plateW * 0.35)
+        $g.FillPath($accentBrush, $plate)
         $plate.Dispose()
     }
 
-    $brush.Dispose()
-    $bgBrush.Dispose()
+    $accentBrush.Dispose()
     $g.Dispose()
 
     return $bmp

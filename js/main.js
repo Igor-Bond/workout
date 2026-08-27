@@ -81,6 +81,25 @@ function registerServiceWorker() {
         reloading = true;
         location.reload();
     });
+
+    /*
+     * Просьба проверить запас для офлайна.
+     *
+     * Кэш собирается при установке воркера, а установка запускается только
+     * при изменении его файла. Содержимое же браузер может вытеснить когда
+     * угодно — при нехватке места или чистке данных сайта. После этого
+     * офлайн молча отказывает и сам не чинится: файл воркера прежний,
+     * устанавливать нечего.
+     */
+    navigator.serviceWorker.ready.then((reg) => {
+        reg.active?.postMessage({ type: 'verify-precache' });
+    });
+
+    navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data?.type === 'precache-restored') {
+            console.log(`[PWA] Запас для офлайна восстановлен: было ${e.data.have}, стало ${e.data.restored}`);
+        }
+    });
 }
 
 // ================== СТАРТ ==================
