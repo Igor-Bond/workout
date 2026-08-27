@@ -41,6 +41,8 @@ function row(exercise, usage) {
             </div>
             <div class="ex-actions">
                 <button class="icon-btn" data-action="ex-edit" data-id="${exercise.id}" title="Изменить">✎</button>
+                <button class="icon-btn" data-action="ex-merge" data-id="${exercise.id}"
+                        title="Объединить с другим">⇥</button>
                 ${exercise.archived
                     ? ui.raw(`<button class="icon-btn" data-action="ex-restore" data-id="${ui.esc(exercise.id)}" title="Вернуть из архива">↩</button>`)
                     : ui.raw(`<button class="icon-btn" data-action="ex-archive" data-id="${ui.esc(exercise.id)}" title="В архив">⌫</button>`)}
@@ -168,6 +170,69 @@ actions.on('ex-edit', async (el) => {
     }
 
     await dbService.updateExercise(exercise.id, values);
+    app.render();
+});
+
+/**
+ * Объединение дублей (§5.1).
+ *
+ * Опечатка в названии заводит второе упражнение и разрезает историю надвое.
+ * Переименовать не выйдет — занять чужое имя нельзя, — поэтому нужно
+ * отдельное действие: перенести всё в правильную запись и убрать лишнюю.
+ */
+actions.on('ex-merge', async (el) => {
+    const source = await dbService.getExercise(el.dataset.id);
+    if (!source) return;
+
+    const others = (await dbService.listExercises({ includeArchived: true }))
+        .filter((e) => e.id !== source.id);
+
+    if (others.length === 0) {
+        return dialog.alert({ title: 'Объединять не с чем', text: 'В справочнике только одно упражнение.' });
+    }
+
+    const usage = await dbService.countSetsOfExercise(source.id);
+
+    const chosen = await dialog.pick({
+        title: `Объединить «${source.name}» с…`,
+        text: 'Выбранное упражнение останется, текущее исчезнет вместе со своим названием.',
+        items: others.map((e) => ({
+            value: e.id,
+            label: e.name,
+            hint: [kindLabel(e.kind), e.group, e.archived ? 'в архиве' : null].filter(Boolean).join(' · ')
+        })),
+        placeholder: 'Название упражнения'
+    });
+
+    if (!chosen || chosen.create) return;
+
+    const target = others.find((e) => e.id === chosen);
+    if (!target) return;
+
+    const ok = await dialog.confirm({
+        title: `«${source.name}» → «${target.name}»?`,
+        // Числительное ставится после слова, чтобы не согласовывать глагол:
+        // «1 подход перейдут» и «5 подходов перейдёт» одинаково неверны
+        text: usage > 0
+            ? `К «${target.name}» перейдёт подходов: ${usage}. «${source.name}» исчезнет из справочника, и отменить это будет нечем.`
+            : `«${source.name}» исчезнет из справочника. Подходов у него нет, так что переносить нечего.`,
+        confirmText: 'Объединить'
+    });
+
+    if (!ok) return;
+
+    const result = await dbService.mergeExercises(source.id, target.id);
+
+    await dialog.alert({
+        title: 'Объединено',
+        text: [
+            `«${result.from}» → «${result.to}».`,
+            result.sets ? `Перенесено подходов: ${result.sets}.` : '',
+            result.workouts ? `Затронуто тренировок: ${result.workouts}.` : '',
+            result.templates ? `Шаблонов: ${result.templates}.` : ''
+        ].filter(Boolean).join(' ')
+    });
+
     app.render();
 });
 

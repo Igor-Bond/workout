@@ -122,6 +122,113 @@ describe('Справочник упражнений', () => {
     });
 });
 
+describe('Слияние упражнений', () => {
+
+    /** Два упражнения-дубля, у каждого своя история. */
+    async function pair() {
+        await reset();
+
+        const right = await dbService.createExercise({ name: 'Отжимания', kind: 'reps' });
+        const typo = await dbService.createExercise({ name: 'Отжымания', kind: 'reps' });
+
+        const w1 = await dbService.createWorkout({ type: 'Дома', plan: [
+            { exerciseId: right.id, plannedSets: 2, targetReps: 20, weight: 0, skipped: false }
+        ]});
+        await dbService.addSet({ workoutId: w1.id, exerciseId: right.id, order: 1, setNumber: 1, reps: 20 });
+        await dbService.addSet({ workoutId: w1.id, exerciseId: right.id, order: 2, setNumber: 2, reps: 18 });
+        await dbService.finishWorkout(w1.id);
+
+        const w2 = await dbService.createWorkout({ type: 'Дома', plan: [
+            { exerciseId: typo.id, plannedSets: 1, targetReps: 25, weight: 0, skipped: false }
+        ]});
+        await dbService.addSet({ workoutId: w2.id, exerciseId: typo.id, order: 1, setNumber: 1, reps: 25 });
+        await dbService.finishWorkout(w2.id);
+
+        return { right, typo, w1, w2 };
+    }
+
+    it('подходы переходят к целевому упражнению', async () => {
+        const { right, typo } = await pair();
+
+        const result = await dbService.mergeExercises(typo.id, right.id);
+
+        equal(result.sets, 1);
+        equal((await dbService.listSetsByExercise(right.id)).length, 3, 'история собралась воедино');
+        equal((await dbService.listSetsByExercise(typo.id)).length, 0);
+    });
+
+    it('исходное упражнение исчезает из справочника', async () => {
+        const { right, typo } = await pair();
+
+        await dbService.mergeExercises(typo.id, right.id);
+
+        equal(await dbService.getExercise(typo.id), null);
+        equal((await dbService.listExercises()).map((e) => e.name), ['Отжимания']);
+    });
+
+    it('ссылки в планах тренировок переписываются', async () => {
+        const { right, typo, w2 } = await pair();
+
+        await dbService.mergeExercises(typo.id, right.id);
+        const workout = await dbService.getWorkout(w2.id);
+
+        equal(workout.plan[0].exerciseId, right.id, 'иначе план ссылался бы в пустоту');
+    });
+
+    it('ссылки в шаблонах переписываются', async () => {
+        const { right, typo } = await pair();
+        const tpl = await dbService.saveTemplate({ name: 'Домашняя', items: [
+            { exerciseId: typo.id, plannedSets: 3, targetReps: 20, weight: 0 }
+        ]});
+
+        const result = await dbService.mergeExercises(typo.id, right.id);
+
+        equal(result.templates, 1);
+        equal((await dbService.getTemplate(tpl.id)).items[0].exerciseId, right.id);
+    });
+
+    it('в одной тренировке два упражнения сливаются в одну строку плана', async () => {
+        const { right, typo } = await pair();
+
+        // Оба попали в одну тренировку — так бывает, если опечатку заметили
+        // не сразу и добавили упражнение второй раз
+        const w = await dbService.createWorkout({ type: 'Дома', plan: [
+            { exerciseId: right.id, plannedSets: 2, targetReps: 20, weight: 0, skipped: false },
+            { exerciseId: typo.id, plannedSets: 3, targetReps: 20, weight: 0, skipped: false }
+        ]});
+
+        await dbService.mergeExercises(typo.id, right.id);
+        const plan = (await dbService.getWorkout(w.id)).plan;
+
+        equal(plan.length, 1, 'две строки об одном упражнении считали бы прогресс дважды');
+        equal(plan[0].plannedSets, 5, 'подходы складываются');
+    });
+
+    it('перенесённые записи получают новую метку времени', async () => {
+        const { right, typo, w2 } = await pair();
+        const было = (await dbService.getWorkout(w2.id)).updatedAt;
+
+        await new Promise((r) => setTimeout(r, 5));
+        await dbService.mergeExercises(typo.id, right.id);
+
+        assert((await dbService.getWorkout(w2.id)).updatedAt > было,
+            'без этого слияние не доедет до других устройств');
+    });
+
+    it('упражнение нельзя объединить с самим собой', async () => {
+        const { right } = await pair();
+
+        await throws(() => dbService.mergeExercises(right.id, right.id));
+    });
+
+    it('несуществующее упражнение не сливается', async () => {
+        const { right } = await pair();
+
+        await throws(() => dbService.mergeExercises('нет-такого', right.id));
+        await throws(() => dbService.mergeExercises(right.id, 'нет-такого'));
+    });
+});
+
 describe('Тренировки и подходы', () => {
 
     it('активная тренировка находится и завершается', async () => {

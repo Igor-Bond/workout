@@ -129,6 +129,8 @@ powershell -ExecutionPolicy Bypass -File tools/serve.ps1 -Port 4180 -Root ..
 ## 2.1. Проверить перед выкладкой
 
 - [ ] `tests/index.html` — все проверки зелёные;
+- [ ] `powershell -ExecutionPolicy Bypass -File tools/check-precache.ps1` —
+      список офлайн-файлов сходится с деревом проекта;
 - [ ] в консоли браузера пусто на всех разделах;
 - [ ] приложение открывается из подкаталога (см. выше);
 - [ ] `APP_VERSION` в `sw.js` поднят;

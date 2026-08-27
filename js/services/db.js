@@ -186,6 +186,93 @@ export const dbService = {
         await db.exercises.delete(id);
     },
 
+    /**
+     * Слияние двух упражнений (§5.1).
+     *
+     * Опечатка в названии заводит второе упражнение, и история разрезается
+     * надвое — ровно то, ради чего справочник и придуман. Переименование не
+     * помогает: записи остаются разными, а занять чужое имя нельзя.
+     *
+     * Все подходы исходного упражнения переходят к целевому, ссылки в планах
+     * тренировок и в шаблонах переписываются, исходное удаляется.
+     *
+     * Одной транзакцией: половина перенесённой истории хуже неперенесённой.
+     */
+    async mergeExercises(sourceId, targetId) {
+        if (sourceId === targetId) throw new Error('Упражнение нельзя объединить с самим собой');
+
+        const [source, target] = await Promise.all([
+            dbService.getExercise(sourceId),
+            dbService.getExercise(targetId)
+        ]);
+
+        if (!source) throw new Error('Исходное упражнение не найдено');
+        if (!target) throw new Error('Целевое упражнение не найдено');
+
+        const now = Date.now();
+        const moved = { sets: 0, workouts: 0, templates: 0 };
+
+        /**
+         * Замена ссылки в списке упражнений плана или шаблона.
+         *
+         * Оба упражнения могли встречаться в одной тренировке — тогда после
+         * замены в плане окажутся две записи об одном и том же. Их надо
+         * слить, а не оставить рядом: иначе прогресс будет считать одно
+         * упражнение дважды.
+         */
+        const rewrite = (items = []) => {
+            if (!items.some((i) => i.exerciseId === sourceId)) return null;
+
+            const result = [];
+
+            for (const item of items) {
+                const next = item.exerciseId === sourceId ? { ...item, exerciseId: targetId } : item;
+                const existing = result.find((r) => r.exerciseId === next.exerciseId);
+
+                if (!existing) {
+                    result.push(next);
+                    continue;
+                }
+
+                existing.plannedSets = (existing.plannedSets || 0) + (next.plannedSets || 0);
+                existing.note = existing.note || next.note;
+                existing.skipped = existing.skipped && next.skipped;
+            }
+
+            return result;
+        };
+
+        await db.transaction('rw', db.exercises, db.sets, db.workouts, db.templates, async () => {
+            const sets = await db.sets.where('exerciseId').equals(sourceId).toArray();
+
+            await db.sets.bulkPut(sets.map((s) => ({ ...s, exerciseId: targetId, updatedAt: now })));
+            moved.sets = sets.length;
+
+            for (const workout of await db.workouts.toArray()) {
+                const plan = rewrite(workout.plan);
+                if (!plan) continue;
+
+                await db.workouts.update(workout.id, { plan, updatedAt: now });
+                moved.workouts += 1;
+            }
+
+            for (const template of await db.templates.toArray()) {
+                const items = rewrite(template.items);
+                if (!items) continue;
+
+                await db.templates.update(template.id, { items, updatedAt: now });
+                moved.templates += 1;
+            }
+
+            // Исходное упражнение больше ничем не занято — удаляем совсем,
+            // а не мягко: ссылаться на него уже неоткуда, и в облаке его
+            // отсутствие приедет вместе с переписанными тренировками
+            await db.exercises.delete(sourceId);
+        });
+
+        return { ...moved, from: source.name, to: target.name };
+    },
+
     // ================== ТРЕНИРОВКИ (§4) ==================
 
     /** Активная тренировка или null. Она всегда одна (§18). */
