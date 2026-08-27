@@ -20,6 +20,24 @@
     --blue:      #5b9bd5;
     --purple:    #a87fd1;
 
+    /*
+     * Два шрифта вместо одного.
+     *
+     * Раньше всё приложение было набрано Courier New — наследство версии 1.
+     * Для чисел моноширинный хорош: цифры одной ширины, колонки в таблицах
+     * выравниваются сами, вес и время не пляшут при каждом изменении. Для
+     * русского текста он плох: буквы разрежены, читается тяжело, а на iPhone
+     * Courier подменяется чем придётся.
+     *
+     * Поэтому текст — системным шрифтом устройства, числа и таблицы —
+     * моноширинным. Заодно системный шрифт делает приложение похожим на
+     * остальные приложения телефона, а не на терминал.
+     */
+    --font-text: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+                 'Courier New', monospace;
+
     --radius:    10px;
     --radius-sm: 8px;
     --content:   520px;
@@ -45,12 +63,35 @@ html, body {
 body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Courier New', Courier, monospace;
+    font-family: var(--font-text);
     font-size: 15px;
     line-height: 1.45;
     min-height: var(--app-height);
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
+
+    /* На тёмном фоне сглаживание по умолчанию делает текст жирнее, чем надо */
+    -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Числа набираются моноширинным и одинаковой ширины цифрами: иначе вес
+ * и время дёргаются при каждом изменении, а колонки в таблицах не
+ * выстраиваются.
+ */
+.num,
+table.log,
+.tile strong,
+.info-row strong,
+.prog-count,
+.rec-value,
+.pr-value,
+.ex-hist-sets,
+.rest-bar strong,
+.sess-meta strong,
+input.big-input {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
 }
 
 h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.01em; }
@@ -485,8 +526,12 @@ input[type=checkbox] {
 input.big-input {
     display: block;
     width: 140px;
+
+    /* Повторяется здесь намеренно: правило для input[type=number] идёт
+       ниже общего списка моноширинных и перебивает его при равном весе */
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
     margin: 0 auto 6px;
-    font-family: inherit;
     font-size: 44px;
     text-align: center;
     background: var(--panel-2);
@@ -516,7 +561,26 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .inline-field input { width: 100px; padding: 8px; text-align: center; }
 .inline-field span { font-size: 12px; color: var(--text-dim); }
 
+/* Что уже сделано в этом упражнении — одной строкой вместо таблицы */
+.sess-done {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 12px;
+    font-size: 13px;
+}
+
+.sess-done-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
 .sess-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.sess-tools[hidden] { display: none; }
 .sess-tools .btn { flex: 1; margin-bottom: 0; min-width: 150px; }
 .btn-sm { padding: 9px 12px; font-size: 13px; min-height: 38px; }
 

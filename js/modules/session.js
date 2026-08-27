@@ -93,13 +93,19 @@ function recordsBlock({ last, best, kind }) {
             <div class="rec-line">
                 <span class="rec-label">Лучший результат</span>
                 <span class="rec-value">${records.describe(best, kind)}</span>
-                ${kind === 'weight' && best.weight && best.reps ? ui.html`
-                    <span class="rec-when">≈ ${format.decimal(records.epley(best.weight, best.reps), 0)} кг разово</span>
-                ` : ''}
             </div>
         ` : ''}
     `;
 }
+
+/*
+ * Разовый максимум с этого экрана убран намеренно.
+ *
+ * Он оценочный, считается по формуле и выше десяти повторений заметно
+ * врёт, а место занимал в самом тесном месте приложения. Между подходами
+ * важно, что было в прошлый раз и каков рекорд, — прикидка не нужна.
+ * На карточке упражнения, где место есть, он остался.
+ */
 
 /** Полоса отдыха. Ввод следующего подхода она не перекрывает (§16). */
 function restBar() {
@@ -162,15 +168,6 @@ function currentCard({ workout, sets, exercises, rows }) {
     const prefill = engine.prefill(workout.plan, sets, currentId);
     const own = engine.setsOf(sets, currentId);
 
-    const log = own.map((s) => ui.html`
-        <tr>
-            <td>${String(s.setNumber)}</td>
-            <td>${s.reps ?? (s.duration ? format.seconds(s.duration) : '—')}</td>
-            <td>${s.weight ? format.weight(s.weight) : (s.distance ? format.distance(s.distance) : '—')}</td>
-        </tr>
-        ${s.note ? ui.html`<tr class="log-note"><td colspan="3">${s.note}</td></tr>` : ''}
-    `);
-
     const planItem = workout.plan.find((p) => p.exerciseId === currentId);
 
     return ui.html`
@@ -196,7 +193,24 @@ function currentCard({ workout, sets, exercises, rows }) {
 
             ${restBar()}
 
-            <div class="sess-tools">
+            ${own.length ? ui.html`
+                <div class="sess-done">
+                    <span class="sess-done-label">Сделано</span>
+                    <span class="num">${records.describeSession(own, exercise.kind)}</span>
+                </div>
+            ` : ''}
+
+            <!--
+                Редкие действия убраны под «Ещё»: пропуск, отмена и заметка
+                нужны в одном подходе из двадцати, а место на главном экране
+                занимали постоянно. Список сворачивается обратно после каждой
+                записи — так и задумано.
+            -->
+            <div class="note-row">
+                <button class="link-btn" data-action="sess-more">Ещё…</button>
+            </div>
+
+            <div class="sess-tools" hidden>
                 <button class="btn btn-ghost btn-sm" data-action="sess-skip">Пропустить упражнение</button>
                 ${own.length ? ui.html`
                     <button class="btn btn-ghost btn-sm" data-action="sess-undo">Отменить последний подход</button>
@@ -207,13 +221,6 @@ function currentCard({ workout, sets, exercises, rows }) {
             </div>
 
             ${planItem?.note ? ui.html`<p class="note-shown">${planItem.note}</p>` : ''}
-
-            ${own.length ? ui.html`
-                <table class="log">
-                    <thead><tr><th>Подход</th><th>Повторы</th><th>Вес</th></tr></thead>
-                    <tbody>${log}</tbody>
-                </table>
-            ` : ''}
         </div>
     `;
 }
@@ -482,6 +489,15 @@ actions.on('rest-skip', () => {
 actions.on('rest-extend', () => restTimer.extend(30));
 
 // ================== ЗАМЕТКИ (§20) ==================
+
+actions.on('sess-more', (el) => {
+    const tools = document.querySelector('.sess-tools');
+    if (!tools) return;
+
+    // Без перерисовки: она сбросила бы уже введённые в поля значения
+    tools.hidden = !tools.hidden;
+    el.textContent = tools.hidden ? 'Ещё…' : 'Свернуть';
+});
 
 actions.on('sess-note-toggle', (el) => {
     const input = document.getElementById('f-note');
