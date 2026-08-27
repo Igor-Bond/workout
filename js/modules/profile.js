@@ -12,6 +12,10 @@ import { install } from '../core/install.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
+import { auth } from '../services/auth.js';
+import { sync } from '../services/sync.js';
+import { backup } from '../services/backup.js';
+import { dates } from '../core/dates.js';
 import { app } from '../app.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
@@ -27,6 +31,46 @@ function toggle(key, label, hint) {
             </span>
             <input type="checkbox" data-change="setting" data-key="${key}" ${ui.raw(value ? 'checked' : '')}>
         </label>
+    `;
+}
+
+/**
+ * Синхронизация (§38, §39).
+ *
+ * Три состояния: не настроена, настроена но без входа, работает. Приложение
+ * полностью работоспособно во всех трёх — вход включает обмен и не меняет
+ * ничего другого.
+ */
+function syncBlock() {
+    if (!auth.isConfigured()) {
+        return ui.html`
+            ${ui.empty('Не настроена. Приложение работает локально: тренировки, история и статистика на месте, просто не переносятся между устройствами.')}
+            <p class="hint">Чтобы включить — заполнить <code>js/firebase.config.js</code>. Порядок в <code>docs/DEPLOY.md</code>.</p>
+        `;
+    }
+
+    if (!auth.isSignedIn) {
+        return ui.html`
+            ${ui.empty('Вход не выполнен. Локальные данные при входе не стираются — они объединятся с облачными.')}
+            <button class="btn btn-accent" data-action="sync-in">Войти через Google</button>
+        `;
+    }
+
+    const last = sync.getLastSync();
+
+    return ui.html`
+        <div class="info-row"><span>Учётная запись</span><strong>${auth.user?.email || 'вход выполнен'}</strong></div>
+        <div class="info-row">
+            <span>Последний обмен</span>
+            <strong>${last ? dates.formatDateTime(last) : 'ещё не было'}</strong>
+        </div>
+
+        <div id="sync-status" class="sync-status"></div>
+
+        <button class="btn btn-accent" data-action="sync-now">Синхронизировать</button>
+        <button class="btn btn-ghost" data-action="sync-full">Полный обмен заново</button>
+        <button class="btn btn-ghost" data-action="sync-out">Выйти</button>
+        <p class="hint">Выход не удаляет локальные данные. Незавершённая тренировка в облако не уезжает — она живёт только на этом устройстве.</p>
     `;
 }
 
@@ -54,6 +98,10 @@ export const profile = {
 
         const counts = await dbService.stats();
         const imported = await dbService.getSetting('v1ImportSummary');
+
+        // Состояние входа известно только после подъёма SDK. Если Firebase
+        // не настроен, ничего не грузим — и раздел честно об этом скажет
+        if (auth.isConfigured()) await auth.init().catch(() => {});
 
         return ui.html`
             ${ui.raw(ui.title('Профиль'))}
@@ -105,12 +153,22 @@ export const profile = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="exercises">
                     Справочник упражнений
                 </button>
+            </div>
 
-                ${ui.raw(ui.stub(
-                    'Синхронизация и резервная копия',
-                    8,
-                    'Вход через Google, обмен с Firestore и выгрузка всех данных одним файлом.'
-                ))}
+            <div class="card">
+                <div class="card-title">Синхронизация</div>
+                ${syncBlock()}
+            </div>
+
+            <div class="card">
+                <div class="card-title">Резервная копия</div>
+                <p class="hint">
+                    Файл на диске не зависит от облака и учётной записи — это копия,
+                    которая целиком в твоих руках.
+                </p>
+                <button class="btn btn-ghost" data-action="backup-save">Выгрузить в файл</button>
+                <button class="btn btn-ghost" data-action="backup-load">Загрузить из файла</button>
+                <input type="file" id="backup-file" accept="application/json,.json" hidden>
             </div>
 
             <div class="card">
@@ -146,6 +204,162 @@ actions.onChange('setting', (el) => {
         const label = document.getElementById('rest-value');
         if (label) label.textContent = format.seconds(value);
     }
+});
+
+// ================== СИНХРОНИЗАЦИЯ ==================
+
+/** Ход обмена показывается на месте, без перерисовки всего экрана. */
+function status(text) {
+    const el = document.getElementById('sync-status');
+    if (el) el.textContent = text;
+}
+
+actions.on('sync-in', async () => {
+    try {
+        status('Открывается окно входа…');
+        const user = await auth.signIn();
+
+        if (!user) return status('');
+
+        status('Первый обмен…');
+        await sync.run({ silent: true });
+    } catch (e) {
+        await dialog.alert({ title: 'Не удалось войти', text: e.message });
+    }
+
+    app.render();
+});
+
+actions.on('sync-now', async () => {
+    const off = sync.onStatus((s) => status(s.message));
+    const result = await sync.run();
+    off();
+
+    if (result.error) {
+        await dialog.alert({ title: 'Обмен не прошёл', text: result.error });
+    }
+
+    app.render();
+});
+
+actions.on('sync-full', async () => {
+    const ok = await dialog.confirm({
+        title: 'Обменяться заново?',
+        text: 'Приложение пройдёт по всей истории, а не по изменениям. Данные не потеряются — просто дольше и дороже по операциям.',
+        confirmText: 'Обменяться'
+    });
+
+    if (!ok) return;
+
+    sync.reset();
+    await sync.run();
+    app.render();
+});
+
+actions.on('sync-out', async () => {
+    const ok = await dialog.confirm({
+        title: 'Выйти из учётной записи?',
+        text: 'Локальные данные останутся на месте — отключится только обмен с облаком.',
+        confirmText: 'Выйти'
+    });
+
+    if (!ok) return;
+
+    await auth.signOut();
+    app.render();
+});
+
+// ================== РЕЗЕРВНАЯ КОПИЯ ==================
+
+actions.on('backup-save', async () => {
+    try {
+        const payload = await backup.download();
+
+        await dialog.alert({
+            title: 'Копия выгружена',
+            text: `${backup.fileName(payload.exportedAt)} — тренировки, упражнения, шаблоны и вес тела.`
+        });
+    } catch (e) {
+        await dialog.alert({ title: 'Не удалось выгрузить', text: e.message });
+    }
+});
+
+actions.on('backup-load', () => document.getElementById('backup-file')?.click());
+
+document.addEventListener('change', async (e) => {
+    if (e.target.id !== 'backup-file') return;
+
+    const file = e.target.files?.[0];
+    e.target.value = '';           // тот же файл можно выбрать повторно
+    if (!file) return;
+
+    let payload;
+
+    try {
+        payload = backup.parse(await file.text());
+    } catch (error) {
+        return dialog.alert({ title: 'Файл не подходит', text: error.message });
+    }
+
+    // Выгрузка версии 1 всегда добавляется к текущим данным: заменять ими
+    // всё бессмысленно, там нет ни шаблонов, ни веса тела
+    if (payload.kind === 'v1') {
+        const ok = await dialog.confirm({
+            title: 'Загрузить историю прошлой версии?',
+            text: `В файле — ${backup.describe(payload)}. Уже загруженные тренировки повторно не добавятся.`,
+            confirmText: 'Загрузить'
+        });
+
+        if (!ok) return;
+
+        try {
+            const result = await backup.restoreV1(payload.v1);
+
+            await dialog.alert({
+                title: 'Готово',
+                text: [
+                    `Добавлено тренировок: ${result.workouts}.`,
+                    result.skipped ? `Уже были: ${result.skipped}.` : '',
+                    result.unreadable ? `Не разобрано: ${result.unreadable}.` : ''
+                ].filter(Boolean).join(' ')
+            });
+        } catch (error) {
+            await dialog.alert({ title: 'Не удалось загрузить', text: error.message });
+        }
+
+        return app.render();
+    }
+
+    const mode = await dialog.choose({
+        title: 'Как загрузить?',
+        text: `В файле — ${backup.describe(payload)}.`,
+        options: [
+            { value: 'merge', label: 'Объединить', hint: 'Побеждает более свежая запись' },
+            { value: 'replace', label: 'Заменить всё', hint: 'Текущие данные будут стёрты', danger: true }
+        ]
+    });
+
+    if (!mode) return;
+
+    if (mode === 'replace') {
+        const ok = await dialog.confirm({
+            title: 'Стереть текущие данные?',
+            text: 'Вся история в этом браузере будет заменена содержимым файла.',
+            confirmText: 'Заменить',
+            danger: true
+        });
+
+        if (!ok) return;
+    }
+
+    try {
+        await backup.restore(payload, { mode });
+        await dialog.alert({ title: 'Готово', text: 'Данные загружены.' });
+    } catch (error) {
+        await dialog.alert({ title: 'Не удалось загрузить', text: error.message });
+    }
+
+    app.render();
 });
 
 actions.on('reset-settings', async () => {

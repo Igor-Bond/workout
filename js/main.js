@@ -14,6 +14,7 @@ import { install } from './core/install.js';
 import { ui } from './core/ui.js';
 import { dbService } from './services/db.js';
 import { migrations } from './services/migrations.js';
+import { sync } from './services/sync.js';
 import { format } from './core/format.js';
 
 // ================== ОБЩИЕ ДЕЙСТВИЯ ==================
@@ -107,8 +108,26 @@ async function boot() {
     }
 
     app.init();
+
+    // Обмен с облаком — после первой отрисовки и молча: он не должен
+    // задерживать запуск, а без входа его вообще не будет (§39)
+    sync.run({ silent: true }).catch(() => {});
 }
 
 boot();
+
+/**
+ * Синхронизация при уходе со страницы (§39).
+ *
+ * Переключение приложения на телефоне — самый частый момент «ухода», его и
+ * ловим: без этого записанное за тренировку доехало бы до второго устройства
+ * только при следующем запуске.
+ */
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') return;
+    if (!sync.available || sync.inProgress) return;
+
+    sync.run({ silent: true }).catch(() => {});
+});
 
 window.addEventListener('load', registerServiceWorker);

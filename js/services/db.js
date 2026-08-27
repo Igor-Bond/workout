@@ -435,6 +435,61 @@ export const dbService = {
         return value;
     },
 
+    // ================== СИНХРОНИЗАЦИЯ (§39) ==================
+
+    /**
+     * Записи, изменившиеся с указанного момента. Удалённые тоже: отметка
+     * deletedAt обязана доехать до других устройств (§36).
+     *
+     * Для тренировок сразу подкладываются подходы — в облаке они лежат
+     * внутри документа тренировки.
+     */
+    async changedSince(name, since = 0) {
+        const table = db[name];
+        if (!table) throw new Error(`Нет таблицы «${name}»`);
+
+        const changed = await table.where('updatedAt').above(since).toArray();
+
+        if (name !== 'workouts') return changed;
+
+        return Promise.all(changed.map(async (workout) => ({
+            ...workout,
+            sets: await db.sets.where('workoutId').equals(workout.id).sortBy('order')
+        })));
+    },
+
+    /** Локальная запись для сравнения с входящей. Удалённые тоже нужны. */
+    getRaw(name, id) {
+        return db[name].get(id);
+    },
+
+    /**
+     * Запись из облака кладётся как есть: updatedAt у неё уже проставлен
+     * тем устройством, где её изменили, и трогать его нельзя — иначе она
+     * тут же уедет обратно как «новая».
+     */
+    applyRemote(name, records = []) {
+        return db[name].bulkPut(records);
+    },
+
+    /**
+     * Тренировка из облака вместе с подходами.
+     *
+     * Подходы заменяются целиком: они меняются только пока тренировка
+     * активна, а активная не синхронизируется — значит, входящий набор
+     * полный и старые записи не нужны.
+     */
+    async applyRemoteWorkout(workout, sets = []) {
+        await db.transaction('rw', db.workouts, db.sets, async () => {
+            await db.workouts.put(workout);
+
+            const existing = await db.sets.where('workoutId').equals(workout.id).primaryKeys();
+            if (existing.length) await db.sets.bulkDelete(existing);
+
+            if (sets.length) await db.sets.bulkPut(sets);
+        });
+    },
+
     // ================== ОБСЛУЖИВАНИЕ ==================
 
     /** Сводка для профиля: сколько чего лежит в базе. */

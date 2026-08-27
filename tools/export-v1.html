@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Выгрузка истории прошлой версии</title>
+<style>
+    body {
+        background: #14110f;
+        color: #f3ede4;
+        font-family: 'Courier New', Courier, monospace;
+        line-height: 1.5;
+        margin: 0;
+        padding: 24px 16px 60px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    h2 {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #ff7a33;
+        margin: 26px 0 10px;
+    }
+    p { margin: 0 0 12px; font-size: 14px; }
+    .lead { color: #a89a8a; font-size: 13px; margin-bottom: 22px; }
+    ol { padding-left: 20px; font-size: 14px; }
+    li { margin-bottom: 10px; }
+    code { background: #241f1b; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+    .card {
+        background: #1d1916;
+        border: 1px solid #332c26;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+    pre {
+        background: #241f1b;
+        border: 1px solid #332c26;
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        font-size: 12px;
+        margin: 0 0 10px;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+    button {
+        background: #ff7a33;
+        color: #1a1310;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-right: 8px;
+        margin-bottom: 8px;
+    }
+    button.ghost { background: transparent; border: 1px solid #332c26; color: #a89a8a; font-weight: normal; }
+    .result { font-size: 13px; margin-top: 10px; min-height: 20px; }
+    .ok { color: #6fae6f; }
+    .bad { color: #e07b6b; }
+    .note { color: #a89a8a; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+    <h1>Выгрузка истории прошлой версии</h1>
+    <p class="lead">
+        Достаёт тренировки, записанные первой версией приложения, в файл —
+        чтобы загрузить их в новую через «Профиль → Резервная копия → Загрузить из файла».
+    </p>
+
+    <div class="card">
+        <p>
+            История версии 1 лежит в <code>localStorage</code> браузера под ключом
+            <code>workout_history_v2</code>. Это хранилище привязано к источнику и к профилю
+            браузера: страница с одного адреса не видит данные другого, а профиль
+            не видит данные соседнего профиля.
+        </p>
+        <p class="note">
+            Поэтому «просто открыть файл» не поможет — код нужно выполнить
+            <b>в том самом браузере и профиле</b>, где приложение открывалось раньше.
+        </p>
+    </div>
+
+    <h2>Способ 1 — здесь, если данные в этом браузере</h2>
+
+    <div class="card">
+        <p class="note">
+            Работает, только если эта страница открыта с того же адреса, где работала
+            версия 1. Сейчас это <code id="origin">—</code>.
+        </p>
+        <button id="check">Проверить, есть ли история</button>
+        <button id="save" class="ghost">Скачать файл</button>
+        <div class="result" id="result"></div>
+    </div>
+
+    <h2>Способ 2 — в другом браузере или профиле</h2>
+
+    <div class="card">
+        <ol>
+            <li>Открыть в том браузере страницу, где работала версия 1.</li>
+            <li>Нажать <code>F12</code> и перейти на вкладку <b>Console</b>.</li>
+            <li>Вставить строку ниже и нажать Enter — браузер предложит сохранить файл.</li>
+            <li>Перенести файл на это устройство и загрузить в приложении.</li>
+        </ol>
+
+        <pre id="snippet"></pre>
+        <button id="copy">Скопировать строку</button>
+        <p class="note">
+            Если браузер требует подтверждения перед вставкой в консоль — он попросит
+            напечатать разрешающее слово. Это защита от чужого кода; строка ниже
+            только читает хранилище и сохраняет файл, ничего не отправляя.
+        </p>
+    </div>
+
+    <h2>Что внутри файла</h2>
+
+    <div class="card">
+        <p class="note">
+            Обычный JSON: список тренировок с датой, типом, длительностью и подходами.
+            Его можно открыть блокнотом и прочитать глазами. При загрузке приложение
+            склеит упражнения по названию с уже существующими, а тренировки, которые
+            уже загружены, повторно не добавит.
+        </p>
+    </div>
+
+</div>
+
+<script>
+    const KEY = 'workout_history_v2';
+
+    /*
+     * Одна строка для консоли. Собирается здесь, чтобы её нельзя было
+     * случайно рассинхронизировать с тем, что ждёт приложение при загрузке.
+     */
+    const snippet =
+        `(()=>{const r=localStorage.getItem('${KEY}');` +
+        `if(!r){alert('История версии 1 на этом адресе не найдена');return;}` +
+        `const b=new Blob([JSON.stringify({app:'workout',v1:JSON.parse(r)})],{type:'application/json'});` +
+        `const a=document.createElement('a');a.href=URL.createObjectURL(b);` +
+        `a.download='workout-v1-'+new Date().toISOString().slice(0,10)+'.json';` +
+        `document.body.appendChild(a);a.click();a.remove();})()`;
+
+    document.getElementById('snippet').textContent = snippet;
+    document.getElementById('origin').textContent = location.origin;
+
+    const result = document.getElementById('result');
+
+    const read = () => {
+        try {
+            const raw = localStorage.getItem(KEY);
+            if (!raw) return null;
+
+            const parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : null;
+        } catch {
+            return null;
+        }
+    };
+
+    document.getElementById('check').addEventListener('click', () => {
+        const history = read();
+
+        if (!history) {
+            result.className = 'result bad';
+            result.textContent = 'На этом адресе истории версии 1 нет. Используйте способ 2.';
+            return;
+        }
+
+        const sets = history.reduce((sum, w) =>
+            sum + (w.exercises || []).reduce((s, e) => s + (e.sets || []).length, 0), 0);
+
+        result.className = 'result ok';
+        result.textContent = `Найдено тренировок: ${history.length}, подходов: ${sets}. Можно скачивать.`;
+    });
+
+    document.getElementById('save').addEventListener('click', () => {
+        const history = read();
+
+        if (!history) {
+            result.className = 'result bad';
+            result.textContent = 'Скачивать нечего: истории на этом адресе нет.';
+            return;
+        }
+
+        const blob = new Blob([JSON.stringify({ app: 'workout', v1: history }, null, 2)],
+            { type: 'application/json' });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `workout-v1-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => URL.revokeObjectURL(link.href), 10000);
+
+        result.className = 'result ok';
+        result.textContent = 'Файл сохранён.';
+    });
+
+    document.getElementById('copy').addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(snippet);
+            result.className = 'result ok';
+            result.textContent = 'Строка скопирована.';
+        } catch {
+            result.className = 'result bad';
+            result.textContent = 'Скопировать не вышло — выделите строку вручную.';
+        }
+    });
+</script>
+</body>
+</html>

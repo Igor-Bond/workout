@@ -5,7 +5,11 @@
  *   - переходы по страницам (HTML) → сначала сеть, при неудаче кэш index.html
  *   - код приложения (js, css)     → сначала сеть, чтобы правки доезжали сразу
  *   - иконки и vendor              → сначала кэш, меняются вместе с версией
- *   - запросы к Firebase           → не перехватываются вообще
+ *   - запросы к серверам Firebase  → не перехватываются вообще
+ *
+ * Firebase SDK лежит в vendor и кэшируется при первом обращении, но в
+ * предварительный кэш не входит: почти мегабайт, нужный только тем, кто
+ * вошёл в учётную запись. Кто работает локально, его не скачивает вовсе.
  *
  * У «сначала сеть» есть таймаут: без него запуск на плохой мобильной связи
  * ждал бы ответа до срабатывания таймаута самого браузера, хотя рабочая копия
@@ -15,7 +19,7 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v7';
+const APP_VERSION = 'v8';
 const CACHE_NAME = `workout-${APP_VERSION}`;
 
 const NETWORK_TIMEOUT = 3000;
@@ -38,6 +42,7 @@ const PRECACHE_URLS = [
     'js/core/dates.js',
     'js/core/dialog.js',
     'js/core/format.js',
+    'js/core/merge.js',
     'js/core/engine.js',
     'js/core/install.js',
     'js/core/chart.js',
@@ -50,6 +55,10 @@ const PRECACHE_URLS = [
 
     'js/services/db.js',
     'js/services/migrations.js',
+    'js/services/auth.js',
+    'js/services/sync.js',
+    'js/services/backup.js',
+    'js/firebase.config.js',
 
     'vendor/dexie.min.js',
 
