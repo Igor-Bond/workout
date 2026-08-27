@@ -187,6 +187,67 @@ describe('Смена вида упражнения не ломает истор�
     });
 });
 
+describe('Изменение к прошлому разу', () => {
+
+    it('прибавка веса считается прибавкой', () => {
+        const d = records.delta(s({ weight: 62.5, reps: 10 }), s({ weight: 60, reps: 10 }), 'weight');
+
+        equal(d.parts, ['+2,5 кг']);
+        equal(d.better, true);
+    });
+
+    it('прибавка повторений тоже', () => {
+        const d = records.delta(s({ weight: 60, reps: 11 }), s({ weight: 60, reps: 10 }), 'weight');
+
+        equal(d.parts, ['+1 повт.']);
+        equal(d.better, true);
+    });
+
+    it('обе величины показываются вместе', () => {
+        const d = records.delta(s({ weight: 62.5, reps: 8 }), s({ weight: 60, reps: 10 }), 'weight');
+
+        equal(d.parts, ['+2,5 кг', '−2 повт.']);
+        equal(d.better, null, 'вес вырос, повторения упали — само по себе это не лучше и не хуже');
+    });
+
+    it('спад показывается спадом', () => {
+        const d = records.delta(s({ weight: 55, reps: 10 }), s({ weight: 60, reps: 10 }), 'weight');
+
+        equal(d.parts, ['−5 кг']);
+        equal(d.better, false);
+    });
+
+    it('тот же результат изменением не считается', () => {
+        const d = records.delta(s({ weight: 60, reps: 10 }), s({ weight: 60, reps: 10 }), 'weight');
+
+        equal(d.parts, []);
+        equal(d.better, null);
+    });
+
+    it('у упражнения на время сравнивается длительность', () => {
+        const d = records.delta(s({ duration: 75 }), s({ duration: 60 }), 'time');
+
+        equal(d.parts, ['+15 с']);
+        equal(d.better, true);
+    });
+
+    it('в кардио меньшее время — это лучше', () => {
+        const d = records.delta(
+            s({ distance: 5000, duration: 1500 }),
+            s({ distance: 5000, duration: 1800 }),
+            'distance'
+        );
+
+        equal(d.parts, ['−300 с']);
+        equal(d.better, true, 'ту же дистанцию пробежали быстрее');
+    });
+
+    it('сравнивать не с чем — изменения нет', () => {
+        equal(records.delta(s({ reps: 10 }), null, 'weight'), null);
+        equal(records.delta(null, s({ reps: 10 }), 'weight'), null);
+    });
+});
+
 describe('Разовый максимум', () => {
 
     it('считается по формуле Эпли', () => {

@@ -150,6 +150,56 @@ export const records = {
         return champion;
     },
 
+    /**
+     * Изменение подхода относительно такого же подхода прошлого раза
+     * (§15.1 ТЗ).
+     *
+     * Сравнивается подход с тем же номером: второй со вторым, третий с
+     * третьим. Сравнивать с лучшим или со средним бессмысленно — к концу
+     * упражнения сил меньше, и третий подход всегда «хуже» первого.
+     *
+     * Возвращает { parts, better } либо null, если сравнивать не с чем.
+     * better: true — стало лучше, false — хуже, null — поровну.
+     */
+    delta(set, previous, kind = 'weight') {
+        if (!set || !previous) return null;
+
+        const measure = records.measure([set, previous], kind);
+        const parts = [];
+        let score = 0;
+
+        /** Одна величина: подпись и в какую сторону считать улучшением. */
+        const compare = (field, label, unit, moreIsBetter = true) => {
+            const now = set[field] ?? 0;
+            const was = previous[field] ?? 0;
+            const diff = now - was;
+
+            if (Math.abs(diff) < 0.001) return;
+
+            const sign = diff > 0 ? '+' : '−';
+            const value = unit === 'кг' ? format.weight(Math.abs(diff)) : String(Math.abs(diff));
+
+            parts.push(`${sign}${value} ${label}`);
+            score += (diff > 0) === moreIsBetter ? 1 : -1;
+        };
+
+        if (measure === 'time') {
+            compare('duration', 'с', 'с');
+        } else if (measure === 'distance') {
+            compare('distance', 'м', 'м');
+            // Пройти то же быстрее — это лучше, а не хуже
+            compare('duration', 'с', 'с', false);
+        } else {
+            compare('weight', 'кг', 'кг');
+            compare('reps', 'повт.', 'повт.');
+        }
+
+        return {
+            parts,
+            better: score === 0 ? null : score > 0
+        };
+    },
+
     /** Короткая запись подхода: «60 кг × 9», «20 повт.», «01:00». */
     describe(set, kind = 'weight') {
         if (!set) return '—';

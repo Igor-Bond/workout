@@ -107,6 +107,37 @@ function recordsBlock({ last, best, kind }) {
  * На карточке упражнения, где место есть, он остался.
  */
 
+/**
+ * Изменение последнего подхода к прошлому разу (§15.1).
+ *
+ * Без него человек сравнивает числа в уме: «в прошлый раз во втором
+ * подходе было 60 на 9, сейчас 62,5 на 8 — это лучше или хуже?». Приложение
+ * знает оба числа и должно отвечать само.
+ *
+ * Сравнивается подход с тем же номером: второй со вторым. К концу
+ * упражнения сил меньше, и сравнение третьего подхода с первым всегда
+ * показывало бы спад.
+ */
+function deltaLine({ last, kind }, own) {
+    if (!last) return '';
+
+    const current = own[own.length - 1];
+    const previous = last.sets.find((s) => s.setNumber === current.setNumber);
+
+    const delta = records.delta(current, previous, kind);
+    if (!delta) return '';
+
+    if (delta.parts.length === 0) {
+        return ui.html`<div class="sess-delta is-same">как в прошлый раз</div>`;
+    }
+
+    return ui.html`
+        <div class="sess-delta ${delta.better === true ? 'is-up' : delta.better === false ? 'is-down' : ''}">
+            ${delta.parts.join(', ')} к прошлому разу
+        </div>
+    `;
+}
+
 /** Полоса отдыха. Ввод следующего подхода она не перекрывает (§16). */
 function restBar() {
     if (!restTimer.running) return '';
@@ -198,6 +229,7 @@ function currentCard({ workout, sets, exercises, rows }) {
                     <span class="sess-done-label">Сделано</span>
                     <span class="num">${records.describeSession(own, exercise.kind)}</span>
                 </div>
+                ${deltaLine(view, own)}
             ` : ''}
 
             <!--
@@ -217,6 +249,10 @@ function currentCard({ workout, sets, exercises, rows }) {
                 ` : ''}
                 <button class="btn btn-ghost btn-sm" data-action="sess-note-exercise">
                     ${planItem?.note ? 'Заметка к упражнению ✎' : 'Заметка к упражнению'}
+                </button>
+                <button class="btn btn-ghost btn-sm" data-action="sess-rest">
+                    Отдых: ${format.seconds(exercise.restSeconds || config.get('restSeconds'))}
+                    ${exercise.restSeconds ? '' : ' (общий)'}
                 </button>
             </div>
 
@@ -466,8 +502,11 @@ actions.on('sess-done', async () => {
     });
 
     // Отдых запускается от нажатия, а не от отрисовки: пользователь уже
-    // взаимодействовал со страницей, и браузер разрешит звук в конце
-    restTimer.start(config.get('restSeconds'), currentId);
+    // взаимодействовал со страницей, и браузер разрешит звук в конце.
+    //
+    // Длительность — своя у упражнения, если задана: между подходами
+    // приседа и планки отдыхают по-разному (§16)
+    restTimer.start(exercises[currentId]?.restSeconds || config.get('restSeconds'), currentId);
 
     // В режиме «по плану» приложение само переводит к следующему шагу,
     // в свободном — остаётся там, где стоял пользователь (§11)
@@ -509,6 +548,41 @@ actions.on('sess-note-toggle', (el) => {
     el.textContent = input.hidden ? '＋ заметка к подходу' : '− заметка к подходу';
 
     if (!input.hidden) input.focus();
+});
+
+/**
+ * Своя длительность отдыха для упражнения (§16).
+ *
+ * Между подходами приседа и планки отдыхают по-разному, и заставлять
+ * менять общую настройку туда-сюда посреди тренировки — не дело.
+ * Значение хранится у упражнения, а не в тренировке: оно про упражнение и
+ * должно сохраняться на следующий раз.
+ */
+actions.on('sess-rest', async () => {
+    if (!view || !currentId) return;
+
+    const exercise = view.exercises[currentId];
+
+    const values = await dialog.form({
+        title: `Отдых: ${exercise.name}`,
+        text: `Общая настройка — ${format.seconds(config.get('restSeconds'))}. Пустое поле вернёт её.`,
+        fields: [{
+            name: 'rest',
+            label: 'Секунд',
+            type: 'number',
+            value: exercise.restSeconds ?? '',
+            placeholder: String(config.get('restSeconds'))
+        }]
+    });
+
+    if (!values) return;
+
+    const seconds = Number(values.rest);
+    await dbService.updateExercise(currentId, {
+        restSeconds: seconds > 0 ? seconds : undefined
+    });
+
+    app.render();
 });
 
 actions.on('sess-note-exercise', async () => {

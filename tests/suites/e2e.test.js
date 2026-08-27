@@ -1,0 +1,413 @@
+/**
+ * Сквозные проверки (§45.1 ТЗ).
+ *
+ * Остальные наборы проверяют части по отдельности: движок без базы,
+ * хранилище без экранов, экраны без обмена. Здесь проходятся целые
+ * пользовательские пути — те, на которых ошибка проявляется только на
+ * стыке, а по частям всё выглядит исправным.
+ *
+ * Сценарии взяты из разбора: тренировка в свободном порядке, прерванная
+ * тренировка, отправка в облако, приём чужих изменений вместе с удалением,
+ * работа без сети с последующим обменом.
+ *
+ * Firestore подменяется хранилищем в памяти: настоящая сеть в проверках не
+ * нужна, а проверить надо именно свою логику обмена.
+ */
+
+import { describe, it, equal, assert } from '../runner.js';
+import { dbService } from '../../js/services/db.js';
+import { engine } from '../../js/core/engine.js';
+import { records } from '../../js/core/records.js';
+import { sync } from '../../js/services/sync.js';
+import { auth } from '../../js/services/auth.js';
+import { config } from '../../js/config.js';
+
+// ================== ОБЛАКО В ПАМЯТИ ==================
+
+/**
+ * Подставное хранилище вместо Firestore.
+ *
+ * Повторяет ровно ту часть API, которой пользуется sync.js: коллекции,
+ * запрос по updatedAt, пакетную запись и setDoc. `fail` заставляет его
+ * падать — так проверяется поведение без сети.
+ */
+function fakeCloud() {
+    const data = new Map();          // «коллекция» → Map(id → документ)
+    const state = { fail: false, reads: 0, writes: 0 };
+
+    const collection = (name) => {
+        if (!data.has(name)) data.set(name, new Map());
+        return data.get(name);
+    };
+
+    const guard = () => {
+        if (state.fail) throw new Error('нет соединения');
+    };
+
+    const fs = {
+        collection: (_db, _users, _uid, name) => ({ name }),
+        doc: (target, ...rest) => (target?.name
+            ? { collection: target.name, id: rest[0] }
+            : { collection: '__profile__', id: rest.join('/') }),
+
+        query: (ref, ...conditions) => ({ ref, conditions }),
+        where: (field, op, value) => ({ field, op, value }),
+
+        getDocs: async ({ ref, conditions }) => {
+            guard();
+
+            const since = conditions.find((c) => c.field === 'updatedAt')?.value ?? -1;
+            const docs = [...collection(ref.name).values()]
+                .filter((d) => (d.updatedAt || 0) > since)
+                .map((d) => ({ data: () => structuredClone(d) }));
+
+            state.reads += docs.length;
+            return { docs };
+        },
+
+        setDoc: async (ref, value) => {
+            guard();
+            state.writes += 1;
+            collection(ref.collection).set(ref.id, structuredClone(value));
+        },
+
+        writeBatch: () => {
+            const pending = [];
+            return {
+                set: (ref, value) => pending.push([ref, value]),
+                commit: async () => {
+                    guard();
+                    for (const [ref, value] of pending) {
+                        state.writes += 1;
+                        collection(ref.collection).set(ref.id, structuredClone(value));
+                    }
+                }
+            };
+        }
+    };
+
+    return {
+        state,
+        ctx: { fs, db: {}, uid: 'проверка' },
+        put: (name, record) => collection(name).set(record.id, structuredClone(record)),
+        get: (name, id) => collection(name).get(id),
+        all: (name) => [...collection(name).values()]
+    };
+}
+
+/** Включает обмен с подставным облаком и возвращает способ всё вернуть. */
+function connect(cloud) {
+    const realContext = auth.context;
+    const realConfigured = auth.isConfigured;
+    const realInit = auth.init;
+
+    auth.context = async () => cloud.ctx;
+    auth.isConfigured = () => true;
+    auth.init = async () => {};
+
+    const descriptor = Object.getOwnPropertyDescriptor(auth, 'isSignedIn');
+    Object.defineProperty(auth, 'isSignedIn', { configurable: true, get: () => true });
+
+    config.set('syncEnabled', true);
+    sync.setLastSync(0);
+
+    return () => {
+        auth.context = realContext;
+        auth.isConfigured = realConfigured;
+        auth.init = realInit;
+        Object.defineProperty(auth, 'isSignedIn', descriptor);
+        config.set('syncEnabled', false);
+        sync.setLastSync(0);
+    };
+}
+
+// ================== ПОДГОТОВКА ==================
+
+async function clean() {
+    await dbService.open();
+    await dbService.wipe();
+}
+
+/** Три упражнения, как в обычной силовой тренировке. */
+async function threeExercises() {
+    return {
+        biceps: await dbService.createExercise({ name: 'Бицепс', kind: 'weight', group: 'Руки' }),
+        abs: await dbService.createExercise({ name: 'Пресс', kind: 'reps', group: 'Пресс' }),
+        shoulders: await dbService.createExercise({ name: 'Плечи', kind: 'weight', group: 'Плечи' })
+    };
+}
+
+const записать = (workout, exercise, order, setNumber, values) =>
+    dbService.addSet({ workoutId: workout.id, exerciseId: exercise.id, order, setNumber, ...values });
+
+// ================== СЦЕНАРИИ ==================
+
+describe('Сквозной путь: тренировка в свободном порядке', () => {
+
+    it('от плана до истории и рекордов', async () => {
+        await clean();
+        const { biceps, abs, shoulders } = await threeExercises();
+
+        const workout = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [biceps, abs, shoulders].map((e) => ({
+                exerciseId: e.id, plannedSets: 3, targetReps: 10, weight: 14, skipped: false
+            }))
+        });
+
+        // Тот самый чередующийся порядок из §3 ТЗ
+        await записать(workout, biceps, 1, 1, { reps: 12, weight: 14 });
+        await записать(workout, abs, 2, 1, { reps: 20 });
+        await записать(workout, biceps, 3, 2, { reps: 10, weight: 14 });
+        await записать(workout, shoulders, 4, 1, { reps: 12, weight: 10 });
+        await записать(workout, abs, 5, 2, { reps: 18 });
+        await записать(workout, biceps, 6, 3, { reps: 8, weight: 14 });
+
+        // Прогресс по ходу — то, что видно на экране выполнения
+        const sets = await dbService.listSets(workout.id);
+        const rows = engine.progress(workout.plan, sets);
+
+        equal(rows.map((r) => `${r.done}/${r.planned}`), ['3/3', '2/3', '1/3']);
+        equal(engine.nextStep(workout.plan, sets).exerciseId, abs.id, 'бицепс закрыт, дальше пресс');
+
+        await dbService.finishWorkout(workout.id);
+
+        // История: сводка сошлась с фактом
+        const [entry] = await dbService.listWorkoutSummaries();
+
+        equal(entry.workout.id, workout.id);
+        equal(entry.sets, 6);
+        equal(entry.reps, 80);
+        equal(entry.exerciseIds.length, 3);
+
+        // Итоги: порядок упражнений — плановый, подходы — фактические
+        const exercises = Object.fromEntries(
+            (await dbService.listExercises()).map((e) => [e.id, e])
+        );
+        const { blocks, totals } = engine.summarize({
+            plan: workout.plan, sets, exercises, durationMs: 3600000
+        });
+
+        equal(blocks.map((b) => b.name), ['Бицепс', 'Пресс', 'Плечи']);
+        equal(totals.sets, 6);
+        equal(totals.volume, 14 * 30 + 10 * 12, 'пресс без веса в тоннаж не идёт');
+
+        // Рекорд по упражнению виден сразу после завершения
+        const best = records.best(await dbService.listSetsByExercise(biceps.id), 'weight');
+        equal(records.describe(best, 'weight'), '14 кг × 12');
+    });
+});
+
+describe('Сквозной путь: прерванная тренировка', () => {
+
+    it('переживает закрытие приложения и продолжается', async () => {
+        await clean();
+        const { biceps, abs } = await threeExercises();
+
+        const workout = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: biceps.id, plannedSets: 3, targetReps: 10, weight: 14, skipped: false },
+                { exerciseId: abs.id, plannedSets: 2, targetReps: 20, weight: 0, skipped: false }
+            ]
+        });
+
+        await записать(workout, biceps, 1, 1, { reps: 12, weight: 14 });
+        await записать(workout, abs, 2, 1, { reps: 20 });
+
+        /*
+         * Закрытие приложения: в памяти не остаётся ничего, всё состояние
+         * лежит в базе. Поэтому «перезапуск» — это просто чтение заново.
+         */
+        const restored = await dbService.getActiveWorkout();
+
+        assert(restored, 'незавершённая тренировка обязана найтись');
+        equal(restored.id, workout.id);
+
+        const sets = await dbService.listSets(restored.id);
+        equal(sets.length, 2, 'записанные подходы на месте');
+        equal(sets.map((s) => s.order), [1, 2], 'и в том же порядке');
+
+        // Продолжаем с того места, где остановились
+        const next = engine.nextStep(restored.plan, sets);
+        equal(next.exerciseId, biceps.id);
+        equal(next.setNumber, 2);
+
+        await записать(restored, biceps, engine.nextOrder(sets), next.setNumber, { reps: 10, weight: 14 });
+        await dbService.finishWorkout(restored.id);
+
+        equal(await dbService.getActiveWorkout(), null);
+        equal((await dbService.listWorkoutSummaries())[0].sets, 3);
+    });
+});
+
+describe('Сквозной путь: обмен с облаком', () => {
+
+    it('своё уезжает, а активная тренировка остаётся дома', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const { biceps } = await threeExercises();
+
+            const done = await dbService.createWorkout({ type: 'Силовая', plan: [
+                { exerciseId: biceps.id, plannedSets: 1, targetReps: 10, weight: 14, skipped: false }
+            ]});
+            await записать(done, biceps, 1, 1, { reps: 12, weight: 14 });
+            await dbService.finishWorkout(done.id);
+
+            // Незавершённая — она уезжать не должна (§39)
+            const active = await dbService.createWorkout({ type: 'Кардио', plan: [] });
+
+            const result = await sync.run({ silent: true });
+
+            assert(result.sent > 0, 'что-то должно было уехать');
+            equal(cloud.all('workouts').map((w) => w.id), [done.id]);
+            equal(cloud.get('workouts', active.id), undefined,
+                'активная тренировка живёт только на своём устройстве');
+
+            // Подходы уехали внутри документа тренировки, а не отдельно
+            equal(cloud.get('workouts', done.id).sets.length, 1);
+            equal(cloud.all('sets').length, 0);
+
+            equal(cloud.all('exercises').length, 3);
+        } finally {
+            restore();
+        }
+    });
+
+    it('второй обмен подряд ничего не отправляет', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const { biceps } = await threeExercises();
+            const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+            await записать(w, biceps, 1, 1, { reps: 10, weight: 20 });
+            await dbService.finishWorkout(w.id);
+
+            await sync.run({ silent: true });
+            const писалиПосле = cloud.state.writes;
+
+            const second = await sync.run({ silent: true });
+
+            equal(second.sent, 0, 'менять было нечего');
+            equal(cloud.state.writes, писалиПосле,
+                'и документ профиля впустую не переписывался');
+        } finally {
+            restore();
+        }
+    });
+
+    it('чужие изменения приезжают, включая удаление', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const { biceps } = await threeExercises();
+
+            /*
+             * Метки времени идут от «сейчас», а не от условных единиц.
+             * Обмен забирает только записи новее последнего обмена, а он
+             * ставится по текущим часам, — с метками вроде 2000 (это 1970
+             * год) чужая запись навсегда осталась бы «старой».
+             */
+            const t = Date.now();
+
+            const remoteId = dbService.newId();
+            cloud.put('workouts', {
+                id: remoteId, type: 'Силовая', status: 'done', note: 'с телефона',
+                startedAt: t - 3600000, finishedAt: t, plan: [], updatedAt: t + 1000,
+                sets: [{ id: dbService.newId(), workoutId: remoteId, exerciseId: biceps.id,
+                    order: 1, setNumber: 1, performedAt: t - 3000000, reps: 15, weight: 16,
+                    updatedAt: t + 1000 }]
+            });
+
+            await sync.run({ silent: true });
+
+            const local = await dbService.getWorkout(remoteId);
+            assert(local, 'тренировка с другого устройства должна появиться');
+            equal(local.note, 'с телефона');
+            equal((await dbService.listSets(remoteId)).length, 1, 'вместе с подходами');
+            equal((await dbService.listWorkoutSummaries())[0].sets, 1, 'и со сводкой');
+
+            // На том устройстве её удалили — мягко, с отметкой
+            cloud.put('workouts', {
+                ...cloud.get('workouts', remoteId),
+                deletedAt: t + 2000, updatedAt: t + 2000
+            });
+
+            await sync.run({ silent: true });
+
+            equal(await dbService.getWorkout(remoteId), null,
+                'удаление обязано доехать, иначе оно бессмысленно');
+            equal((await dbService.listWorkoutSummaries()).length, 0);
+        } finally {
+            restore();
+        }
+    });
+
+    it('своё удаление уезжает в облако', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const { biceps } = await threeExercises();
+            const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+            await записать(w, biceps, 1, 1, { reps: 10, weight: 20 });
+            await dbService.finishWorkout(w.id);
+
+            await sync.run({ silent: true });
+            await dbService.deleteWorkout(w.id);
+            await sync.run({ silent: true });
+
+            assert(cloud.get('workouts', w.id).deletedAt,
+                'иначе на втором устройстве тренировка осталась бы жива');
+        } finally {
+            restore();
+        }
+    });
+});
+
+describe('Сквозной путь: без сети', () => {
+
+    it('накопленное уезжает после восстановления связи', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const { biceps } = await threeExercises();
+
+            // Сети нет
+            cloud.state.fail = true;
+
+            const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+            await записать(w, biceps, 1, 1, { reps: 10, weight: 20 });
+            await dbService.finishWorkout(w.id);
+
+            const failed = await sync.run({ silent: true });
+
+            assert(failed.error, 'обмен без сети обязан честно сообщить об ошибке');
+            equal(sync.getLastSync(), 0,
+                'метка не сдвигается: иначе неотправленное пропало бы навсегда');
+            equal(cloud.all('workouts').length, 0);
+
+            // Тренировка при этом записана: запись в базу от сети не зависит
+            equal((await dbService.listWorkoutSummaries()).length, 1);
+
+            // Связь появилась
+            cloud.state.fail = false;
+            const ok = await sync.run({ silent: true });
+
+            assert(ok.sent > 0);
+            equal(cloud.all('workouts').map((x) => x.id), [w.id]);
+        } finally {
+            restore();
+        }
+    });
+});

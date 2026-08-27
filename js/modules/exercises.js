@@ -36,6 +36,7 @@ function row(exercise, usage) {
                 <div class="ex-meta">
                     ${kindLabel(exercise.kind)}
                     ${exercise.group ? ui.raw(` · ${ui.esc(exercise.group)}`) : ''}
+                    ${exercise.restSeconds ? ui.raw(` · отдых ${ui.esc(format.seconds(exercise.restSeconds))}`) : ''}
                     ${used > 0 ? ui.raw(` · ${ui.esc(format.count(used, format.WORDS.set))}`) : ''}
                 </div>
             </div>
@@ -137,7 +138,13 @@ actions.on('ex-edit', async (el) => {
         fields: [
             { name: 'name', label: 'Название', value: exercise.name, required: true },
             { name: 'kind', label: 'Вид', type: 'select', value: exercise.kind, options: kindOptions },
-            { name: 'group', label: 'Группа мышц', value: exercise.group || '' }
+            { name: 'group', label: 'Группа мышц', value: exercise.group || '' },
+            {
+                name: 'restSeconds',
+                label: 'Свой отдых, секунд (пусто — общий)',
+                type: 'number',
+                value: exercise.restSeconds ?? ''
+            }
         ]
     });
 
@@ -169,7 +176,14 @@ actions.on('ex-edit', async (el) => {
         }
     }
 
-    await dbService.updateExercise(exercise.id, values);
+    // Пустое поле означает «как у всех», а не «ноль секунд»
+    const rest = Number(values.restSeconds);
+
+    await dbService.updateExercise(exercise.id, {
+        ...values,
+        restSeconds: rest > 0 ? rest : undefined
+    });
+
     app.render();
 });
 
