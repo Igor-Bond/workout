@@ -300,6 +300,113 @@ describe('Слияние упражнений', () => {
         await throws(() => dbService.mergeExercises('нет-такого', right.id));
         await throws(() => dbService.mergeExercises(right.id, 'нет-такого'));
     });
+
+    /*
+     * Удаление мягкое: обмен сводит записи по идентификатору и о бесследно
+     * исчезнувшем упражнении не узнает — второе устройство прислало бы его
+     * обратно, и двойник вернулся бы после каждой синхронизации.
+     */
+    it('объединённое упражнение оставляет надгробие', async () => {
+        const { right, typo } = await pair();
+
+        await dbService.mergeExercises(typo.id, right.id);
+
+        const raw = await dbService.getRaw('exercises', typo.id);
+
+        assert(raw, 'запись должна остаться в таблице');
+        assert(raw.deletedAt, 'с отметкой удаления, иначе оно не уедет');
+        equal(await dbService.getExercise(typo.id), null, 'но приложению его больше не видно');
+    });
+
+    it('надгробие не мешает найти живое упражнение по названию', async () => {
+        await reset();
+
+        const первое = await dbService.createExercise({ name: 'Планка', kind: 'time' });
+        await dbService.updateExercise(первое.id, { name: 'Планка на локтях' });
+
+        const второе = await dbService.createExercise({ name: 'Планка', kind: 'time' });
+        await dbService.updateExercise(первое.id, { name: 'Планка' });
+        await dbService.mergeExercises(первое.id, второе.id);
+
+        equal((await dbService.findExerciseByName('Планка'))?.id, второе.id,
+            'иначе приложение решит, что упражнения нет, и заведёт третье');
+    });
+});
+
+describe('Сведение двойников по названию', () => {
+
+    /*
+     * Двойники берутся не из опечаток, а из устройств: базовый справочник
+     * кладётся при создании базы со случайными идентификаторами, поэтому у
+     * каждого устройства свой набор тех же упражнений. Обмен складывает
+     * наборы, и справочник раздваивается.
+     */
+    async function двойники() {
+        await reset();
+
+        const свой = await dbService.createExercise({ name: 'Жим лёжа', kind: 'weight' });
+
+        // Так выглядит запись, пришедшая с другого устройства
+        await dbService.applyRemote('exercises', [{
+            ...свой, id: 'чужой', updatedAt: Date.now()
+        }]);
+
+        return свой;
+    }
+
+    it('одинаковые названия сводятся к одному', async () => {
+        await двойники();
+
+        const merged = await dbService.dedupeExercises();
+
+        equal(merged, ['Жим лёжа']);
+        equal((await dbService.listExercises({ includeArchived: true })).length, 1);
+    });
+
+    it('выживает меньший идентификатор — устройства решают это одинаково', async () => {
+        const свой = await двойники();
+        await dbService.dedupeExercises();
+
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.id, [свой.id, 'чужой'].sort()[0]);
+    });
+
+    it('действующее упражнение перевешивает архивное', async () => {
+        const свой = await двойники();
+
+        // Меньший идентификатор — но в архиве
+        const меньший = [свой.id, 'чужой'].sort()[0];
+        await dbService.setExerciseArchived(меньший, true);
+
+        await dbService.dedupeExercises();
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.archived, false, 'иначе упражнение исчезло бы из списка само собой');
+    });
+
+    it('история двойников собирается воедино', async () => {
+        const свой = await двойники();
+
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+        await dbService.addSet({ workoutId: w.id, exerciseId: свой.id, order: 1, setNumber: 1, reps: 10, weight: 60 });
+        await dbService.addSet({ workoutId: w.id, exerciseId: 'чужой', order: 2, setNumber: 1, reps: 8, weight: 60 });
+        await dbService.finishWorkout(w.id);
+
+        await dbService.dedupeExercises();
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal((await dbService.listSetsByExercise(остался.id)).length, 2, 'подходы не должны разъехаться');
+    });
+
+    it('без двойников ничего не трогается', async () => {
+        await reset();
+        await dbService.createExercise({ name: 'Жим лёжа', kind: 'weight' });
+        await dbService.createExercise({ name: 'Приседания', kind: 'weight' });
+
+        equal(await dbService.dedupeExercises(), []);
+        equal((await dbService.listExercises()).length, 2);
+    });
 });
 
 describe('Тренировки и подходы', () => {

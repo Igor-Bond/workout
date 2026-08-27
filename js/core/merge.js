@@ -31,13 +31,30 @@ export const merge = {
     /**
      * Записи на отправку.
      *
-     * applied — идентификаторы того, что только что пришло из облака. Их
-     * отправлять обратно нельзя: у такой записи updatedAt заведомо больше
-     * since, и push вернул бы её тем же значением, удваивая расход операций
-     * на каждой синхронизации.
+     * applied — что только что пришло из облака, идентификатор → его
+     * updatedAt. Отправлять такое обратно нельзя: у пришедшей записи
+     * updatedAt заведомо больше since, и push вернул бы её тем же значением,
+     * удваивая расход операций на каждой синхронизации.
+     *
+     * Но только пока мы её не тронули. Сведение двойников (§5.1) правит
+     * записи сразу после приёма, и без сверки по updatedAt удаление
+     * двойника не уехало бы никогда — второе устройство присылало бы его
+     * обратно на каждом обмене.
+     *
+     * Множество идентификаторов тоже принимается: тогда сверять не с чем и
+     * пришедшее не отправляется в любом случае.
      */
-    outgoing(records = [], since = 0, applied = new Set()) {
-        return records.filter((r) => (r.updatedAt || 0) > since && !applied.has(r.id));
+    outgoing(records = [], since = 0, applied = new Map()) {
+        const asApplied = (id) => (applied instanceof Map ? applied.get(id) : (applied.has(id) ? true : undefined));
+
+        return records.filter((r) => {
+            if ((r.updatedAt || 0) <= since) return false;
+
+            const was = asApplied(r.id);
+            if (was === undefined) return true;
+
+            return was !== true && (r.updatedAt || 0) !== was;
+        });
     },
 
     /**

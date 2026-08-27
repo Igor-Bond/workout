@@ -144,6 +144,23 @@ async function boot() {
                 <button class="banner-btn" data-action="dismiss-banner" data-banner="import">Понятно</button>
             `);
         }
+
+        /*
+         * Двойники приезжают с обменом, и там же сводятся (§5.1). Но пока
+         * обмена не было — а без сети его может не быть неделю, — они уже
+         * лежат в базе и мозолят глаза. Сведение при запуске чинит это сразу
+         * и без сети; молчать о нём нельзя: оно переписывает историю.
+         */
+        const merged = await dbService.dedupeExercises();
+
+        if (merged.length) {
+            app.showBanner('dedupe', ui.html`
+                <span>Одинаковые упражнения объединены:
+                    ${format.count(merged.length, format.WORDS.exercise)}.
+                    Подходы, планы и шаблоны перенесены.</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="dedupe">Понятно</button>
+            `);
+        }
     } catch (e) {
         console.error('[База] Не удалось открыть хранилище:', e);
 

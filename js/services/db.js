@@ -78,12 +78,19 @@ db.version(3).stores({
 /**
  * Базовый справочник кладётся при создании базы, а не при каждом запуске:
  * иначе удалённые пользователем упражнения воскресали бы после перезагрузки.
+ *
+ * Идентификатор выводится из названия, а не берётся случайным. Случайный
+ * означал бы, что на каждом устройстве заводится свой набор тех же самых
+ * упражнений, а обмен, сводящий записи по идентификатору, складывает наборы
+ * вместо того, чтобы их узнать. Выведенный из названия совпадает у всех.
  */
+const baseId = (name) => `base-${migrations.normalizeName(name).replace(/\s+/g, '-')}`;
+
 db.on('populate', (tx) => {
     const now = Date.now();
 
     tx.table('exercises').bulkAdd(migrations.BASE_EXERCISES.map((e) => ({
-        id: newId(),
+        id: baseId(e.name),
         name: e.name,
         nameKey: migrations.normalizeName(e.name),
         kind: e.kind,
@@ -176,12 +183,19 @@ export const dbService = {
         return alive(found) ? found : null;
     },
 
+    /**
+     * Упражнение по названию.
+     *
+     * Удалённые отсеиваются до выбора первого: объединение двойников
+     * оставляет надгробие с тем же ключом названия, и, попадись оно первым,
+     * приложение решило бы, что упражнения нет, — и завело бы третье.
+     */
     async findExerciseByName(name) {
         const nameKey = migrations.normalizeName(name);
         if (!nameKey) return null;
 
-        const found = await db.exercises.where('nameKey').equals(nameKey).first();
-        return alive(found) ? found : null;
+        const found = await db.exercises.where('nameKey').equals(nameKey).filter(alive).first();
+        return found || null;
     },
 
     async createExercise({ name, kind = 'weight', group = '' }) {
@@ -343,13 +357,62 @@ export const dbService = {
                 moved.templates += 1;
             }
 
-            // Исходное упражнение больше ничем не занято — удаляем совсем,
-            // а не мягко: ссылаться на него уже неоткуда, и в облаке его
-            // отсутствие приедет вместе с переписанными тренировками
-            await db.exercises.delete(sourceId);
+            // Мягко, а не совсем: обмен сводит записи по идентификатору и
+            // о бесследно исчезнувшем упражнении не узнает — второе
+            // устройство прислало бы его обратно, и двойник вернулся бы
+            await db.exercises.update(sourceId, { deletedAt: now, updatedAt: now });
         });
 
         return { ...moved, from: source.name, to: target.name };
+    },
+
+    /**
+     * Сведение двойников по названию (§5.1).
+     *
+     * Базовый справочник кладётся при создании базы, а идентификаторы у
+     * записей случайные (§35): на каждом устройстве получается свой набор
+     * тех же упражнений с другими идентификаторами. Обмен сводит записи по
+     * идентификатору и потому складывает оба набора — справочник
+     * раздваивается, а история разрезается пополам.
+     *
+     * Победитель выбирается по идентификатору, а не по дате: устройства
+     * решают это независимо друг от друга, и совпасть они могут только на
+     * признаке, который у обоих одинаковый.
+     */
+    async dedupeExercises() {
+        const all = (await db.exercises.toArray()).filter(alive);
+        const groups = new Map();
+
+        for (const exercise of all) {
+            const key = exercise.nameKey || migrations.normalizeName(exercise.name);
+            if (!key) continue;
+
+            groups.set(key, [...(groups.get(key) || []), exercise]);
+        }
+
+        const merged = [];
+
+        for (const group of groups.values()) {
+            if (group.length < 2) continue;
+
+            const [target, ...rest] = [...group].sort((a, b) => {
+                // Действующее перевешивает архивное: иначе упражнение после
+                // сведения исчезло бы из списка, хотя убирал его не
+                // пользователь. Оба устройства видят одни и те же записи и
+                // потому приходят к одному ответу
+                if (!!a.archived !== !!b.archived) return a.archived ? 1 : -1;
+                return a.id < b.id ? -1 : 1;
+            });
+
+            for (const source of rest) {
+                await dbService.mergeExercises(source.id, target.id);
+                merged.push(source.name);
+            }
+        }
+
+        if (merged.length) console.warn('[База] Сведены двойники упражнений:', merged);
+
+        return merged;
     },
 
     // ================== ТРЕНИРОВКИ (§4) ==================

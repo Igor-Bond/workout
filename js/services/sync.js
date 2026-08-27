@@ -61,11 +61,13 @@ export const sync = {
     // ================== ЗАБРАТЬ ЧУЖОЕ ==================
 
     /**
-     * Возвращает идентификаторы применённых записей: их нельзя отправлять
-     * обратно тем же обменом.
+     * Возвращает применённые записи: идентификатор → пришедший updatedAt.
+     * Отправлять их обратно тем же обменом не нужно — но только пока мы их
+     * не тронули, а сведение двойников трогает (§5.1), поэтому запоминается
+     * не сам факт, а значение, с которым запись легла в базу.
      */
     async pull(ctx, since) {
-        const applied = new Set();
+        const applied = new Map();
         const appliedRecords = [];
 
         for (const name of SYNCED) {
@@ -84,7 +86,7 @@ export const sync = {
 
                 if (merge.resolve(local, remote) !== 'take-remote') continue;
 
-                applied.add(remote.id);
+                applied.set(remote.id, remote.updatedAt || 0);
                 appliedRecords.push(remote);
 
                 if (name === 'workouts') workouts.push(merge.unpackWorkout(remote));
@@ -179,16 +181,27 @@ export const sync = {
             const ctx = await auth.context();
 
             const { applied, appliedRecords } = await sync.pull(ctx, since);
+
+            // Между приёмом и отправкой: двойники приезжают именно с обменом
+            // (§5.1), а сведение их переписывает тренировки и шаблоны — и это
+            // должно уехать тем же разом, а не остаться до следующего
+            const merged = await dbService.dedupeExercises();
+
             const sent = await sync.push(ctx, since, applied);
 
             sync.setLastSync(merge.nextSince(startedAt, appliedRecords));
 
-            const result = { received: applied.size, sent, at: Date.now() };
+            const result = { received: applied.size, sent, merged: merged.length, at: Date.now() };
 
             if (!silent) {
-                emit('done', result.received || result.sent
-                    ? `Получено ${result.received}, отправлено ${result.sent}`
-                    : 'Изменений нет');
+                // Про сведённые двойники сказать обязательно: обмен переписал
+                // историю, и молчать об этом нельзя
+                emit('done', [
+                    result.received || result.sent
+                        ? `Получено ${result.received}, отправлено ${result.sent}`
+                        : 'Изменений нет',
+                    result.merged ? `объединено двойников: ${result.merged}` : ''
+                ].filter(Boolean).join(', '));
             }
 
             return result;
