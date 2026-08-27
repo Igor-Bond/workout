@@ -327,6 +327,129 @@ describe('Тренировки и подходы', () => {
     });
 });
 
+describe('Сводка внутри тренировки', () => {
+
+    /*
+     * Денормализация опасна ровно одним: сводка расходится с фактом.
+     * Поэтому проверяется каждый путь, где подходы меняются.
+     */
+    async function done(sets = [[10, 60], [8, 60]]) {
+        await reset();
+
+        const ex = await dbService.createExercise({ name: 'Жим', kind: 'weight' });
+        const workout = await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: sets.length, targetReps: 10, weight: 60, skipped: false }
+        ]});
+
+        for (let i = 0; i < sets.length; i++) {
+            await dbService.addSet({ workoutId: workout.id, exerciseId: ex.id,
+                order: i + 1, setNumber: i + 1, reps: sets[i][0], weight: sets[i][1] });
+        }
+
+        await dbService.finishWorkout(workout.id);
+        return { ex, workout };
+    }
+
+    const entryFor = async (id) =>
+        (await dbService.listWorkoutSummaries()).find((e) => e.workout.id === id);
+
+    it('считается при завершении тренировки', async () => {
+        const { workout, ex } = await done();
+        const saved = await dbService.getWorkout(workout.id);
+
+        equal(saved.summary.sets, 2);
+        equal(saved.summary.reps, 18);
+        equal(saved.summary.volume, 1080);
+        equal(saved.summary.exerciseIds, [ex.id]);
+    });
+
+    it('список истории отдаёт её без чтения подходов', async () => {
+        const { workout } = await done();
+        const entry = await entryFor(workout.id);
+
+        equal({ sets: entry.sets, reps: entry.reps, volume: entry.volume }, { sets: 2, reps: 18, volume: 1080 });
+    });
+
+    it('пересчитывается при удалении подхода', async () => {
+        const { workout } = await done();
+        const [first] = await dbService.listSets(workout.id);
+
+        await dbService.deleteSet(first.id);
+        const entry = await entryFor(workout.id);
+
+        equal(entry.sets, 1, 'иначе история и итоги той же тренировки разошлись бы');
+        equal(entry.reps, 8);
+        equal(entry.volume, 480);
+    });
+
+    it('переживает перенос версии 1 и загрузку копии', async () => {
+        await reset();
+
+        const ex = await dbService.createExercise({ name: 'Отжимания', kind: 'reps' });
+        const id = dbService.newId();
+
+        await dbService.bulkImport({
+            workouts: [{ id, type: 'Дома', status: 'done', startedAt: 1000, finishedAt: 2000,
+                plan: [], updatedAt: 1000 }],
+            sets: [
+                { id: dbService.newId(), workoutId: id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 20, updatedAt: 1000 },
+                { id: dbService.newId(), workoutId: id, exerciseId: ex.id, order: 2, setNumber: 2, reps: 18, updatedAt: 1000 }
+            ]
+        });
+
+        const entry = await entryFor(id);
+
+        equal(entry.sets, 2);
+        equal(entry.reps, 38);
+    });
+
+    it('считается для тренировки, пришедшей из облака', async () => {
+        await reset();
+
+        const id = dbService.newId();
+        await dbService.applyRemoteWorkout(
+            { id, type: 'Силовая', status: 'done', startedAt: 1000, finishedAt: 2000, plan: [], updatedAt: 1000 },
+            [{ id: dbService.newId(), workoutId: id, exerciseId: 'e1', order: 1, setNumber: 1, reps: 12, weight: 50, updatedAt: 1000 }]
+        );
+
+        const entry = await entryFor(id);
+
+        equal(entry.sets, 1);
+        equal(entry.volume, 600, 'сводка считается на месте, а не берётся из облака');
+    });
+
+    it('после объединения упражнений ссылается на целевое', async () => {
+        const { workout, ex } = await done();
+        const target = await dbService.createExercise({ name: 'Жим лёжа', kind: 'weight' });
+
+        await dbService.mergeExercises(ex.id, target.id);
+        const entry = await entryFor(workout.id);
+
+        equal(entry.exerciseIds, [target.id], 'иначе история показывала бы исчезнувшее упражнение');
+        equal(entry.sets, 2, 'подходы при этом никуда не делись');
+    });
+
+    it('удалённые подходы в сводку не попадают', async () => {
+        const { workout } = await done([[10, 60], [8, 60], [6, 60]]);
+        const sets = await dbService.listSets(workout.id);
+
+        await dbService.deleteSet(sets[0].id);
+        await dbService.deleteSet(sets[1].id);
+
+        equal((await entryFor(workout.id)).sets, 1);
+    });
+
+    it('тренировка без подходов даёт нули, а не отсутствие сводки', async () => {
+        await reset();
+
+        const workout = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+        await dbService.finishWorkout(workout.id);
+
+        const saved = await dbService.getWorkout(workout.id);
+        equal(saved.summary, { sets: 0, reps: 0, volume: 0, exerciseIds: [] });
+    });
+});
+
 describe('Разовый перенос версии 1', () => {
 
     const storage = (value) => ({ getItem: () => value });
