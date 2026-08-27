@@ -2,12 +2,14 @@
  * Стартовый экран (§29 ТЗ).
  *
  * Порядок блоков — по частоте нажатия, а не по важности темы. Сначала судьба
- * незавершённой тренировки (§18), потом способы начать новую, и первым среди
- * них — повтор прошлой (§9): с накопленной историей так начинают чаще всего.
+ * незавершённой тренировки (§18), потом способы начать новую — от самого
+ * частого к самому редкому: повтор прошлой (§9), шаблоны (§8), тренировка
+ * с нуля. Ярким выделен только последний пункт этой лестницы: он завершает
+ * её и потому стоит внизу, где палец и так оказывается.
  *
  * Ритм (§26.2) — справка, а не действие. Он стоит строкой под заголовком:
- * карточкой он раздвигал кнопку продолжения и быстрый старт, то есть отодвигал
- * частое ради редкого.
+ * карточкой он раздвигал кнопку продолжения и быстрый старт, то есть
+ * отодвигал частое ради редкого.
  *
  * При незавершённой тренировке способы начать новую не показываются вовсе:
  * одновременно идёт только одна (§18), и вторая всё равно упёрлась бы в
@@ -20,9 +22,12 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
 import { rhythm } from '../core/rhythm.js';
+import { stats } from '../core/stats.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { app } from '../app.js';
+
+const DAY = 86400000;
 
 /**
  * Порог, после которого тренировку считаем забытой.
@@ -31,6 +36,9 @@ import { app } from '../app.js';
  * тренировка добавила бы к статистике десяток часов (§18).
  */
 const STALE_MS = 12 * 60 * 60 * 1000;
+
+/** Сколько упражнений перечислять, прежде чем свернуть остаток в «и ещё N». */
+const NAMES_SHOWN = 3;
 
 async function activeBlock() {
     const workout = await dbService.getActiveWorkout();
@@ -114,13 +122,25 @@ function rhythmStrip(workouts) {
     `;
 }
 
+/** Названия упражнений тренировки: три и «ещё N», чтобы строка не разъезжалась. */
+function exerciseLine(entry, names) {
+    const list = (entry.exerciseIds || []).map((id) => names.get(id)).filter(Boolean);
+
+    if (list.length === 0) return entry.workout.type;
+
+    const shown = list.slice(0, NAMES_SHOWN).join(' · ');
+    return list.length > NAMES_SHOWN ? `${shown} и ещё ${list.length - NAMES_SHOWN}` : shown;
+}
+
 /**
  * Способы начать: повтор прошлой, шаблоны, тренировка с нуля.
  *
- * Порядок — по убыванию частоты. Повтор несёт дату и итоги прошлой
- * тренировки, поэтому отдельный блок «прошлая тренировка» не нужен.
+ * Лестница от частого к редкому. Повтор стоит первым, но оформлен спокойно:
+ * ярких пятен на экране должно быть одно, и оно отдано кнопке внизу, которая
+ * завершает перебор. На самом повторе крупно — упражнения: по ним узнают
+ * тренировку, а тип и дата это лишь уточняют.
  */
-function startBlock(last, templates, suggestion) {
+function startBlock(last, templates, suggestion, names) {
 
     // Подсказка чередования полезна, только если предлагает не то же самое,
     // что кнопка повтора: иначе она повторяет её же словами
@@ -140,12 +160,13 @@ function startBlock(last, templates, suggestion) {
             <div class="section-title">Начать</div>
 
             ${last ? ui.html`
-                <button class="btn-repeat" data-action="nav-plan-repeat">
-                    <span class="rep-type">Повторить «${last.workout.type}»</span>
+                <button class="repeat-card" data-action="nav-plan-repeat">
+                    <span class="rep-label">Повторить прошлую</span>
+                    <span class="rep-names">${exerciseLine(last, names)}</span>
                     <span class="rep-meta">
-                        ${dates.formatDayLabel(last.workout.startedAt)}
+                        ${last.workout.type}
+                        · ${dates.formatDayLabel(last.workout.startedAt).toLowerCase()}
                         · ${format.count(last.sets, format.WORDS.set)}
-                        · ${format.duration((last.workout.finishedAt || last.workout.startedAt) - last.workout.startedAt)}
                     </span>
                 </button>
             ` : ''}
@@ -160,13 +181,92 @@ function startBlock(last, templates, suggestion) {
 
             ${templates.length ? ui.html`<div class="chips">${chips}</div>` : ''}
 
-            <button class="btn ${last ? 'btn-ghost' : 'btn-accent btn-lg'}"
-                    data-action="nav" data-screen="plan">
-                Начать тренировку
-            </button>
-
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
                 ${templates.length ? 'Все шаблоны' : 'Создать шаблон'}
+            </button>
+
+            <button class="btn btn-accent btn-lg" data-action="nav" data-screen="plan">
+                Начать тренировку
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Последние семь дней (§26).
+ *
+ * Скользящее окно, а не календарная неделя: в понедельник утром календарная
+ * неделя пуста, и экран врал бы про спад, которого нет. Сегодня — всегда
+ * крайняя правая клетка.
+ */
+function weekBlock(entries) {
+    const now = Date.now();
+    const today = dates.startOfDay(now);
+    const from = today - 6 * DAY;
+
+    const own = entries.filter((e) => e.workout.startedAt >= from);
+    const trained = new Set(own.map((e) => dates.startOfDay(e.workout.startedAt)));
+
+    const cells = [];
+    for (let i = 0; i < 7; i++) {
+        const day = from + i * DAY;
+        const state = [
+            trained.has(day) ? 'is-done' : '',
+            day === today ? 'is-today' : ''
+        ].filter(Boolean).join(' ');
+
+        cells.push(ui.html`
+            <div class="wk-day ${state}">${dates.WEEKDAYS_SHORT[dates.weekdayIndex(day)]}</div>
+        `);
+    }
+
+    const sets = own.reduce((sum, e) => sum + e.sets, 0);
+    const volume = own.reduce((sum, e) => sum + e.volume, 0);
+
+    return ui.html`
+        <div class="section">
+            <div class="section-title">Последние семь дней</div>
+
+            <div class="card">
+                <div class="week-strip">${cells}</div>
+
+                <div class="tiles is-tight">
+                    <div class="tile"><strong>${String(own.length)}</strong><span>Тренировок</span></div>
+                    <div class="tile"><strong>${String(sets)}</strong><span>Подходов</span></div>
+                    <div class="tile"><strong>${format.decimal(volume, 0)}</strong><span>Тоннаж, кг</span></div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Вес тела (§25) — строкой, с переходом к записи в одно нажатие.
+ *
+ * Показывается только тем, кто уже отмечал вес: навязывать взвешивание тому,
+ * кто его не ведёт, — значит занимать место просьбой, а не сведениями.
+ * Запись открывает то же окно, что и на статистике: обработчик `body-add`
+ * зарегистрирован там и, как и `nav`, доступен всему приложению.
+ */
+function bodyBlock(records) {
+    if (records.length === 0) return null;
+
+    const last = records[records.length - 1];
+    const month = stats.bodyChange(records.filter((r) => r.at >= Date.now() - 30 * DAY));
+
+    const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
+
+    return ui.html`
+        <div class="section">
+            <div class="section-title">Вес тела</div>
+
+            <button class="weight-row" data-action="body-add">
+                <span class="w-value">${format.weight(last.weight)} <small>кг</small></span>
+                <span class="w-meta">
+                    ${month && month.delta
+                        ? `${sign(month.delta)}${format.weight(Math.abs(month.delta))} кг за месяц · `
+                        : ''}${dates.formatDayLabel(last.at).toLowerCase()}
+                </span>
             </button>
         </div>
     `;
@@ -178,20 +278,27 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, entries, templates] = await Promise.all([
+        const [active, entries, templates, exercises, body] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
-            dbService.listTemplates()
+            dbService.listTemplates(),
+            dbService.listExercises({ includeArchived: true }),
+            dbService.listBodyWeight()
         ]);
 
         const workouts = entries.map((e) => e.workout);
+        const names = new Map(exercises.map((e) => [e.id, e.name]));
 
         return ui.html`
             ${ui.title('Тренировка')}
 
             ${rhythmStrip(workouts) || ''}
 
-            ${active || startBlock(entries[0], templates, rhythm.suggestType(workouts))}
+            ${active || startBlock(entries[0], templates, rhythm.suggestType(workouts), names)}
+
+            ${entries.length ? weekBlock(entries) : ''}
+
+            ${bodyBlock(body) || ''}
         `;
     }
 };

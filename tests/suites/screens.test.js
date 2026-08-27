@@ -68,15 +68,42 @@ describe('Экран: главная', () => {
         assert(!has(view, 'Продолжить'), 'иначе к длительности прибавятся забытые часы');
     });
 
-    it('повтор прошлой тренировки предлагается первым и с итогами', async () => {
+    it('повтор прошлой тренировки предлагается упражнениями, а не типом', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [8, 60]]);
 
         const view = await screen(home);
 
-        assert(has(view, 'Повторить «Силовая»'), 'главный способ начать — повтор');
-        assert(has(view, '2 подхода'), 'итоги прошлой видны на самой кнопке');
-        assert(hasAction(view, 'nav-plan-repeat'));
+        assert(hasAction(view, 'nav-plan-repeat'), 'главный способ начать — повтор');
+        assert(has(view, 'Жим лёжа'), 'тренировку узнают по упражнениям');
+        assert(has(view, '2 подхода'), 'итоги прошлой видны на самой карточке');
+    });
+
+    it('последние семь дней показывают проведённое', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60], [8, 60]]);
+
+        const view = await screen(home);
+
+        assert(has(view, 'Последние семь дней'));
+        assert(has(view, 'Тоннаж'));
+    });
+
+    /*
+     * Вес показывается только тем, кто его ведёт: строка с просьбой
+     * взвеситься заняла бы место обращением, а не сведениями.
+     */
+    it('вес тела появляется, только когда он отмечался', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        assert(!has(await screen(home), 'Вес тела'), 'без взвешиваний блока нет');
+
+        await dbService.setBodyWeight({ weight: 78.4 });
+        const view = await screen(home);
+
+        assert(has(view, '78,4'));
+        assert(hasAction(view, 'body-add'), 'запись открывается в одно нажатие');
     });
 
     /*
