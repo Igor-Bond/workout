@@ -8,6 +8,7 @@
 
 Полное описание — [docs/SPEC.md](docs/SPEC.md).
 Что уже сделано — [docs/STATUS.md](docs/STATUS.md).
+Разбор и что стоит починить — [docs/AUDIT.md](docs/AUDIT.md).
 
 ## Состояние
 
@@ -68,7 +69,7 @@ js/modules/         экраны
 vendor/             локальные копии зависимостей (Dexie, Firebase SDK)
 js/firebase.config.js  конфигурация проекта Firebase — заполнить перед входом
 
-docs/               ТЗ, состояние, развёртывание, правила Firestore
+docs/               ТЗ, состояние, разбор, развёртывание, правила Firestore
 tests/              проверки логики, запускаются в браузере
 tools/serve.ps1     локальный сервер для разработки
 tools/make-icons.ps1 генерация иконок, включая maskable
