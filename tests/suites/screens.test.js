@@ -68,14 +68,34 @@ describe('Экран: главная', () => {
         assert(!has(view, 'Продолжить'), 'иначе к длительности прибавятся забытые часы');
     });
 
-    it('прошлая тренировка показывается с итогами', async () => {
+    it('повтор прошлой тренировки предлагается первым и с итогами', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [8, 60]]);
 
         const view = await screen(home);
 
-        assert(has(view, 'Прошлая тренировка'));
-        assert(has(view, '2 подхода'));
+        assert(has(view, 'Повторить «Силовая»'), 'главный способ начать — повтор');
+        assert(has(view, '2 подхода'), 'итоги прошлой видны на самой кнопке');
+        assert(hasAction(view, 'nav-plan-repeat'));
+    });
+
+    /*
+     * Одновременно идёт одна тренировка (§18). Пока она не закрыта, способы
+     * начать новую только отвлекают: любой из них упрётся в тот же вопрос
+     * о её судьбе, который задан выше на этом же экране.
+     */
+    it('при незавершённой тренировке способы начать новую не показываются', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 10, weight: 60, skipped: false }
+        ]});
+
+        const view = await screen(home);
+
+        assert(has(view, 'Продолжить'));
+        assert(!hasAction(view, 'nav-plan-repeat'), 'повтор увёл бы от незакрытой тренировки');
+        assert(!has(view, 'Начать тренировку'));
     });
 });
 

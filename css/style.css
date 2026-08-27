@@ -822,13 +822,67 @@ table.log tr:last-child td { border-bottom: none; }
 
 /* ================== РИТМ (§26.2) ================== */
 
-.rhythm-card { border-left: 3px solid var(--line); }
-.rhythm-card.is-rest    { border-left-color: var(--good); }
-.rhythm-card.is-due     { border-left-color: var(--accent); }
-.rhythm-card.is-overdue { border-left-color: var(--bad); }
+/*
+ * Ритм — справка, а не действие, поэтому он ужат до двух строк под
+ * заголовком. Карточкой он занимал 130 px между кнопкой продолжения и
+ * быстрым стартом, то есть раздвигал два действия ради пояснения.
+ */
+.rhythm-strip {
+    border-left: 3px solid var(--line);
+    padding-left: 10px;
+    margin-bottom: 18px;
+}
 
-.rhythm-headline { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
-.rhythm-line { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.screen-head + .rhythm-strip { margin-top: -6px; }
+
+.rhythm-strip.is-rest    { border-left-color: var(--good); }
+.rhythm-strip.is-due     { border-left-color: var(--accent); }
+.rhythm-strip.is-overdue { border-left-color: var(--bad); }
+
+.rhythm-state  { display: block; font-size: 14px; font-weight: 700; }
+.rhythm-detail { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+/* ================== НАЧАТЬ (§29) ================== */
+
+/*
+ * Повтор прошлой тренировки — самый частый способ начать, поэтому он
+ * оформлен главной кнопкой и несёт дату с итогами: отдельный блок
+ * «прошлая тренировка» после этого не нужен.
+ */
+.btn-repeat {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--accent);
+    color: #1a1310;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    font-family: inherit;
+    cursor: pointer;
+    margin-bottom: 10px;
+    min-height: 44px;
+}
+
+.btn-repeat:active { background: var(--accent-dim); }
+.btn-repeat .rep-type { display: block; font-size: 15px; font-weight: 700; }
+.btn-repeat .rep-meta { display: block; font-size: 11px; margin-top: 3px; opacity: 0.75; }
+
+/* Второстепенные действия строкой ссылок — но с пальцевой площадью нажатия */
+.row-links {
+    display: flex;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.row-links .link-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 8px;
+}
+
+.link-btn.is-danger { color: var(--bad); }
 
 /* ================== ШАБЛОНЫ ================== */
 

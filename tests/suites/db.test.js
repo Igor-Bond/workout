@@ -316,6 +316,26 @@ describe('Тренировки и подходы', () => {
         equal((await dbService.getWorkout(workout.id)).status, 'done');
     });
 
+    /*
+     * Удаление мягкое (§21) и статус не трогает, поэтому брошенная
+     * тренировка остаётся «активной» в индексе. Пока удалённые не
+     * отсеивались до выбора первой, одна такая закрывала собой все
+     * следующие: главный экран не показывал незавершённую, а §18 не
+     * замечал, что тренировка уже идёт.
+     */
+    it('удалённая тренировка не заслоняет собой новую активную', async () => {
+        await reset();
+
+        const dropped = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.deleteWorkout(dropped.id);
+
+        equal(await dbService.getActiveWorkout(), null, 'удалённая активной не считается');
+
+        const fresh = await dbService.createWorkout({ type: 'Ноги' });
+
+        equal((await dbService.getActiveWorkout())?.id, fresh.id);
+    });
+
     it('подходы возвращаются в фактическом порядке выполнения', async () => {
         await reset();
         const bench = await dbService.createExercise({ name: 'Жим' });

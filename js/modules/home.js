@@ -1,9 +1,17 @@
 /**
  * Стартовый экран (§29 ТЗ).
  *
- * Порядок блоков — по частоте использования: сначала судьба незавершённой
- * тренировки (§18), потом ритм и подсказка следующей (§26.2), потом быстрый
- * старт — повтор прошлой и шаблоны.
+ * Порядок блоков — по частоте нажатия, а не по важности темы. Сначала судьба
+ * незавершённой тренировки (§18), потом способы начать новую, и первым среди
+ * них — повтор прошлой (§9): с накопленной историей так начинают чаще всего.
+ *
+ * Ритм (§26.2) — справка, а не действие. Он стоит строкой под заголовком:
+ * карточкой он раздвигал кнопку продолжения и быстрый старт, то есть отодвигал
+ * частое ради редкого.
+ *
+ * При незавершённой тренировке способы начать новую не показываются вовсе:
+ * одновременно идёт только одна (§18), и вторая всё равно упёрлась бы в
+ * вопрос о судьбе первой — а он уже задан здесь же, выше.
  */
 
 import { ui } from '../core/ui.js';
@@ -32,6 +40,12 @@ async function activeBlock() {
     const totals = engine.totals(workout.plan, sets);
     const stale = Date.now() - workout.startedAt > STALE_MS;
 
+    // Завершение и удаление — ссылками, а не кнопками: они нужны в одном
+    // случае из десяти, а кнопкой выглядели наравне с продолжением
+    const drop = ui.html`
+        <button class="link-btn is-danger" data-action="home-drop" data-id="${workout.id}">Удалить</button>
+    `;
+
     return ui.html`
         <div class="section">
             <div class="section-title">Незавершённая тренировка</div>
@@ -48,45 +62,41 @@ async function activeBlock() {
                     <button class="btn btn-accent" data-action="home-finish-stale" data-id="${workout.id}">
                         Завершить прошедшей датой
                     </button>
+                    <div class="row-links">${drop}</div>
                 ` : ui.html`
-                    <button class="btn btn-accent" data-action="nav" data-screen="session">Продолжить</button>
-                    <button class="btn btn-ghost" data-action="home-finish" data-id="${workout.id}">Завершить как есть</button>
+                    <button class="btn btn-accent btn-lg" data-action="nav" data-screen="session">Продолжить</button>
+                    <div class="row-links">
+                        <button class="link-btn" data-action="home-finish" data-id="${workout.id}">Завершить как есть</button>
+                        ${drop}
+                    </div>
                 `}
-
-                <button class="btn btn-danger" data-action="home-drop" data-id="${workout.id}">Удалить</button>
             </div>
         </div>
     `;
 }
 
 /**
- * Ритм и прогноз следующей тренировки (§26.2).
+ * Ритм и прогноз следующей тренировки (§26.2), двумя строками.
  *
  * Прогноз показывается только когда данных достаточно. При рваном ритме
  * рядом стоит оговорка: обещать день с уверенностью, которой нет, хуже,
  * чем не обещать вовсе.
  */
-function rhythmBlock(workouts) {
+function rhythmStrip(workouts) {
     const r = rhythm.analyze(workouts);
 
-    if (!r.enough) {
-        if (r.count === 0) return null;
+    if (r.count === 0) return null;
 
+    if (!r.enough) {
         return ui.html`
-            <div class="section">
-                <div class="section-title">Ритм</div>
-                <div class="card">
-                    <div class="rhythm-line">Проведено ${format.count(r.count, format.WORDS.workout)}</div>
-                    <p class="hint">
-                        Ещё ${format.count(r.need, format.WORDS.workout)} — и приложение сможет
-                        посчитать привычный промежуток и подсказать день следующей.
-                    </p>
-                </div>
+            <div class="rhythm-strip">
+                <span class="rhythm-state">Проведено ${format.count(r.count, format.WORDS.workout)}</span>
+                <span class="rhythm-detail">
+                    Ещё ${format.count(r.need, format.WORDS.workout)} — и появится прогноз ритма
+                </span>
             </div>
         `;
     }
-
-    const suggestion = rhythm.suggestType(workouts);
 
     const headline = r.state === 'overdue'
         ? `${format.count(r.daysSince, format.WORDS.day)} без тренировки`
@@ -95,49 +105,65 @@ function rhythmBlock(workouts) {
             : `Следующая — ${dates.formatDayLabel(r.nextAt).toLowerCase()}`;
 
     return ui.html`
-        <div class="section">
-            <div class="section-title">Ритм</div>
-
-            <div class="card rhythm-card is-${r.state}">
-                <div class="rhythm-headline">${headline}</div>
-
-                <div class="rhythm-line">
-                    Обычно раз в ${format.count(r.medianInterval, format.WORDS.day)}
-                    · последняя ${dates.formatDayLabel(r.lastAt).toLowerCase()}
-                </div>
-
-                ${r.confidence === 'low' ? ui.html`
-                    <p class="hint">Промежутки между тренировками сильно разные, поэтому день — только прикидка.</p>
-                ` : ''}
-
-                ${suggestion ? ui.html`
-                    <div class="rhythm-line">
-                        ${suggestion.reason === 'cycle'
-                            ? `По чередованию следующая — «${suggestion.type}»`
-                            : `Дольше всего не было тренировки «${suggestion.type}»`}
-                    </div>
-                ` : ''}
-            </div>
+        <div class="rhythm-strip is-${r.state}">
+            <span class="rhythm-state">${headline}</span>
+            <span class="rhythm-detail">
+                Обычно раз в ${format.count(r.medianInterval, format.WORDS.day)}${r.confidence === 'low' ? ', ритм рваный — день примерный' : ''}
+            </span>
         </div>
     `;
 }
 
-function quickStart(templates, hasHistory) {
-    const list = templates.slice(0, 4).map((t) => ui.html`
-        <button class="chip" data-action="home-template" data-id="${t.id}">${t.name}</button>
+/**
+ * Способы начать: повтор прошлой, шаблоны, тренировка с нуля.
+ *
+ * Порядок — по убыванию частоты. Повтор несёт дату и итоги прошлой
+ * тренировки, поэтому отдельный блок «прошлая тренировка» не нужен.
+ */
+function startBlock(last, templates, suggestion) {
+
+    // Подсказка чередования полезна, только если предлагает не то же самое,
+    // что кнопка повтора: иначе она повторяет её же словами
+    const differs = suggestion && (!last || suggestion.type !== last.workout.type);
+
+    // Подсказка называет тип тренировки, а у шаблона тип может быть общим
+    // («Силовая») при говорящем названии («Ноги») — поэтому сверяем и с ним
+    const suggests = (t) => differs && (t.type === suggestion.type || t.name === suggestion.type);
+
+    const chips = templates.slice(0, 4).map((t) => ui.html`
+        <button class="chip ${suggests(t) ? 'is-active' : ''}"
+                data-action="home-template" data-id="${t.id}">${t.name}</button>
     `);
 
     return ui.html`
         <div class="section">
-            <div class="section-title">Быстрый старт</div>
+            <div class="section-title">Начать</div>
 
-            ${hasHistory ? ui.html`
-                <button class="btn btn-ghost" data-action="nav-plan-repeat">Повторить прошлую тренировку</button>
+            ${last ? ui.html`
+                <button class="btn-repeat" data-action="nav-plan-repeat">
+                    <span class="rep-type">Повторить «${last.workout.type}»</span>
+                    <span class="rep-meta">
+                        ${dates.formatDayLabel(last.workout.startedAt)}
+                        · ${format.count(last.sets, format.WORDS.set)}
+                        · ${format.duration((last.workout.finishedAt || last.workout.startedAt) - last.workout.startedAt)}
+                    </span>
+                </button>
             ` : ''}
 
-            ${templates.length ? ui.html`
-                <div class="chips">${list}</div>
+            ${differs ? ui.html`
+                <p class="hint">
+                    ${suggestion.reason === 'cycle'
+                        ? `По чередованию дальше — «${suggestion.type}»`
+                        : `Дольше всего не было «${suggestion.type}»`}
+                </p>
             ` : ''}
+
+            ${templates.length ? ui.html`<div class="chips">${chips}</div>` : ''}
+
+            <button class="btn ${last ? 'btn-ghost' : 'btn-accent btn-lg'}"
+                    data-action="nav" data-screen="plan">
+                Начать тренировку
+            </button>
 
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
                 ${templates.length ? 'Все шаблоны' : 'Создать шаблон'}
@@ -159,38 +185,13 @@ export const home = {
         ]);
 
         const workouts = entries.map((e) => e.workout);
-        const last = entries[0];
 
         return ui.html`
             ${ui.title('Тренировка')}
 
-            ${active || ''}
+            ${rhythmStrip(workouts) || ''}
 
-            ${active ? '' : ui.html`
-                <button class="btn btn-accent btn-lg" data-action="nav" data-screen="plan">
-                    Начать тренировку
-                </button>
-            `}
-
-            ${rhythmBlock(workouts) || ''}
-
-            ${quickStart(templates, entries.length > 0)}
-
-            ${last ? ui.html`
-                <div class="section">
-                    <div class="section-title">Прошлая тренировка</div>
-                    <button class="history-item" data-action="nav-summary" data-id="${last.workout.id}">
-                        <span class="h-date">
-                            <span>${dates.formatDayLabel(last.workout.startedAt)}</span>
-                            <span class="h-badge">${last.workout.type}</span>
-                        </span>
-                        <span class="h-stats">
-                            ${format.count(last.sets, format.WORDS.set)}
-                            · ${format.duration((last.workout.finishedAt || last.workout.startedAt) - last.workout.startedAt)}
-                        </span>
-                    </button>
-                </div>
-            ` : ''}
+            ${active || startBlock(entries[0], templates, rhythm.suggestType(workouts))}
         `;
     }
 };

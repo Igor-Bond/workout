@@ -354,10 +354,18 @@ export const dbService = {
 
     // ================== ТРЕНИРОВКИ (§4) ==================
 
-    /** Активная тренировка или null. Она всегда одна (§18). */
+    /**
+     * Активная тренировка или null. Она всегда одна (§18).
+     *
+     * Удаление мягкое (§21), и статус при нём не меняется: удалённая
+     * тренировка остаётся «активной» в индексе. Поэтому удалённые
+     * отсеиваются до выбора первой — иначе одна брошенная тренировка
+     * навсегда закрывала бы собой все последующие, и порядок обхода
+     * индекса решал бы, увидит ли пользователь свою незавершённую.
+     */
     async getActiveWorkout() {
-        const found = await db.workouts.where('status').equals('active').first();
-        return alive(found) ? found : null;
+        const found = await db.workouts.where('status').equals('active').filter(alive).first();
+        return found || null;
     },
 
     async createWorkout({ type = 'Тренировка', name = '', templateId = null, plan = [] }) {
