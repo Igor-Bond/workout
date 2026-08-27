@@ -776,13 +776,19 @@ export const dbService = {
         return removed;
     },
 
-    /** Полная очистка. Используется тестами и кнопкой в профиле. */
+    /**
+     * Полная очистка. Загрузка копии с заменой (§41) и проверки.
+     *
+     * Все таблицы, а не только очевидные: вес тела уезжает в копию наравне с
+     * тренировками, и, оставшись здесь, он смешался бы с восстановленным —
+     * замена перестала бы быть заменой. Дефект держался до тех пор, пока
+     * очистка не понадобилась проверке экрана.
+     */
     async wipe() {
-        await db.transaction('rw', db.exercises, db.templates, db.workouts, db.sets, db.settings, async () => {
-            await Promise.all([
-                db.exercises.clear(), db.templates.clear(),
-                db.workouts.clear(), db.sets.clear(), db.settings.clear()
-            ]);
+        const tables = [db.exercises, db.templates, db.workouts, db.sets, db.bodyWeight, db.settings];
+
+        await db.transaction('rw', tables, async () => {
+            await Promise.all(tables.map((table) => table.clear()));
         });
     }
 };

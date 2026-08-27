@@ -11,6 +11,7 @@ import { app } from './app.js';
 import { actions } from './core/actions.js';
 import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
+import { updater } from './core/updater.js';
 import { wakeLock } from './core/wakelock.js';
 import { ui } from './core/ui.js';
 import { dialog } from './core/dialog.js';
@@ -62,6 +63,11 @@ function registerServiceWorker() {
 
     navigator.serviceWorker.register('sw.js')
         .then((reg) => {
+            // Установленное приложение страницу не перезагружает, а значит и
+            // не сверяет воркера. Проверка при возвращении закрывает это
+            updater.use(reg);
+            updater.watch();
+
             reg.addEventListener('updatefound', () => {
                 const sw = reg.installing;
                 if (!sw) return;

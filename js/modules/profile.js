@@ -9,6 +9,7 @@
 import { ui } from '../core/ui.js';
 import { config } from '../config.js';
 import { install } from '../core/install.js';
+import { updater } from '../core/updater.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -181,6 +182,7 @@ export const profile = {
                 <div class="card-title">О приложении</div>
                 <div class="info-row"><span>Версия</span><strong>${VERSION}</strong></div>
                 <div class="info-row"><span>Хранилище</span><strong>IndexedDB + localStorage</strong></div>
+                <button class="btn btn-ghost" data-action="check-update">Проверить обновление</button>
                 <button class="btn btn-danger" data-action="reset-settings">Сбросить настройки</button>
             </div>
         `;
@@ -366,6 +368,30 @@ document.addEventListener('change', async (e) => {
     }
 
     app.render();
+});
+
+/**
+ * Проверка обновления вручную (§42).
+ *
+ * Установленное приложение страницу не перезагружает и потому само сверяет
+ * версию только при возвращении к нему. Кнопка нужна для случая, когда
+ * обновление ждут прямо сейчас и хотят знать наверняка.
+ */
+actions.on('check-update', async () => {
+    if (!updater.available) {
+        return dialog.alert({
+            title: 'Проверить нечем',
+            text: 'Приложение открыто без сервис-воркера. Обновление придёт при обычной перезагрузке страницы.'
+        });
+    }
+
+    const found = await updater.check({ force: true });
+
+    // Найденная версия ставится сама и перезагружает приложение, так что
+    // это сообщение пользователь чаще всего увидеть не успеет
+    await dialog.alert(found
+        ? { title: 'Найдена новая версия', text: 'Она уже ставится — приложение перезагрузится само.' }
+        : { title: 'Установлена последняя версия', text: `Версия ${VERSION}.` });
 });
 
 actions.on('reset-settings', async () => {

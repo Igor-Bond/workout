@@ -19,7 +19,7 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v24';
 const CACHE_NAME = `workout-${APP_VERSION}`;
 
 const NETWORK_TIMEOUT = 3000;
@@ -47,6 +47,7 @@ const PRECACHE_URLS = [
     'js/core/merge.js',
     'js/core/engine.js',
     'js/core/install.js',
+    'js/core/updater.js',
     'js/core/chart.js',
     'js/core/records.js',
     'js/core/rhythm.js',
@@ -84,13 +85,24 @@ const PRECACHE_URLS = [
 /**
  * Поштучно, а не addAll: тот падает целиком из-за одного файла, и тогда
  * офлайн не работает вообще ничего.
+ *
+ * Запрос с no-cache, а не обычный: GitHub Pages отдаёт файлы с max-age, и
+ * запас новой версии мог бы собраться из вчерашних копий, лежащих в кэше
+ * самого браузера. Проверка идёт условными запросами, поэтому платим за неё
+ * заголовками, а не трафиком, и один раз на выпуск.
  */
 async function precache() {
     const cache = await caches.open(CACHE_NAME);
 
-    await Promise.all(PRECACHE_URLS.map((url) => cache.add(url).catch((e) => {
-        console.warn('[SW] Не удалось закэшировать', url, e);
-    })));
+    await Promise.all(PRECACHE_URLS.map(async (url) => {
+        try {
+            const response = await fetch(url, { cache: 'no-cache' });
+            if (!response.ok) throw new Error(`ответ ${response.status}`);
+            await cache.put(url, response);
+        } catch (e) {
+            console.warn('[SW] Не удалось закэшировать', url, e);
+        }
+    }));
 
     return (await cache.keys()).length;
 }
