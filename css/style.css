@@ -173,8 +173,8 @@ p:last-child { margin-bottom: 0; }
 }
 
 .nav-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     fill: currentColor;
 }
 
@@ -741,15 +741,43 @@ table.log tr:last-child td { border-bottom: none; }
 
 .ex-block-title .sub { color: var(--text-dim); font-weight: 400; font-size: 12px; }
 
+/*
+ * Плитки показателей.
+ *
+ * Раньше их было по три в ряд на телефоне: цифры по 19 точек, подписи по
+ * 10. Читалось, но не с расстояния вытянутой руки — а смотрят на них
+ * именно так, между подходами. Теперь на телефоне их две в ряд, цифра
+ * заметно крупнее, и у каждой своя подложка: так они читаются как
+ * отдельные показатели, а не как сплошной текст.
+ */
 .tiles {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
 }
 
-.tile { text-align: center; }
-.tile strong { display: block; color: var(--accent); font-size: 19px; }
-.tile span { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.tile {
+    text-align: center;
+    background: var(--panel-2);
+    border-radius: var(--radius-sm);
+    padding: 12px 8px;
+}
+
+.tile strong {
+    display: block;
+    color: var(--accent);
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+.tile span {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
+}
 
 /* ================== ГЛАВНЫЙ ЭКРАН ================== */
 
@@ -1187,7 +1215,8 @@ svg.heatmap { display: block; }
     /* Поля плана шире: на широкой строке они иначе выглядят обрубками */
     .plan-row-fields { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 
-    .tiles { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+    /* На широком экране плиток помещается больше, и дробить их незачем */
+    .tiles { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 
     /*
      * Списки карточек в две колонки: на широком экране одна колонка
