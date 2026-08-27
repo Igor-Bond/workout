@@ -45,9 +45,15 @@ export const sync = {
     getLastSync: () => Number(config.get(LAST_SYNC_KEY) || 0),
     setLastSync: (value) => config.set(LAST_SYNC_KEY, value),
 
-    /** Можно ли обмениваться: настроено и выполнен вход. */
+    /**
+     * Стоит ли вообще пытаться обмениваться.
+     *
+     * Проверяется признак из настроек, а не auth.isSignedIn: до подъёма SDK
+     * приложение не знает, выполнен ли вход, и по isSignedIn обмен молча не
+     * запускался бы никогда, пока не откроешь профиль.
+     */
     get available() {
-        return auth.isConfigured() && auth.isSignedIn;
+        return auth.isConfigured() && config.get('syncEnabled');
     },
 
     _collection: (ctx, name) => ctx.fs.collection(ctx.db, 'users', ctx.uid, name),
@@ -141,7 +147,7 @@ export const sync = {
 
     async run({ silent = false } = {}) {
         if (!auth.isConfigured()) return { skipped: 'not-configured' };
-        if (!auth.isSignedIn) return { skipped: 'not-signed-in' };
+        if (!sync.available) return { skipped: 'not-signed-in' };
         if (sync.inProgress) return { skipped: 'already-running' };
 
         sync.inProgress = true;
@@ -151,6 +157,16 @@ export const sync = {
         const since = sync.getLastSync();
 
         try {
+            // Поднимает SDK и восстанавливает сессию, если её ещё не поднимали
+            await auth.init();
+
+            // Сессия могла истечь или быть отозвана на стороне Google
+            if (!auth.isSignedIn) {
+                config.set('syncEnabled', false);
+                if (!silent) emit('error', 'Вход больше не действует — войдите заново');
+                return { skipped: 'signed-out' };
+            }
+
             const ctx = await auth.context();
 
             const { applied, appliedRecords } = await sync.pull(ctx, since);

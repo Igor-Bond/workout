@@ -99,9 +99,10 @@ export const profile = {
         const counts = await dbService.stats();
         const imported = await dbService.getSetting('v1ImportSummary');
 
-        // Состояние входа известно только после подъёма SDK. Если Firebase
-        // не настроен, ничего не грузим — и раздел честно об этом скажет
-        if (auth.isConfigured()) await auth.init().catch(() => {});
+        // Состояние входа известно только после подъёма SDK, но поднимать
+        // его ради тех, кто облаком не пользуется, незачем: раздел и без
+        // него честно покажет «вход не выполнен»
+        if (sync.available) await auth.init().catch(() => {});
 
         return ui.html`
             ${ui.raw(ui.title('Профиль'))}
@@ -221,6 +222,10 @@ actions.on('sync-in', async () => {
 
         if (!user) return status('');
 
+        // Признак «облако включено» — по нему приложение решает поднимать
+        // SDK при следующих запусках и синхронизировать без напоминаний
+        config.set('syncEnabled', true);
+
         status('Первый обмен…');
         await sync.run({ silent: true });
     } catch (e) {
@@ -266,6 +271,7 @@ actions.on('sync-out', async () => {
     if (!ok) return;
 
     await auth.signOut();
+    config.set('syncEnabled', false);
     app.render();
 });
 
