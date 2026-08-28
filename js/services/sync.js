@@ -21,6 +21,16 @@ import { merge, SYNCED } from '../core/merge.js';
 import { config } from '../config.js';
 
 const LAST_SYNC_KEY = 'lastSync';
+const CURSOR_KEY = 'syncCursor';
+
+/**
+ * Проставлены ли уже отметки сервера на всём, что у нас есть.
+ *
+ * Разово: документ без syncedAt для обычного приёма невидим, а проставить
+ * отметку может только запись. Один полный проход это чинит, но повторять
+ * его при каждом запуске значило бы переписывать всю историю впустую.
+ */
+const STAMPED_KEY = 'syncStamped';
 
 const listeners = new Set();
 
@@ -42,8 +52,21 @@ export const sync = {
         return () => listeners.delete(callback);
     },
 
+    /**
+     * Две разные отметки, которые раньше были одной.
+     *
+     * lastSync — когда мы обменивались, по своим часам. Отвечает за отбор на
+     * отправку, за уборку надгробий и за строку «последний обмен».
+     *
+     * cursor — время сервера, до которого мы всё получили. Отвечает только за
+     * приём. Своими часами он не измеряется вовсе, поэтому их расхождение
+     * между устройствами ни на что не влияет.
+     */
     getLastSync: () => Number(config.get(LAST_SYNC_KEY) || 0),
     setLastSync: (value) => config.set(LAST_SYNC_KEY, value),
+
+    getCursor: () => Number(config.get(CURSOR_KEY) || 0),
+    setCursor: (value) => config.set(CURSOR_KEY, value),
 
     /**
      * Стоит ли вообще пытаться обмениваться.
@@ -61,29 +84,44 @@ export const sync = {
     // ================== ЗАБРАТЬ ЧУЖОЕ ==================
 
     /**
+     * Приём. cursor — время сервера, до которого мы уже всё получили.
+     *
+     * Ноль означает «полный проход»: отбор по syncedAt пропустил бы
+     * документы, у которых этого поля ещё нет, — а до перехода на границу по
+     * серверному времени его не было ни у одного. Один полный проход после
+     * обновления их и проставит.
+     *
      * Возвращает применённые записи: идентификатор → пришедший updatedAt.
      * Отправлять их обратно тем же обменом не нужно — но только пока мы их
      * не тронули, а сведение двойников трогает (§5.1), поэтому запоминается
      * не сам факт, а значение, с которым запись легла в базу.
      */
-    async pull(ctx, since) {
+    async pull(ctx, cursor) {
         const applied = new Map();
         const appliedRecords = [];
+        const seen = [];
 
         for (const name of SYNCED) {
-            const { query, where, getDocs } = ctx.fs;
+            const { query, where, getDocs, Timestamp } = ctx.fs;
 
-            const snapshot = await getDocs(
-                query(sync._collection(ctx, name), where('updatedAt', '>', since))
-            );
+            const ref = sync._collection(ctx, name);
+
+            const snapshot = await getDocs(cursor > 0
+                ? query(ref, where('syncedAt', '>', Timestamp.fromMillis(cursor)))
+                : query(ref));
 
             const incoming = [];
             const workouts = [];
 
             for (const doc of snapshot.docs) {
                 const remote = doc.data();
-                const local = await dbService.getRaw(name, remote.id);
 
+                // Граница двигается по всему увиденному, а не только по
+                // применённому: иначе чужая запись, которую мы отклонили как
+                // устаревшую, возвращалась бы на каждом обмене
+                seen.push(remote);
+
+                const local = await dbService.getRaw(name, remote.id);
                 if (merge.resolve(local, remote) !== 'take-remote') continue;
 
                 applied.set(remote.id, remote.updatedAt || 0);
@@ -100,18 +138,27 @@ export const sync = {
             }
         }
 
-        return { applied, appliedRecords };
+        return { applied, appliedRecords, seen };
     },
 
     // ================== ОТДАТЬ СВОЁ ==================
 
-    async push(ctx, since, applied) {
-        const { doc, setDoc, writeBatch } = ctx.fs;
+    /**
+     * Отправка. everything — переклеймить всё, что есть локально.
+     *
+     * Нужно ровно один раз, при полном проходе: документ без syncedAt для
+     * обычного приёма невидим, а проставить его может только запись. Без
+     * этого запись, которую мы при полном проходе взяли из облака и потому
+     * не отправляли, осталась бы без отметки навсегда — и невидимой для
+     * второго устройства.
+     */
+    async push(ctx, since, applied, { everything = false } = {}) {
+        const { doc, setDoc, writeBatch, serverTimestamp } = ctx.fs;
         let sent = 0;
 
         for (const name of SYNCED) {
-            const changed = merge.syncable(name, await dbService.changedSince(name, since));
-            const outgoing = merge.outgoing(changed, since, applied);
+            const changed = merge.syncable(name, await dbService.changedSince(name, everything ? -1 : since));
+            const outgoing = everything ? changed : merge.outgoing(changed, since, applied);
 
             if (outgoing.length === 0) continue;
 
@@ -124,6 +171,11 @@ export const sync = {
                     const payload = name === 'workouts'
                         ? merge.packWorkout(record, record.sets)
                         : merge.clean(record);
+
+                    // Время сервера, а не своё: по нему второе устройство
+                    // поймёт, что запись появилась, даже если изменена она
+                    // была давно и часы у нас расходятся
+                    payload.syncedAt = serverTimestamp();
 
                     batch.set(doc(sync._collection(ctx, name), record.id), payload);
                 }
@@ -166,6 +218,12 @@ export const sync = {
 
         const startedAt = Date.now();
         const since = sync.getLastSync();
+        const cursor = sync.getCursor();
+
+        // Ещё не проставлены отметки сервера — значит этот обмен обязан
+        // переклеймить всё, что у нас есть, иначе часть истории останется
+        // невидимой для обычного приёма
+        const stamp = !config.get(STAMPED_KEY);
 
         try {
             // Поднимает SDK и восстанавливает сессию, если её ещё не поднимали
@@ -180,16 +238,28 @@ export const sync = {
 
             const ctx = await auth.context();
 
-            const { applied, appliedRecords } = await sync.pull(ctx, since);
+            const { applied, appliedRecords, seen } = await sync.pull(ctx, cursor);
 
             // Между приёмом и отправкой: двойники приезжают именно с обменом
             // (§5.1), а сведение их переписывает тренировки и шаблоны — и это
             // должно уехать тем же разом, а не остаться до следующего
             const merged = await dbService.dedupeExercises();
 
-            const sent = await sync.push(ctx, since, applied);
+            const sent = await sync.push(ctx, since, applied, { everything: stamp });
+            if (stamp) config.set(STAMPED_KEY, true);
 
             sync.setLastSync(merge.nextSince(startedAt, appliedRecords));
+
+            /*
+             * Граница приёма двигается только по тому, что мы правда
+             * получили. Отправленное нами сейчас в неё не попадает — своей
+             * отметки сервера мы не видели, — поэтому на следующем обмене
+             * оно вернётся и будет отклонено как «своё же». Это стоит одного
+             * лишнего чтения на запись и ровно одного обмена: платить за
+             * определённость границы дешевле, чем гадать по своим часам.
+             */
+            const nextCursor = merge.nextCursor(cursor, seen);
+            if (nextCursor > cursor) sync.setCursor(nextCursor);
 
             const result = { received: applied.size, sent, merged: merged.length, at: Date.now() };
 
@@ -224,5 +294,7 @@ export const sync = {
      */
     reset() {
         sync.setLastSync(0);
+        sync.setCursor(0);
+        config.set(STAMPED_KEY, false);
     }
 };

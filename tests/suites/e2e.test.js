@@ -36,6 +36,10 @@ function fakeCloud() {
     const data = new Map();          // «коллекция» → Map(id → документ)
     const state = { fail: false, reads: 0, writes: 0 };
 
+    // Часы сервера: только растут и с часами устройства не связаны — ровно
+    // это свойство и делает границу приёма надёжной
+    let serverClock = 1_000_000;
+
     const collection = (name) => {
         if (!data.has(name)) data.set(name, new Map());
         return data.get(name);
@@ -43,6 +47,13 @@ function fakeCloud() {
 
     const guard = () => {
         if (state.fail) throw new Error('нет соединения');
+    };
+
+    /** Проставляет серверное время вместо метки-заглушки. */
+    const stamp = (value) => {
+        const copy = structuredClone(value);
+        if (copy.syncedAt?.__server) copy.syncedAt = (serverClock += 1);
+        return copy;
     };
 
     const fs = {
@@ -54,12 +65,18 @@ function fakeCloud() {
         query: (ref, ...conditions) => ({ ref, conditions }),
         where: (field, op, value) => ({ field, op, value }),
 
+        serverTimestamp: () => ({ __server: true }),
+        Timestamp: { fromMillis: (ms) => ({ toMillis: () => ms }) },
+
         getDocs: async ({ ref, conditions }) => {
             guard();
 
-            const since = conditions.find((c) => c.field === 'updatedAt')?.value ?? -1;
+            // Документ без отметки сервера обычному отбору невидим — так же,
+            // как в настоящем Firestore
+            const after = conditions.find((c) => c.field === 'syncedAt')?.value;
+
             const docs = [...collection(ref.name).values()]
-                .filter((d) => (d.updatedAt || 0) > since)
+                .filter((d) => !after || (d.syncedAt || 0) > after.toMillis())
                 .map((d) => ({ data: () => structuredClone(d) }));
 
             state.reads += docs.length;
@@ -69,7 +86,7 @@ function fakeCloud() {
         setDoc: async (ref, value) => {
             guard();
             state.writes += 1;
-            collection(ref.collection).set(ref.id, structuredClone(value));
+            collection(ref.collection).set(ref.id, stamp(value));
         },
 
         writeBatch: () => {
@@ -80,7 +97,7 @@ function fakeCloud() {
                     guard();
                     for (const [ref, value] of pending) {
                         state.writes += 1;
-                        collection(ref.collection).set(ref.id, structuredClone(value));
+                        collection(ref.collection).set(ref.id, stamp(value));
                     }
                 }
             };
@@ -110,7 +127,7 @@ function connect(cloud) {
     Object.defineProperty(auth, 'isSignedIn', { configurable: true, get: () => true });
 
     config.set('syncEnabled', true);
-    sync.setLastSync(0);
+    sync.reset();
 
     return () => {
         auth.context = realContext;
@@ -118,7 +135,7 @@ function connect(cloud) {
         auth.init = realInit;
         Object.defineProperty(auth, 'isSignedIn', descriptor);
         config.set('syncEnabled', false);
-        sync.setLastSync(0);
+        sync.reset();
     };
 }
 
@@ -486,9 +503,9 @@ describe('Сквозной путь: упражнение, заведённое 
 
             await sync.run({ silent: true });
 
-            // Второе устройство: своя пустая база, тот же обмен
+            // Второе устройство: своя пустая база и свои отметки обмена
             await dbService.wipe();
-            sync.setLastSync(0);
+            sync.reset();
             await sync.run({ silent: true });
 
             const приехало = await dbService.findExerciseByName('Тяга верхнего блока');
@@ -552,6 +569,48 @@ describe('Сквозной путь: упражнение, заведённое 
 
             // История обеих тренировок цела
             equal((await dbService.listWorkoutSummaries()).length, 2);
+        } finally {
+            restore();
+        }
+    });
+});
+
+describe('Сквозной путь: запись, выложенная позже, чем сделана', () => {
+
+    /*
+     * Метка обмена бралась по своим часам — моменту начала синхронизации.
+     * Но updatedAt у записи — это когда её изменили, а не когда выложили.
+     * Второе устройство могло завести упражнение утром, а выйти на связь
+     * вечером: к этому времени наша метка давно перешагнула утро, и запрос
+     * «изменённое позже метки» такую запись не вернёт уже никогда.
+     *
+     * Ровно этот случай и наблюдался: упражнение с компьютера не появлялось
+     * на телефоне, «Синхронизировать» на обоих устройствах не помогало, а
+     * «Полный обмен заново» — помогал, потому что обнулял метку.
+     */
+    it('доезжает, хотя изменена раньше нашего прошлого обмена', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            // Первый обмен: пустое облако, метка уходит вперёд
+            await sync.run({ silent: true });
+
+            // Второе устройство завело упражнение час назад, а выложило сейчас
+            cloud.put('exercises', {
+                id: 'заведено-раньше',
+                name: 'Тяга штанги',
+                nameKey: migrations.normalizeName('Тяга штанги'),
+                kind: 'weight', group: 'Спина', archived: false,
+                createdAt: Date.now() - 3600000,
+                updatedAt: Date.now() - 3600000
+            });
+
+            await sync.run({ silent: true });
+
+            assert(await dbService.findExerciseByName('Тяга штанги'),
+                'иначе упражнение не появится никогда — до полного обмена заново');
         } finally {
             restore();
         }

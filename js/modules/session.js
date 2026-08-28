@@ -146,6 +146,7 @@ function restBar() {
         <div class="rest-bar">
             <span class="rest-label">Отдых</span>
             <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
+            <button class="chip" data-action="rest-shorten">−30 с</button>
             <button class="chip" data-action="rest-extend">+30 с</button>
             <button class="chip" data-action="rest-skip">Пропустить</button>
         </div>
@@ -526,6 +527,7 @@ actions.on('rest-skip', () => {
 });
 
 actions.on('rest-extend', () => restTimer.extend(30));
+actions.on('rest-shorten', () => restTimer.extend(-30));
 
 // ================== ЗАМЕТКИ (§20) ==================
 
