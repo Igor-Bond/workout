@@ -470,3 +470,90 @@ describe('Сквозной путь: два устройства с одинак
         }
     });
 });
+
+describe('Сквозной путь: упражнение, заведённое на другом устройстве', () => {
+
+    it('доезжает целиком, со своим видом, группой и отдыхом', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const свой = await dbService.createExercise({
+                name: 'Тяга верхнего блока', kind: 'weight', group: 'Спина'
+            });
+            await dbService.updateExercise(свой.id, { restSeconds: 120 });
+
+            await sync.run({ silent: true });
+
+            // Второе устройство: своя пустая база, тот же обмен
+            await dbService.wipe();
+            sync.setLastSync(0);
+            await sync.run({ silent: true });
+
+            const приехало = await dbService.findExerciseByName('Тяга верхнего блока');
+
+            assert(приехало, 'упражнение должно приехать');
+            equal(приехало.id, свой.id);
+            equal(приехало.kind, 'weight');
+            equal(приехало.group, 'Спина');
+            equal(приехало.restSeconds, 120, 'свой отдых — часть упражнения, а не настройка устройства');
+        } finally {
+            restore();
+        }
+    });
+
+    /*
+     * Второе устройство завело своё упражнение с тем же названием — как это
+     * и происходит с базовым справочником. После обмена должно остаться одно
+     * упражнение, а подходы обоих — на нём.
+     */
+    it('сходится с одноимённым местным, не теряя ни одного подхода', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const местное = await dbService.createExercise({ name: 'Приседания', kind: 'weight' });
+
+            const w = await dbService.createWorkout({ type: 'Ноги', plan: [] });
+            await записать(w, местное, 1, 1, { reps: 10, weight: 80 });
+            await dbService.finishWorkout(w.id);
+
+            // Чужое устройство: то же название, другой идентификатор, своя тренировка
+            const чужое = {
+                id: 'чужое-приседания', name: 'Приседания',
+                nameKey: migrations.normalizeName('Приседания'),
+                kind: 'weight', group: '', archived: false,
+                createdAt: Date.now(), updatedAt: Date.now()
+            };
+            cloud.put('exercises', чужое);
+            cloud.put('workouts', {
+                id: 'чужая-тренировка', type: 'Ноги', name: '', templateId: null,
+                status: 'done', note: '', startedAt: Date.now() - 3600000,
+                finishedAt: Date.now() - 1800000, plan: [], updatedAt: Date.now(),
+                sets: [{
+                    id: 'чужой-подход', workoutId: 'чужая-тренировка', exerciseId: чужое.id,
+                    order: 1, setNumber: 1, reps: 12, weight: 70,
+                    performedAt: Date.now() - 3000000, updatedAt: Date.now()
+                }]
+            });
+
+            const итог = await sync.run({ silent: true });
+
+            const все = await dbService.listExercises({ includeArchived: true });
+            const приседания = все.filter((e) => e.name === 'Приседания');
+
+            equal(приседания.length, 1, 'одно упражнение, а не два');
+            equal(итог.merged, 1, 'обмен обязан сказать, что сводил двойников');
+
+            const подходы = await dbService.listSetsByExercise(приседания[0].id);
+            equal(подходы.length, 2, 'подходы обоих устройств должны сойтись на одном упражнении');
+
+            // История обеих тренировок цела
+            equal((await dbService.listWorkoutSummaries()).length, 2);
+        } finally {
+            restore();
+        }
+    });
+});

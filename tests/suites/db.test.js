@@ -372,17 +372,47 @@ describe('Сведение двойников по названию', () => {
         equal(остался.id, [свой.id, 'чужой'].sort()[0]);
     });
 
-    it('действующее упражнение перевешивает архивное', async () => {
+    /*
+     * Отметка архива не должна выбирать победителя: устройства сводят
+     * двойников на разных данных — сведение идёт и при запуске, до обмена, —
+     * и, пока отметка не доехала, видят её по-разному. Выбери они по ней,
+     * слили бы записи навстречу друг другу и обменялись надгробиями:
+     * упражнение исчезло бы целиком, вместе с обоими.
+     */
+    it('победителя выбирает только идентификатор', async () => {
         const свой = await двойники();
 
-        // Меньший идентификатор — но в архиве
         const меньший = [свой.id, 'чужой'].sort()[0];
         await dbService.setExerciseArchived(меньший, true);
 
         await dbService.dedupeExercises();
         const [остался] = await dbService.listExercises({ includeArchived: true });
 
-        equal(остался.archived, false, 'иначе упражнение исчезло бы из списка само собой');
+        equal(остался.id, меньший, 'архив выбор не меняет');
+    });
+
+    it('но действующим упражнение остаётся', async () => {
+        const свой = await двойники();
+
+        const меньший = [свой.id, 'чужой'].sort()[0];
+        await dbService.setExerciseArchived(меньший, true);
+
+        await dbService.dedupeExercises();
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.archived, false, 'иначе упражнение ушло бы в архив само собой');
+    });
+
+    it('архивным остаётся то, что убрано везде', async () => {
+        const свой = await двойники();
+
+        await dbService.setExerciseArchived(свой.id, true);
+        await dbService.setExerciseArchived('чужой', true);
+
+        await dbService.dedupeExercises();
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.archived, true, 'решение пользователя не отменяется');
     });
 
     it('история двойников собирается воедино', async () => {
