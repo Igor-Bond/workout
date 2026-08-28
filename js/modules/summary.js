@@ -65,21 +65,61 @@ function editableFields(set, kind) {
     return FIELD_ORDER.filter((field) => wanted.has(field));
 }
 
-/** Строка подхода: показываем только те величины, которые есть. */
-function setRow(set, recordId, kind) {
-    const value = set.reps !== undefined ? String(set.reps)
-        : set.duration !== undefined ? format.seconds(set.duration)
-        : '—';
+/**
+ * Заголовки колонок журнала.
+ *
+ * Единица стоит в заголовке там, где она постоянна: килограммы у веса,
+ * повторения у повторений. У дистанции она меняется — 800 м и 1,2 км, —
+ * поэтому там единица идёт в самой клетке, а заголовок её не называет.
+ */
+const COLUMN_HEAD = {
+    reps:     'Повторения',
+    weight:   'Вес, кг',
+    distance: 'Дистанция',
+    duration: 'Время'
+};
 
-    const extra = set.weight !== undefined ? `${format.weight(set.weight)} кг`
-        : set.distance !== undefined ? format.distance(set.distance)
-        : '—';
+/** Значение величины в клетке — без повторения единицы в каждой строке. */
+const CELL = {
+    reps:     (s) => String(s.reps),
+    weight:   (s) => format.weight(s.weight),
+    distance: (s) => format.distance(s.distance),
+    duration: (s) => format.seconds(s.duration)
+};
 
+/**
+ * Какие колонки нужны упражнению (§6).
+ *
+ * Раньше колонок было две на все виды сразу — «значение» и «вес /
+ * дистанция», — и под одним заголовком оказывались килограммы, метры и
+ * секунды. Размерность нагрузки у каждого вида своя, и называть её общим
+ * словом значит не называть вовсе.
+ *
+ * Состав — как при правке подхода: величины вида упражнения плюс всё, что
+ * в подходах записано. Вид меняют в справочнике, записанное от этого не
+ * меняется, и спрятать несоответствующую величину значило бы её потерять.
+ */
+function columnsOf(block) {
+    const wanted = new Set(FIELDS_BY_KIND[block.kind] || FIELDS_BY_KIND.weight);
+
+    for (const set of block.sets) {
+        for (const field of FIELD_ORDER) {
+            if (set[field] !== undefined) wanted.add(field);
+        }
+    }
+
+    return FIELD_ORDER.filter((field) => wanted.has(field));
+}
+
+function setRow(set, recordId, kind, columns) {
     return ui.html`
         <tr class="${set.id === recordId ? 'is-record' : ''}">
             <td>${String(set.setNumber)}${set.id === recordId ? ui.raw(' <span class="record-mark" title="Новый рекорд">★</span>') : ''}</td>
-            <td>${value}</td>
-            <td>${extra}</td>
+
+            ${columns.map((field) => ui.html`
+                <td>${set[field] === undefined ? '—' : CELL[field](set)}</td>
+            `)}
+
             <td class="cell-tools">
                 <button class="icon-btn" data-action="summary-edit-set" data-id="${set.id}"
                         data-kind="${kind || 'weight'}" title="Изменить подход">✎</button>
@@ -87,11 +127,15 @@ function setRow(set, recordId, kind) {
                         title="Удалить подход">×</button>
             </td>
         </tr>
-        ${set.note ? ui.html`<tr class="log-note"><td colspan="4">${set.note}</td></tr>` : ''}
+        ${set.note ? ui.html`
+            <tr class="log-note"><td colspan="${String(columns.length + 2)}">${set.note}</td></tr>
+        ` : ''}
     `;
 }
 
 function block(b, note) {
+    const columns = columnsOf(b);
+
     const line = [
         format.count(b.sets.length, format.WORDS.set),
         b.reps ? format.count(b.reps, format.WORDS.rep) : null,
@@ -113,8 +157,14 @@ function block(b, note) {
 
             <div class="table-scroll">
                 <table class="log">
-                    <thead><tr><th>Подход</th><th>Значение</th><th>Вес / дистанция</th><th></th></tr></thead>
-                    <tbody>${b.sets.map((s) => setRow(s, b.record?.id, b.kind))}</tbody>
+                    <thead>
+                        <tr>
+                            <th>Подход</th>
+                            ${columns.map((field) => ui.html`<th>${COLUMN_HEAD[field]}</th>`)}
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>${b.sets.map((s) => setRow(s, b.record?.id, b.kind, columns))}</tbody>
                 </table>
             </div>
 
