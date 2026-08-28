@@ -212,17 +212,56 @@ export const rhythm = {
         });
     },
 
+    /** Сколько упражнений обычно бывает в тренировке. */
+    typicalSize(entries = []) {
+        const sizes = entries.slice(0, WINDOW)
+            .map((e) => (e.exerciseIds || []).length)
+            .filter((n) => n > 0);
+
+        return sizes.length ? Math.max(1, Math.round(rhythm.median(sizes))) : 1;
+    },
+
     /**
-     * Каким упражнениям пора, от самого просроченного.
+     * Каким упражнениям пора — ровно на одну тренировку (§26.2.3).
      *
      * Порог — единица: прошло не меньше обычного промежутка. Предлагать
      * раньше значит звать делать то, что и так в графике.
+     *
+     * Но просроченного к любому дню накапливается больше, чем делают за
+     * раз, и список из всего залежавшегося — это не тренировка, а перечень
+     * долгов. Поэтому берётся столько, сколько обычно бывает в тренировке.
+     *
+     * И не любые: самое просроченное задаёт направление, а добираются к
+     * нему те, с которыми оно чаще всего делалось вместе. Иначе в один день
+     * попали бы спина, ноги и пресс только потому, что все трое залежались.
      */
-    dueExercises(entries = [], now = Date.now(), { limit = 5 } = {}) {
-        return rhythm.exerciseRhythm(entries, now)
+    dueExercises(entries = [], now = Date.now(), { limit = null } = {}) {
+        const overdue = rhythm.exerciseRhythm(entries, now)
             .filter((e) => e.enough && e.overdue >= 1)
-            .sort((a, b) => b.overdue - a.overdue)
-            .slice(0, limit);
+            .sort((a, b) => b.overdue - a.overdue);
+
+        if (overdue.length === 0) return [];
+
+        const cap = limit || rhythm.typicalSize(entries);
+        const [anchor, ...rest] = overdue;
+
+        // Сколько раз каждое упражнение встречалось в одной тренировке с
+        // самым просроченным
+        const together = new Map();
+
+        for (const entry of entries) {
+            const ids = entry.exerciseIds || [];
+            if (!ids.includes(anchor.exerciseId)) continue;
+
+            for (const id of ids) together.set(id, (together.get(id) || 0) + 1);
+        }
+
+        rest.sort((a, b) => {
+            const pair = (together.get(b.exerciseId) || 0) - (together.get(a.exerciseId) || 0);
+            return pair !== 0 ? pair : b.overdue - a.overdue;
+        });
+
+        return [anchor, ...rest].slice(0, cap);
     },
 
     /**

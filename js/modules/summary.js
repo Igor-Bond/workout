@@ -15,6 +15,56 @@ import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { app } from '../app.js';
 
+/** Как называются правимые величины подхода — для вопроса об остальных. */
+const FIELD_LABEL = {
+    reps: 'повторения',
+    weight: 'вес',
+    duration: 'длительность',
+    distance: 'дистанция'
+};
+
+/** Подписи полей в окне правки и порядок, в котором они идут. */
+const FIELD_INPUT = {
+    reps:     'Повторения',
+    weight:   'Вес, кг',
+    duration: 'Длительность, секунд',
+    distance: 'Дистанция, м'
+};
+
+const FIELD_ORDER = ['reps', 'weight', 'distance', 'duration'];
+
+/** Какие величины у вида упражнения основные. */
+const FIELDS_BY_KIND = {
+    weight:   ['reps', 'weight'],
+    reps:     ['reps'],
+    time:     ['duration'],
+    distance: ['distance', 'duration']
+};
+
+/**
+ * Какие поля показывать при правке подхода (§21.1).
+ *
+ * Поля вида упражнения плюс всё, что в подходе уже записано.
+ *
+ * Только по записанному нельзя: подход силового упражнения, у которого вес
+ * забыли указать, состоял бы из одних повторений — и добавить вес было бы
+ * нечем. Ровно на это и жаловались.
+ *
+ * Только по виду тоже нельзя: вид можно поменять в справочнике, а записанное
+ * от этого не меняется. Тогда в подходе оказывается величина, которой по
+ * нынешнему виду быть не должно, и спрятать её значит лишить возможности её
+ * исправить.
+ */
+function editableFields(set, kind) {
+    const wanted = new Set(FIELDS_BY_KIND[kind] || FIELDS_BY_KIND.weight);
+
+    for (const field of FIELD_ORDER) {
+        if (set[field] !== undefined) wanted.add(field);
+    }
+
+    return FIELD_ORDER.filter((field) => wanted.has(field));
+}
+
 /** Строка подхода: показываем только те величины, которые есть. */
 function setRow(set, recordId, kind) {
     const value = set.reps !== undefined ? String(set.reps)
@@ -191,19 +241,12 @@ actions.on('summary-edit-set', async (el) => {
     const set = await dbService.getSet(el.dataset.id);
     if (!set) return;
 
-    const measure = records.measure([set], el.dataset.kind);
-
-    const число = (name, label, value) => ({
-        name, label, type: 'number', value: value ?? ''
-    });
-
-    const fields = measure === 'time'
-        ? [число('duration', 'Длительность, секунд', set.duration)]
-        : measure === 'distance'
-            ? [число('distance', 'Дистанция, м', set.distance), число('duration', 'Время, секунд', set.duration)]
-            : measure === 'reps'
-                ? [число('reps', 'Повторения', set.reps)]
-                : [число('reps', 'Повторения', set.reps), число('weight', 'Вес, кг', set.weight)];
+    const fields = editableFields(set, el.dataset.kind).map((name) => ({
+        name,
+        label: FIELD_INPUT[name],
+        type: 'number',
+        value: set[name] ?? ''
+    }));
 
     const values = await dialog.form({
         title: `Подход ${set.setNumber}`,
@@ -215,6 +258,60 @@ actions.on('summary-edit-set', async (el) => {
     if (!values) return;
 
     await dbService.updateSet(set.id, values);
+
+    /*
+     * Ошибаются обычно во всём упражнении сразу, а не в одном подходе: вес
+     * был 62,5, а записан 60 — и так все три раза. Поэтому после правки
+     * спрашиваем, применить ли её к остальным, и перечисляем, что именно
+     * изменилось: соглашаться вслепую пользователю не с чем.
+     */
+    const changed = {};
+
+    for (const [field, label] of Object.entries(FIELD_LABEL)) {
+        if (!(field in values)) continue;
+
+        const before = set[field];
+        const after = values[field] === '' || values[field] === null ? undefined : Number(values[field]);
+
+        if (before === after) continue;
+        changed[field] = { label, before, after };
+    }
+
+    const keys = Object.keys(changed);
+
+    if (keys.length) {
+        const rest = (await dbService.listSets(set.workoutId))
+            .filter((s) => s.exerciseId === set.exerciseId && s.id !== set.id);
+
+        if (rest.length) {
+            const exercise = await dbService.getExercise(set.exerciseId);
+
+            // Числа через format.weight: в русском тексте разделитель —
+            // запятая, и «62.5» рядом с «62,5 кг» на экране читается как
+            // другая величина
+            const было = (v) => (v === undefined ? '—' : format.weight(v));
+
+            const lines = keys.map((field, i) => {
+                const { label, before, after } = changed[field];
+                const name = i === 0 ? label[0].toUpperCase() + label.slice(1) : label;
+
+                return `${name}: ${было(before)} → ${было(after)}`;
+            });
+
+            const ok = await dialog.confirm({
+                title: 'Применить к остальным подходам?',
+                text: `${exercise?.name || 'Упражнение'}, ещё ${format.count(rest.length, format.WORDS.set)}. ${lines.join(', ')}. Заметка останется только у этого подхода.`,
+                confirmText: 'Применить ко всем'
+            });
+
+            if (ok) {
+                await dbService.applySetToRest(set.id, Object.fromEntries(
+                    keys.map((field) => [field, values[field]])
+                ));
+            }
+        }
+    }
+
     app.render();
 });
 

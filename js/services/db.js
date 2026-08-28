@@ -611,6 +611,30 @@ export const dbService = {
         return next;
     },
 
+    /**
+     * Та же правка — остальным подходам этого упражнения в тренировке.
+     *
+     * Ошибаются обычно не в одном подходе, а во всём упражнении: вес был
+     * 62,5, а записан 60 — и так все три раза. Исправлять по одному значит
+     * повторять одно и то же действие столько раз, сколько было подходов.
+     *
+     * Заметка сюда не попадает намеренно: она про конкретный подход, а не
+     * про упражнение, и размножать её было бы неправдой.
+     */
+    async applySetToRest(id, changes = {}) {
+        const set = await db.sets.get(id);
+        if (!alive(set)) throw new Error('Подход не найден');
+
+        const rest = (await dbService.listSets(set.workoutId))
+            .filter((s) => s.exerciseId === set.exerciseId && s.id !== set.id);
+
+        for (const other of rest) {
+            await dbService.updateSet(other.id, changes);
+        }
+
+        return rest.length;
+    },
+
     async deleteSet(id) {
         const now = Date.now();
         const set = await db.sets.get(id);

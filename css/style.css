@@ -1086,8 +1086,22 @@ table.log tr:last-child td { border-bottom: none; }
     text-align: center;
 }
 
-td.cell-tools { width: 34px; text-align: right; }
-td.cell-tools .icon-btn { width: 26px; height: 26px; font-size: 13px; }
+/*
+ * Правка и удаление подхода — в одну строку и на расстоянии.
+ *
+ * Ширины в 34 px на две кнопки не хватало, и они переносились одна под
+ * другую. А стоя вплотную, кнопки одного размера легко перепутать пальцем —
+ * при том, что цена ошибки у них разная: правку видно и можно повторить,
+ * удаление приходится восстанавливать по памяти.
+ */
+td.cell-tools {
+    width: 1%;
+    text-align: right;
+    white-space: nowrap;
+}
+
+td.cell-tools .icon-btn { width: 30px; height: 30px; font-size: 14px; }
+td.cell-tools .icon-btn + .icon-btn { margin-left: 16px; }
 
 /* ================== ГРАФИКИ (§27) ================== */
 

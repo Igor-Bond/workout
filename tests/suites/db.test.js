@@ -807,3 +807,79 @@ describe('Разовый перенос версии 1', () => {
         assert(await dbService.getSetting('v1ImportedAt'), 'проверять localStorage при каждом запуске незачем');
     });
 });
+
+describe('Правка на всё упражнение', () => {
+
+    /** Тренировка с тремя подходами жима и одним подходом другого упражнения. */
+    async function тренировка() {
+        await reset();
+
+        const жим = await dbService.createExercise({ name: 'Жим', kind: 'weight' });
+        const тяга = await dbService.createExercise({ name: 'Тяга', kind: 'weight' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        for (let i = 1; i <= 3; i++) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: жим.id, order: i, setNumber: i, reps: 10, weight: 60 });
+        }
+        await dbService.addSet({ workoutId: w.id, exerciseId: тяга.id, order: 4, setNumber: 1, reps: 12, weight: 40 });
+
+        await dbService.finishWorkout(w.id);
+        return { w, жим, тяга };
+    }
+
+    it('правка расходится по остальным подходам того же упражнения', async () => {
+        const { w, жим } = await тренировка();
+        const [первый] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === жим.id);
+
+        equal(await dbService.applySetToRest(первый.id, { weight: 62.5 }), 2, 'остальных два');
+
+        const веса = (await dbService.listSets(w.id))
+            .filter((s) => s.exerciseId === жим.id)
+            .map((s) => s.weight);
+
+        equal(веса, [60, 62.5, 62.5], 'сам подход правится отдельно — здесь только остальные');
+    });
+
+    it('чужое упражнение не задевается', async () => {
+        const { w, жим, тяга } = await тренировка();
+        const [первый] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === жим.id);
+
+        await dbService.applySetToRest(первый.id, { weight: 62.5 });
+
+        const [подход] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === тяга.id);
+        equal(подход.weight, 40);
+    });
+
+    it('другая тренировка не задевается', async () => {
+        const { w, жим } = await тренировка();
+
+        const вторая = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+        await dbService.addSet({ workoutId: вторая.id, exerciseId: жим.id, order: 1, setNumber: 1, reps: 10, weight: 60 });
+        await dbService.finishWorkout(вторая.id);
+
+        const [первый] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === жим.id);
+        await dbService.applySetToRest(первый.id, { weight: 62.5 });
+
+        const [чужой] = await dbService.listSets(вторая.id);
+        equal(чужой.weight, 60, 'правится текущая тренировка, а не история упражнения');
+    });
+
+    it('сводка тренировки пересчитывается', async () => {
+        const { w, жим } = await тренировка();
+        const [первый] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === жим.id);
+
+        await dbService.updateSet(первый.id, { reps: 8 });
+        await dbService.applySetToRest(первый.id, { reps: 8 });
+
+        const workout = await dbService.getWorkout(w.id);
+        equal(workout.summary.reps, 8 * 3 + 12);
+    });
+
+    it('единственному подходу расходиться некуда', async () => {
+        const { w, тяга } = await тренировка();
+        const [один] = (await dbService.listSets(w.id)).filter((s) => s.exerciseId === тяга.id);
+
+        equal(await dbService.applySetToRest(один.id, { weight: 45 }), 0);
+    });
+});

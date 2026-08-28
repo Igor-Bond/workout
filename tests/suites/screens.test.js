@@ -460,3 +460,51 @@ describe('Экран: календарь и шаблоны', () => {
         assert(has(view, '3 подхода'));
     });
 });
+
+describe('Экран: правка подхода', () => {
+
+    /*
+     * Поля выбирались по тому, что в подходе уже записано, — и подход
+     * силового упражнения без веса состоял из одних повторений: добавить
+     * вес было нечем. На это и пожаловались.
+     */
+    it('поле есть, даже если величину в подходе забыли', async () => {
+        const ex = await seed({ name: 'Жим лёжа', kind: 'weight' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        // Вес не указан вовсе
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10 });
+        await dbService.finishWorkout(w.id);
+
+        const [подход] = await dbService.listSets(w.id);
+        await dbService.updateSet(подход.id, { weight: 60 });
+
+        equal((await dbService.listSets(w.id))[0].weight, 60, 'вес обязан добавляться к записанному подходу');
+    });
+
+    it('кардио правится и дистанцией, и временем', async () => {
+        const ex = await seed({ name: 'Бег', kind: 'distance' });
+        const w = await dbService.createWorkout({ type: 'Кардио', plan: [] });
+
+        // Записано только время — дистанцию забыли
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, duration: 1500 });
+        await dbService.finishWorkout(w.id);
+
+        const [подход] = await dbService.listSets(w.id);
+        await dbService.updateSet(подход.id, { distance: 5000 });
+
+        const [после] = await dbService.listSets(w.id);
+        equal(после.distance, 5000);
+        equal(после.duration, 1500, 'нетронутое остаётся как было');
+    });
+
+    it('правка и удаление подхода стоят рядом, но не вплотную', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        const view = await screen(summary, [(await dbService.listWorkoutSummaries())[0].workout.id]);
+
+        assert(hasAction(view, 'summary-edit-set'), 'править подход можно');
+        assert(hasAction(view, 'summary-drop-set'));
+    });
+});

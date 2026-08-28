@@ -314,7 +314,7 @@ export const home = {
                 templates,
                 rhythm.suggestType(workouts),
                 names,
-                rhythm.dueExercises(entries, Date.now(), { limit: 4 })
+                rhythm.dueExercises(entries)
             )}
 
             ${entries.length ? weekBlock(entries) : ''}
