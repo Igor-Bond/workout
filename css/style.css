@@ -709,6 +709,7 @@ tr.log-note td {
 }
 
 .plan-row-last { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.plan-row-last.is-guess { color: var(--accent-dim); }
 
 /* ================== ИТОГИ ================== */
 

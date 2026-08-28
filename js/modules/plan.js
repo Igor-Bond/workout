@@ -19,6 +19,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
 import { rhythm } from '../core/rhythm.js';
+import { estimate } from '../core/estimate.js';
 import { app } from '../app.js';
 
 const TYPES = ['Силовая', 'Зарядка', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
@@ -40,6 +41,25 @@ let draft = null;
 let loadedFor = null;
 
 /**
+ * Прикидка стартового веса для упражнения без истории (§10.1).
+ *
+ * Только при нулевой истории: там, где есть факт, догадка не нужна. И
+ * только когда вес тела отмечен — иначе прикидывать не от чего.
+ */
+async function guessWeight(exercise, last) {
+    if (!exercise || last) return null;
+
+    const body = await dbService.lastBodyWeight();
+
+    return estimate.startWeight({
+        nameKey: exercise.nameKey,
+        group: exercise.group,
+        kind: exercise.kind,
+        bodyWeight: body?.weight
+    });
+}
+
+/**
  * Дополнение упражнения тем, что лежит в базе: название, вид и прошлый
  * результат. В шаблоне хранится только идентификатор — остальное могло
  * измениться с прошлого раза.
@@ -50,10 +70,14 @@ async function decorate(items) {
         const history = await dbService.listSetsByExercise(item.exerciseId);
         const last = records.lastSession(history);
 
+        const guess = item.weight ? null : await guessWeight(exercise, last);
+
         return {
             ...item,
             name: exercise?.name || 'Упражнение',
             kind: exercise?.kind || 'weight',
+            weight: item.weight || guess || 0,
+            estimated: !!guess,
             lastLine: last ? records.describeSession(last.sets, exercise?.kind) : null
         };
     }));
@@ -160,7 +184,11 @@ function itemRow(item, index, total) {
             <div class="plan-row-head">
                 <div>
                     <div class="plan-row-name">${item.name}</div>
-                    ${item.lastLine ? ui.html`<div class="plan-row-last">Последний раз: ${item.lastLine}</div>` : ''}
+                    ${item.lastLine
+                        ? ui.html`<div class="plan-row-last">Последний раз: ${item.lastLine}</div>`
+                        : item.estimated
+                            ? ui.html`<div class="plan-row-last is-guess">Вес прикинут от веса тела — поправь под себя</div>`
+                            : ''}
                 </div>
                 <div class="plan-row-tools">
                     <button class="icon-btn" data-action="plan-up" data-index="${index}"
@@ -362,7 +390,8 @@ actions.on('plan-add', async () => {
         kind: exercise.kind,
         plannedSets: last?.sets.length || defaultSets,
         targetReps: previous?.reps ?? null,
-        weight: previous?.weight || 0,
+        weight: previous?.weight || (await guessWeight(exercise, last)) || 0,
+        estimated: !last && !!(await guessWeight(exercise, last)),
         lastLine: last ? records.describeSession(last.sets, exercise.kind) : null
     });
 
