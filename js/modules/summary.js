@@ -16,7 +16,7 @@ import { dates } from '../core/dates.js';
 import { app } from '../app.js';
 
 /** Строка подхода: показываем только те величины, которые есть. */
-function setRow(set, recordId) {
+function setRow(set, recordId, kind) {
     const value = set.reps !== undefined ? String(set.reps)
         : set.duration !== undefined ? format.seconds(set.duration)
         : '—';
@@ -31,6 +31,8 @@ function setRow(set, recordId) {
             <td>${value}</td>
             <td>${extra}</td>
             <td class="cell-tools">
+                <button class="icon-btn" data-action="summary-edit-set" data-id="${set.id}"
+                        data-kind="${kind || 'weight'}" title="Изменить подход">✎</button>
                 <button class="icon-btn is-danger" data-action="summary-drop-set" data-id="${set.id}"
                         title="Удалить подход">×</button>
             </td>
@@ -62,7 +64,7 @@ function block(b, note) {
             <div class="table-scroll">
                 <table class="log">
                     <thead><tr><th>Подход</th><th>Значение</th><th>Вес / дистанция</th><th></th></tr></thead>
-                    <tbody>${b.sets.map((s) => setRow(s, b.record?.id))}</tbody>
+                    <tbody>${b.sets.map((s) => setRow(s, b.record?.id, b.kind))}</tbody>
                 </table>
             </div>
 
@@ -175,6 +177,44 @@ actions.on('summary-drop-set', async (el) => {
     if (!ok) return;
 
     await dbService.deleteSet(el.dataset.id);
+    app.render();
+});
+
+/**
+ * Правка записанного подхода (§21.1).
+ *
+ * Поля — по тому, что в подходе записано, а не по нынешнему виду
+ * упражнения: вид можно поменять в справочнике, а записанное от этого не
+ * меняется, и правка силового подхода полем «длительность» стёрла бы вес.
+ */
+actions.on('summary-edit-set', async (el) => {
+    const set = await dbService.getSet(el.dataset.id);
+    if (!set) return;
+
+    const measure = records.measure([set], el.dataset.kind);
+
+    const число = (name, label, value) => ({
+        name, label, type: 'number', value: value ?? ''
+    });
+
+    const fields = measure === 'time'
+        ? [число('duration', 'Длительность, секунд', set.duration)]
+        : measure === 'distance'
+            ? [число('distance', 'Дистанция, м', set.distance), число('duration', 'Время, секунд', set.duration)]
+            : measure === 'reps'
+                ? [число('reps', 'Повторения', set.reps)]
+                : [число('reps', 'Повторения', set.reps), число('weight', 'Вес, кг', set.weight)];
+
+    const values = await dialog.form({
+        title: `Подход ${set.setNumber}`,
+        text: 'Итоги, рекорды и статистика пересчитаются.',
+        fields: [...fields, { name: 'note', label: 'Заметка к подходу', value: set.note || '' }],
+        confirmText: 'Сохранить'
+    });
+
+    if (!values) return;
+
+    await dbService.updateSet(set.id, values);
     app.render();
 });
 

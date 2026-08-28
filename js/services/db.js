@@ -567,6 +567,50 @@ export const dbService = {
         return limit > 0 ? live.slice(0, limit) : live;
     },
 
+    async getSet(id) {
+        const found = await db.sets.get(id);
+        return alive(found) ? found : null;
+    },
+
+    /**
+     * Правка записанного подхода (§21.1).
+     *
+     * Ошибиться при записи легко — «60» вместо «6», — а до этого исправить
+     * было нечем: оставалось удалить подход и потерять его место в
+     * тренировке. Величины, которых у подхода нет, из него убираются, а не
+     * записываются нулём: ноль повторений и отсутствие повторений — разные
+     * вещи, и рекорды считают их по-разному.
+     */
+    async updateSet(id, changes = {}) {
+        const set = await db.sets.get(id);
+        if (!alive(set)) throw new Error('Подход не найден');
+
+        const next = { ...set, updatedAt: Date.now() };
+
+        for (const field of ['reps', 'weight', 'duration', 'distance']) {
+            if (!(field in changes)) continue;
+
+            const value = Number(changes[field]);
+            const empty = changes[field] === null || changes[field] === '' || !Number.isFinite(value);
+
+            if (empty) delete next[field];
+            else next[field] = value;
+        }
+
+        if ('note' in changes) {
+            if (changes.note) next.note = String(changes.note);
+            else delete next.note;
+        }
+
+        await db.sets.put(next);
+
+        // Тоннаж и число повторений лежат в сводке (§34.1): без пересчёта
+        // история показывала бы прежние числа рядом с исправленными
+        await dbService.recomputeSummary(set.workoutId);
+
+        return next;
+    },
+
     async deleteSet(id) {
         const now = Date.now();
         const set = await db.sets.get(id);

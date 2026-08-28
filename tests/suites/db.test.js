@@ -461,6 +461,72 @@ describe('Тренировки и подходы', () => {
      * замечал, что тренировка уже идёт.
      */
     /*
+     * Правка проведённой тренировки (§21.1). До неё исправить «60» вместо
+     * «6» было нечем: оставалось удалить подход и потерять его место.
+     */
+    it('записанный подход правится, и сводка пересчитывается', async () => {
+        await reset();
+        const ex = await dbService.createExercise({ name: 'Жим', kind: 'weight' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 60, weight: 10 });
+        await dbService.finishWorkout(w.id);
+
+        await dbService.updateSet((await dbService.listSets(w.id))[0].id, { reps: 6, weight: 100 });
+
+        const [подход] = await dbService.listSets(w.id);
+        equal(подход.reps, 6);
+        equal(подход.weight, 100);
+
+        const [{ workout }] = await dbService.listWorkoutSummaries();
+        equal(workout.summary.reps, 6, 'иначе история покажет прежние числа рядом с исправленными');
+        equal(workout.summary.volume, 600);
+    });
+
+    it('пустое значение убирает величину, а не записывает ноль', async () => {
+        await reset();
+        const ex = await dbService.createExercise({ name: 'Планка', kind: 'time' });
+        const w = await dbService.createWorkout({ type: 'Дома', plan: [] });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, duration: 60, weight: 5 });
+        const [до] = await dbService.listSets(w.id);
+
+        await dbService.updateSet(до.id, { weight: '' });
+        const [после] = await dbService.listSets(w.id);
+
+        equal('weight' in после, false, 'ноль килограммов и отсутствие веса — разные вещи для рекордов');
+        equal(после.duration, 60, 'нетронутое остаётся как было');
+    });
+
+    it('правка доезжает до других устройств', async () => {
+        await reset();
+        const ex = await dbService.createExercise({ name: 'Жим', kind: 'weight' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10, weight: 60 });
+
+        const [до] = await dbService.listSets(w.id);
+        const было = до.updatedAt;
+
+        await new Promise((r) => setTimeout(r, 2));
+        await dbService.updateSet(до.id, { weight: 65 });
+
+        const [после] = await dbService.listSets(w.id);
+        assert(после.updatedAt > было, 'без новой метки обмен правку не заметит');
+    });
+
+    it('удалённый подход не правится', async () => {
+        await reset();
+        const ex = await dbService.createExercise({ name: 'Жим', kind: 'weight' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10, weight: 60 });
+
+        const [подход] = await dbService.listSets(w.id);
+        await dbService.deleteSet(подход.id);
+
+        await throws(() => dbService.updateSet(подход.id, { reps: 8 }));
+    });
+
+    /*
      * Загрузка копии с заменой обязана стирать всё, что в копию входит.
      * Вес тела уезжает наравне с тренировками, но из очистки выпадал — и
      * старые взвешивания смешивались с восстановленными.
