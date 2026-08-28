@@ -15,6 +15,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine, STATE } from '../core/engine.js';
 import { records } from '../core/records.js';
+import { estimate } from '../core/estimate.js';
 import { restTimer } from '../core/timer.js';
 import { wakeLock } from '../core/wakelock.js';
 import { fullscreen } from '../core/fullscreen.js';
@@ -44,9 +45,10 @@ async function load() {
     const workout = await dbService.getActiveWorkout();
     if (!workout) return null;
 
-    const [sets, list] = await Promise.all([
+    const [sets, list, body] = await Promise.all([
         dbService.listSets(workout.id),
-        dbService.listExercises({ includeArchived: true })
+        dbService.listExercises({ includeArchived: true }),
+        dbService.lastBodyWeight()
     ]);
 
     const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
@@ -64,9 +66,39 @@ async function load() {
 
     return {
         workout, sets, exercises, rows, kind,
+        bodyWeight: body?.weight || 0,
         last: records.lastSession(history, workout.id),
         best: records.best(history, kind, workout.id)
     };
+}
+
+/**
+ * Примерная нагрузка у упражнения со своим весом (§15.2).
+ *
+ * У снаряда нагрузка названа числом прямо в поле ввода, и повторять её
+ * строкой незачем. А по записи «25 отжиманий» о нагрузке не сказать
+ * ничего: это две трети собственного веса, и сколько это в килограммах —
+ * единственный способ сравнить их с жимом.
+ */
+function loadLine({ exercises, kind, bodyWeight }, prefill) {
+    const exercise = exercises[currentId] || {};
+
+    const value = estimate.bodyLoad({
+        nameKey: exercise.nameKey,
+        kind,
+        bodyWeight,
+        weight: Number(prefill?.weight) || 0
+    });
+
+    if (!value) return '';
+
+    return ui.html`
+        <div class="rec-line">
+            <span class="rec-label">Примерная нагрузка</span>
+            <span class="rec-value">≈ ${format.weight(value)} кг</span>
+            <span class="rec-when">${kind === 'time' ? 'на удержании' : 'за повторение'}</span>
+        </div>
+    `;
 }
 
 /**
@@ -212,7 +244,10 @@ function currentCard({ workout, sets, exercises, rows }) {
                     : `Подход ${row.done + 1}`}
             </div>
 
-            <div class="rec-block">${recordsBlock(view)}</div>
+            <div class="rec-block">
+                ${recordsBlock(view)}
+                ${loadLine(view, prefill)}
+            </div>
 
             ${fields(exercise.kind || 'weight', prefill)}
 

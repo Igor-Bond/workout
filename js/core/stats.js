@@ -358,12 +358,17 @@ export const stats = {
      * такие подходы в объёме считаются нулевыми — то есть как будто их не
      * было. Доп. отягощение прибавляется к весу тела.
      */
-    load(set, kind, bodyWeight) {
+    load(set, kind, bodyWeight, share = 1) {
         const reps = set.reps || 0;
 
         if (kind === 'reps') {
             if (!bodyWeight) return 0;
-            return reps * (bodyWeight + (set.weight || 0));
+
+            // Доля собственного веса, приходящаяся на упражнение: отжимания
+            // поднимают не всё тело, а около двух третей. Без неё карточка
+            // упражнения показывала бы тоннаж в полтора раза больше того,
+            // что говорит экран выполнения о том же самом подходе
+            return reps * (share * bodyWeight + (set.weight || 0));
         }
 
         return set.weight ? reps * set.weight : 0;

@@ -8,6 +8,7 @@
 import { ui } from '../core/ui.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
+import { estimate } from '../core/estimate.js';
 import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
@@ -123,8 +124,12 @@ export const exercise = {
         const bodyAt = calc.bodyWeightLookup(weights);
         const currentBody = weights[weights.length - 1]?.weight || null;
 
+        // Доля своего веса у этого упражнения — та же, что показывает экран
+        // выполнения: два экрана об одном подходе обязаны говорить одно
+        const bodyShare = estimate.BODY_SHARE[record.nameKey] ?? estimate.SHARE_BY_KIND.reps;
+
         const bodyLoad = record.kind === 'reps'
-            ? sets.reduce((sum, s) => sum + calc.load(s, 'reps', bodyAt(s.performedAt)), 0)
+            ? sets.reduce((sum, s) => sum + calc.load(s, 'reps', bodyAt(s.performedAt), bodyShare), 0)
             : 0;
 
         const relative = record.kind === 'weight' && best?.weight && currentBody
