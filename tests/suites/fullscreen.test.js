@@ -134,3 +134,73 @@ describe('Полноэкранный режим', () => {
         }
     });
 });
+
+describe('Полный экран при запуске', () => {
+
+    /*
+     * Само по себе приложение в полный экран не пустят: браузер требует
+     * действия пользователя, а при запуске его ещё не было. Первое касание —
+     * самый ранний момент, когда это законно.
+     */
+    it('включается на первом касании', async () => {
+        const s = stub();
+        const было = config.get('fullscreen');
+
+        try {
+            config.set('fullscreen', true);
+            fullscreen.watch();
+
+            document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+            await new Promise((r) => setTimeout(r, 30));
+
+            equal(s.calls.enter, 1);
+        } finally {
+            config.set('fullscreen', было);
+            await fullscreen.exit();
+            s.restore();
+        }
+    });
+
+    /*
+     * Один раз за загрузку: если человек вышел из полного экрана жестом,
+     * возвращать его при следующем нажатии значит спорить с ним.
+     */
+    it('на следующих касаниях не повторяется', async () => {
+        const s = stub();
+        const было = config.get('fullscreen');
+
+        try {
+            config.set('fullscreen', true);
+            fullscreen.watch();
+
+            for (let i = 0; i < 3; i++) {
+                document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+                await new Promise((r) => setTimeout(r, 20));
+            }
+
+            equal(s.calls.enter, 1);
+        } finally {
+            config.set('fullscreen', было);
+            await fullscreen.exit();
+            s.restore();
+        }
+    });
+
+    it('с выключенной настройкой касание ничего не включает', async () => {
+        const s = stub();
+        const было = config.get('fullscreen');
+
+        try {
+            config.set('fullscreen', false);
+            fullscreen.watch();
+
+            document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+            await new Promise((r) => setTimeout(r, 30));
+
+            equal(s.calls.enter, 0);
+        } finally {
+            config.set('fullscreen', было);
+            s.restore();
+        }
+    });
+});

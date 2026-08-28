@@ -13,6 +13,7 @@ import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
 import { updater } from './core/updater.js';
 import { wakeLock } from './core/wakelock.js';
+import { fullscreen } from './core/fullscreen.js';
 import { ui } from './core/ui.js';
 import { dialog } from './core/dialog.js';
 import { dbService } from './services/db.js';
@@ -128,6 +129,10 @@ async function boot() {
     // Система снимает удержание экрана при сворачивании — подписка
     // возвращает его, когда вкладку показывают снова
     wakeLock.init();
+
+    // Полный экран нельзя включить при запуске: браузер требует действия
+    // пользователя. Первое касание — самый ранний момент, когда можно (§31)
+    fullscreen.watch();
 
     actions.init();
 
