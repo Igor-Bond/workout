@@ -10,6 +10,7 @@ import { ui } from '../core/ui.js';
 import { config } from '../config.js';
 import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
+import { fullscreen } from '../core/fullscreen.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -121,6 +122,12 @@ export const profile = {
                 </div>
 
                 ${ui.raw(toggle('keepAwake', 'Не гасить экран', 'Во время тренировки. На iPhone работает не всегда.'))}
+
+                ${fullscreen.supported ? ui.raw(toggle(
+                    'fullscreen',
+                    'Полноэкранный режим',
+                    'На время тренировки. Убирает системные панели — на Android там светлая полоса снизу.'
+                )) : ''}
             </div>
 
             <div class="card">
@@ -206,6 +213,14 @@ actions.onChange('setting', (el) => {
     if (key === 'restSeconds') {
         const label = document.getElementById('rest-value');
         if (label) label.textContent = format.seconds(value);
+    }
+
+    // Полный экран применяется сразу: иначе проверить, помогло ли, можно
+    // только начав тренировку, а нажатие на переключатель — как раз то
+    // действие пользователя, без которого браузер в полный экран не пустит
+    if (key === 'fullscreen') {
+        if (value) fullscreen.enter();
+        else fullscreen.exit();
     }
 });
 

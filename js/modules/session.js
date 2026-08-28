@@ -17,6 +17,7 @@ import { engine, STATE } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { restTimer } from '../core/timer.js';
 import { wakeLock } from '../core/wakelock.js';
+import { fullscreen } from '../core/fullscreen.js';
 import { config } from '../config.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
@@ -378,6 +379,11 @@ export const session = {
         // Между подходами проходит минута-полторы, и экран успевает
         // погаснуть ровно к моменту записи результата (§28)
         wakeLock.enable();
+
+        // Системные панели мешают именно здесь, и вход сюда идёт от
+        // нажатия — а без действия пользователя браузер в полный экран не
+        // пустит (§31)
+        fullscreen.enterIfWanted();
     },
 
     unmount() {
@@ -387,6 +393,7 @@ export const session = {
 
         keyboard.detach();
         wakeLock.disable();
+        fullscreen.exit();
     }
 };
 
