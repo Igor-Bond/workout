@@ -140,7 +140,7 @@ function exerciseLine(entry, names) {
  * завершает перебор. На самом повторе крупно — упражнения: по ним узнают
  * тренировку, а тип и дата это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names) {
+function startBlock(last, templates, suggestion, names, due) {
 
     // Подсказка чередования полезна, только если предлагает не то же самое,
     // что кнопка повтора: иначе она повторяет её же словами
@@ -154,6 +154,15 @@ function startBlock(last, templates, suggestion, names) {
         <button class="chip ${suggests(t) ? 'is-active' : ''}"
                 data-action="home-template" data-id="${t.id}">${t.name}</button>
     `);
+
+    /*
+     * Чему пора по периодичности каждого упражнения (§26.2.3).
+     *
+     * Точнее подсказки по типу тренировки: тип у всех может быть один —
+     * «Силовая», — и цикла в одинаковых значениях нет. Упражнения же
+     * различаются всегда, и у каждого свой промежуток.
+     */
+    const dueNames = due.map((d) => names.get(d.exerciseId)).filter(Boolean);
 
     return ui.html`
         <div class="section">
@@ -171,7 +180,13 @@ function startBlock(last, templates, suggestion, names) {
                 </button>
             ` : ''}
 
-            ${differs ? ui.html`
+            ${dueNames.length ? ui.html`
+                <button class="due-card" data-action="nav-plan-due">
+                    <span class="rep-label">Пора по периодичности</span>
+                    <span class="rep-names">${dueNames.join(' · ')}</span>
+                    <span class="rep-meta">собрать тренировку из них</span>
+                </button>
+            ` : differs ? ui.html`
                 <p class="hint">
                     ${suggestion.reason === 'cycle'
                         ? `По чередованию дальше — «${suggestion.type}»`
@@ -294,7 +309,13 @@ export const home = {
 
             ${rhythmStrip(workouts) || ''}
 
-            ${active || startBlock(entries[0], templates, rhythm.suggestType(workouts), names)}
+            ${active || startBlock(
+                entries[0],
+                templates,
+                rhythm.suggestType(workouts),
+                names,
+                rhythm.dueExercises(entries, Date.now(), { limit: 4 })
+            )}
 
             ${entries.length ? weekBlock(entries) : ''}
 
@@ -307,6 +328,7 @@ export const home = {
 
 actions.on('nav-summary', (el) => app.go('summary', el.dataset.id));
 actions.on('nav-plan-repeat', () => app.go('plan', 'repeat'));
+actions.on('nav-plan-due', () => app.go('plan', 'due'));
 actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
 
 actions.on('home-finish', async (el) => {

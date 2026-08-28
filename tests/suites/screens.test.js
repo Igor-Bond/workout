@@ -79,6 +79,32 @@ describe('Экран: главная', () => {
         assert(has(view, '2 подхода'), 'итоги прошлой видны на самой карточке');
     });
 
+    /*
+     * Подсказка по периодичности упражнений (§26.2.3). Она точнее подсказки
+     * по типу тренировки: тип у всех может быть один — «Силовая», — и цикла
+     * в одинаковых значениях нет.
+     */
+    it('предлагает упражнения, которым пора', async () => {
+        const жим = await seed({ name: 'Жим лёжа' });
+        const пресс = await dbService.createExercise({ name: 'Пресс', kind: 'reps' });
+
+        // Жим раз в три дня, а не было девять — просрочен втрое
+        for (const daysAgo of [9, 12, 15]) {
+            await workout(жим, [[10, 60]], { at: Date.now() - daysAgo * DAY });
+        }
+
+        // Пресс раз в два дня и делали вчера — он в графике
+        for (const daysAgo of [1, 3, 5]) {
+            await workout(пресс, [[20, 0]], { at: Date.now() - daysAgo * DAY });
+        }
+
+        const view = await screen(home);
+
+        assert(has(view, 'Пора по периодичности'));
+        assert(has(view, 'Жим лёжа'));
+        assert(hasAction(view, 'nav-plan-due'), 'из просроченного собирается тренировка');
+    });
+
     it('последние семь дней показывают проведённое', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [8, 60]]);

@@ -156,6 +156,76 @@ export const rhythm = {
     },
 
     /**
+     * Периодичность каждого упражнения (§26.2.3).
+     *
+     * Подсказка по типу тренировки часто молчит: у всех тренировок тип
+     * может быть один — «Силовая», — а различаются они названиями шаблонов.
+     * Цикла в одинаковых значениях нет, и предлагать нечего.
+     *
+     * Упражнения же различаются всегда. У каждого свой промежуток: жим раз
+     * в четыре дня, пресс через день. Отсюда и берётся, чему пора.
+     *
+     * Считается по сводке внутри тренировки (§34.1) — списку упражнений,
+     * который лежит в самой записи. Подходы для этого не читаются.
+     */
+    exerciseRhythm(entries = [], now = Date.now()) {
+        const days = new Map();
+
+        for (const entry of entries) {
+            const day = startOfDay(entry.workout.startedAt);
+
+            for (const id of entry.exerciseIds || []) {
+                if (!days.has(id)) days.set(id, new Set());
+                days.get(id).add(day);
+            }
+        }
+
+        const today = startOfDay(now);
+
+        return [...days.entries()].map(([exerciseId, set]) => {
+            const list = [...set].sort((a, b) => a - b).slice(-WINDOW);
+
+            const lastAt = list[list.length - 1];
+            const daysSince = Math.round((today - lastAt) / DAY);
+
+            // Один промежуток — это ещё не периодичность, а совпадение
+            const gaps = rhythm.intervals(list);
+            const enough = gaps.length >= 2;
+
+            const medianInterval = enough
+                ? Math.max(1, Math.round(rhythm.median(gaps)))
+                : null;
+
+            return {
+                exerciseId,
+                sessions: list.length,
+                lastAt,
+                daysSince,
+                medianInterval,
+                enough,
+
+                // Насколько просрочено: 1 — ровно пора, 2 — вдвое дольше
+                // обычного. По этой мере и сравниваются упражнения между
+                // собой, иначе редкое всегда проигрывало бы частому
+                overdue: enough ? daysSince / medianInterval : 0
+            };
+        });
+    },
+
+    /**
+     * Каким упражнениям пора, от самого просроченного.
+     *
+     * Порог — единица: прошло не меньше обычного промежутка. Предлагать
+     * раньше значит звать делать то, что и так в графике.
+     */
+    dueExercises(entries = [], now = Date.now(), { limit = 5 } = {}) {
+        return rhythm.exerciseRhythm(entries, now)
+            .filter((e) => e.enough && e.overdue >= 1)
+            .sort((a, b) => b.overdue - a.overdue)
+            .slice(0, limit);
+    },
+
+    /**
      * Какой тип тренировки логично провести следующим.
      *
      * Сначала ищется повторяющийся цикл: «грудь — спина — ноги» по кругу.

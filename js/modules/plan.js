@@ -9,6 +9,7 @@
  *   #/plan                     новая тренировка с нуля
  *   #/plan/from/<id>           новая тренировка по шаблону
  *   #/plan/repeat              повтор прошлой тренировки (§9)
+ *   #/plan/due                 из того, чему пора по периодичности (§26.2.3)
  *   #/plan/template/<id>       правка шаблона
  */
 
@@ -17,6 +18,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
+import { rhythm } from '../core/rhythm.js';
 import { app } from '../app.js';
 
 const TYPES = ['Силовая', 'Зарядка', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
@@ -103,6 +105,45 @@ async function build(params) {
                 name: '',
                 type: TYPES.includes(last.type) ? last.type : 'Своё',
                 customType: TYPES.includes(last.type) ? '' : last.type,
+                items: await decorate(items)
+            };
+        }
+    }
+
+    /*
+     * Тренировка из того, чему пора (§26.2.3).
+     *
+     * Состав берётся по периодичности каждого упражнения, а веса и
+     * повторения — из последнего раза, как при повторе: предлагать
+     * упражнение без ориентира значит заставлять вспоминать его самому.
+     */
+    if (what === 'due') {
+        const entries = await dbService.listWorkoutSummaries();
+        const due = rhythm.dueExercises(entries);
+
+        const items = [];
+
+        for (const { exerciseId } of due) {
+            const own = await dbService.listSetsByExercise(exerciseId, { limit: 20 });
+            const last = records.lastSession(own);
+
+            if (!last) continue;
+
+            items.push({
+                exerciseId,
+                plannedSets: last.sets.length,
+                targetReps: last.sets[0].reps ?? null,
+                weight: last.sets[0].weight || 0
+            });
+        }
+
+        if (items.length) {
+            return {
+                mode: 'workout',
+                templateId: null,
+                name: '',
+                type: TYPES[0],
+                customType: '',
                 items: await decorate(items)
             };
         }
