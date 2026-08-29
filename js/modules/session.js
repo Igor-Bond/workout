@@ -596,7 +596,7 @@ async function finishWorkout(workout) {
     currentId = null;
     mode = null;
 
-    app.go('summary', workout.id);
+    app.go('summary', workout.id, 'done');
 }
 
 /**

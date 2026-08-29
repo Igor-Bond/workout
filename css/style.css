@@ -1878,3 +1878,29 @@ button.ex-name:active { color: var(--accent); }
 }
 
 .opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/*
+ * «Тренировка записана» на итогах (§19).
+ *
+ * Зелёным и с галочкой, а не обычной подсказкой: это не пояснение, а ответ
+ * на вопрос, который человек задаёт себе, глядя на экран с кнопками правки
+ * и удаления, — сохранилось ли уже.
+ */
+.saved-strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(111, 174, 111, 0.1);
+    border: 1px solid rgba(111, 174, 111, 0.35);
+    border-radius: var(--radius);
+    color: var(--good);
+    font-size: 13px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+
+.saved-mark {
+    flex: none;
+    font-size: 15px;
+    font-weight: 700;
+}

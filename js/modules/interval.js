@@ -531,5 +531,5 @@ actions.on('iv-finish', async () => {
     voice.stop();
     await dbService.finishWorkout(workout.id);
 
-    app.go('summary', workout.id);
+    app.go('summary', workout.id, 'done');
 });

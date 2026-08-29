@@ -361,7 +361,7 @@ actions.on('home-finish', async (el) => {
     if (!ok) return;
 
     await dbService.finishWorkout(el.dataset.id);
-    app.go('summary', el.dataset.id);
+    app.go('summary', el.dataset.id, 'done');
 });
 
 actions.on('home-finish-stale', async (el) => {
@@ -374,7 +374,7 @@ actions.on('home-finish-stale', async (el) => {
     const finishedAt = last?.performedAt || workout.startedAt;
 
     await dbService.finishWorkout(workout.id, finishedAt);
-    app.go('summary', workout.id);
+    app.go('summary', workout.id, 'done');
 });
 
 actions.on('home-drop', async (el) => {

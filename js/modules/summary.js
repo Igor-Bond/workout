@@ -195,6 +195,20 @@ export const summary = {
 
     async render(params) {
         const id = params[0];
+
+        /*
+         * Экран открыт сразу после тренировки, а не из истории.
+         *
+         * Отличать обязательно: только что законченной тренировке нужно
+         * сказать, что она записана, и дать выход, а листающему историю
+         * это ни к чему — он и так знает, что смотрит прошлое.
+         *
+         * Признаком служит адрес, а не время окончания: на итогах сидят
+         * подолгу — правят подходы, дописывают заметки, — и любой порог по
+         * времени рано или поздно соврал бы.
+         */
+        const fresh = params[1] === 'done';
+
         const workout = id ? await dbService.getWorkout(id) : null;
 
         if (!workout) {
@@ -237,6 +251,20 @@ export const summary = {
             ${ui.title('Итоги тренировки',
                 `${workout.type} · ${dates.formatDateTime(workout.startedAt)}`)}
 
+            <!--
+                Тренировка записана ещё до того, как открылся этот экран, —
+                кнопки «Сохранить» здесь нет и быть не может. Но без прямой
+                строки об этом экран читается незаконченным: показывает
+                итоги, предлагает править и ничем не подтверждает, что
+                записанное уцелеет, если просто уйти.
+            -->
+            ${fresh ? ui.html`
+                <div class="saved-strip">
+                    <span class="saved-mark">✓</span>
+                    <span>Тренировка записана. Всё сохранено — можно закрывать.</span>
+                </div>
+            ` : ''}
+
             ${blocks.length
                 ? blocks.map((b) => block(b, notes[b.exerciseId]))
                 : ui.empty('Ни одного подхода не записано.')}
@@ -260,9 +288,18 @@ export const summary = {
                 </button>
             </div>
 
-            <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
+            <!--
+                Ярким — всегда выход с экрана, а не следующее дело.
+                Раньше им была «Новая тренировка», и сразу после занятия она
+                звала ровно туда, куда никто не собирается; закончить же
+                было нечем, отчего экран и казался недоделанным.
+            -->
+            ${fresh
+                ? ui.html`<button class="btn btn-accent btn-lg" data-action="nav" data-screen="home">Готово</button>`
+                : ui.html`<button class="btn btn-accent" data-action="nav" data-screen="history">← В историю</button>`}
+
             <button class="btn btn-ghost" data-action="summary-as-template" data-id="${workout.id}">Сохранить как шаблон</button>
-            <button class="btn btn-ghost" data-action="nav" data-screen="history">В историю</button>
+            ${fresh ? ui.html`<button class="btn btn-ghost" data-action="nav" data-screen="history">В историю</button>` : ''}
             <button class="btn btn-danger" data-action="summary-delete" data-id="${workout.id}">Удалить тренировку</button>
         `;
     }
