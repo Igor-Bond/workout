@@ -278,6 +278,27 @@ describe('Сигналы', () => {
     });
 
     /*
+     * Конец программы поздравляет, а не просто заканчивает.
+     *
+     * Разрешение вниз, в тонику, звучало законченно и невесело: так
+     * заканчивают, а не радуются. Поздравление — два удара с короткой
+     * паузой; на них держится и «ура», и фанфара.
+     */
+    it('конец программы кончается двойным ударом', () => {
+        const яркие = beeper.VOICES.done.filter((p) => p.freq >= 900);
+
+        equal(яркие.length, 2, 'два удара, а не один');
+        equal(яркие[0].freq, яркие[1].freq, 'в одну и ту же ноту');
+
+        const разрыв = (яркие[1].after || 0) - (яркие[0].after || 0);
+        assert(разрыв > 0.1 && разрыв < 0.3,
+            `между ударами ${разрыв.toFixed(2)} с — «та-да» слышно только в коротком промежутке`);
+
+        const верх = Math.max(...beeper.VOICES.done.map((p) => p.freq));
+        assert(яркие[0].freq === верх, 'удары приходятся на вершину, а не в середину разбега');
+    });
+
+    /*
      * Долгая нота, которой сигнал заканчивается, не должна быть высокой:
      * телефонный динамик на длинном тоне около килогерца хрипит. Вес даёт
      * подложенная октава ниже, а не высота.
@@ -469,5 +490,100 @@ describe('Повтор названия в длинной паузе', () => {
         const phases = interval.build({ work: 20, rest: 10, rounds: 1, lead: 30 }, УПР);
 
         equal(interval.remindAt(phases, 0), { exerciseId: 'а', kind: 'lead' });
+    });
+});
+
+/**
+ * Громкость сигналов (§50.1).
+ *
+ * Проверяется не число в таблице голосов, а то, что выходит из звукового
+ * движка: между таблицей и динамиком стоят призвуки, комната, сжатие и
+ * подъём после него, и любое из четырёх способно как задавить сигнал, так
+ * и загнать его в хрип.
+ *
+ * Сигналы рисуются в офлайновый контекст — тот же граф, но без звука и
+ * быстрее реального времени.
+ */
+describe('Громкость сигналов', () => {
+
+    /** Пик и средний уровень одного сигнала. */
+    async function measure(type) {
+        const было = window.AudioContext;
+        const contexts = [];
+
+        class Offline extends OfflineAudioContext {
+            constructor() {
+                super(2, 44100 * 5, 44100);
+                contexts.push(this);
+            }
+        }
+
+        window.AudioContext = Offline;
+
+        try {
+            // Свежий модуль на каждый замер: звуковой контекст он заводит
+            // один раз и держит, а нам нужен подменённый
+            const { beeper: fresh } = await import(`../../js/core/beeper.js?measure=${type}`);
+            fresh.play(type);
+
+            const buffer = await contexts[contexts.length - 1].startRendering();
+
+            let peak = 0;
+            let square = 0;
+            let count = 0;
+
+            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+                const data = buffer.getChannelData(channel);
+
+                for (let i = 0; i < data.length; i++) {
+                    const value = Math.abs(data[i]);
+                    if (value > peak) peak = value;
+                    square += value * value;
+                    count += 1;
+                }
+            }
+
+            return { peak, rms: Math.sqrt(square / count) };
+        } finally {
+            window.AudioContext = было;
+        }
+    }
+
+    /*
+     * Хрип начинается не на единице, а на ней и заканчивается: всё, что
+     * выше, дорожка срезает. Запас нужен и под наложения — в конце
+     * программы несколько нот звучат разом.
+     */
+    it('ни один сигнал не срезается', async () => {
+        for (const type of ['count', 'pulse', 'go', 'rest', 'round', 'done']) {
+            const { peak } = await measure(type);
+            assert(peak <= 0.95, `${type}: пик ${peak.toFixed(2)} — дорожка срежет верхушку`);
+        }
+    });
+
+    /*
+     * Нижняя граница — против обратной беды. Сжатие без подъёма после него
+     * когда-то оставляло программу говорить вполголоса, и заметить это по
+     * таблице голосов было нельзя: числа в ней не менялись.
+     */
+    it('смены слышны: средний уровень не ниже сотой', async () => {
+        for (const type of ['go', 'rest', 'round', 'done']) {
+            const { rms } = await measure(type);
+            assert(rms >= 0.06, `${type}: средний уровень ${rms.toFixed(3)} — в зале такое тонет`);
+        }
+    });
+
+    /*
+     * Удар обязан остаться ударом. Отношение пика к среднему у сильно
+     * сжатого звука падает, и если довести его до двух, «дзинь» станет
+     * ровным «шшш» — ровно той примитивностью, от которой уходили.
+     */
+    it('сжатие не превращает удар в полку', async () => {
+        for (const type of ['go', 'rest', 'round', 'done']) {
+            const { peak, rms } = await measure(type);
+            const crest = peak / rms;
+
+            assert(crest >= 3, `${type}: пик всего вдвое-втрое выше среднего (${crest.toFixed(1)}) — это уже не удар`);
+        }
     });
 });
