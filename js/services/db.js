@@ -15,6 +15,8 @@
 import Dexie from '../../vendor/dexie.min.js';
 import { migrations } from './migrations.js';
 import { howTo } from './howto.js';
+import { i18n } from '../core/i18n.js';
+import { localizeExercise } from '../i18n/exercises.js';
 
 /**
  * Имя базы можно подменить до первого импорта модуля. Нужно ровно одному
@@ -96,19 +98,31 @@ const baseId = (name) => `base-${migrations.normalizeName(name).replace(/\s+/g, 
  */
 const BASE_BEFORE_INTERVALS = 31;
 
+/*
+ * Новая база наполняется на языке первого запуска (§53).
+ *
+ * Это главный путь для того, кто открывает приложение впервые: справочник
+ * кладётся целиком и сразу. Язык к этому моменту уже определён — main.js
+ * спрашивает его до того, как открыть базу.
+ */
 db.on('populate', (tx) => {
     const now = Date.now();
 
-    tx.table('exercises').bulkAdd(migrations.BASE_EXERCISES.map((e) => ({
-        id: baseId(e.name),
-        name: e.name,
-        nameKey: migrations.normalizeName(e.name),
-        kind: e.kind,
-        group: e.group || '',
-        archived: false,
-        createdAt: now,
-        updatedAt: now
-    })));
+    tx.table('exercises').bulkAdd(migrations.BASE_EXERCISES.map((e) => {
+        const local = localizeExercise(e, i18n.lang, howTo(migrations.normalizeName(e.name)));
+
+        return {
+            id: baseId(local.name),
+            name: local.name,
+            nameKey: migrations.normalizeName(local.name),
+            kind: e.kind,
+            group: local.group,
+            howTo: local.howTo || undefined,
+            archived: false,
+            createdAt: now,
+            updatedAt: now
+        };
+    }));
 
     // Новой базе список положен целиком — доставлять ей нечего
     tx.table('settings').put({ key: 'baseInstalled', value: migrations.BASE_EXERCISES.length });
@@ -604,24 +618,41 @@ export const dbService = {
         const added = [];
 
         for (const item of all.slice(delivered)) {
-            const id = baseId(item.name);
-            const nameKey = migrations.normalizeName(item.name);
+            /*
+             * Название ставится на языке первого запуска (§53).
+             *
+             * Идентификатор и ключ поиска считаются от него же, а не от
+             * русского оригинала. Иначе человек, у которого в справочнике
+             * «Bench press», завёл бы вторым таким же названием второе
+             * упражнение: ключ у записанного был бы «жим лежа», и совпадения
+             * приложение не увидело бы.
+             *
+             * Цена решения: тот же справочник, поставленный на двух языках
+             * под одной учётной записью, даст два набора записей. Это
+             * редкость и меньшее из зол — одинаковые названия сведёт
+             * dedupeExercises, а разные и должны остаться разными.
+             */
+            const local = localizeExercise(item, i18n.lang, howTo(migrations.normalizeName(item.name)));
+
+            const id = baseId(local.name);
+            const nameKey = migrations.normalizeName(local.name);
 
             if (await db.exercises.get(id)) continue;
             if (await db.exercises.where('nameKey').equals(nameKey).count()) continue;
 
             await db.exercises.add({
                 id,
-                name: item.name,
+                name: local.name,
                 nameKey,
                 kind: item.kind,
-                group: item.group || '',
+                group: local.group,
+                howTo: local.howTo || undefined,
                 archived: false,
                 createdAt: now,
                 updatedAt: now
             });
 
-            added.push(item.name);
+            added.push(local.name);
         }
 
         await dbService.setSetting('baseInstalled', all.length);
