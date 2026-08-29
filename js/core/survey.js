@@ -12,6 +12,8 @@
  * ошибкой.
  */
 
+import { t } from './i18n.js';
+
 export const SECTIONS = [
     {
         title: 'О тебе',
@@ -155,17 +157,24 @@ export const survey = {
      */
     asText(entry = {}) {
         const answers = entry.answers || {};
-        const lines = ['Отзыв о приложении «Трекер»', ''];
+
+        // Текст на языке того, кто его отправляет: он копирует его в
+        // сообщение и вправе понимать, что именно отправляет
+        const lines = [t('Отзыв о приложении «Трекер»'), ''];
 
         for (const section of SECTIONS) {
             const filled = section.items.filter((q) => answers[q.id] !== undefined);
             if (filled.length === 0) continue;
 
-            lines.push(`— ${section.title} —`);
+            lines.push(`— ${t(section.title)} —`);
 
             for (const q of filled) {
                 const value = answers[q.id];
-                lines.push(`${q.label}: ${Array.isArray(value) ? value.join(', ') : value}`);
+                const shown = Array.isArray(value)
+                    ? value.map((v) => t(v)).join(', ')
+                    : (q.type === 'one' ? t(value) : value);
+
+                lines.push(`${t(q.label)}: ${shown}`);
             }
 
             lines.push('');
@@ -175,8 +184,8 @@ export const survey = {
         const keys = Object.keys(about);
 
         if (keys.length) {
-            lines.push('— Об устройстве —');
-            for (const key of keys) lines.push(`${key}: ${about[key]}`);
+            lines.push(`— ${t('Об устройстве')} —`);
+            for (const key of keys) lines.push(`${t(key)}: ${about[key]}`);
         }
 
         return lines.join('\n').trim();

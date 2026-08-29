@@ -20,6 +20,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { survey } from '../core/survey.js';
 import { feedback } from '../services/feedback.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 const DONE_KEY = 'surveySent';
@@ -44,40 +45,40 @@ function option(q, value, label, on) {
 function control(q) {
     if (q.type === 'one') {
         return ui.html`<div class="opts">
-            ${q.opts.map((o) => option(q, o, o, values[q.id] === o))}
+            ${q.opts.map((o) => option(q, o, t(o), values[q.id] === o))}
         </div>`;
     }
 
     if (q.type === 'many') {
         const picked = values[q.id] || [];
         return ui.html`<div class="opts">
-            ${q.opts.map((o) => option(q, o, o, picked.includes(o)))}
+            ${q.opts.map((o) => option(q, o, t(o), picked.includes(o)))}
         </div>`;
     }
 
     if (q.type === 'scale') {
         return ui.html`<div class="opts sv-scale">
-            <span class="sv-end">хуже</span>
+            <span class="sv-end">${t('хуже')}</span>
             ${[1, 2, 3, 4, 5].map((n) => option(q, n, String(n), values[q.id] === n))}
-            <span class="sv-end">лучше</span>
+            <span class="sv-end">${t('лучше')}</span>
         </div>`;
     }
 
     if (q.type === 'text') {
         return ui.html`<input type="text" data-change="sv-text" data-q="${q.id}"
-                              value="${values[q.id] || ''}" placeholder="${q.placeholder || ''}"
+                              value="${values[q.id] || ''}" placeholder="${t(q.placeholder || '')}"
                               autocomplete="off">`;
     }
 
     return ui.html`<textarea rows="3" data-change="sv-text" data-q="${q.id}"
-                             placeholder="${q.placeholder || ''}">${values[q.id] || ''}</textarea>`;
+                             placeholder="${t(q.placeholder || '')}">${values[q.id] || ''}</textarea>`;
 }
 
 function question(q, flagged) {
     return ui.html`
         <div class="sv-q ${flagged ? 'is-missing' : ''}" id="sv-${q.id}">
-            <div class="sv-label">${q.label}${q.required ? ui.raw(' <span class="sv-req">*</span>') : ''}</div>
-            ${q.hint ? ui.html`<div class="hint sv-hint">${q.hint}</div>` : ''}
+            <div class="sv-label">${t(q.label)}${q.required ? ui.raw(' <span class="sv-req">*</span>') : ''}</div>
+            ${q.hint ? ui.html`<div class="hint sv-hint">${t(q.hint)}</div>` : ''}
             ${control(q)}
         </div>
     `;
@@ -100,7 +101,7 @@ function aboutBlock() {
     return ui.html`
         <div class="card">
             <button class="link-btn" data-action="sv-about">
-                ${aboutOpen ? '− Скрыть' : '+ Что приложится к ответу'}
+                ${aboutOpen ? t('− Скрыть') : t('+ Что приложится к ответу')}
             </button>
             ${aboutOpen ? ui.html`<div class="sv-about">${rows}</div>` : ''}
         </div>
@@ -112,11 +113,11 @@ function failedBlock() {
 
     return ui.html`
         <div class="card sv-failed">
-            <div class="card-title">Отправить не вышло</div>
-            <p class="hint">${outcome.failed} Ответ не пропал: скопируй текст и отправь его сообщением разработчику.</p>
+            <div class="card-title">${t('Отправить не вышло')}</div>
+            <p class="hint">${outcome.failed} ${t('Ответ не пропал: скопируй текст и отправь его сообщением разработчику.')}</p>
             <textarea class="sv-text" rows="12" readonly>${survey.asText(outcome.entry)}</textarea>
-            <button class="btn btn-accent" data-action="sv-copy">Скопировать</button>
-            <button class="btn btn-ghost" data-action="sv-send">Попробовать отправить ещё раз</button>
+            <button class="btn btn-accent" data-action="sv-copy">${t('Скопировать')}</button>
+            <button class="btn btn-ghost" data-action="sv-send">${t('Попробовать отправить ещё раз')}</button>
         </div>
     `;
 }
@@ -131,12 +132,11 @@ export const surveyScreen = {
 
         if (outcome === 'done') {
             return ui.html`
-                ${ui.raw(ui.title('Спасибо'))}
+                ${ui.raw(ui.title(t('Спасибо')))}
                 <div class="card">
-                    <p>Отзыв записан. Если вспомнится что-то ещё — напиши разработчику
-                       или оставь ещё один: лишним не будет.</p>
-                    <button class="btn btn-ghost" data-action="sv-again">Оставить ещё один</button>
-                    <button class="btn btn-accent" data-action="nav" data-screen="home">К тренировкам</button>
+                    <p>${t('Отзыв записан. Если вспомнится что-то ещё — напиши разработчику или оставь ещё один: лишним не будет.')}</p>
+                    <button class="btn btn-ghost" data-action="sv-again">${t('Оставить ещё один')}</button>
+                    <button class="btn btn-accent" data-action="nav" data-screen="home">${t('К тренировкам')}</button>
                 </div>
             `;
         }
@@ -146,8 +146,8 @@ export const surveyScreen = {
 
         const sections = survey.SECTIONS.map((s) => ui.html`
             <div class="section">
-                <div class="section-title">${s.title}</div>
-                ${s.hint ? ui.html`<p class="hint sv-sec-hint">${s.hint}</p>` : ''}
+                <div class="section-title">${t(s.title)}</div>
+                ${s.hint ? ui.html`<p class="hint sv-sec-hint">${t(s.hint)}</p>` : ''}
                 ${s.items.map((q) => question(q, flagged.includes(q.id)))}
             </div>
         `);
@@ -161,13 +161,12 @@ export const surveyScreen = {
                 воле и о том, что успели заметить, — а нужно здесь именно
                 это.
             -->
-            ${ui.raw(ui.title('Оставить отзыв',
-                'Пять минут. Обязательный вопрос один — остальное отвечай там, где есть что сказать'))}
+            ${ui.raw(ui.title(t('Оставить отзыв'),
+                t('Пять минут. Обязательный вопрос один — остальное отвечай там, где есть что сказать')))}
 
             <div class="card">
                 <p class="hint" style="margin:0">
-                    Что было непонятно, что сломалось и чего не хватает — самое ценное.
-                    Модель телефона и версию приложение знает само, вводить их не надо.
+                    ${t('Что было непонятно, что сломалось и чего не хватает — самое ценное. Модель телефона и версию приложение знает само, вводить их не надо.')}
                 </p>
             </div>
 
@@ -176,12 +175,12 @@ export const surveyScreen = {
             ${aboutBlock()}
 
             <button class="btn btn-accent btn-lg" data-action="sv-send" ${ui.raw(sending ? 'disabled' : '')}>
-                ${sending ? 'Отправляю…' : 'Отправить ответы'}
+                ${sending ? t('Отправляю…') : t('Отправить ответы')}
             </button>
 
             ${failedBlock()}
 
-            <button class="btn btn-ghost" data-action="nav" data-screen="home">← К тренировкам</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="home">${t('← К тренировкам')}</button>
         `;
     }
 };
@@ -250,7 +249,7 @@ actions.on('sv-copy', async (el) => {
         ok = await navigator.clipboard.writeText(box.value).then(() => true, () => false);
     }
 
-    el.textContent = ok ? 'Скопировано' : 'Выдели и скопируй вручную';
+    el.textContent = ok ? t('Скопировано') : t('Выдели и скопируй вручную');
 });
 
 actions.on('sv-send', async () => {
@@ -282,8 +281,8 @@ actions.on('sv-send', async () => {
         outcome = {
             entry,
             failed: !feedback.available
-                ? 'Облако у этой сборки не настроено.'
-                : 'Похоже, нет связи.'
+                ? t('Облако у этой сборки не настроено.')
+                : t('Похоже, нет связи.')
         };
     }
 
