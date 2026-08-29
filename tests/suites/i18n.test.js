@@ -8,6 +8,8 @@
  */
 
 import { describe, it, equal, assert } from '../runner.js';
+import { screen } from '../helpers/dom.js';
+import { profile } from '../../js/modules/profile.js';
 import { i18n, t } from '../../js/core/i18n.js';
 import { format } from '../../js/core/format.js';
 import { dates } from '../../js/core/dates.js';
@@ -35,8 +37,14 @@ describe('Выбор языка', () => {
     /*
      * «Как в телефоне» — значение по умолчанию: приложение, отданное за
      * пределы русскоязычных стран, должно оказываться английским само.
+     *
+     * Пока перевод не полон (i18n.ready), это правило выключено: отдать
+     * человеку половину языка хуже, чем не отдать вовсе. Проверка написана
+     * так, чтобы остаться верной по обе стороны от этого переключателя, —
+     * иначе её пришлось бы переписывать в тот самый момент, когда она
+     * нужнее всего.
      */
-    it('«как в телефоне» смотрит на язык браузера', () => {
+    it('«как в телефоне» смотрит на язык браузера, когда перевод готов', () => {
         const было = config.get('lang');
         const real = Object.getOwnPropertyDescriptor(Navigator.prototype, 'language');
 
@@ -48,15 +56,33 @@ describe('Выбор языка', () => {
             i18n.set('auto');
 
             язык('ru-RU'); equal(i18n.apply(), 'ru');
-            язык('en-GB'); equal(i18n.apply(), 'en');
             язык('uk-UA'); equal(i18n.apply(), 'ru', 'украинский ближе к русскому, чем к английскому');
-            язык('fa-AF'); equal(i18n.apply(), 'en', 'дари пока нет — английский ближе, чем русский');
+
+            язык('en-GB');
+            equal(i18n.apply(), i18n.ready ? 'en' : 'ru');
+
+            язык('fa-AF');
+            equal(i18n.apply(), i18n.ready ? 'en' : 'ru', 'дари пока нет — английский ближе, чем русский');
         } finally {
             delete navigator.language;
             if (real) Object.defineProperty(Navigator.prototype, 'language', real);
 
             config.set('lang', было);
             i18n.apply();
+        }
+    });
+
+    /*
+     * Незаконченный перевод не должен доставаться людям случайно: пока
+     * i18n.ready ложно, выбор языка в профиле не показывается вовсе.
+     */
+    it('недоделанный перевод не предлагается', async () => {
+        const view = await screen(profile);
+
+        if (i18n.ready) {
+            assert(!!view.querySelector('[data-change="lang"]'), 'готовый перевод обязан быть доступен');
+        } else {
+            assert(!view.querySelector('[data-change="lang"]'), 'половина языка хуже, чем его отсутствие');
         }
     });
 
