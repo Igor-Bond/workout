@@ -11,6 +11,7 @@ import { config, MODES } from '../config.js';
 import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
+import { voice } from '../core/voice.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -145,7 +146,7 @@ export const profile = {
             </div>
 
             <div class="card">
-                <div class="card-title">Отдых</div>
+                <div class="card-title">Отдых и сигналы</div>
 
                 ${ui.raw(toggle('restEnabled', 'Таймер отдыха', 'Запускается после записи подхода'))}
 
@@ -155,8 +156,19 @@ export const profile = {
                            value="${rest}" data-change="setting" data-key="restSeconds">
                 </div>
 
-                ${ui.raw(toggle('restSound', 'Звук по окончании'))}
+                ${ui.raw(toggle('restSound', 'Звук по окончании', 'Он же управляет сигналами интервальной программы'))}
                 ${ui.raw(toggle('restVibration', 'Вибрация по окончании'))}
+
+                <!--
+                    Выключатель показывается только там, где есть чем
+                    говорить: обещать голос браузеру без синтеза значит
+                    предложить настройку, которая ничего не делает.
+                -->
+                ${voice.available ? ui.raw(toggle(
+                    'voiceNames',
+                    'Проговаривать упражнения',
+                    'В интервальной программе — название следующего вслух'
+                )) : ''}
             </div>
 
             <div class="card">

@@ -42,6 +42,14 @@ const DEFAULTS = {
     restSound: true,
     restVibration: true,
 
+    /**
+     * Название следующего упражнения вслух в интервальной программе (§50).
+     *
+     * Подчинено общему выключателю звука: молчаливая программа не должна
+     * внезапно заговорить.
+     */
+    voiceNames: true,
+
     /** Не гасить экран во время тренировки. На iOS может не работать. */
     keepAwake: true,
 
@@ -76,7 +84,8 @@ const DEFAULTS = {
  * состоянии — например, объявить синхронизацию включённой там, где вход не
  * выполнялся.
  */
-const PORTABLE = ['mode', 'restEnabled', 'restSeconds', 'restSound', 'restVibration', 'keepAwake'];
+const PORTABLE = ['mode', 'restEnabled', 'restSeconds', 'restSound', 'restVibration',
+                  'voiceNames', 'keepAwake'];
 
 export const config = {
 

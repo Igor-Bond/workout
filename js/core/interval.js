@@ -167,6 +167,35 @@ export const interval = {
         return { done: true, index: phases.length, phase: null, remaining: 0, elapsed: total, total };
     },
 
+    /**
+     * О чём сказать голосом при входе в отрезок (§50).
+     *
+     * Говорится один раз на паузу и только в паузу: во время работы речь
+     * мешала бы, а не помогала. Возвращает { exerciseId, first } или null,
+     * если говорить нечего.
+     *
+     * Молчим, когда следующее упражнение то же самое, что и сейчас.
+     * Классическая табата — восемь кругов одного упражнения, и восемь раз
+     * «дальше бёрпи» это шум, а не подсказка: смысл фразы в том, что
+     * упражнение сменилось.
+     */
+    announceAt(phases = [], index = 0) {
+        const phase = phases[index];
+        if (!phase || phase.kind === 'work') return null;
+
+        const next = interval.nextWork(phases, index);
+        if (!next) return null;
+
+        let prev = null;
+        for (let i = index - 1; i >= 0; i--) {
+            if (phases[i].kind === 'work') { prev = phases[i]; break; }
+        }
+
+        if (prev && prev.exerciseId === next.exerciseId) return null;
+
+        return { exerciseId: next.exerciseId, first: !prev };
+    },
+
     /** Ближайший рабочий отрезок после указанного — для строки «дальше». */
     nextWork(phases = [], after = -1) {
         for (let i = after + 1; i < phases.length; i++) {

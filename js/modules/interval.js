@@ -17,6 +17,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { interval } from '../core/interval.js';
 import { beeper } from '../core/beeper.js';
+import { voice } from '../core/voice.js';
 import { wakeLock } from '../core/wakelock.js';
 import { fullscreen } from '../core/fullscreen.js';
 import { config } from '../config.js';
@@ -30,6 +31,16 @@ let view = null;
 
 /** Отрезок, на котором экран отрисован: сменился — пора перерисовать целиком. */
 let shownIndex = -1;
+
+/**
+ * Отрезок, о котором уже сказано вслух.
+ *
+ * Ключом, а не флагом: отрисовка случается не только на смене отрезка, и без
+ * такой отметки название повторялось бы при каждом возвращении на экран.
+ * Живёт в модуле, а не в тренировке: сказанное вслух ничего не меняет в
+ * записанном и хранить его между запусками незачем.
+ */
+let spokenKey = null;
 
 const PHASE = {
     lead:      { label: 'Приготовься', tone: 'is-lead' },
@@ -193,6 +204,7 @@ export const intervalScreen = {
         fullscreen.enterIfWanted();
 
         resyncSound();
+        resyncVoice();
     },
 
     unmount() {
@@ -212,7 +224,10 @@ export const intervalScreen = {
          * после того, как зазвучал. Именно тот сигнал, ради которого всё и
          * затевалось.
          */
-        if (!location.hash.startsWith('#/interval')) beeper.release();
+        if (!location.hash.startsWith('#/interval')) {
+            beeper.release();
+            voice.stop();
+        }
     },
 
     async render() {
@@ -298,6 +313,30 @@ function resyncSound() {
 }
 
 /**
+ * Название следующего упражнения вслух — один раз на паузу.
+ *
+ * Говорится в начале паузы, а не перед самой работой: за десять секунд
+ * отдыха фраза успевает прозвучать и осесть, а перед стартом ей пришлось бы
+ * тесниться с отсчётом.
+ */
+function resyncVoice() {
+    if (!view || view.run.state !== 'running' || shownIndex < 0) return;
+
+    const key = `${view.workout.id}:${shownIndex}`;
+    if (key === spokenKey) return;
+
+    spokenKey = key;
+
+    const what = interval.announceAt(view.phases, shownIndex);
+    if (!what) return;
+
+    const name = view.exercises[what.exerciseId]?.name;
+    if (!name) return;
+
+    voice.say(what.first ? `Начинаем. ${name}` : `Дальше. ${name}`);
+}
+
+/**
  * Такт отсчёта.
  *
  * Экран целиком перерисовывается только на смене отрезка: перерисовывать его
@@ -344,6 +383,11 @@ async function finishRun() {
 actions.on('iv-start', async () => {
     if (!view) return;
 
+    // Разрешение на речь берётся здесь же, до первого await: Safari
+    // разрешает синтез только начатый с нажатия, и фраза, сказанная позже
+    // по таймеру, оказалась бы беззвучной
+    voice.prime();
+
     const run = { state: 'running', elapsed: view.run.elapsed || 0, startedAt: Date.now() };
 
     await dbService.updateWorkout(view.workout.id, { run });
@@ -362,6 +406,7 @@ actions.on('iv-pause', async () => {
     });
 
     beeper.stop();
+    voice.stop();
     app.render();
 });
 
@@ -411,6 +456,7 @@ actions.on('iv-finish', async () => {
     if (!ok) return;
 
     beeper.release();
+    voice.stop();
     await dbService.finishWorkout(workout.id);
 
     app.go('summary', workout.id);

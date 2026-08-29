@@ -300,3 +300,74 @@ describe('Сигналы', () => {
         equal(cues[cues.length - 1].at, interval.total(phases));
     });
 });
+
+/*
+ * Что сказать голосом (§50).
+ *
+ * Голос называет следующее упражнение в паузе — там, где на экран не
+ * смотрят. Проверяется главным образом молчание: сказать лишнее здесь
+ * хуже, чем не сказать, — программа и без того шумная.
+ */
+describe('Объявление следующего упражнения', () => {
+
+    const ОДНО = [{ exerciseId: 'а' }];
+
+    it('в подготовке объявляется первое упражнение', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, lead: 10 }, УПР);
+
+        equal(phases[0].kind, 'lead');
+        equal(interval.announceAt(phases, 0), { exerciseId: 'а', first: true });
+    });
+
+    it('в отдыхе объявляется то, что дальше', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, lead: 10 }, УПР);
+
+        // 0 — подготовка, 1 — работа «а», 2 — отдых перед «б»
+        equal(phases[2].kind, 'rest');
+        equal(interval.announceAt(phases, 2), { exerciseId: 'б', first: false });
+    });
+
+    /*
+     * Классическая табата — восемь кругов одного упражнения. Восемь раз
+     * «дальше бёрпи» это шум: смысл фразы в том, что упражнение сменилось.
+     */
+    it('одно упражнение на всю программу называется один раз', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 8, lead: 10 }, ОДНО);
+
+        const сказано = phases
+            .map((p, i) => interval.announceAt(phases, i))
+            .filter(Boolean);
+
+        equal(сказано, [{ exerciseId: 'а', first: true }]);
+    });
+
+    it('во время работы молчим', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, lead: 10 }, УПР);
+
+        const работа = phases
+            .map((p, i) => (p.kind === 'work' ? interval.announceAt(phases, i) : null))
+            .filter(Boolean);
+
+        equal(работа, [], 'речь во время подхода мешает, а не помогает');
+    });
+
+    it('после последнего отрезка говорить не о чем', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 1, lead: 0 }, УПР);
+
+        equal(interval.announceAt(phases, phases.length), null, 'за концом программы упражнений нет');
+        equal(interval.announceAt([], 0), null);
+    });
+
+    /*
+     * Отдых между кругами — такая же пауза, и упражнение после неё
+     * меняется: это первое упражнение следующего круга.
+     */
+    it('перед новым кругом объявляется его первое упражнение', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, roundRest: 60, lead: 0 }, УПР);
+
+        const круг = phases.findIndex((p) => p.kind === 'roundRest');
+
+        assert(круг > 0, 'граница круга должна быть');
+        equal(interval.announceAt(phases, круг), { exerciseId: 'а', first: false });
+    });
+});
