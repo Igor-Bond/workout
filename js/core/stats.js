@@ -403,20 +403,24 @@ export const stats = {
     /**
      * Тепловая карта: клетка на день (§26).
      *
-     * Окно — квартал, а не год: год в одну ширину карточки давал клетку в
-     * девять пикселей, где оттенки неразличимы, а сама карта читалась как
-     * серое пятно. Квартал той же шириной — клетка вчетверо крупнее, и рядом
-     * помещаются подписи дней недели.
+     * Клетка задана в пикселях и не сжимается под ширину экрана. Раньше год
+     * втискивался в карточку целиком, клетка выходила в девять пикселей,
+     * оттенки становились неразличимы, и карта читалась как серое пятно.
      *
-     * offset сдвигает окно в прошлое шагами по окну: ноль — последний
-     * квартал, единица — предыдущий. Так вся история остаётся доступной,
-     * просто по частям.
+     * Показывается вся история целиком, а прокручивается вбок: страницы со
+     * стрелками требовали попасть в кнопку и запомнить, где ты был, а лента
+     * листается пальцем и на телефоне, и колесом на компьютере.
      *
      * Возвращает дни по возрастанию с уровнем насыщенности 0–4.
      */
+
+    /** Меньше квартала не показываем: узкая полоска выглядит обрубком. */
     HEAT_WEEKS: 13,
 
-    heatmap(entries = [], now = Date.now(), { offset = 0, weeks = stats.HEAT_WEEKS } = {}) {
+    /** Больше трёх лет — тоже: это тысяча клеток, которые никто не разглядывает. */
+    HEAT_MAX_WEEKS: 156,
+
+    heatmap(entries = [], now = Date.now(), { weeks = null } = {}) {
         const byDay = new Map();
 
         for (const entry of entries) {
@@ -424,9 +428,11 @@ export const stats = {
             byDay.set(day, (byDay.get(day) || 0) + entry.sets);
         }
 
+        const span = weeks || stats.heatWeeks(entries, now);
+
         // Начинаем с понедельника, чтобы столбцы карты были целыми неделями
-        const last = stats.weekStart(now) - Math.max(0, offset) * weeks * 7 * DAY;
-        const start = last - (weeks - 1) * 7 * DAY;
+        const last = stats.weekStart(now);
+        const start = last - (span - 1) * 7 * DAY;
         const end = last + 6 * DAY;
 
         const result = [];
@@ -445,19 +451,20 @@ export const stats = {
     },
 
     /**
-     * Сколько окон карты назад есть смысл листать.
+     * Сколько недель охватить: от первой тренировки до сегодня.
      *
-     * Дальше первой тренировки истории нет, и пустые полгода показывать
-     * незачем — кнопка «назад» там просто гаснет.
+     * Не фиксированный год: у того, кто занимается второй месяц, десять
+     * пустых месяцев ничего не сообщают, а прокрутку удлиняют вдвое.
      */
-    heatWindows(entries = [], now = Date.now(), { weeks = stats.HEAT_WEEKS } = {}) {
-        if (entries.length === 0) return 1;
+    heatWeeks(entries = [], now = Date.now()) {
+        if (entries.length === 0) return stats.HEAT_WEEKS;
 
         const earliest = entries.reduce(
             (min, e) => Math.min(min, e.workout.startedAt), Infinity
         );
 
-        const span = stats.weekStart(now) - stats.weekStart(earliest);
-        return Math.max(1, Math.floor(span / (weeks * 7 * DAY)) + 1);
+        const span = (stats.weekStart(now) - stats.weekStart(earliest)) / (7 * DAY) + 1;
+
+        return Math.min(stats.HEAT_MAX_WEEKS, Math.max(stats.HEAT_WEEKS, Math.round(span)));
     }
 };

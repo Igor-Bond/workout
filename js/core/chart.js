@@ -178,56 +178,55 @@ export const chart = {
         if (days.length === 0) return empty();
 
         /*
-         * Клетка и просвет — в единицах картинки, а не в пикселях экрана:
-         * карта тянется на всю ширину карточки и масштабируется вместе с
-         * ними. Просвет взят третью клетки, а не пятой: при 2 из 9 клетки
-         * слипались в серую массу, и квартал читался как пятно.
+         * Размер клетки задан в пикселях и не подгоняется под ширину экрана:
+         * вся история в одну карточку давала клетку в девять пикселей, где
+         * оттенки неразличимы. Не помещается — прокручивается вбок.
          *
-         * Слева — колонка под дни недели. При годовом окне клетка была в
-         * девять пикселей и подписи туда не помещались; с квартальным они
-         * помещаются, и карта перестаёт быть загадкой без легенды.
+         * Просвет взят четвертью клетки, а не пятой: при 2 из 9 клетки
+         * слипались в серую массу.
          */
-        const cell = 10;
-        const gap = 3;
-        const topOffset = 16;
-        const gutter = 20;
+        const cell = 20;
+        const gap = 5;
+        const topOffset = 18;
 
         const weeks = Math.ceil(days.length / 7);
-        const width = gutter + weeks * (cell + gap);
+        const width = weeks * (cell + gap);
         const height = topOffset + 7 * (cell + gap);
 
         const rects = days.map((d, i) => {
             const week = Math.floor(i / 7);
             const weekday = i % 7;
 
-            return ui.raw(`<rect x="${gutter + week * (cell + gap)}" y="${topOffset + weekday * (cell + gap)}"
-                width="${cell}" height="${cell}" rx="2"
+            return ui.raw(`<rect x="${week * (cell + gap)}" y="${topOffset + weekday * (cell + gap)}"
+                width="${cell}" height="${cell}" rx="3"
                 class="heat heat-${d.level}"><title>${esc(d.title)}</title></rect>`);
         });
 
         const labels = months.map((m) => ui.raw(`
-            <text x="${gutter + m.week * (cell + gap)}" y="10" class="chart-label heat-month">${esc(m.label)}</text>
+            <text x="${m.week * (cell + gap)}" y="11" class="chart-label heat-month">${esc(m.label)}</text>
         `));
 
-        // Через один: семь подписей подряд при такой высоте строки сливаются
-        const weekdays = ['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((label, i) => (label ? ui.raw(`
-            <text x="0" y="${topOffset + i * (cell + gap) + cell - 1}"
-                  class="chart-label heat-weekday">${esc(label)}</text>
-        `) : ''));
-
         /*
-         * Без width и height: размер задаёт разметка, а картинка тянется по
-         * ней. С ними карта оставалась 583 px в карточке шириной 844 и
-         * выглядела сжатой в углу, а треть карточки пустовала.
+         * Дни недели — отдельной колонкой рядом с прокруткой, а не внутри
+         * картинки: внутри они уехали бы вместе с сеткой при первом же
+         * движении пальца, и подписи не стало бы ровно тогда, когда она
+         * нужна. Через один — семь подряд при такой высоте строки сливаются.
          */
+        const weekdays = ['Пн', '', 'Ср', '', 'Пт', '', 'Вс'].map((label) => ui.html`
+            <span>${label}</span>
+        `);
+
         return ui.html`
-            <div class="heatmap-scroll">
-                <svg class="heatmap" viewBox="0 0 ${String(width)} ${String(height)}"
-                     preserveAspectRatio="xMinYMid meet" role="img">
-                    ${labels}
-                    ${weekdays}
-                    ${rects}
-                </svg>
+            <div class="heat-wrap" style="--heat-row: ${String(cell + gap)}px; --heat-top: ${String(topOffset)}px">
+                <div class="heat-days">${weekdays}</div>
+
+                <div class="heatmap-scroll">
+                    <svg class="heatmap" width="${String(width)}" height="${String(height)}"
+                         viewBox="0 0 ${String(width)} ${String(height)}" role="img">
+                        ${labels}
+                        ${rects}
+                    </svg>
+                </div>
             </div>
         `;
     }

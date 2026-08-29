@@ -1129,41 +1129,48 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 
 /* Тепловая карта года: узкая и длинная, поэтому прокручивается вбок */
 /*
- * Карта года тянется на всю ширину карточки, но не сжимается ниже
- * разумного: на телефоне 53 недели в 340 px дали бы клетку в пять
- * пикселей, где ни цвет не различить, ни попасть пальцем. Там она
- * прокручивается вбок, здесь — заполняет отведённое.
+ * Карта дней прокручивается вбок, а не ужимается под экран.
+ *
+ * Раньше год втискивался в ширину карточки целиком: клетка выходила в
+ * девять пикселей, оттенки становились неразличимы, и вся история читалась
+ * как серое пятно. Теперь клетка задана в пикселях, а не помещается —
+ * листается пальцем или колесом.
+ *
+ * Колонка дней недели стоит вне прокрутки: внутри она уезжала бы вместе с
+ * сеткой при первом же движении.
  */
-.heatmap-scroll { overflow-x: auto; padding-bottom: 4px; }
-
-svg.heatmap {
-    display: block;
-    width: 100%;
-    height: auto;
-    min-width: 300px;
+.heat-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
 }
+
+.heat-days {
+    flex: none;
+    padding-top: var(--heat-top);
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+.heat-days span {
+    display: block;
+    height: var(--heat-row);
+    line-height: var(--heat-row);
+}
+
+.heatmap-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 6px;
+
+    /* Прокрутка вбок пальцем не должна тянуть за собой всю страницу */
+    overscroll-behavior-x: contain;
+}
+
+svg.heatmap { display: block; }
 
 /* Названия месяцев крупнее подписей осей: они стоят над сеткой */
-.heat-month { font-size: 9px; }
-
-/* Дни недели — в колонке слева, через один: подряд они сливаются */
-.heat-weekday { font-size: 8px; }
-
-/* Листание по кварталам: стрелки по краям, период между ними */
-.heat-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.heat-period {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-align: center;
-    flex: 1;
-}
+.heat-month { font-size: 10px; }
 
 .heat { fill: var(--panel-2); stroke: var(--line); stroke-width: 0.5; }
 .heat-1 { fill: #3a2418; stroke: none; }

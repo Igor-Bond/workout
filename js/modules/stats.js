@@ -51,21 +51,14 @@ function monthName(at) {
 }
 
 /**
- * Какое окно карты показано: смещение в кварталах назад от нынешнего.
+ * Карта открывается на сегодняшнем дне, а не на начале истории.
  *
- * Живёт в модуле, а не в разметке: экран перерисовывается после каждого
- * действия, и листание иначе сбрасывалось бы на каждом нажатии.
+ * Свежие недели справа — как на любом графике времени, — и без этого
+ * человек каждый раз видел бы позапрошлый год и сам домотывал до «сейчас».
  */
-let heatOffset = 0;
-
-/** Границы показанного окна словами: «12 мая — 9 августа». */
-function heatPeriod(days) {
-    if (days.length === 0) return '';
-
-    const from = days[0].day;
-    const to = days[days.length - 1].day;
-
-    return `${dates.formatDayLabel(from).toLowerCase()} — ${dates.formatDayLabel(to).toLowerCase()}`;
+function scrollHeatToToday() {
+    const box = document.querySelector('.heatmap-scroll');
+    if (box) box.scrollLeft = box.scrollWidth;
 }
 
 /** Подписи месяцев над тепловой картой: столбец — неделя. */
@@ -135,6 +128,10 @@ export const stats = {
     title: 'Статистика',
     nav: 'stats',
 
+    mount() {
+        scrollHeatToToday();
+    },
+
     async render() {
         const [entries, sets, exerciseList, weights] = await Promise.all([
             dbService.listWorkoutSummaries(),
@@ -166,12 +163,7 @@ export const stats = {
         const streaks = calc.streaks(calc.days(entries, null));
         const weekdays = calc.weekdays(entries, current);
         const muscles = calc.muscleVolume(sets, exercises, current);
-        const windows = calc.heatWindows(entries);
-
-        // Листали назад, а потом отбор сузился — окна может уже не быть
-        if (heatOffset >= windows) heatOffset = 0;
-
-        const heat = calc.heatmap(entries, Date.now(), { offset: heatOffset });
+        const heat = calc.heatmap(entries);
 
         const periodChips = calc.PERIODS.map((p) => ui.html`
             <button class="chip ${period === p.key ? 'is-active' : ''}"
@@ -255,19 +247,7 @@ export const stats = {
             </div>
 
             <div class="card">
-                <div class="card-title">Квартал по дням</div>
-
-                <div class="heat-nav">
-                    <button class="icon-btn" data-action="heat-back"
-                            ${ui.raw(heatOffset + 1 < windows ? '' : 'disabled')}
-                            title="Предыдущий квартал">←</button>
-
-                    <span class="heat-period">${heatPeriod(heat)}</span>
-
-                    <button class="icon-btn" data-action="heat-forward"
-                            ${ui.raw(heatOffset > 0 ? '' : 'disabled')}
-                            title="Следующий квартал">→</button>
-                </div>
+                <div class="card-title">По дням</div>
 
                 ${chart.heatmap(
                     heat.map((d) => ({
@@ -276,7 +256,7 @@ export const stats = {
                     })),
                     { months: monthLabels(heat) }
                 )}
-                <p class="hint">Насыщенность — по количеству подходов за день.</p>
+                <p class="hint">Насыщенность — по количеству подходов за день. Карта листается вбок.</p>
             </div>
 
             <div class="card">
@@ -300,21 +280,6 @@ export const stats = {
 
 actions.on('stats-period', (el) => {
     period = el.dataset.period;
-    app.render();
-});
-
-/*
- * Листание карты по кварталам. Границы держит сама разметка — кнопка на
- * краю истории гаснет, — но проверяются они и здесь: гашение кнопки в
- * браузере обойти можно, а уйти в пустоту приложение не должно.
- */
-actions.on('heat-back', () => {
-    heatOffset += 1;
-    app.render();
-});
-
-actions.on('heat-forward', () => {
-    heatOffset = Math.max(0, heatOffset - 1);
     app.render();
 });
 
