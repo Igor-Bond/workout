@@ -11,6 +11,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
+import { kindFields } from '../core/kinds.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
@@ -42,13 +43,6 @@ const FIELD_ORDER = ['reps', 'weight', 'distance', 'duration'];
  * довес), см. stats.load. Без колонки его негде ни увидеть, ни исправить —
  * при том, что ввести его на экране выполнения приложение позволяет.
  */
-const FIELDS_BY_KIND = {
-    weight:   ['reps', 'weight'],
-    reps:     ['reps', 'weight'],
-    time:     ['duration'],
-    distance: ['distance', 'duration']
-};
-
 /**
  * Какие поля показывать при правке подхода (§21.1).
  *
@@ -64,7 +58,7 @@ const FIELDS_BY_KIND = {
  * исправить.
  */
 function editableFields(set, kind) {
-    const wanted = new Set(FIELDS_BY_KIND[kind] || FIELDS_BY_KIND.weight);
+    const wanted = new Set(kindFields(kind));
 
     for (const field of FIELD_ORDER) {
         if (set[field] !== undefined) wanted.add(field);
@@ -108,7 +102,7 @@ const CELL = {
  * меняется, и спрятать несоответствующую величину значило бы её потерять.
  */
 function columnsOf(block) {
-    const wanted = new Set(FIELDS_BY_KIND[block.kind] || FIELDS_BY_KIND.weight);
+    const wanted = new Set(kindFields(block.kind));
 
     for (const set of block.sets) {
         for (const field of FIELD_ORDER) {

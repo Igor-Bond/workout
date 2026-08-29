@@ -264,3 +264,65 @@ export function untranslated(code, known = new Set()) {
 export function lineAt(code, index) {
     return code.slice(0, index).split('\n').length;
 }
+
+/**
+ * Код без строк и комментариев: на их месте пробелы.
+ *
+ * Длина сохраняется, поэтому позиции и номера строк остаются прежними. Нужно
+ * тому, кто ищет устройство кода, а не его текст: слово в комментарии и
+ * слово в строке — не то же самое, что слово в коде.
+ */
+export function skeleton(code) {
+    const { strings, chunks } = scan(code);
+    const out = code.split('');
+
+    const стереть = (from, to) => {
+        for (let i = from; i < to && i < out.length; i++) {
+            if (out[i] !== '\n') out[i] = ' ';
+        }
+    };
+
+    for (const s of strings) стереть(s.start + 1, s.end - 1);
+    for (const c of chunks) стереть(c.start, c.start + c.value.length);
+
+    // Комментарии сканер и так пропускает, но в тексте они остаются
+    return out.join('')
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+        .replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length));
+}
+
+/**
+ * Таблицы верхнего уровня: `const ИМЯ = { ... }` с их ключами.
+ *
+ * Нужно, чтобы отличить таблицу от совпадения слов. Границы объекта берутся
+ * по скобкам, а не по числу строк: таблица бывает с пустой строкой посреди,
+ * и окном постоянной высоты её разрезает пополам.
+ */
+export function objects(code) {
+    const bare = skeleton(code);
+    const out = [];
+
+    for (const m of bare.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*\{/g)) {
+        const open = m.index + m[0].length - 1;
+
+        let depth = 0;
+        let close = -1;
+
+        for (let i = open; i < bare.length; i++) {
+            if (bare[i] === '{') depth++;
+            else if (bare[i] === '}' && --depth === 0) { close = i; break; }
+        }
+
+        if (close < 0) continue;
+
+        const body = bare.slice(open + 1, close);
+
+        // Только свои ключи: у вложенных объектов своя жизнь
+        const own = body.replace(/\{[^{}]*\}/g, ' ');
+        const keys = [...own.matchAll(/(?:^|[,{])\s*'?([A-Za-z_$][\w$]*)'?\s*:/g)].map((k) => k[1]);
+
+        out.push({ name: m[1], line: lineAt(code, open), keys });
+    }
+
+    return out;
+}

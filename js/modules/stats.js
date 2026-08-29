@@ -10,7 +10,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { stats as calc } from '../core/stats.js';
+import { stats as calc, NO_GROUP } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
@@ -278,7 +278,7 @@ export const stats = {
                     muscles.map((m) => ({ label: t(m.group), value: m.sets })),
                     { format: (v) => `${v}` }
                 )}
-                ${muscles.some((m) => m.group === 'Без группы') ? ui.html`
+                ${muscles.some((m) => m.group === NO_GROUP) ? ui.html`
                     <p class="hint">
                         ${t('У части упражнений группа не указана.')}
                         <button class="link-btn" data-action="nav" data-screen="exercises">${t('Проставить в справочнике')}</button>

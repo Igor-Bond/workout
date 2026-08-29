@@ -15,13 +15,7 @@ import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
-
-const KIND_LABEL = {
-    weight: 'Силовое с весом',
-    reps: 'Собственный вес',
-    time: 'На время',
-    distance: 'Кардио'
-};
+import { kindLabel } from '../core/kinds.js';
 
 const tile = (label, value) => ui.html`<div class="tile"><strong>${value}</strong><span>${label}</span></div>`;
 
@@ -91,7 +85,7 @@ export const exercise = {
 
         if (sets.length === 0) {
             return ui.html`
-                ${ui.title(record.name, t(KIND_LABEL[record.kind]))}
+                ${ui.title(record.name, kindLabel(record.kind))}
                 ${ui.empty(t('Это упражнение ещё ни разу не выполнялось.'))}
                 <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('← К рекордам')}</button>
             `;
@@ -156,7 +150,7 @@ export const exercise = {
 
         return ui.html`
             ${ui.title(record.name,
-                [t(KIND_LABEL[record.kind]), record.group, record.archived ? t('в архиве') : null]
+                [kindLabel(record.kind), record.group, record.archived ? t('в архиве') : null]
                     .filter(Boolean).join(' · '))}
 
             <div class="card">

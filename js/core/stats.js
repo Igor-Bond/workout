@@ -28,6 +28,17 @@ const EMPTY = {
     avgSets: 0, avgReps: 0, avgVolume: 0, avgDuration: 0
 };
 
+/**
+ * Куда попадают упражнения без указанной группы.
+ *
+ * Слово, а не пустая строка: оно попадает на график наравне с настоящими
+ * группами, и подпись у столбца должна быть. Отсюда же и то, что оно здесь
+ * одно на всех: экран статистики по нему узнаёт, показывать ли приписку
+ * «у части упражнений группа не указана», и разойдись они — приписка
+ * пропала бы или висела бы всегда.
+ */
+export const NO_GROUP = 'Без группы';
+
 export const stats = {
 
     PERIODS,
@@ -231,7 +242,7 @@ export const stats = {
         for (const set of sets) {
             if (!stats.inRange(set.performedAt, range)) continue;
 
-            const group = exercises[set.exerciseId]?.group || 'Без группы';
+            const group = exercises[set.exerciseId]?.group || NO_GROUP;
             const entry = groups.get(group) || { group, sets: 0, volume: 0, reps: 0 };
 
             entry.sets += 1;

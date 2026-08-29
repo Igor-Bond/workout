@@ -17,6 +17,9 @@ import { format } from '../core/format.js';
 /** Версия формата файла. Растёт, когда меняется состав или смысл полей. */
 const FORMAT = 1;
 
+/** Чей это файл. Пишется при выгрузке и сверяется при загрузке — одно слово на оба места. */
+const APP = 'workout';
+
 /** Как назвать таблицу человеку. Имена в базе английские и служебные. */
 const TABLE_WORDS = {
     exercises:  format.WORDS.exercise,
@@ -39,7 +42,7 @@ export const backup = {
 
         return {
             format: FORMAT,
-            app: 'workout',
+            app: APP,
             exportedAt: Date.now(),
             data,
 
@@ -107,14 +110,14 @@ export const backup = {
 
         if (v1) {
             if (v1.length === 0) throw new Error(t('В файле нет ни одной тренировки'));
-            return { kind: 'v1', app: 'workout', v1 };
+            return { kind: 'v1', app: APP, v1 };
         }
 
         if (!parsed || typeof parsed !== 'object' || !parsed.data) {
             throw new Error(t('Не похоже на резервную копию трекера'));
         }
 
-        if (parsed.app && parsed.app !== 'workout') {
+        if (parsed.app && parsed.app !== APP) {
             throw new Error(t('Файл от другого приложения'));
         }
 

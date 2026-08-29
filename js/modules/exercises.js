@@ -17,15 +17,7 @@ import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { format } from '../core/format.js';
 import { restTimer } from '../core/timer.js';
-
-const KINDS = [
-    { value: 'weight',   label: 'Силовое с весом',  hint: 'повторения и вес' },
-    { value: 'reps',     label: 'Собственный вес',  hint: 'повторения' },
-    { value: 'time',     label: 'На время',         hint: 'длительность' },
-    { value: 'distance', label: 'Кардио',           hint: 'время и дистанция' }
-];
-
-const kindLabel = (kind) => t(KINDS.find((k) => k.value === kind)?.label || kind);
+import { KINDS, kindLabel } from '../core/kinds.js';
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
 function row(exercise, usage) {

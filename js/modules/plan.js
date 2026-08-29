@@ -21,14 +21,18 @@ import { records } from '../core/records.js';
 import { rhythm } from '../core/rhythm.js';
 import { estimate } from '../core/estimate.js';
 import { interval } from '../core/interval.js';
+import { kindHint } from '../core/kinds.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
-const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
+/** Тип, у которого не подходы, а отрезки времени (§50). Ключ, не подпись. */
+const INTERVAL = 'Табата';
+
+const TYPES = ['Силовая', 'Зарядка', INTERVAL, 'Кардио', 'Растяжка', 'Дома без инвентаря'];
 
 /**
- * Тип, у которого не подходы, а отрезки времени (§50).
+ * Признак интервального типа (§50).
  *
  * Проверяется по типу, а не по отдельному признаку: тип пользователь и так
  * выбирает первым делом, и заводить рядом с ним второй переключатель «а это
@@ -39,7 +43,7 @@ const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио
  * интервальный режим на других языках не включался вовсе. Ни настроек
  * отрезков, ни программы: «Табата» заводила обычную тренировку.
  */
-const isInterval = (key) => key === 'Табата';
+const isInterval = (key) => key === INTERVAL;
 
 /**
  * Ключ типа по сохранённой подписи (§53).
@@ -58,15 +62,6 @@ const typeKey = (stored) => TYPES.find((key) => key === stored || t(key) === sto
  * свои группы, и захардкоженный перечень их не показал бы.
  */
 const groupsOf = (list) => [...new Set(list.map((e) => e.group).filter(Boolean))].sort();
-
-/** Подписи видов упражнений. Переводятся при показе, а не здесь: список
- *  собирается один раз при загрузке модуля, а язык меняется на ходу. */
-const KIND_HINT = {
-    weight: 'повторения и вес',
-    reps: 'повторения',
-    time: 'длительность',
-    distance: 'время и дистанция'
-};
 
 /**
  * Черновик живёт в модуле, а не в разметке: экран перерисовывается после
@@ -472,7 +467,7 @@ actions.on('plan-add', async () => {
             value: e.id,
             label: e.name,
             group: e.group,
-            hint: [t(KIND_HINT[e.kind]), e.group].filter(Boolean).join(' · ')
+            hint: [kindHint(e.kind), e.group].filter(Boolean).join(' · ')
         })),
         groups: groupsOf(all),
         placeholder: t('Название упражнения'),

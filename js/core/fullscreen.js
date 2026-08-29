@@ -39,6 +39,8 @@ let watching = false;
 
 /** Чем браузер отказал в последний раз — для строки состояния в профиле. */
 let lastError = null;
+/** Начатый, но ещё не завершённый вход. Нужен, чтобы выход его дождался. */
+let entering = null;
 
 export const fullscreen = {
 
@@ -59,8 +61,27 @@ export const fullscreen = {
     async enter() {
         if (!supported() || fullscreen.active) return fullscreen.active;
 
+        /*
+         * Второй запрос поверх начатого не нужен и вреден.
+         *
+         * Одно нажатие даёт два повода войти: сторож на pointerdown и сама
+         * кнопка на click. Браузер отвечал на второй отказом, и профиль
+         * показывал «Браузер отказал» ровно в тот момент, когда режим
+         * успешно включился.
+         */
+        if (entering) {
+            try {
+                await entering;
+                return fullscreen.active;
+            } catch {
+                return false;
+            }
+        }
+
         try {
-            await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+            entering = document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+            await entering;
+
             lastError = null;
             return true;
         } catch (e) {
@@ -79,6 +100,8 @@ export const fullscreen = {
             lastError = `${e?.name || 'Error'}: ${e?.message || e}`;
             console.warn('[Экран] Полноэкранный режим не включился:', lastError);
             return false;
+        } finally {
+            entering = null;
         }
     },
 
@@ -87,7 +110,21 @@ export const fullscreen = {
         return lastError;
     },
 
+    /**
+     * Выйти.
+     *
+     * Сначала дожидается начатого входа, если он ещё в пути. Иначе выход
+     * проходил впустую: одно и то же нажатие сперва будило сторожа на
+     * pointerdown, а потом выключало настройку на click, и выход случался
+     * раньше, чем завершался вход. Приложение оставалось в полном экране, а
+     * кнопки выхода на перерисованном экране уже не было — выбраться было
+     * нечем.
+     */
     async exit() {
+        if (entering) {
+            try { await entering; } catch { /* вход не удался — тем лучше */ }
+        }
+
         if (!fullscreen.active) return;
 
         try {

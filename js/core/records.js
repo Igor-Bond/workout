@@ -11,6 +11,7 @@
  */
 
 import { t } from './i18n.js';
+import { kindOf } from './kinds.js';
 import { format } from './format.js';
 
 /** Значение поля с заменой отсутствующего на «хуже некуда». */
@@ -39,9 +40,6 @@ const COMPARE = {
     }
 };
 
-/** Какое поле подхода отвечает за каждый вид упражнения. */
-const FIELD = { weight: 'reps', reps: 'reps', time: 'duration', distance: 'distance' };
-
 export const records = {
 
     COMPARE,
@@ -54,7 +52,7 @@ export const records = {
      * своих подходах по-прежнему хранят повторения.
      */
     supports(sets = [], kind) {
-        const field = FIELD[kind];
+        const field = kindOf(kind)?.main;
         return !!field && sets.some((s) => s && s[field] !== undefined);
     },
 
