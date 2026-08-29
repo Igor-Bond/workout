@@ -14,6 +14,7 @@
 
 import Dexie from '../../vendor/dexie.min.js';
 import { migrations } from './migrations.js';
+import { howTo } from './howto.js';
 
 /**
  * Имя базы можно подменить до первого импорта модуля. Нужно ровно одному
@@ -625,6 +626,36 @@ export const dbService = {
 
         await dbService.setSetting('baseInstalled', all.length);
         return added;
+    },
+
+    /**
+     * Разовое заполнение описаний «как выполнять» (§5.2).
+     *
+     * Только пустые: текст пользователя всегда сильнее готового. И только
+     * известные по названию — своё упражнение приложение описать не может.
+     *
+     * Метки времени не трогаются намеренно: описание не то изменение, ради
+     * которого стоит гнать весь справочник в облако заново. Второе устройство
+     * заполнит его у себя тем же способом.
+     */
+    async installHowTo() {
+        if (await dbService.getSetting('howToInstalled', false)) return 0;
+
+        const all = await db.exercises.toArray();
+        let filled = 0;
+
+        for (const exercise of all) {
+            if (exercise.howTo) continue;
+
+            const text = howTo(exercise.nameKey);
+            if (!text) continue;
+
+            await db.exercises.update(exercise.id, { howTo: text });
+            filled += 1;
+        }
+
+        await dbService.setSetting('howToInstalled', true);
+        return filled;
     },
 
     async getSet(id) {

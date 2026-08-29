@@ -819,7 +819,9 @@ actions.on('sess-add', async () => {
     const chosen = await dialog.pick({
         title: 'Добавить упражнение',
         text: 'Оно встанет в план текущей тренировки.',
-        items: all.filter((e) => !inPlan.has(e.id)).map((e) => ({ value: e.id, label: e.name, hint: e.group })),
+        items: all.filter((e) => !inPlan.has(e.id))
+            .map((e) => ({ value: e.id, label: e.name, group: e.group, hint: e.group })),
+        groups: [...new Set(all.map((e) => e.group).filter(Boolean))].sort(),
         createLabel: 'Создать'
     });
 

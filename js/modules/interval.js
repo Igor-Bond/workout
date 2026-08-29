@@ -19,6 +19,7 @@ import { interval } from '../core/interval.js';
 import { beeper } from '../core/beeper.js';
 import { wakeLock } from '../core/wakelock.js';
 import { fullscreen } from '../core/fullscreen.js';
+import { config } from '../config.js';
 import { format } from '../core/format.js';
 import { app } from '../app.js';
 
@@ -172,23 +173,36 @@ export const intervalScreen = {
     title: 'Программа',
     nav: 'workout',
 
+    /*
+     * mount и unmount вызываются при каждой перерисовке, а не только при
+     * входе на экран и уходе с него: приложение заменяет разметку целиком.
+     *
+     * Из-за этого здесь стоял release(), и звуковой движок закрывался сразу
+     * после запуска — в том же обработчике, который только что выложил всю
+     * очередь сигналов. Программа шла молча от начала до конца.
+     *
+     * Поэтому: снимаем выложенное, но движок не закрываем, а после отрисовки
+     * выкладываем очередь заново от текущего момента. Закрывается он только
+     * при завершении тренировки.
+     */
     mount() {
         clearInterval(ticker);
         ticker = setInterval(tick, 250);
 
         wakeLock.enable();
         fullscreen.enterIfWanted();
+
+        resyncSound();
     },
 
     unmount() {
         clearInterval(ticker);
         ticker = 0;
 
-        beeper.release();
+        beeper.stop();
         wakeLock.disable();
 
         shownIndex = -1;
-        view = null;
     },
 
     async render() {
@@ -238,10 +252,32 @@ export const intervalScreen = {
                 ` : ''}
             </div>
 
+            <!--
+                Молчащая программа выглядит поломкой, а не выключенным
+                звуком: сигналы здесь — половина смысла, и человек не станет
+                искать причину в профиле, если ему о ней не сказать.
+            -->
+            ${config.get('restSound') ? '' : ui.html`
+                <p class="hint">Звук выключен в профиле — переходы будут беззвучными.</p>
+            `}
+
             ${ring(view, state)}
         `;
     }
 };
+
+/**
+ * Перевыкладка сигналов от текущего момента.
+ *
+ * Нужна после каждой отрисовки: перед ней очередь снимается, иначе сигналы
+ * копились бы по кругу и звучали внахлёст. Движок при этом не пересоздаётся —
+ * он создан по нажатию «Начать» и продолжает работать.
+ */
+function resyncSound() {
+    if (!view || view.run.state !== 'running') return;
+
+    beeper.schedule(interval.cues(view.phases), elapsedOf(view.workout));
+}
 
 /**
  * Такт отсчёта.

@@ -180,7 +180,14 @@ export const dialog = {
      * превращается в прокрутку. Возвращает value выбранного, либо
      * { create: 'название' }, если разрешено создание и ничего не подошло.
      */
-    pick({ title, text, items, placeholder = 'Поиск', createLabel = null, cancelText = 'Отмена' }) {
+    /**
+     * Выбор из списка с поиском и отбором по группам.
+     *
+     * groups — значения item.group, которые предлагаются чипами. Список из
+     * сорока пяти упражнений искать по одному только названию тяжело:
+     * названия надо помнить, а группу — нет, её выбирают взглядом.
+     */
+    pick({ title, text, items, groups = [], placeholder = 'Поиск', createLabel = null, cancelText = 'Отмена' }) {
         const option = (item) => ui.html`
             <button class="dialog-option" data-value="${item.value}">
                 <span class="dialog-option-label">${item.label}</span>
@@ -192,13 +199,16 @@ export const dialog = {
             const search = backdrop.querySelector('.dialog-search');
             const list = backdrop.querySelector('.dialog-options');
             const create = backdrop.querySelector('[data-create]');
+            const chips = [...backdrop.querySelectorAll('[data-group]')];
+
+            let group = '';
 
             const refresh = () => {
                 const query = search.value.trim().toLowerCase();
 
-                const matched = query
-                    ? items.filter((i) => i.label.toLowerCase().includes(query))
-                    : items;
+                const matched = items.filter((i) =>
+                    (!group || i.group === group)
+                    && (!query || i.label.toLowerCase().includes(query)));
 
                 list.innerHTML = matched.length
                     ? String(ui.html`${matched.map(option)}`)
@@ -215,6 +225,17 @@ export const dialog = {
             search.addEventListener('input', refresh);
             create?.addEventListener('click', () => finish({ create: search.value.trim() }));
 
+            // Повторное нажатие на выбранную группу снимает отбор: иначе к
+            // полному списку не вернуться, не закрыв окно
+            for (const chip of chips) {
+                chip.addEventListener('click', () => {
+                    group = chip.dataset.group === group ? '' : chip.dataset.group;
+
+                    for (const c of chips) c.classList.toggle('is-active', c.dataset.group === group);
+                    refresh();
+                });
+            }
+
             refresh();
             search.focus();
         };
@@ -223,6 +244,15 @@ export const dialog = {
             <div class="dialog dialog-tall" role="dialog" aria-modal="true">
                 <div class="dialog-title">${title}</div>
                 ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
+
+                ${groups.length ? ui.html`
+                    <div class="chips dialog-groups">
+                        ${groups.map((g) => ui.html`
+                            <button class="chip" data-group="${g}">${g}</button>
+                        `)}
+                    </div>
+                ` : ''}
+
                 <input class="dialog-search" type="text" placeholder="${placeholder}" autocomplete="off">
                 <div class="dialog-options"></div>
                 ${createLabel ? ui.raw('<button class="btn btn-ghost" data-create hidden></button>') : ''}

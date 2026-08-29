@@ -32,7 +32,14 @@ function row(exercise, usage) {
     return ui.html`
         <div class="ex-row" data-id="${exercise.id}">
             <div class="ex-main">
-                <div class="ex-name">${exercise.name}</div>
+                <!--
+                    Название нажимается: описание техники нужнее всего в
+                    зале, и добираться до него через правку — значит открыть
+                    окно, где всё остальное можно случайно испортить.
+                -->
+                <button class="ex-name" data-action="ex-info" data-id="${exercise.id}">
+                    ${exercise.name}
+                </button>
                 <div class="ex-meta">
                     ${kindLabel(exercise.kind)}
                     ${exercise.group ? ui.raw(` · ${ui.esc(exercise.group)}`) : ''}
@@ -128,9 +135,41 @@ actions.on('ex-add', async () => {
     app.render();
 });
 
-actions.on('ex-edit', async (el) => {
+/**
+ * Как выполнять (§5.2).
+ *
+ * Текстом, а не ссылкой: приложение работает без сети, а ссылка требует её и
+ * живёт ровно до тех пор, пока ролик не удалят. Кнопка поиска рядом — для
+ * тех случаев, когда текста мало и связь всё-таки есть; она ведёт в поиск, а
+ * не на конкретное видео, потому что конкретное однажды пропадёт.
+ */
+actions.on('ex-info', async (el) => {
     const exercise = await dbService.getExercise(el.dataset.id);
     if (!exercise) return;
+
+    const где = [kindLabel(exercise.kind), exercise.group].filter(Boolean).join(' · ');
+
+    const choice = await dialog.choose({
+        title: exercise.name,
+        text: exercise.howTo
+            ? `${где}\n\n${exercise.howTo}`
+            : `${где}\n\nОписания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.`,
+        options: [
+            { value: 'video', label: 'Найти видео', hint: 'Откроется поиск в новой вкладке' },
+            { value: 'edit', label: exercise.howTo ? 'Изменить описание' : 'Добавить описание' }
+        ]
+    });
+
+    if (choice === 'edit') return editExercise(exercise);
+
+    if (choice === 'video') {
+        const query = encodeURIComponent(`${exercise.name} упражнение техника выполнения`);
+        window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener');
+    }
+});
+
+/** Правка упражнения. Вызывается и карандашом, и из окна с описанием. */
+async function editExercise(exercise) {
 
     const values = await dialog.form({
         title: 'Изменить упражнение',
@@ -199,6 +238,11 @@ actions.on('ex-edit', async (el) => {
     });
 
     app.render();
+}
+
+actions.on('ex-edit', async (el) => {
+    const exercise = await dbService.getExercise(el.dataset.id);
+    if (exercise) await editExercise(exercise);
 });
 
 /**

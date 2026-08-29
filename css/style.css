@@ -1621,3 +1621,22 @@ svg.heatmap { display: block; }
 @media (min-width: 900px) {
     .iv-time { font-size: 96px; }
 }
+
+/* Название упражнения нажимается — за ним описание техники (§5.2) */
+button.ex-name {
+    display: block;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+button.ex-name:active { color: var(--accent); }
+
+/* Отбор по группам в окне выбора: над поиском, чипами */
+.dialog-groups { margin-bottom: 10px; }

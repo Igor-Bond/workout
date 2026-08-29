@@ -35,6 +35,14 @@ const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио
  */
 const isInterval = (type) => type === 'Табата';
 
+/**
+ * Группы упражнений для отбора в окне выбора.
+ *
+ * Берутся из самих упражнений, а не из списка в коде: пользователь заводит
+ * свои группы, и захардкоженный перечень их не показал бы.
+ */
+const groupsOf = (list) => [...new Set(list.map((e) => e.group).filter(Boolean))].sort();
+
 const KIND_HINT = {
     weight: 'повторения и вес',
     reps: 'повторения',
@@ -445,8 +453,10 @@ actions.on('plan-add', async () => {
         items: all.map((e) => ({
             value: e.id,
             label: e.name,
+            group: e.group,
             hint: [KIND_HINT[e.kind], e.group].filter(Boolean).join(' · ')
         })),
+        groups: groupsOf(all),
         placeholder: 'Название упражнения',
         createLabel: 'Создать'
     });
