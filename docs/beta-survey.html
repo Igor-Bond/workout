@@ -1,0 +1,652 @@
+<title>Трекер · Анкета тестировщика</title>
+
+<style id="bt-style">
+:root {
+    --bg: #f6f3ef;
+    --panel: #ffffff;
+    --panel-2: #f0ece6;
+    --line: #ded6cb;
+    --accent: #d1571f;
+    --accent-soft: rgba(209, 87, 31, 0.12);
+    --text: #241f1b;
+    --text-dim: #6f6459;
+    --good: #3f7d46;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #14110f;
+        --panel: #1d1916;
+        --panel-2: #241f1b;
+        --line: #332c26;
+        --accent: #ff7a33;
+        --accent-soft: rgba(255, 122, 51, 0.16);
+        --text: #f3ede4;
+        --text-dim: #a89a8a;
+        --good: #6fae6f;
+        --shadow: none;
+    }
+}
+
+:root[data-theme="dark"] {
+    --bg: #14110f;
+    --panel: #1d1916;
+    --panel-2: #241f1b;
+    --line: #332c26;
+    --accent: #ff7a33;
+    --accent-soft: rgba(255, 122, 51, 0.16);
+    --text: #f3ede4;
+    --text-dim: #a89a8a;
+    --good: #6fae6f;
+    --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 18px 64px;
+}
+
+.mark {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    font-size: 12px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+h1 { margin: 0 0 10px; font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
+
+.lede { color: var(--text-dim); font-size: 15px; margin: 0 0 6px; }
+.note { color: var(--text-dim); font-size: 13px; margin: 14px 0 0; }
+
+.sec { margin-top: 30px; }
+
+.sec-title {
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.q {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+}
+
+.q.is-missing { border-color: var(--accent); }
+
+.q-label { font-weight: 600; font-size: 15px; margin-bottom: 3px; }
+.q-hint { color: var(--text-dim); font-size: 13px; margin-bottom: 12px; }
+.q-req { color: var(--accent); font-weight: 700; }
+
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.opt {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+    padding: 9px 15px;
+    cursor: pointer;
+    min-height: 40px;
+}
+
+.opt:hover { border-color: var(--accent); }
+.opt.is-on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+.scale { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.scale .opt { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+.scale-ends { color: var(--text-dim); font-size: 12px; }
+
+textarea, input[type="text"] {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    padding: 11px 12px;
+    resize: vertical;
+}
+
+textarea:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
+
+.send {
+    width: 100%;
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    padding: 16px;
+    margin-top: 22px;
+    cursor: pointer;
+    min-height: 56px;
+}
+
+.send:disabled { opacity: 0.6; cursor: default; }
+
+.count { color: var(--text-dim); font-size: 13px; text-align: center; margin-top: 12px; }
+
+.done {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 26px 20px;
+    text-align: center;
+}
+
+.done h2 { margin: 0 0 8px; font-size: 21px; }
+.done p { color: var(--text-dim); margin: 0 0 14px; }
+
+.link {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: 14px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.fallback {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 18px;
+}
+
+.fallback h3 { margin: 0 0 8px; font-size: 16px; }
+.fallback p { color: var(--text-dim); font-size: 14px; margin: 0 0 12px; }
+.fallback textarea { min-height: 220px; font-size: 13px; line-height: 1.45; }
+
+.copy {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    padding: 12px 18px;
+    margin-top: 10px;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.said { color: var(--good); font-size: 13px; margin-left: 10px; }
+
+.steps { padding-left: 20px; margin: 0; color: var(--text-dim); font-size: 14px; }
+.steps li { margin-bottom: 6px; }
+.steps b { color: var(--text); }
+
+.card-intro {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-top: 18px;
+    box-shadow: var(--shadow);
+}
+
+a { color: var(--accent); }
+</style>
+
+<div id="bt-app"></div>
+
+<script id="bt-state" type="application/json">{"responses":[]}</script>
+
+<script id="bt-code">
+(function () {
+    var APP_URL = 'https://igor-bond.github.io/workout/';
+
+    var SECTIONS = [
+        {
+            title: 'О тебе',
+            items: [
+                { id: 'freq', type: 'one', required: true, label: 'Как часто тренируешься?',
+                  opts: ['Реже раза в неделю', '1–2 раза в неделю', '3–4 раза', '5 и больше'] },
+                { id: 'where', type: 'one', label: 'Где тренируешься?',
+                  opts: ['Зал', 'Дома', 'Улица', 'По-разному'] },
+                { id: 'before', type: 'one', label: 'Чем вёл записи раньше?',
+                  opts: ['Ничем', 'Бумага, блокнот', 'Заметки в телефоне', 'Другое приложение'] },
+                { id: 'device', type: 'text', required: true, label: 'Телефон и браузер',
+                  hint: 'Например: Samsung S23, Chrome. Без этого дефект почти невозможно повторить.',
+                  placeholder: 'Модель и браузер' }
+            ]
+        },
+        {
+            title: 'Первые шаги',
+            items: [
+                { id: 'install', type: 'one', label: 'Поставил на домашний экран?',
+                  opts: ['Да', 'Нет, пользуюсь в браузере', 'Не нашёл как'] },
+                { id: 'first', type: 'one', label: 'Сколько заняло провести первую тренировку?',
+                  opts: ['Меньше 5 минут', '5–15 минут', 'Больше 15 минут', 'Так и не дошёл'] },
+                { id: 'guide', type: 'one', label: 'Раздел «Как пользоваться» в профиле',
+                  opts: ['Нашёл, помог', 'Нашёл, не помог', 'Не нашёл', 'Не открывал'] },
+                { id: 'unclear', type: 'area', label: 'Что было непонятно с первого взгляда?',
+                  hint: 'Самое ценное во всей анкете — пиши как есть.',
+                  placeholder: 'Например: не понял, чем шаблон отличается от повтора прошлой' }
+            ]
+        },
+        {
+            title: 'Что успел попробовать',
+            items: [
+                { id: 'used', type: 'many', label: 'Отметь всё, до чего добрался',
+                  opts: ['План с нуля', 'Шаблон', 'Повтор прошлой', 'Таймер отдыха', 'Табата',
+                         'История', 'Статистика', 'Личные рекорды', 'Календарь', 'Вес тела',
+                         'Справочник упражнений', 'Синхронизация с Google', 'Резервная копия'] }
+            ]
+        },
+        {
+            title: 'Оценки',
+            hint: '1 — плохо, 5 — отлично',
+            items: [
+                { id: 'r_clear', type: 'scale', label: 'Понятность: ясно ли, что нажимать' },
+                { id: 'r_speed', type: 'scale', label: 'Скорость работы' },
+                { id: 'r_look', type: 'scale', label: 'Внешний вид' },
+                { id: 'r_during', type: 'scale', label: 'Удобство прямо во время тренировки' },
+                { id: 'r_stats', type: 'scale', label: 'Полезность истории и статистики' }
+            ]
+        },
+        {
+            title: 'Табата',
+            hint: 'Интервальный режим: 20 секунд работы, 10 отдыха, восемь кругов. Пропусти раздел, если не пробовал.',
+            items: [
+                { id: 't_sound', type: 'one', label: 'Сигналы во время программы',
+                  opts: ['Хорошо слышно', 'Слишком тихо', 'Не слышал вообще', 'Не пробовал табату'] },
+                { id: 't_clear', type: 'one', label: 'Понятно по звуку, где работа, а где пауза?',
+                  opts: ['Да, сразу', 'Не всегда', 'Нет', 'Не пробовал'] },
+                { id: 't_voice', type: 'one', label: 'Голос называет следующее упражнение',
+                  opts: ['Вовремя и к месту', 'Опаздывает', 'Мешает, выключил', 'Не слышал голоса', 'Не пробовал'] },
+                { id: 't_wish', type: 'area', label: 'Что бы поменял в табате?',
+                  placeholder: 'Длительности, сигналы, что показано на экране' }
+            ]
+        },
+        {
+            title: 'Что сломалось',
+            items: [
+                { id: 'bug', type: 'area', label: 'Что повело себя не так?',
+                  hint: 'Опиши по порядку: на каком экране, что нажал, что ожидал, что вышло.',
+                  placeholder: 'Можно несколько случаев подряд' }
+            ]
+        },
+        {
+            title: 'Дальше',
+            items: [
+                { id: 'missing', type: 'area', label: 'Чего не хватает больше всего?',
+                  placeholder: 'Одна вещь, которую стоит сделать в первую очередь' },
+                { id: 'back', type: 'one', label: 'Будешь пользоваться дальше?',
+                  opts: ['Да', 'Возможно', 'Нет'] },
+                { id: 'why', type: 'area', label: 'Почему?', placeholder: 'Коротко' }
+            ]
+        },
+        {
+            title: 'Связь',
+            hint: 'Необязательно. Нужно только чтобы уточнить детали по твоему ответу.',
+            items: [
+                { id: 'name', type: 'text', label: 'Как обращаться', placeholder: 'Имя' },
+                { id: 'tg', type: 'text', label: 'Telegram', placeholder: '@ник' }
+            ]
+        }
+    ];
+
+    var ALL = SECTIONS.reduce(function (list, s) { return list.concat(s.items); }, []);
+
+    var app = document.getElementById('bt-app');
+    var answers = {};
+    var busy = false;
+
+    function state() {
+        try {
+            var raw = document.getElementById('bt-state').textContent;
+            var parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.responses)) return parsed;
+        } catch (e) { /* повреждённые данные — начинаем с пустых */ }
+
+        return { responses: [] };
+    }
+
+    function esc(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function already() {
+        try { return localStorage.getItem('bt-sent') === '1'; } catch (e) { return false; }
+    }
+
+    function mark(value) {
+        try { localStorage.setItem('bt-sent', value ? '1' : '0'); } catch (e) { /* приватное окно */ }
+    }
+
+    /* ---------- разметка ---------- */
+
+    function questionHtml(q) {
+        var head = '<div class="q-label">' + esc(q.label)
+            + (q.required ? ' <span class="q-req">*</span>' : '') + '</div>'
+            + (q.hint ? '<div class="q-hint">' + esc(q.hint) + '</div>' : '');
+
+        var body = '';
+
+        if (q.type === 'one' || q.type === 'many') {
+            body = '<div class="opts">' + q.opts.map(function (o, i) {
+                return '<button type="button" class="opt" data-q="' + esc(q.id) + '" data-v="' + i + '">'
+                    + esc(o) + '</button>';
+            }).join('') + '</div>';
+        } else if (q.type === 'scale') {
+            body = '<div class="scale"><span class="scale-ends">хуже</span>'
+                + [1, 2, 3, 4, 5].map(function (n) {
+                    return '<button type="button" class="opt" data-q="' + esc(q.id) + '" data-v="' + n + '">'
+                        + n + '</button>';
+                }).join('')
+                + '<span class="scale-ends">лучше</span></div>';
+        } else if (q.type === 'text') {
+            body = '<input type="text" data-q="' + esc(q.id) + '" placeholder="'
+                + esc(q.placeholder || '') + '">';
+        } else {
+            body = '<textarea rows="3" data-q="' + esc(q.id) + '" placeholder="'
+                + esc(q.placeholder || '') + '"></textarea>';
+        }
+
+        return '<div class="q" id="q-' + esc(q.id) + '">' + head + body + '</div>';
+    }
+
+    function formHtml(count) {
+        var sections = SECTIONS.map(function (s) {
+            return '<div class="sec"><div class="sec-title">' + esc(s.title) + '</div>'
+                + (s.hint ? '<p class="note" style="margin-top:0;margin-bottom:12px">' + esc(s.hint) + '</p>' : '')
+                + s.items.map(questionHtml).join('') + '</div>';
+        }).join('');
+
+        return '<div class="wrap">'
+            + '<div class="mark">Трекер тренировок · бета</div>'
+            + '<h1>Анкета тестировщика</h1>'
+            + '<p class="lede">Пять минут. Обязательных вопросов два — остальное отвечай только там, где есть что сказать.</p>'
+
+            + '<div class="card-intro"><ol class="steps">'
+            + '<li>Открой <b><a href="' + APP_URL + '" target="_blank" rel="noopener">' + APP_URL + '</a></b> с телефона.</li>'
+            + '<li>Добавь на домашний экран — приложение работает без интернета.</li>'
+            + '<li>Потренируйся хотя бы дважды, чтобы появились история и повтор.</li>'
+            + '<li>Вернись сюда и заполни анкету.</li>'
+            + '</ol></div>'
+
+            + sections
+            + '<button type="button" class="send" id="bt-send">Отправить ответы</button>'
+            + '<div class="count" id="bt-count">' + (count ? 'Уже ответили: ' + count : 'Твой ответ будет первым') + '</div>'
+            + '<p class="note">Ответы хранятся на этой же странице и видны разработчику. Личных данных анкета не спрашивает, поля «имя» и «Telegram» — по желанию.</p>'
+            + '<div id="bt-fallback"></div>'
+            + '</div>';
+    }
+
+    function doneHtml(count) {
+        return '<div class="wrap">'
+            + '<div class="mark">Трекер тренировок · бета</div>'
+            + '<div class="done">'
+            + '<h2>Спасибо, записал</h2>'
+            + '<p>Твой ответ сохранён. Если вспомнится что-то ещё — просто напиши в Telegram, ответом на то сообщение, где была ссылка.</p>'
+            + (count ? '<p style="margin:0">Всего ответов: ' + count + '</p>' : '')
+            + '<button type="button" class="link" id="bt-again">Заполнить ещё раз</button>'
+            + '</div></div>';
+    }
+
+    /* ---------- сбор ---------- */
+
+    function collect() {
+        var out = {};
+
+        ALL.forEach(function (q) {
+            if (q.type === 'text' || q.type === 'area') {
+                var el = app.querySelector('[data-q="' + q.id + '"]');
+                var v = el ? el.value.trim() : '';
+                if (v) out[q.id] = v;
+            } else if (q.type === 'many') {
+                var picked = answers[q.id] || [];
+                if (picked.length) out[q.id] = picked.map(function (i) { return q.opts[i]; });
+            } else if (q.type === 'scale') {
+                if (answers[q.id] != null) out[q.id] = answers[q.id];
+            } else if (answers[q.id] != null) {
+                out[q.id] = q.opts[answers[q.id]];
+            }
+        });
+
+        return out;
+    }
+
+    function missing(values) {
+        return ALL.filter(function (q) { return q.required && !values[q.id]; });
+    }
+
+    function asText(entry) {
+        var lines = ['Анкета тестировщика «Трекер»', ''];
+
+        SECTIONS.forEach(function (s) {
+            var block = s.items.filter(function (q) { return entry.answers[q.id] != null; });
+            if (!block.length) return;
+
+            lines.push('— ' + s.title + ' —');
+
+            block.forEach(function (q) {
+                var v = entry.answers[q.id];
+                lines.push(q.label + ': ' + (Array.isArray(v) ? v.join(', ') : v));
+            });
+
+            lines.push('');
+        });
+
+        return lines.join('\n').trim();
+    }
+
+    /* ---------- сохранение ---------- */
+
+    function buildDoc(next) {
+        var css = document.getElementById('bt-style').textContent;
+        var code = document.getElementById('bt-code').textContent;
+        var json = JSON.stringify(next).replace(/</g, '\\u003c');
+        var S = 'script';
+
+        return '<!doctype html>\n<html lang="ru">\n<head>\n<meta charset="utf-8">\n'
+            + '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            + '<title>Трекер · Анкета тестировщика</title>\n'
+            + '<style id="bt-style">' + css + '</style>\n</head>\n<body>\n'
+            + '<div id="bt-app"></div>\n'
+            + '<' + S + ' id="bt-state" type="application/json">' + json + '</' + S + '>\n'
+            + '<' + S + ' id="bt-code">' + code + '</' + S + '>\n'
+            + '</body>\n</html>';
+    }
+
+    function showFallback(entry, why) {
+        var host = document.getElementById('bt-fallback');
+        if (!host) return;
+
+        host.innerHTML = '<div class="fallback">'
+            + '<h3>Страница не смогла сохранить ответ</h3>'
+            + '<p>' + esc(why) + ' Ничего не пропало: скопируй текст ниже и отправь его ответом на сообщение в Telegram.</p>'
+            + '<textarea id="bt-text" readonly></textarea>'
+            + '<button type="button" class="copy" id="bt-copy">Скопировать</button>'
+            + '<span class="said" id="bt-said"></span>'
+            + '</div>';
+
+        var box = document.getElementById('bt-text');
+        box.value = asText(entry);
+
+        document.getElementById('bt-copy').addEventListener('click', function () {
+            box.select();
+            box.setSelectionRange(0, box.value.length);
+
+            var ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+
+            if (!ok && navigator.clipboard) {
+                navigator.clipboard.writeText(box.value).then(function () {
+                    document.getElementById('bt-said').textContent = 'скопировано';
+                }, function () {
+                    document.getElementById('bt-said').textContent = 'выдели и скопируй вручную';
+                });
+                return;
+            }
+
+            document.getElementById('bt-said').textContent = ok ? 'скопировано' : 'выдели и скопируй вручную';
+        });
+
+        host.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function send() {
+        if (busy) return;
+
+        var values = collect();
+        var нет = missing(values);
+
+        ALL.forEach(function (q) {
+            var el = document.getElementById('q-' + q.id);
+            if (el) el.classList.remove('is-missing');
+        });
+
+        if (нет.length) {
+            нет.forEach(function (q) {
+                var el = document.getElementById('q-' + q.id);
+                if (el) el.classList.add('is-missing');
+            });
+
+            document.getElementById('q-' + нет[0].id)
+                .scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        busy = true;
+
+        var btn = document.getElementById('bt-send');
+        btn.disabled = true;
+        btn.textContent = 'Сохраняю…';
+
+        var entry = { at: new Date().toISOString(), answers: values };
+        var next = state();
+        next.responses = next.responses.concat([entry]);
+
+        // window.claude есть только внутри claude.ai: страница, открытая
+        // где-то ещё, обязана работать, а не падать на первом обращении
+        var api = null;
+        try {
+            if (window.claude && window.claude.use) api = await window.claude.use('artifact');
+        } catch (e) { api = null; }
+
+        if (!api) {
+            busy = false;
+            btn.disabled = false;
+            btn.textContent = 'Отправить ответы';
+            showFallback(entry, 'Эта страница открыта только на чтение.');
+            return;
+        }
+
+        // Отметка ставится до отправки: после сохранения все открытые окна
+        // перезагружаются, и по возвращении страница должна сказать спасибо,
+        // а не показать пустую анкету заново
+        mark(true);
+
+        try {
+            await api.publish(buildDoc(next));
+        } catch (e) {
+            mark(false);
+            busy = false;
+            btn.disabled = false;
+            btn.textContent = 'Отправить ответы';
+
+            var code = e && e.code;
+            showFallback(entry, code === 'conflict'
+                ? 'Кто-то отправил ответ в ту же секунду.'
+                : 'Сохранить не вышло.');
+        }
+    }
+
+    /* ---------- запуск ---------- */
+
+    function bind() {
+        app.addEventListener('click', function (e) {
+            var opt = e.target.closest ? e.target.closest('.opt') : null;
+            if (!opt) return;
+
+            var id = opt.dataset.q;
+            var q = ALL.filter(function (x) { return x.id === id; })[0];
+            if (!q) return;
+
+            if (q.type === 'many') {
+                var picked = answers[id] || [];
+                var v = Number(opt.dataset.v);
+                var at = picked.indexOf(v);
+
+                if (at === -1) picked = picked.concat([v]);
+                else picked = picked.slice(0, at).concat(picked.slice(at + 1));
+
+                answers[id] = picked;
+                opt.classList.toggle('is-on');
+                return;
+            }
+
+            // Повторное нажатие снимает выбор: иначе передумавшему некуда деться
+            var was = answers[id];
+            var now = Number(opt.dataset.v);
+
+            var group = app.querySelectorAll('[data-q="' + id + '"]');
+            for (var i = 0; i < group.length; i++) group[i].classList.remove('is-on');
+
+            if (was === now) { delete answers[id]; return; }
+
+            answers[id] = now;
+            opt.classList.add('is-on');
+        });
+
+        document.getElementById('bt-send').addEventListener('click', send);
+    }
+
+    function draw() {
+        var s = state();
+        var count = s.responses.length;
+
+        if (already()) {
+            app.innerHTML = doneHtml(count);
+            document.getElementById('bt-again').addEventListener('click', function () {
+                mark(false);
+                answers = {};
+                app.innerHTML = formHtml(count);
+                bind();
+            });
+            return;
+        }
+
+        app.innerHTML = formHtml(count);
+        bind();
+    }
+
+    draw();
+})();
+</script>
