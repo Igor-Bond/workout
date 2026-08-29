@@ -9,6 +9,7 @@
 
 import { ui } from './core/ui.js';
 import { install } from './core/install.js';
+import { i18n } from './core/i18n.js';
 
 import { home } from './modules/home.js';
 import { templates } from './modules/templates.js';
@@ -113,7 +114,7 @@ export const app = {
 
         current?.screen?.unmount?.();
 
-        host.innerHTML = '<div class="loading">Загрузка…</div>';
+        host.innerHTML = ui.html`<div class="loading">${i18n.t('Загрузка…')}</div>`;
 
         try {
             host.innerHTML = await screen.render(route.params);
@@ -121,7 +122,7 @@ export const app = {
             console.error(`[Экран] Ошибка отрисовки «${route.name}»:`, e);
             host.innerHTML = ui.html`
                 <div class="card">
-                    <div class="empty-note">Не удалось открыть раздел. Подробности в консоли.</div>
+                    <div class="empty-note">${i18n.t('Не удалось открыть раздел. Подробности в консоли.')}</div>
                 </div>
             `;
         }
@@ -129,7 +130,9 @@ export const app = {
         current = { ...route, screen };
 
         app.syncNav(screen.nav || route.name);
-        document.title = screen.title ? `${screen.title} · Трекер` : 'Трекер тренировок';
+        document.title = screen.title
+            ? `${i18n.t(screen.title)} · ${i18n.t('Трекер')}`
+            : i18n.t('Трекер тренировок');
 
         // Возвращать прокрутку надо после вставки разметки: до неё высота
         // страницы ещё прежняя, и браузер обрежет значение по ней
@@ -187,7 +190,26 @@ export const app = {
         document.querySelector(`[data-banner="${id}"]`)?.remove();
     },
 
+    /**
+     * Перевод разметки, набранной прямо в index.html (§53).
+     *
+     * Меню и надпись «Загрузка…» существуют до первой отрисовки — их не
+     * через что пропустить. Помеченные `data-t` узлы переводятся на месте:
+     * в разметке остаётся русский, а не имя ключа, и без JavaScript экран
+     * читается по-русски, а не пустотой.
+     */
+    translateStatic() {
+        document.querySelectorAll('[data-t]').forEach((el) => {
+            const source = el.dataset.tSource || el.textContent.trim();
+
+            el.dataset.tSource = source;
+            el.textContent = i18n.t(source);
+        });
+    },
+
     init() {
+        app.translateStatic();
+
         window.addEventListener('hashchange', () => app.render());
         install.onChange(() => app.renderInstallBanner());
 

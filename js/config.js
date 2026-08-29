@@ -33,6 +33,16 @@ const LEGACY_MODES = { plan: 'linear' };
  * булево читается как булево, число — как число.
  */
 const DEFAULTS = {
+    /**
+     * Язык интерфейса (§53): 'auto' | 'ru' | 'en'.
+     *
+     * По умолчанию берётся у телефона. Так приложение, отданное за пределы
+     * русскоязычных стран, оказывается английским само, без объяснений, где
+     * тут переключатель, — а объяснять их пришлось бы на языке, которого
+     * человек не знает.
+     */
+    lang: 'auto',
+
     /** Как приложение выбирает следующее упражнение (§11). См. MODES. */
     mode: 'circuit',
 
@@ -84,7 +94,7 @@ const DEFAULTS = {
  * состоянии — например, объявить синхронизацию включённой там, где вход не
  * выполнялся.
  */
-const PORTABLE = ['mode', 'restEnabled', 'restSeconds', 'restSound', 'restVibration',
+const PORTABLE = ['lang', 'mode', 'restEnabled', 'restSeconds', 'restSound', 'restVibration',
                   'voiceNames', 'keepAwake'];
 
 export const config = {

@@ -12,6 +12,7 @@ import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
 import { voice } from '../core/voice.js';
+import { i18n } from '../core/i18n.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -124,6 +125,29 @@ export const profile = {
             <button class="btn btn-accent" data-action="nav" data-screen="guide">
                 Как пользоваться приложением
             </button>
+
+            <div class="card">
+                <div class="card-title">Язык</div>
+
+                <div class="field">
+                    <select id="set-lang" data-change="lang">
+                        ${i18n.LANGS.map((l) => ui.html`
+                            <option value="${l.value}" ${ui.raw(i18n.setting === l.value ? 'selected' : '')}>${l.label}</option>
+                        `)}
+                    </select>
+                    <!--
+                        «Как в телефоне» стоит первым и выбрано по умолчанию:
+                        приложение, отданное за пределы русскоязычных стран,
+                        должно оказываться английским само. Объяснять, где
+                        переключатель, пришлось бы на языке, которого человек
+                        и не знает.
+                    -->
+                    <div class="hint">
+                        Язык интерфейса. Названия упражнений и заметки остаются
+                        такими, какими записаны.
+                    </div>
+                </div>
+            </div>
 
             <div class="card">
                 <div class="card-title">Тренировка</div>
@@ -478,6 +502,18 @@ document.addEventListener('change', async (e) => {
  * способ узнать, отказывает ли браузер вообще. Если отказал, показываем
  * его собственные слова: «не работает» без причины чинить нельзя.
  */
+/**
+ * Смена языка (§53).
+ *
+ * Перерисовкой всего экрана, а не одной подписи: язык меняет всё сразу —
+ * меню, заголовки, разделитель дробной части, названия месяцев.
+ */
+actions.onChange('lang', (el) => {
+    i18n.set(el.value);
+    app.translateStatic();
+    app.render();
+});
+
 actions.on('fs-now', async () => {
     if (!config.get('fullscreen')) config.set('fullscreen', true);
 

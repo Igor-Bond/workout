@@ -8,6 +8,7 @@
  */
 
 import { app } from './app.js';
+import { i18n } from './core/i18n.js';
 import { actions } from './core/actions.js';
 import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
@@ -121,6 +122,10 @@ function registerServiceWorker() {
  * объяснить, что происходит, а не остаться на надписи «Загрузка».
  */
 async function boot() {
+    // Язык определяется первым: он влияет на всё, что рисуется дальше, —
+    // от подписей в меню до разделителя дробной части (§53)
+    i18n.apply();
+
     install.init();
 
     // До первой отрисовки: иначе меню встанет по неверной высоте экрана

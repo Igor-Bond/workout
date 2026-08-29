@@ -94,6 +94,7 @@
     actions.init();
 
     // Наборы регистрируют проверки самим фактом импорта
+    await import('./suites/i18n.test.js');
     await import('./suites/actions.test.js');
     await import('./suites/wakelock.test.js');
     await import('./suites/updater.test.js');
