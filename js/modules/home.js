@@ -25,6 +25,7 @@ import { rhythm } from '../core/rhythm.js';
 import { stats } from '../core/stats.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 const DAY = 86400000;
@@ -51,24 +52,24 @@ async function activeBlock() {
     // Завершение и удаление — ссылками, а не кнопками: они нужны в одном
     // случае из десяти, а кнопкой выглядели наравне с продолжением
     const drop = ui.html`
-        <button class="link-btn is-danger" data-action="home-drop" data-id="${workout.id}">Удалить</button>
+        <button class="link-btn is-danger" data-action="home-drop" data-id="${workout.id}">${t('Удалить')}</button>
     `;
 
     return ui.html`
         <div class="section">
-            <div class="section-title">Незавершённая тренировка</div>
+            <div class="section-title">${t('Незавершённая тренировка')}</div>
 
             <div class="card">
                 <div class="active-type">${workout.type}</div>
                 <div class="active-meta">
-                    начата ${dates.formatDayLabel(workout.startedAt)} в ${dates.formatTime(workout.startedAt)}
-                    · ${String(totals.done)} из ${String(totals.planned)} подходов
+                    ${t('начата {день} в {время}', { день: dates.formatDayLabel(workout.startedAt).toLowerCase(), время: dates.formatTime(workout.startedAt) })}
+                    · ${t('{done} из {planned} подходов', { done: totals.done, planned: totals.planned })}
                 </div>
 
                 ${stale ? ui.html`
-                    <p class="hint">Прошло больше 12 часов. Продолжать её не стоит — время тренировки считается от старта.</p>
+                    <p class="hint">${t('Прошло больше 12 часов. Продолжать её не стоит — время тренировки считается от старта.')}</p>
                     <button class="btn btn-accent" data-action="home-finish-stale" data-id="${workout.id}">
-                        Завершить прошедшей датой
+                        ${t('Завершить прошедшей датой')}
                     </button>
                     <div class="row-links">${drop}</div>
                 ` : ui.html`
@@ -78,9 +79,9 @@ async function activeBlock() {
                         выполнению значило бы показать пустую форму
                     -->
                     <button class="btn btn-accent btn-lg" data-action="nav"
-                            data-screen="${workout.interval ? 'interval' : 'session'}">Продолжить</button>
+                            data-screen="${workout.interval ? 'interval' : 'session'}">${t('Продолжить')}</button>
                     <div class="row-links">
-                        <button class="link-btn" data-action="home-finish" data-id="${workout.id}">Завершить как есть</button>
+                        <button class="link-btn" data-action="home-finish" data-id="${workout.id}">${t('Завершить как есть')}</button>
                         ${drop}
                     </div>
                 `}
@@ -104,25 +105,25 @@ function rhythmStrip(workouts) {
     if (!r.enough) {
         return ui.html`
             <div class="rhythm-strip">
-                <span class="rhythm-state">Проведено ${format.count(r.count, format.WORDS.workout)}</span>
+                <span class="rhythm-state">${t('Проведено {n}', { n: format.count(r.count, format.WORDS.workout) })}</span>
                 <span class="rhythm-detail">
-                    Ещё ${format.count(r.need, format.WORDS.workout)} — и появится прогноз ритма
+                    ${t('Ещё {n} — и появится прогноз ритма', { n: format.count(r.need, format.WORDS.workout) })}
                 </span>
             </div>
         `;
     }
 
     const headline = r.state === 'overdue'
-        ? `${format.count(r.daysSince, format.WORDS.day)} без тренировки`
+        ? t('{n} без тренировки', { n: format.count(r.daysSince, format.WORDS.day) })
         : r.state === 'due'
-            ? 'Пора тренироваться'
-            : `Следующая — ${dates.formatDayLabel(r.nextAt).toLowerCase()}`;
+            ? t('Пора тренироваться')
+            : t('Следующая — {день}', { день: dates.formatDayLabel(r.nextAt).toLowerCase() });
 
     return ui.html`
         <div class="rhythm-strip is-${r.state}">
             <span class="rhythm-state">${headline}</span>
             <span class="rhythm-detail">
-                Обычно раз в ${format.count(r.medianInterval, format.WORDS.day)}${r.confidence === 'low' ? ', ритм рваный — день примерный' : ''}
+                ${t('Обычно раз в {n}', { n: format.count(r.medianInterval, format.WORDS.day) })}${r.confidence === 'low' ? t(', ритм рваный — день примерный') : ''}
             </span>
         </div>
     `;
@@ -135,7 +136,7 @@ function exerciseLine(entry, names) {
     if (list.length === 0) return entry.workout.type;
 
     const shown = list.slice(0, NAMES_SHOWN).join(' · ');
-    return list.length > NAMES_SHOWN ? `${shown} и ещё ${list.length - NAMES_SHOWN}` : shown;
+    return list.length > NAMES_SHOWN ? `${shown} ${t('и ещё {n}', { n: list.length - NAMES_SHOWN })}` : shown;
 }
 
 /**
@@ -172,11 +173,11 @@ function startBlock(last, templates, suggestion, names, due) {
 
     return ui.html`
         <div class="section">
-            <div class="section-title">Начать</div>
+            <div class="section-title">${t('Начать')}</div>
 
             ${last ? ui.html`
                 <button class="repeat-card" data-action="nav-plan-repeat">
-                    <span class="rep-label">Повторить прошлую</span>
+                    <span class="rep-label">${t('Повторить прошлую')}</span>
                     <span class="rep-names">${exerciseLine(last, names)}</span>
                     <span class="rep-meta">
                         ${last.workout.type}
@@ -188,22 +189,22 @@ function startBlock(last, templates, suggestion, names, due) {
 
             ${dueNames.length ? ui.html`
                 <button class="due-card" data-action="nav-plan-due">
-                    <span class="rep-label">Пора по периодичности</span>
+                    <span class="rep-label">${t('Пора по периодичности')}</span>
                     <span class="rep-names">${dueNames.join(' · ')}</span>
-                    <span class="rep-meta">собрать тренировку из них</span>
+                    <span class="rep-meta">${t('собрать тренировку из них')}</span>
                 </button>
             ` : differs ? ui.html`
                 <p class="hint">
                     ${suggestion.reason === 'cycle'
-                        ? `По чередованию дальше — «${suggestion.type}»`
-                        : `Дольше всего не было «${suggestion.type}»`}
+                        ? t('По чередованию дальше — «{тип}»', { тип: suggestion.type })
+                        : t('Дольше всего не было «{тип}»', { тип: suggestion.type })}
                 </p>
             ` : ''}
 
             ${templates.length ? ui.html`<div class="chips">${chips}</div>` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
-                ${templates.length ? 'Все шаблоны' : 'Создать шаблон'}
+                ${templates.length ? t('Все шаблоны') : t('Создать шаблон')}
             </button>
 
             <!--
@@ -221,7 +222,7 @@ function startBlock(last, templates, suggestion, names, due) {
                 итогах: один переход — одно название.
             -->
             <button class="btn btn-accent btn-lg" data-action="nav" data-screen="plan">
-                Новая тренировка
+                ${t('Новая тренировка')}
             </button>
         </div>
     `;
@@ -260,15 +261,15 @@ function weekBlock(entries) {
 
     return ui.html`
         <div class="section">
-            <div class="section-title">Последние семь дней</div>
+            <div class="section-title">${t('Последние семь дней')}</div>
 
             <div class="card">
                 <div class="week-strip">${cells}</div>
 
                 <div class="tiles is-tight">
-                    <div class="tile"><strong>${String(own.length)}</strong><span>Тренировок</span></div>
-                    <div class="tile"><strong>${String(sets)}</strong><span>Подходов</span></div>
-                    <div class="tile"><strong>${format.decimal(volume, 0)}</strong><span>Тоннаж, кг</span></div>
+                    <div class="tile"><strong>${String(own.length)}</strong><span>${t('Тренировок')}</span></div>
+                    <div class="tile"><strong>${String(sets)}</strong><span>${t('Подходов')}</span></div>
+                    <div class="tile"><strong>${format.decimal(volume, 0)}</strong><span>${t('Тоннаж, кг')}</span></div>
                 </div>
             </div>
         </div>
@@ -293,13 +294,13 @@ function bodyBlock(records) {
 
     return ui.html`
         <div class="section">
-            <div class="section-title">Вес тела</div>
+            <div class="section-title">${t('Вес тела')}</div>
 
             <button class="weight-row" data-action="body-add">
                 <span class="w-value">${format.weight(last.weight)} <small>кг</small></span>
                 <span class="w-meta">
                     ${month && month.delta
-                        ? `${sign(month.delta)}${format.weight(Math.abs(month.delta))} кг за месяц · `
+                        ? `${sign(month.delta)}${format.weight(Math.abs(month.delta))} ${t('кг за месяц')} · `
                         : ''}${dates.formatDayLabel(last.at).toLowerCase()}
                 </span>
             </button>
@@ -325,7 +326,7 @@ export const home = {
         const names = new Map(exercises.map((e) => [e.id, e.name]));
 
         return ui.html`
-            ${ui.title('Тренировка')}
+            ${ui.raw(ui.title(t('Тренировка')))}
 
             ${rhythmStrip(workouts) || ''}
 
@@ -353,9 +354,9 @@ actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
 
 actions.on('home-finish', async (el) => {
     const ok = await dialog.confirm({
-        title: 'Завершить тренировку?',
-        text: 'Записанные подходы сохранятся, остальное останется невыполненным.',
-        confirmText: 'Завершить'
+        title: t('Завершить тренировку?'),
+        text: t('Записанные подходы сохранятся, остальное останется невыполненным.'),
+        confirmText: t('Завершить')
     });
 
     if (!ok) return;
@@ -379,9 +380,9 @@ actions.on('home-finish-stale', async (el) => {
 
 actions.on('home-drop', async (el) => {
     const ok = await dialog.confirm({
-        title: 'Удалить тренировку?',
-        text: 'Всё записанное в ней пропадёт.',
-        confirmText: 'Удалить',
+        title: t('Удалить тренировку?'),
+        text: t('Всё записанное в ней пропадёт.'),
+        confirmText: t('Удалить'),
         danger: true
     });
 

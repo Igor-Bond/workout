@@ -23,13 +23,20 @@ const MONTHS = {
               'July', 'August', 'September', 'October', 'November', 'December'],
         nom: ['January', 'February', 'March', 'April', 'May', 'June',
               'July', 'August', 'September', 'October', 'November', 'December']
+    },
+    de: {
+        gen: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+              'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'],
+        nom: ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
+              'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
     }
 };
 
 /** Календарь начинается с понедельника — и в русском, и в английском виде. */
 const WEEKDAYS = {
     ru: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
-    en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    de: ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So']
 };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -93,10 +100,15 @@ export const dates = {
         const d = new Date(ts);
         const month = dates.MONTHS_GEN[d.getMonth()];
 
-        // По-английски день и месяц пишут наоборот: «27 August» читается как
-        // ошибка, «August 27» — как дата
-        const label = i18n.lang === 'en'
-            ? `${month} ${d.getDate()}`
+        /*
+         * Порядок дня и месяца у каждого языка свой.
+         *
+         * По-английски «27 August» читается как ошибка, «August 27» — как
+         * дата. По-немецки наоборот, и день пишется с точкой: «27. August»
+         * это «двадцать седьмое», а «27 August» — оборванная фраза.
+         */
+        const label = i18n.lang === 'en' ? `${month} ${d.getDate()}`
+            : i18n.lang === 'de' ? `${d.getDate()}. ${month}`
             : `${d.getDate()} ${month}`;
 
         return d.getFullYear() === new Date(now).getFullYear()

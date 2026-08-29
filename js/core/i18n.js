@@ -20,8 +20,9 @@
 
 import { config } from '../config.js';
 import { EN } from '../i18n/en.js';
+import { DE } from '../i18n/de.js';
 
-const DICTS = { en: EN };
+const DICTS = { en: EN, de: DE };
 
 /**
  * Языки, которые считаем русскоязычными.
@@ -46,10 +47,18 @@ const RU_LOCALES = ['ru', 'uk', 'be', 'kk', 'ky'];
  */
 export const READY = false;
 
+/**
+ * Языки в списке выбора.
+ *
+ * Каждый назван на себе самом: тот, кто ищет свой язык, ищет знакомое
+ * слово, а не его перевод на чужой. «Как в телефоне» — исключение: пока
+ * язык не выбран, единственный понятный человеку язык и есть язык телефона.
+ */
 export const LANGS = [
     { value: 'auto', label: 'Как в телефоне' },
     { value: 'ru',   label: 'Русский' },
-    { value: 'en',   label: 'English' }
+    { value: 'en',   label: 'English' },
+    { value: 'de',   label: 'Deutsch' }
 ];
 
 /** Текущий язык: 'ru' или 'en'. Хранится отдельно от настройки «авто». */

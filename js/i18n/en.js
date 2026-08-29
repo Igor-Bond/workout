@@ -73,11 +73,11 @@ export const EN = {
     'Вес тела': 'Body weight',
     'Пора тренироваться': 'Time to train',
     'Проведено {n}': 'Done: {n}',
-    'Ещё {n} — и появится прогноз ритма':
-        'One more{plural} and a rhythm forecast appears',
     'Следующая — {день}': 'Next — {день}',
     '{n} без тренировки': '{n} without a workout',
     'Обычно раз в {n}': 'Usually every {n}',
+    'Ещё {n} — и появится прогноз ритма': '{n} more and a rhythm forecast appears',
+    'кг за месяц': 'kg this month',
     ', ритм рваный — день примерный': ', the rhythm is uneven — the day is a guess',
     'По чередованию дальше — «{тип}»': 'Next in the rotation — “{тип}”',
     'Дольше всего не было «{тип}»': '“{тип}” has been missing the longest',
