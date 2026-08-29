@@ -76,22 +76,5 @@ export const ui = {
     /** Пояснение вместо содержимого: данных нет, но экран не пустой. */
     empty(text) {
         return ui.html`<div class="empty-note">${text}</div>`;
-    },
-
-    /**
-     * Заглушка нереализованного раздела.
-     *
-     * Показывается вместо содержимого и честно называет этап, на котором
-     * раздел появится. Ни одна заглушка не должна дожить до выпуска: их
-     * список — это и есть список незакрытых пунктов STATUS.md.
-     */
-    stub(title, stage, text) {
-        return ui.html`
-            <div class="stub">
-                <div class="stub-stage">Этап ${stage}</div>
-                <div class="stub-title">${title}</div>
-                <p>${text}</p>
-            </div>
-        `;
     }
 };

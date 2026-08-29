@@ -100,7 +100,7 @@ function bodyBlock(weights, range) {
                 <div class="tiles">
                     ${tile(t('Сейчас, кг'), format.weight(last.weight))}
                     ${change ? tile(
-                        'За период, кг',
+                        t('За период, кг'),
                         `${change.delta > 0 ? '+' : change.delta < 0 ? '−' : ''}${format.weight(Math.abs(change.delta))}`
                     ) : ''}
                     ${tile(t('Взвешиваний'), String(series.length))}
@@ -114,7 +114,7 @@ function bodyBlock(weights, range) {
                     }))]
                 }], { height: 130 }) : ''}
 
-                <p class="hint">Последнее взвешивание — ${dates.formatDayLabel(last.at).toLowerCase()}.</p>
+                <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at).toLowerCase() })}</p>
             ` : ui.empty(t('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.'))}
 
             <button class="btn btn-ghost btn-sm" data-action="body-add">
@@ -213,11 +213,15 @@ export const stats = {
                         </span>
                         ${best.byVolume && best.byVolume.key !== best.byWorkouts.key ? ui.html`
                             <span>
-                                по тоннажу ${monthName(best.byVolume.at)} —
-                                ${format.decimal(best.byVolume.volume, 0)} кг
+                                ${t('по тоннажу {месяц} — {кг} кг', {
+                                    месяц: monthName(best.byVolume.at),
+                                    кг: format.decimal(best.byVolume.volume, 0)
+                                })}
                             </span>
                         ` : best.byVolume ? ui.html`
-                            <span>он же лучший по тоннажу: ${format.decimal(best.byVolume.volume, 0)} кг</span>
+                            <span>${t('он же лучший по тоннажу: {кг} кг', {
+                                кг: format.decimal(best.byVolume.volume, 0)
+                            })}</span>
                         ` : ''}
                     </div>
                 ` : ''}
@@ -263,12 +267,12 @@ export const stats = {
             <div class="card">
                 <div class="card-title">${t('Объём по группам мышц')}</div>
                 ${chart.hbars(
-                    muscles.map((m) => ({ label: m.group, value: m.sets })),
+                    muscles.map((m) => ({ label: t(m.group), value: m.sets })),
                     { format: (v) => `${v}` }
                 )}
                 ${muscles.some((m) => m.group === 'Без группы') ? ui.html`
                     <p class="hint">
-                        У части упражнений группа не указана.
+                        ${t('У части упражнений группа не указана.')}
                         <button class="link-btn" data-action="nav" data-screen="exercises">${t('Проставить в справочнике')}</button>
                     </p>
                 ` : ''}
@@ -291,8 +295,8 @@ actions.on('body-add', async () => {
     const values = await dialog.form({
         title: t('Вес тела'),
         text: today
-            ? 'Сегодня вес уже отмечен — новое значение заменит прежнее.'
-            : 'Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.',
+            ? t('Сегодня вес уже отмечен — новое значение заменит прежнее.')
+            : t('Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.'),
         fields: [
             { name: 'weight', label: t('Вес, кг'), type: 'number', required: true, value: last?.weight ?? '' },
             { name: 'note', label: t('Заметка (необязательно)'), value: today?.note || '' }

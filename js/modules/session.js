@@ -95,8 +95,8 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
     return ui.html`
         <div class="rec-line">
             <span class="rec-label">${t('Примерная нагрузка')}</span>
-            <span class="rec-value">≈ ${format.weight(value)} кг</span>
-            <span class="rec-when">${kind === 'time' ? 'на удержании' : 'за повторение'}</span>
+            <span class="rec-value">≈ ${format.weight(value)} ${t('кг')}</span>
+            <span class="rec-when">${kind === 'time' ? t('на удержании') : t('за повторение')}</span>
         </div>
     `;
 }
@@ -166,7 +166,7 @@ function deltaLine({ last, kind }, own) {
 
     return ui.html`
         <div class="sess-delta ${delta.better === true ? 'is-up' : delta.better === false ? 'is-down' : ''}">
-            ${delta.parts.join(', ')} к прошлому разу
+            ${t('{изменения} к прошлому разу', { изменения: delta.parts.join(', ') })}
         </div>
     `;
 }
@@ -237,11 +237,11 @@ function currentCard({ workout, sets, exercises, rows }) {
 
     return ui.html`
         <div class="card session-card">
-            <div class="sess-name">${exercise.name || 'Упражнение'}</div>
+            <div class="sess-name">${exercise.name || t('Упражнение')}</div>
             <div class="sess-set">
                 ${row.planned > 0
                     ? t('Подход {n} из {всего}', { n: row.done + 1, всего: row.planned })
-                    : `Подход ${row.done + 1}`}
+                    : t('Подход {n}', { n: row.done + 1 })}
             </div>
 
             <div class="rec-block">
@@ -694,7 +694,7 @@ actions.on('sess-rest', async () => {
 
     const values = await dialog.form({
         title: t('Отдых: {время}', { время: exercise.name }),
-        text: `Общая настройка — ${format.seconds(config.get('restSeconds'))}. Пустое поле вернёт её.`,
+        text: t('Общая настройка — {время}. Пустое поле вернёт её.', { время: format.seconds(config.get('restSeconds')) }),
         fields: [{
             name: 'rest',
             label: t('Секунд'),
@@ -720,7 +720,7 @@ actions.on('sess-note-exercise', async () => {
     const item = view.workout.plan.find((p) => p.exerciseId === currentId);
 
     const values = await dialog.form({
-        title: `Заметка: ${view.exercises[currentId]?.name || 'упражнение'}`,
+        title: t('Заметка: {название}', { название: view.exercises[currentId]?.name || t('упражнение') }),
         text: t('Относится к этому упражнению в текущей тренировке.'),
         fields: [{ name: 'note', label: t('Заметка'), type: 'textarea', value: item?.note || '' }]
     });
@@ -867,7 +867,7 @@ actions.on('sess-finish', async () => {
 
     const ok = await dialog.confirm({
         title: t('Завершить тренировку?'),
-        text: `Записано ${format.count(sets.length, format.WORDS.set)}.`,
+        text: t('Записано {подходы}.', { подходы: format.count(sets.length, format.WORDS.set) }),
         confirmText: t('Завершить')
     });
 

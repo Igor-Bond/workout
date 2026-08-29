@@ -15,7 +15,7 @@
 import Dexie from '../../vendor/dexie.min.js';
 import { migrations } from './migrations.js';
 import { howTo } from './howto.js';
-import { i18n } from '../core/i18n.js';
+import { i18n, t } from '../core/i18n.js';
 import { localizeExercise, canonicalName, canonicalGroup, deliveredHowTo } from '../i18n/exercises.js';
 
 /**
@@ -227,7 +227,7 @@ export const dbService = {
 
     async createExercise({ name, kind = 'weight', group = '' }) {
         const clean = String(name || '').trim();
-        if (!clean) throw new Error('У упражнения должно быть название');
+        if (!clean) throw new Error(t('У упражнения должно быть название'));
 
         const now = Date.now();
         const record = {
@@ -258,7 +258,7 @@ export const dbService = {
         // перестанет находиться по своему же новому имени
         if (changes.name !== undefined) {
             const clean = String(changes.name).trim();
-            if (!clean) throw new Error('У упражнения должно быть название');
+            if (!clean) throw new Error(t('У упражнения должно быть название'));
             patch.name = clean;
             patch.nameKey = migrations.normalizeName(clean);
         }
@@ -284,7 +284,7 @@ export const dbService = {
     async deleteExercise(id) {
         const used = await dbService.countSetsOfExercise(id);
         if (used > 0) {
-            throw new Error('Упражнение встречается в истории — его можно только архивировать');
+            throw new Error(t('Упражнение встречается в истории — его можно только архивировать'));
         }
 
         await db.exercises.delete(id);
@@ -303,15 +303,15 @@ export const dbService = {
      * Одной транзакцией: половина перенесённой истории хуже неперенесённой.
      */
     async mergeExercises(sourceId, targetId) {
-        if (sourceId === targetId) throw new Error('Упражнение нельзя объединить с самим собой');
+        if (sourceId === targetId) throw new Error(t('Упражнение нельзя объединить с самим собой'));
 
         const [source, target] = await Promise.all([
             dbService.getExercise(sourceId),
             dbService.getExercise(targetId)
         ]);
 
-        if (!source) throw new Error('Исходное упражнение не найдено');
-        if (!target) throw new Error('Целевое упражнение не найдено');
+        if (!source) throw new Error(t('Исходное упражнение не найдено'));
+        if (!target) throw new Error(t('Целевое упражнение не найдено'));
 
         const now = Date.now();
         const moved = { sets: 0, workouts: 0, templates: 0 };
@@ -796,7 +796,7 @@ export const dbService = {
      */
     async updateSet(id, changes = {}) {
         const set = await db.sets.get(id);
-        if (!alive(set)) throw new Error('Подход не найден');
+        if (!alive(set)) throw new Error(t('Подход не найден'));
 
         const next = { ...set, updatedAt: Date.now() };
 
@@ -836,7 +836,7 @@ export const dbService = {
      */
     async applySetToRest(id, changes = {}) {
         const set = await db.sets.get(id);
-        if (!alive(set)) throw new Error('Подход не найден');
+        if (!alive(set)) throw new Error(t('Подход не найден'));
 
         const rest = (await dbService.listSets(set.workoutId))
             .filter((s) => s.exerciseId === set.exerciseId && s.id !== set.id);
@@ -1008,7 +1008,7 @@ export const dbService = {
      */
     async changedSince(name, since = 0) {
         const table = db[name];
-        if (!table) throw new Error(`Нет таблицы «${name}»`);
+        if (!table) throw new Error(`[База] Нет таблицы «${name}»`);
 
         const changed = await table.where('updatedAt').above(since).toArray();
 

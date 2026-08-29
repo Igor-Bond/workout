@@ -19,6 +19,8 @@
  * взять меньше и добавить безопаснее, чем сорваться на первом подходе.
  */
 
+import { canonicalKey, canonicalGroup } from '../i18n/exercises.js';
+
 /** Доля собственного веса, с которой начинают. Ключ — нормализованное название. */
 const BY_NAME = {
     'жим лежа': 0.5,
@@ -118,7 +120,7 @@ export const estimate = {
      * столько, сколько весит, — доля тут ни при чём.
      */
     bodyLoad({ nameKey = '', kind = 'reps', bodyWeight = 0, weight = 0 } = {}) {
-        const share = BODY_SHARE[nameKey] ?? SHARE_BY_KIND[kind];
+        const share = BODY_SHARE[canonicalKey(nameKey)] ?? SHARE_BY_KIND[kind];
         if (share === undefined) return null;
 
         if (!bodyWeight || bodyWeight <= 0) return null;
@@ -138,7 +140,7 @@ export const estimate = {
         if (kind !== 'weight') return null;
         if (!bodyWeight || bodyWeight <= 0) return null;
 
-        const share = BY_NAME[nameKey] ?? BY_GROUP[group];
+        const share = BY_NAME[canonicalKey(nameKey)] ?? BY_GROUP[canonicalGroup(group)];
         if (!share) return null;
 
         const raw = bodyWeight * share;

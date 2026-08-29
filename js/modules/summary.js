@@ -149,7 +149,7 @@ function block(b, note) {
     const line = [
         format.count(b.sets.length, format.WORDS.set),
         b.reps ? format.count(b.reps, format.WORDS.rep) : null,
-        b.volume ? `${format.weight(b.volume)} кг` : null,
+        b.volume ? `${format.weight(b.volume)} ${t('кг')}` : null,
         !b.reps && b.duration ? format.seconds(b.duration) : null,
         b.distance ? format.distance(b.distance) : null
     ].filter(Boolean).join(' · ');
@@ -162,7 +162,7 @@ function block(b, note) {
             </div>
 
             ${b.record ? ui.html`
-                <div class="record-line">★ Новый рекорд: ${records.describe(b.record, b.kind)}</div>
+                <div class="record-line">★ ${t('Новый рекорд: {результат}', { результат: records.describe(b.record, b.kind) })}</div>
             ` : ''}
 
             <div class="table-scroll">
@@ -170,7 +170,7 @@ function block(b, note) {
                     <thead>
                         <tr>
                             <th>${t('Подход')}</th>
-                            ${columns.map((field) => ui.html`<th>${COLUMN_HEAD[field]}</th>`)}
+                            ${columns.map((field) => ui.html`<th>${t(COLUMN_HEAD[field])}</th>`)}
                             <th></th>
                         </tr>
                     </thead>
@@ -340,13 +340,13 @@ actions.on('summary-edit-set', async (el) => {
 
     const fields = editableFields(set, el.dataset.kind).map((name) => ({
         name,
-        label: FIELD_INPUT[name],
+        label: t(FIELD_INPUT[name]),
         type: 'number',
         value: set[name] ?? ''
     }));
 
     const values = await dialog.form({
-        title: `Подход ${set.setNumber}`,
+        title: t('Подход {n}', { n: set.setNumber }),
         text: t('Итоги, рекорды и статистика пересчитаются.'),
         fields: [...fields, { name: 'note', label: t('Заметка к подходу'), value: set.note || '' }],
         confirmText: t('Сохранить')
@@ -371,7 +371,7 @@ actions.on('summary-edit-set', async (el) => {
         const after = values[field] === '' || values[field] === null ? undefined : Number(values[field]);
 
         if (before === after) continue;
-        changed[field] = { label, before, after };
+        changed[field] = { label: t(label), before, after };
     }
 
     const keys = Object.keys(changed);
@@ -397,7 +397,7 @@ actions.on('summary-edit-set', async (el) => {
 
             const ok = await dialog.confirm({
                 title: t('Применить к остальным подходам?'),
-                text: `${exercise?.name || 'Упражнение'}, ещё ${format.count(rest.length, format.WORDS.set)}. ${lines.join(', ')}. Заметка останется только у этого подхода.`,
+                text: t('{упражнение}, ещё {подходы}. {изменения}. Заметка останется только у этого подхода.', { упражнение: exercise?.name || t('Упражнение'), подходы: format.count(rest.length, format.WORDS.set), изменения: lines.join(', ') }),
                 confirmText: t('Применить ко всем')
             });
 
@@ -467,7 +467,7 @@ actions.on('summary-as-template', async (el) => {
         }))
     });
 
-    await dialog.alert({ title: 'Шаблон сохранён', text: `«${values.name}» теперь в списке шаблонов.` });
+    await dialog.alert({ title: t('Шаблон сохранён'), text: t('«{название}» теперь в списке шаблонов.', { название: values.name }) });
 });
 
 actions.on('summary-note', async (el) => {

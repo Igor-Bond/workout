@@ -269,9 +269,11 @@ export const sync = {
                 // историю, и молчать об этом нельзя
                 emit('done', [
                     result.received || result.sent
-                        ? `Получено ${result.received}, отправлено ${result.sent}`
+                        ? t('Получено {получено}, отправлено {отправлено}', {
+                            получено: result.received, отправлено: result.sent
+                        })
                         : t('Изменений нет'),
-                    result.merged ? `объединено двойников: ${result.merged}` : ''
+                    result.merged ? t('объединено двойников: {сколько}', { сколько: result.merged }) : ''
                 ].filter(Boolean).join(', '));
             }
 

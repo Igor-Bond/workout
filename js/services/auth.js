@@ -13,6 +13,7 @@
  */
 
 import { firebaseConfig } from '../firebase.config.js';
+import { t } from '../core/i18n.js';
 
 let sdk = null;
 let firebaseApp = null;
@@ -52,7 +53,7 @@ export const auth = {
      */
     async init() {
         if (initialised) return sdk;
-        if (!auth.isConfigured()) throw new Error('Firebase не настроен: заполните js/firebase.config.js');
+        if (!auth.isConfigured()) throw new Error('[Вход] Firebase не настроен: заполните js/firebase.config.js');
 
         const [app, authModule, firestore] = await Promise.all([
             import('../../vendor/firebase/firebase-app.js'),
@@ -133,7 +134,7 @@ export const auth = {
      */
     async context() {
         await auth.init();
-        if (!currentUser) throw new Error('Не выполнен вход');
+        if (!currentUser) throw new Error(t('Не выполнен вход'));
 
         return { fs: sdk.firestore, db: firestoreInstance, uid: currentUser.uid };
     }

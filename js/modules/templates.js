@@ -98,7 +98,7 @@ actions.on('tpl-copy', async (el) => {
     if (!source) return;
 
     await dbService.saveTemplate({
-        name: `${source.name} (копия)`,
+        name: t('{название} (копия)', { название: source.name }),
         type: source.type,
         items: source.items
     });

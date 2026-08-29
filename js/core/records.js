@@ -222,7 +222,7 @@ export const records = {
             const parts = [];
             if (set.distance) parts.push(format.distance(set.distance));
             if (set.duration) parts.push(format.seconds(set.duration));
-            return parts.join(' за ') || '—';
+            return parts.join(` ${t('за')} `) || '—';
         }
 
         const reps = set.reps ?? 0;

@@ -15,6 +15,8 @@
  * и по составу — одно добавят, другое забудут.
  */
 
+import { migrations } from '../services/migrations.js';
+
 const EN = {
     groups: {
         'Грудь': 'Chest',
@@ -296,4 +298,32 @@ export function localizeExercise(item, lang, howToRu = '') {
         group: item.group ? (dict.groups[item.group] || item.group) : '',
         howTo: dict.howTo[item.name] || howToRu
     };
+}
+
+/**
+ * Русский ключ базового упражнения по нормализованному названию.
+ *
+ * Нужен таблицам, которые ищут упражнение по имени: прикидка стартового
+ * веса и доля собственного веса. Ключи там русские, а в базе, поставленной
+ * на другом языке, названия чужие — и подтягивания переставали считаться
+ * подтягиваниями. Считалось при этом не «ничего», а среднее по виду: доля
+ * собственного веса падала с единицы до двух третей, и тоннаж выходил
+ * заниженным молча.
+ */
+let keys = null;
+
+export function canonicalKey(nameKey) {
+    if (!nameKey) return '';
+
+    if (!keys) {
+        keys = new Map();
+
+        for (const dict of Object.values(ALL)) {
+            for (const [ru, translated] of Object.entries(dict.names)) {
+                keys.set(migrations.normalizeName(translated), migrations.normalizeName(ru));
+            }
+        }
+    }
+
+    return keys.get(nameKey) || nameKey;
 }

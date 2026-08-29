@@ -111,10 +111,28 @@
     await import('./suites/db.test.js');
     await import('./suites/screens.test.js');
     await import('./suites/lang-coverage.test.js');
+    await import('./suites/lang-source.test.js');
+    await import('./suites/lang-dialogs.test.js');
     await import('./suites/e2e.test.js');
 
-    const summary = await run(document.getElementById('results'));
-    console.log('[Проверки]', summary);
+    /*
+     * Проверки идут по-русски, каким бы ни был выбранный язык.
+     *
+     * Ожидаемые строки в них написаны по-русски, и после переключения
+     * приложения на немецкий проваливалось разом полсотни проверок — не
+     * потому, что что-то сломалось, а потому, что ответ пришёл на другом
+     * языке. Настройка общая с приложением, поэтому её возвращаем на место.
+     */
+    const { i18n } = await import('../js/core/i18n.js');
+    const выбранный = i18n.setting;
+    i18n.set('ru');
+
+    try {
+        const summary = await run(document.getElementById('results'));
+        console.log('[Проверки]', summary);
+    } finally {
+        i18n.set(выбранный);
+    }
 </script>
 </body>
 </html>

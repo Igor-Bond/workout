@@ -7,6 +7,7 @@
  */
 
 import { ui } from './ui.js';
+import { t } from './i18n.js';
 
 let root = null;
 let closeCurrent = null;
@@ -77,7 +78,7 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
 export const dialog = {
 
     /** Сообщение с единственной кнопкой. */
-    alert({ title, text, okText = 'Понятно' }) {
+    alert({ title, text, okText = t('Понятно') }) {
         return open(ui.html`
             <div class="dialog" role="alertdialog" aria-modal="true">
                 <div class="dialog-title">${title}</div>
@@ -90,7 +91,7 @@ export const dialog = {
     },
 
     /** Да или нет. danger красит подтверждение в цвет удаления. */
-    confirm({ title, text, confirmText = 'Да', cancelText = 'Отмена', danger = false }) {
+    confirm({ title, text, confirmText = t('Да'), cancelText = t('Отмена'), danger = false }) {
         return open(ui.html`
             <div class="dialog" role="alertdialog" aria-modal="true">
                 <div class="dialog-title">${title}</div>
@@ -112,7 +113,7 @@ export const dialog = {
      * Возвращает объект со значениями или null, если пользователь отказался.
      * Обязательное пустое поле подсвечивается, и диалог не закрывается.
      */
-    form({ title, text, fields, confirmText = 'Сохранить', cancelText = 'Отмена' }) {
+    form({ title, text, fields, confirmText = t('Сохранить'), cancelText = t('Отмена') }) {
         const controls = fields.map((f) => {
             const id = `dlg-${f.name}`;
 
@@ -187,7 +188,7 @@ export const dialog = {
      * сорока пяти упражнений искать по одному только названию тяжело:
      * названия надо помнить, а группу — нет, её выбирают взглядом.
      */
-    pick({ title, text, items, groups = [], placeholder = 'Поиск', createLabel = null, cancelText = 'Отмена' }) {
+    pick({ title, text, items, groups = [], placeholder = t('Поиск'), createLabel = null, cancelText = t('Отмена') }) {
         const option = (item) => ui.html`
             <button class="dialog-option" data-value="${item.value}">
                 <span class="dialog-option-label">${item.label}</span>
@@ -212,7 +213,7 @@ export const dialog = {
 
                 list.innerHTML = matched.length
                     ? String(ui.html`${matched.map(option)}`)
-                    : '<div class="empty-note">Ничего не найдено</div>';
+                    : String(ui.empty(t('Ничего не найдено')));
 
                 // Создание предлагается только когда введено что-то своё:
                 // пустая кнопка «создать» посреди списка сбивает с толку
@@ -277,7 +278,7 @@ export const dialog = {
      * Выбор из нескольких вариантов.
      * options — [{ value, label, hint, danger }]. Отмена даёт null.
      */
-    choose({ title, text, options, cancelText = 'Отмена' }) {
+    choose({ title, text, options, cancelText = t('Отмена') }) {
         const list = options.map((o) => ui.html`
             <button class="dialog-option ${o.danger ? 'is-danger' : ''}" data-value="${o.value}">
                 <span class="dialog-option-label">${o.label}</span>

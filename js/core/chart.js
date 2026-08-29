@@ -14,11 +14,12 @@
 
 import { dates } from './dates.js';
 import { ui } from './ui.js';
+import { t } from './i18n.js';
 
 const esc = ui.esc;
 
 /** Одинаковое поведение при отсутствии данных у всех графиков. */
-function empty(message = 'Нет данных за период') {
+function empty(message = t('Нет данных за период')) {
     return ui.html`<div class="chart-empty">${message}</div>`;
 }
 

@@ -9,7 +9,7 @@
 
 import { ui } from './core/ui.js';
 import { install } from './core/install.js';
-import { i18n } from './core/i18n.js';
+import { i18n, t } from './core/i18n.js';
 
 import { home } from './modules/home.js';
 import { templates } from './modules/templates.js';
@@ -163,8 +163,8 @@ export const app = {
      */
     showUpdateBanner() {
         app.showBanner('update', ui.html`
-            <span>Доступна новая версия</span>
-            <button class="banner-btn" data-action="reload">Обновить</button>
+            <span>${t('Доступна новая версия')}</span>
+            <button class="banner-btn" data-action="reload">${t('Обновить')}</button>
         `);
     },
 
@@ -172,8 +172,8 @@ export const app = {
     renderInstallBanner() {
         if (install.available && !install.installed) {
             app.showBanner('install', ui.html`
-                <span>Установить приложение на главный экран</span>
-                <button class="banner-btn" data-action="install">Установить</button>
+                <span>${t('Установить приложение на главный экран')}</span>
+                <button class="banner-btn" data-action="install">${t('Установить')}</button>
             `);
         } else {
             app.hideBanner('install');

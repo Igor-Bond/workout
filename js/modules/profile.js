@@ -225,10 +225,7 @@ export const profile = {
                 -->
                 ${!fullscreen.byManifest && install.installed ? ui.html`
                     <p class="hint">
-                        Приложение установлено в оконном режиме — системная полоса
-                        снизу остаётся. Чтобы она пропала совсем, удали значок
-                        с домашнего экрана и добавь заново: во весь экран
-                        приложение разворачивается при установке.
+                        ${t('Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удали значок с домашнего экрана и добавь заново: во весь экран приложение разворачивается при установке.')}
                     </p>
                 ` : ''}
             </div>
@@ -262,7 +259,7 @@ export const profile = {
             <div class="card">
                 <div class="card-title">${t('Данные')}</div>
 
-                <div class="info-row"><span>${t('Упражнений')}</span><strong>${counts.exercises}${counts.archived ? ` (${counts.archived} в архиве)` : ''}</strong></div>
+                <div class="info-row"><span>${t('Упражнений')}</span><strong>${counts.exercises}${counts.archived ? ` (${t('{сколько} в архиве', { сколько: counts.archived })})` : ''}</strong></div>
                 <div class="info-row"><span>${t('Тренировок')}</span><strong>${counts.workouts}</strong></div>
                 <div class="info-row"><span>${t('Подходов')}</span><strong>${counts.sets}</strong></div>
                 <div class="info-row"><span>${t('Шаблонов')}</span><strong>${counts.templates}</strong></div>
@@ -350,7 +347,7 @@ function status(text) {
 
 actions.on('sync-in', async () => {
     try {
-        status('Открывается окно входа…');
+        status(t('Открывается окно входа…'));
         const user = await auth.signIn();
 
         if (!user) return status('');
@@ -359,7 +356,7 @@ actions.on('sync-in', async () => {
         // SDK при следующих запусках и синхронизировать без напоминаний
         config.set('syncEnabled', true);
 
-        status('Первый обмен…');
+        status(t('Первый обмен…'));
         await sync.run({ silent: true });
     } catch (e) {
         await dialog.alert({ title: t('Не удалось войти'), text: e.message });
@@ -416,7 +413,7 @@ actions.on('backup-save', async () => {
 
         await dialog.alert({
             title: t('Копия выгружена'),
-            text: `${backup.fileName(payload.exportedAt)} — тренировки, упражнения, шаблоны и вес тела.`
+            text: t('{файл} — тренировки, упражнения, шаблоны и вес тела.', { файл: backup.fileName(payload.exportedAt) })
         });
     } catch (e) {
         await dialog.alert({ title: t('Не удалось выгрузить'), text: e.message });
@@ -445,7 +442,7 @@ document.addEventListener('change', async (e) => {
     if (payload.kind === 'v1') {
         const ok = await dialog.confirm({
             title: t('Загрузить историю прошлой версии?'),
-            text: `В файле — ${backup.describe(payload)}. Уже загруженные тренировки повторно не добавятся.`,
+            text: t('В файле — {состав}. Уже загруженные тренировки повторно не добавятся.', { состав: backup.describe(payload) }),
             confirmText: t('Загрузить')
         });
 
@@ -457,9 +454,9 @@ document.addEventListener('change', async (e) => {
             await dialog.alert({
                 title: t('Готово'),
                 text: [
-                    `Добавлено тренировок: ${result.workouts}.`,
-                    result.skipped ? `Уже были: ${result.skipped}.` : '',
-                    result.unreadable ? `Не разобрано: ${result.unreadable}.` : ''
+                    t('Добавлено тренировок: {сколько}.', { сколько: result.workouts }),
+                    result.skipped ? t('Уже были: {сколько}.', { сколько: result.skipped }) : '',
+                    result.unreadable ? t('Не разобрано: {сколько}.', { сколько: result.unreadable }) : ''
                 ].filter(Boolean).join(' ')
             });
         } catch (error) {
@@ -471,7 +468,7 @@ document.addEventListener('change', async (e) => {
 
     const mode = await dialog.choose({
         title: t('Как загрузить?'),
-        text: `В файле — ${backup.describe(payload)}.`,
+        text: t('В файле — {состав}.', { состав: backup.describe(payload) }),
         options: [
             { value: 'merge', label: t('Объединить'), hint: t('Побеждает более свежая запись') },
             { value: 'replace', label: t('Заменить всё'), hint: t('Текущие данные будут стёрты'), danger: true }
@@ -554,7 +551,7 @@ actions.on('fs-now', async () => {
     if (!ok) {
         await dialog.alert({
             title: t('Браузер отказал'),
-            text: `${fullscreen.lastError || 'Причина неизвестна.'}\n\nПолноэкранный режим есть не везде: в установленном приложении его может запрещать система, а на iPhone его нет вовсе.`
+            text: `${fullscreen.lastError || t('Причина неизвестна.')}\n\n${t('Полноэкранный режим есть не везде: в установленном приложении его может запрещать система, а на iPhone его нет вовсе.')}`
         });
     }
 
@@ -575,7 +572,7 @@ actions.on('check-update', async () => {
     // это сообщение пользователь чаще всего увидеть не успеет
     await dialog.alert(found
         ? { title: t('Найдена новая версия'), text: t('Она уже ставится — приложение перезагрузится само.') }
-        : { title: t('Установлена последняя версия'), text: `Версия ${VERSION}.` });
+        : { title: t('Установлена последняя версия'), text: t('Версия {номер}.', { номер: VERSION }) });
 });
 
 actions.on('reset-settings', async () => {

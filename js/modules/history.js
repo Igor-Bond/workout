@@ -138,7 +138,9 @@ export const history = {
                 <div class="hist-count">
                     ${matched.length === entries.length
                         ? format.count(entries.length, format.WORDS.workout)
-                        : `Подходит: ${matched.length} из ${entries.length}`}
+                        : t('Подходит: {сколько} из {всего}', {
+                            сколько: matched.length, всего: entries.length
+                        })}
                 </div>
 
                 ${page.length

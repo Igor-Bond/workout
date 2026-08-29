@@ -364,22 +364,22 @@ const VOICE_LONG = 20;
  */
 const PHRASE = {
     lead: {
-        short: (name) => `Начинаем. ${name}`,
-        long:  (name) => `Начнём с упражнения: ${name}`
+        short: (name) => t('Начинаем. {название}', { название: name }),
+        long:  (name) => t('Начнём с упражнения: {название}', { название: name })
     },
     roundRest: {
-        short: (name) => `Новый круг. ${name}`,
-        long:  (name) => `Новый круг. Начнём с упражнения: ${name}`
+        short: (name) => t('Новый круг. {название}', { название: name }),
+        long:  (name) => t('Новый круг. Начнём с упражнения: {название}', { название: name })
     },
     rest: {
-        short: (name) => `Дальше: ${name}`,
-        long:  (name) => `Дальше: ${name}`
+        short: (name) => t('Дальше: {название}', { название: name }),
+        long:  (name) => t('Дальше: {название}', { название: name })
     },
 
     // Повтор под конец длинной паузы — уже команда, а не объявление
     remind: {
-        short: (name) => `Готовься: ${name}`,
-        long:  (name) => `Готовься: ${name}`
+        short: (name) => t('Готовься: {название}', { название: name }),
+        long:  (name) => t('Готовься: {название}', { название: name })
     }
 };
 
@@ -560,7 +560,7 @@ actions.on('iv-finish', async () => {
 
     const ok = await dialog.confirm({
         title: t('Завершить тренировку?'),
-        text: `Записано ${format.count(sets.length, format.WORDS.set)}. Повторения можно проставить на итогах.`,
+        text: t('Записано {подходы}. Повторения можно проставить на итогах.', { подходы: format.count(sets.length, format.WORDS.set) }),
         confirmText: t('Завершить')
     });
 

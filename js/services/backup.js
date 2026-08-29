@@ -11,6 +11,7 @@ import { dbService } from './db.js';
 import { migrations } from './migrations.js';
 import { merge, SYNCED } from '../core/merge.js';
 import { config } from '../config.js';
+import { t } from '../core/i18n.js';
 
 /** Версия формата файла. Растёт, когда меняется состав или смысл полей. */
 const FORMAT = 1;
@@ -87,7 +88,7 @@ export const backup = {
         try {
             parsed = JSON.parse(text);
         } catch {
-            throw new Error('Файл не разбирается: это не JSON');
+            throw new Error(t('Файл не разбирается: это не JSON'));
         }
 
         // Выгрузка версии 1: голый массив либо обёртка с полем v1
@@ -96,20 +97,20 @@ export const backup = {
             : null;
 
         if (v1) {
-            if (v1.length === 0) throw new Error('В файле нет ни одной тренировки');
+            if (v1.length === 0) throw new Error(t('В файле нет ни одной тренировки'));
             return { kind: 'v1', app: 'workout', v1 };
         }
 
         if (!parsed || typeof parsed !== 'object' || !parsed.data) {
-            throw new Error('Не похоже на резервную копию трекера');
+            throw new Error(t('Не похоже на резервную копию трекера'));
         }
 
         if (parsed.app && parsed.app !== 'workout') {
-            throw new Error('Файл от другого приложения');
+            throw new Error(t('Файл от другого приложения'));
         }
 
         if (Number(parsed.format) > FORMAT) {
-            throw new Error('Файл сделан более новой версией приложения — обновите его');
+            throw new Error(t('Файл сделан более новой версией приложения — обновите его'));
         }
 
         return { kind: 'full', ...parsed };
@@ -118,7 +119,7 @@ export const backup = {
     /** Что в файле, одной строкой — для окна подтверждения. */
     describe(payload) {
         if (payload.kind === 'v1') {
-            return `${payload.v1.length} тренировок из прошлой версии`;
+            return t('{сколько} тренировок из прошлой версии', { сколько: payload.v1.length });
         }
 
         return Object.entries(payload.data)

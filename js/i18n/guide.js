@@ -99,8 +99,8 @@ const RU = {
                     ['go', 'Начало работы', 'Удар колокола, как гонг в зале. Работай.'],
                     ['pulse', 'Пульс во время работы', 'Низкий короткий толчок каждые пять секунд: подтверждает, что идёт работа, а не пауза. Его скорее чувствуешь, чем слышишь, — на телефон смотреть не нужно.'],
                     ['rest', 'Конец работы', 'Два удара вниз. Правило простое: вверх — начинай, вниз — заканчивай.'],
-                    ['round', 'Конец круга', 'Три удара вниз, последний с долгим хвостом. Дальше длинный отдых между кругами.'],
-                    ['done', 'Конец программы', 'Четыре ноты вверх с долгой последней. Длится дольше всех — спутать не с чем.']
+                    ['round', 'Конец круга', 'Двойной удар в одну ноту, как гонг на ринге. Дальше длинный отдых между кругами.'],
+                    ['done', 'Конец программы', 'Три ноты вверх и разрешение вниз, с долгим звоном. Длится дольше всех — спутать не с чем.']
                 ] },
                 { hint: 'Громкость приложение не задаёт — она общая для устройства. Если тихо, проверь громкость мультимедиа, а не звонка. И включи «Звук по окончании» в настройках отдыха: этим же выключателем управляются сигналы табаты.' },
                 { sub: 'Голос' },
@@ -233,8 +233,8 @@ const EN = {
                     ['go', 'Work starts', 'A bell, like a gong in a gym. Go.'],
                     ['pulse', 'Pulse during work', 'A low short thump every five seconds: it confirms that work is running, not rest. You feel it more than hear it — no need to look at the phone.'],
                     ['rest', 'Work ends', 'Two strikes down. The rule is simple: up means begin, down means stop.'],
-                    ['round', 'Round ends', 'Three strikes down, the last one ringing out. A long rest between rounds follows.'],
-                    ['done', 'Program ends', 'Four notes up with a long last one. It lasts longer than any other — impossible to confuse.']
+                    ['round', 'Round ends', 'A double strike on one note, like a boxing bell. A long rest between rounds follows.'],
+                    ['done', 'Program ends', 'Three notes up and a resolution down, ringing out. It lasts longer than any other — impossible to confuse.']
                 ] },
                 { hint: 'The app does not set the volume — that belongs to the device. If it is quiet, check the media volume, not the ringer. And turn on “Sound when it ends” in the rest settings: the same switch controls the Tabata sounds.' },
                 { sub: 'Voice' },
@@ -367,8 +367,8 @@ const DE = {
                     ['go', 'Arbeit beginnt', 'Ein Glockenschlag, wie ein Gong im Studio. Los.'],
                     ['pulse', 'Puls während der Arbeit', 'Ein tiefer kurzer Stoß alle fünf Sekunden: er bestätigt, dass Arbeit läuft und keine Pause. Du spürst ihn eher, als dass du ihn hörst — aufs Handy schauen musst du nicht.'],
                     ['rest', 'Arbeit endet', 'Zwei Schläge abwärts. Die Regel ist einfach: aufwärts heißt anfangen, abwärts heißt aufhören.'],
-                    ['round', 'Runde endet', 'Drei Schläge abwärts, der letzte klingt lange nach. Danach kommt die lange Pause zwischen den Runden.'],
-                    ['done', 'Programm endet', 'Vier Töne aufwärts mit langem letztem Ton. Es dauert länger als alle anderen — verwechseln kann man es nicht.']
+                    ['round', 'Runde endet', 'Ein Doppelschlag auf einem Ton, wie die Ringglocke. Danach kommt die lange Pause zwischen den Runden.'],
+                    ['done', 'Programm endet', 'Drei Töne aufwärts und eine Auflösung nach unten, lange nachklingend. Es dauert länger als alle anderen — verwechseln kann man es nicht.']
                 ] },
                 { hint: 'Die Lautstärke bestimmt nicht die App, sondern das Gerät. Ist es zu leise, prüfe die Medienlautstärke, nicht die des Klingeltons. Und schalte „Ton am Ende“ in den Pauseneinstellungen ein: derselbe Schalter steuert die Tabata-Signale.' },
                 { sub: 'Stimme' },

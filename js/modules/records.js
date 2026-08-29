@@ -7,7 +7,7 @@
  * давние видно первыми.
  */
 
-import { t } from '../core/i18n.js';
+import { t, i18n } from '../core/i18n.js';
 import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dbService } from '../services/db.js';
@@ -68,12 +68,21 @@ export const recordsScreen = {
             `;
         }
 
+        // Порядок букв зависит от языка, и брать всегда русский нельзя:
+        // на английском списке он даёт свой, ни на что не похожий порядок
+        const byName = (a, b) => a.exercise.name.localeCompare(b.exercise.name, i18n.lang);
+
         const sorted = [...rows].sort((a, b) => {
             if (sort === 'fresh') return b.at - a.at;
-            if (sort === 'name') return a.exercise.name.localeCompare(b.exercise.name, 'ru');
+            if (sort === 'name') return byName(a, b);
             if (sort === 'group') {
-                return (a.exercise.group || 'я').localeCompare(b.exercise.group || 'я', 'ru')
-                    || a.exercise.name.localeCompare(b.exercise.name, 'ru');
+                // Упражнения без группы уходят в конец списка, а не туда,
+                // куда их поставит сравнение пустой строки
+                const ga = a.exercise.group || '';
+                const gb = b.exercise.group || '';
+
+                if (!ga !== !gb) return ga ? -1 : 1;
+                return ga.localeCompare(gb, i18n.lang) || byName(a, b);
             }
             return a.at - b.at;
         });
@@ -92,7 +101,9 @@ export const recordsScreen = {
                     <span class="pr-name">${row.exercise.name}</span>
                     <span class="pr-meta">
                         ${dates.formatDayLabel(row.at)}
-                        ${row.heldDays > 0 ? ui.raw(` · держится ${ui.esc(format.count(row.heldDays, format.WORDS.day))}`) : ''}
+                        ${row.heldDays > 0 ? ui.raw(` · ${ui.esc(t('держится {n}', {
+                            n: format.count(row.heldDays, format.WORDS.day)
+                        }))}`) : ''}
                         ${row.exercise.group ? ui.raw(` · ${ui.esc(row.exercise.group)}`) : ''}
                     </span>
                 </span>

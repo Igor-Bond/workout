@@ -234,7 +234,7 @@ function intervalCard() {
 
     const presets = interval.PRESETS.map((p) => ui.html`
         <button class="chip ${c.work === p.work && c.rest === p.rest ? 'is-active' : ''}"
-                data-action="plan-preset" data-preset="${p.key}">${p.label}</button>
+                data-action="plan-preset" data-preset="${p.key}">${t(p.label)}</button>
     `);
 
     return ui.html`

@@ -75,7 +75,7 @@ export const feedback = {
      * он покажет ответ текстом, чтобы человек отправил его сам.
      */
     async send(entry) {
-        if (!feedback.available) throw new Error('Firebase не настроен');
+        if (!feedback.available) throw new Error('[Отзыв] Firebase не настроен');
 
         const [app, firestore] = await Promise.all([
             import('../../vendor/firebase/firebase-app.js'),

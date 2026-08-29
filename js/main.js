@@ -8,7 +8,7 @@
  */
 
 import { app } from './app.js';
-import { i18n } from './core/i18n.js';
+import { i18n, t } from './core/i18n.js';
 import { actions } from './core/actions.js';
 import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
@@ -44,8 +44,8 @@ actions.on('dismiss-banner', (el) => app.hideBanner(el.dataset.banner));
  */
 actions.onError((error) => {
     dialog.alert({
-        title: 'Не удалось выполнить действие',
-        text: `${error?.message || error}\n\nЕсли это повторяется — проверьте, есть ли место на устройстве и не открыто ли приложение в другой вкладке.`
+        title: t('Не удалось выполнить действие'),
+        text: `${error?.message || error}\n\n${t('Если это повторяется — проверьте, есть ли место на устройстве и не открыто ли приложение в другой вкладке.')}`
     });
 });
 
@@ -148,10 +148,11 @@ async function boot() {
 
         if (imported) {
             app.showBanner('import', ui.html`
-                <span>Перенесено из прошлой версии:
-                    ${format.count(imported.workouts, format.WORDS.workout)},
-                    ${format.count(imported.sets, format.WORDS.set)}</span>
-                <button class="banner-btn" data-action="dismiss-banner" data-banner="import">Понятно</button>
+                <span>${t('Перенесено из прошлой версии: {тренировки}, {подходы}', {
+                    тренировки: format.count(imported.workouts, format.WORDS.workout),
+                    подходы: format.count(imported.sets, format.WORDS.set)
+                })}</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="import">${t('Понятно')}</button>
             `);
         }
 
@@ -168,9 +169,10 @@ async function boot() {
 
         if (добавлено.length) {
             app.showBanner('base', ui.html`
-                <span>В справочник добавлены упражнения для интервальных тренировок:
-                    ${format.count(добавлено.length, format.WORDS.exercise)}.</span>
-                <button class="banner-btn" data-action="dismiss-banner" data-banner="base">Понятно</button>
+                <span>${t('В справочник добавлены упражнения для интервальных тренировок: {сколько}.', {
+                    сколько: format.count(добавлено.length, format.WORDS.exercise)
+                })}</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="base">${t('Понятно')}</button>
             `);
         }
 
@@ -184,17 +186,17 @@ async function boot() {
 
         if (merged.length) {
             app.showBanner('dedupe', ui.html`
-                <span>Одинаковые упражнения объединены:
-                    ${format.count(merged.length, format.WORDS.exercise)}.
-                    Подходы, планы и шаблоны перенесены.</span>
-                <button class="banner-btn" data-action="dismiss-banner" data-banner="dedupe">Понятно</button>
+                <span>${t('Одинаковые упражнения объединены: {сколько}. Подходы, планы и шаблоны перенесены.', {
+                    сколько: format.count(merged.length, format.WORDS.exercise)
+                })}</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="dedupe">${t('Понятно')}</button>
             `);
         }
     } catch (e) {
         console.error('[База] Не удалось открыть хранилище:', e);
 
         app.showBanner('db-error', ui.html`
-            <span>Нет доступа к хранилищу браузера. Записи не сохранятся — проверьте, не открыто ли приватное окно.</span>
+            <span>${t('Нет доступа к хранилищу браузера. Записи не сохранятся — проверьте, не открыто ли приватное окно.')}</span>
         `);
     }
 

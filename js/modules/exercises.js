@@ -177,7 +177,7 @@ actions.on('ex-info', async (el) => {
         title: exercise.name,
         text: exercise.howTo
             ? `${где}\n\n${exercise.howTo}`
-            : `${где}\n\nОписания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.`,
+            : `${где}\n\n${t('Описания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.')}`,
         options: [
             { value: 'video', label: t('Найти видео'), hint: t('Откроется поиск в новой вкладке') },
             { value: 'edit', label: exercise.howTo ? t('Изменить описание') : t('Добавить описание') }
@@ -187,7 +187,7 @@ actions.on('ex-info', async (el) => {
     if (choice === 'edit') return editExercise(exercise);
 
     if (choice === 'video') {
-        const query = encodeURIComponent(`${exercise.name} упражнение техника выполнения`);
+        const query = encodeURIComponent(t('{название} упражнение техника выполнения', { название: exercise.name }));
         window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener');
     }
 });
@@ -231,7 +231,7 @@ async function editExercise(exercise) {
     // историю, ради чего справочник и заводился
     const clash = await dbService.findExerciseByName(values.name);
     if (clash && clash.id !== exercise.id) {
-        await dialog.alert({ title: t('Название занято'), text: `«${clash.name}» уже есть в справочнике.` });
+        await dialog.alert({ title: t('Название занято'), text: t('«{название}» уже есть в справочнике.', { название: clash.name }) });
         return;
     }
 
@@ -245,7 +245,7 @@ async function editExercise(exercise) {
         if (used > 0) {
             const ok = await dialog.confirm({
                 title: t('Изменить вид упражнения?'),
-                text: `В истории ${format.count(used, format.WORDS.set)}. Они останутся как есть, но следующие подходы будут записываться другими величинами, и в истории окажется два вида сразу.`,
+                text: t('В истории {подходы}. Они останутся как есть, но следующие подходы будут записываться другими величинами, и в истории окажется два вида сразу.', { подходы: format.count(used, format.WORDS.set) }),
                 confirmText: t('Изменить')
             });
 
@@ -290,7 +290,7 @@ actions.on('ex-merge', async (el) => {
     const usage = await dbService.countSetsOfExercise(source.id);
 
     const chosen = await dialog.pick({
-        title: `Объединить «${source.name}» с…`,
+        title: t('Объединить «{название}» с…', { название: source.name }),
         text: t('Выбранное упражнение останется, текущее исчезнет вместе со своим названием.'),
         items: others.map((e) => ({
             value: e.id,
@@ -310,8 +310,8 @@ actions.on('ex-merge', async (el) => {
         // Числительное ставится после слова, чтобы не согласовывать глагол:
         // «1 подход перейдут» и «5 подходов перейдёт» одинаково неверны
         text: usage > 0
-            ? `К «${target.name}» перейдёт подходов: ${usage}. «${source.name}» исчезнет из справочника, и отменить это будет нечем.`
-            : `«${source.name}» исчезнет из справочника. Подходов у него нет, так что переносить нечего.`,
+            ? t('К «{цель}» перейдёт подходов: {сколько}. «{источник}» исчезнет из справочника, и отменить это будет нечем.', { цель: target.name, сколько: usage, источник: source.name })
+            : t('«{название}» исчезнет из справочника. Подходов у него нет, так что переносить нечего.', { название: source.name }),
         confirmText: t('Объединить')
     });
 
@@ -323,9 +323,9 @@ actions.on('ex-merge', async (el) => {
         title: t('Объединено'),
         text: [
             `«${result.from}» → «${result.to}».`,
-            result.sets ? `Перенесено подходов: ${result.sets}.` : '',
-            result.workouts ? `Затронуто тренировок: ${result.workouts}.` : '',
-            result.templates ? `Шаблонов: ${result.templates}.` : ''
+            result.sets ? t('Перенесено подходов: {сколько}.', { сколько: result.sets }) : '',
+            result.workouts ? t('Затронуто тренировок: {сколько}.', { сколько: result.workouts }) : '',
+            result.templates ? t('Шаблонов: {сколько}.', { сколько: result.templates }) : ''
         ].filter(Boolean).join(' ')
     });
 
@@ -347,7 +347,7 @@ actions.on('ex-delete', async (el) => {
     if (!exercise) return;
 
     const ok = await dialog.confirm({
-        title: `Удалить «${exercise.name}»?`,
+        title: t('Удалить «{название}»?', { название: exercise.name }),
         text: t('Упражнение ни разу не выполнялось, поэтому удаление ничего не разорвёт.'),
         confirmText: t('Удалить'),
         danger: true
