@@ -21,6 +21,8 @@ import { sync } from '../services/sync.js';
 import { backup } from '../services/backup.js';
 import { dates } from '../core/dates.js';
 import { restTimer } from '../core/timer.js';
+import { journal } from '../core/journal.js';
+import { feedback } from '../services/feedback.js';
 import { app } from '../app.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
@@ -378,6 +380,17 @@ export const profile = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="survey">
                     ${t('Оставить отзыв')}
                 </button>
+                <!--
+                    Строка появляется, только когда есть что показать.
+                    «Ошибок: 0» — это не сведения, а лишний повод забеспокоиться.
+                -->
+                ${journal.count ? ui.html`
+                    <div class="info-row">
+                        <span>${t('Записано ошибок')}</span><strong>${String(journal.count)}</strong>
+                    </div>
+                    <button class="btn btn-ghost" data-action="errors">${t('Журнал ошибок')}</button>
+                ` : ''}
+
                 <button class="btn btn-ghost" data-action="check-update">${t('Проверить обновление')}</button>
                 <button class="btn btn-danger" data-action="reset-settings">${t('Сбросить настройки')}</button>
             </div>
@@ -650,6 +663,56 @@ actions.onChange('rest-exact', (el) => {
 
     config.set('restSeconds', seconds);
     app.render();
+});
+
+/**
+ * Журнал ошибок (§54).
+ *
+ * Список показывается целиком до всякой отправки: собирать о человеке молча
+ * то, чего он не видел, нельзя. Отправка идёт тем же путём, что и анкета, —
+ * в ящик без обратной стороны, — и остаётся отдельным его решением.
+ */
+actions.on('errors', async () => {
+    const записи = journal.list();
+
+    if (записи.length === 0) {
+        return dialog.alert({ title: t('Журнал ошибок'), text: t('Ошибок не записано.') });
+    }
+
+    const текст = записи.slice(-10).reverse().map((запись) => [
+        `${dates.formatDate(запись.at)} ${dates.formatTime(запись.at)}`,
+        запись.where ? ` · ${t(запись.where)}` : '',
+        запись.repeats > 1 ? ` · ${t('повторов: {n}', { n: запись.repeats })}` : '',
+        `\n${запись.message}`
+    ].join('')).join('\n\n');
+
+    const выбор = await dialog.choose({
+        title: t('Журнал ошибок'),
+        text: текст,
+        options: [
+            { value: 'send', label: t('Отправить разработчику'), hint: t('Уйдёт вместе со сведениями об устройстве') },
+            { value: 'clear', label: t('Очистить журнал') }
+        ]
+    });
+
+    if (выбор === 'clear') {
+        journal.clear();
+        return app.render();
+    }
+
+    if (выбор !== 'send') return;
+
+    try {
+        await feedback.send({
+            at: Date.now(),
+            answers: { [t('Журнал ошибок')]: текст },
+            about: await feedback.about()
+        });
+
+        await dialog.alert({ title: t('Отправлено'), text: t('Спасибо — так ошибку видно целиком.') });
+    } catch (e) {
+        await dialog.alert({ title: t('Не удалось отправить'), text: e.message });
+    }
 });
 
 actions.on('fs-off', async () => {

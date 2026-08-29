@@ -15,6 +15,7 @@ import { install } from './core/install.js';
 import { updater } from './core/updater.js';
 import { wakeLock } from './core/wakelock.js';
 import { fullscreen } from './core/fullscreen.js';
+import { journal } from './core/journal.js';
 import { ui } from './core/ui.js';
 import { dialog } from './core/dialog.js';
 import { dbService } from './services/db.js';
@@ -42,12 +43,25 @@ actions.on('dismiss-banner', (el) => app.hideBanner(el.dataset.banner));
  * пользователь решит, что промахнулся по кнопке, и запишет его ещё раз или
  * не запишет вовсе.
  */
-actions.onError((error) => {
+actions.onError((error, name) => {
+    journal.add(error, name);
+
     dialog.alert({
         title: t('Не удалось выполнить действие'),
         text: `${error?.message || error}\n\n${t('Если это повторяется — проверьте, есть ли место на устройстве и не открыто ли приложение в другой вкладке.')}`
     });
 });
+
+/*
+ * Всё остальное упавшее — тоже в журнал (§54).
+ *
+ * Через onError проходят только действия. Ошибка при отрисовке, отвалившийся
+ * динамический импорт, необработанное обещание — всё это до сих пор жило
+ * ровно до закрытия консоли, то есть не жило вовсе: консоль на телефоне не
+ * открывают.
+ */
+window.addEventListener('error', (e) => journal.add(e.error || e.message, 'страница'));
+window.addEventListener('unhandledrejection', (e) => journal.add(e.reason, 'обещание'));
 
 // ================== СЕРВИС-ВОРКЕР ==================
 

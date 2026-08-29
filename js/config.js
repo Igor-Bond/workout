@@ -19,6 +19,25 @@ export const touchDevice = () =>
     (typeof matchMedia === 'function' ? matchMedia('(pointer: coarse)').matches : true);
 
 /**
+ * iPhone или iPad.
+ *
+ * Нужен ровно для одного: сказать правду про звук в интервальной программе.
+ * Там звуковой контекст засыпает вместе с приложением, починить это со
+ * стороны страницы нечем, и остаётся предупредить.
+ *
+ * iPad с недавних пор представляется Маком, поэтому одной строки браузера
+ * мало — вторым признаком идёт касание: у настольного Мака его нет.
+ */
+export const appleMobile = () => {
+    if (typeof navigator === 'undefined') return false;
+
+    const ua = navigator.userAgent || '';
+
+    return /iPad|iPhone|iPod/.test(ua)
+        || (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+};
+
+/**
  * Как приложение выбирает следующее упражнение (§11).
  *
  * Одна ось, а не две настройки: все три значения отвечают на один вопрос —

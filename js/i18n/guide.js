@@ -108,6 +108,7 @@ const RU = {
                 { p: 'Фраза заодно говорит, где ты в программе: в паузе — «дальше: альпинист», между кругами — «новый круг: бёрпи». В длинной паузе фраза полнее, а за десять секунд до работы название повторяется: «готовься: бёрпи» — за минуту отдыха сказанное вначале успевает забыться.' },
                 { hint: 'В паузе короче семи секунд голос молчит: фраза туда не помещается и наползла бы на отсчёт «три-два-один». Два сигнала разом хуже одного.' },
                 { hint: 'Когда упражнение одно на всю программу, голос молчит: восемь кругов «дальше бёрпи» это шум, а не подсказка. Выключается в профиле — «Проговаривать упражнения». Голос добавляется к сигналам, а не заменяет их: речь, в отличие от тонов, нельзя подготовить заранее, и в свёрнутом приложении её не будет.' },
+                { hint: 'На iPhone есть оговорка: там звук идёт, только пока экран включён. Убранный в карман телефон программу не озвучит — положи его рядом экраном вверх. Приложение об этом напоминает на самом экране программы.' },
                 { sub: 'Что записывается' },
                 { p: 'Каждый доведённый до конца отрезок работы становится подходом с длительностью. Программа из восьми кругов даст восемь подходов по 20 секунд — они попадут в историю и в статистику наравне с обычными.' },
                 { hint: 'Первый раз лучше поставить четыре круга вместо восьми. Табата выглядит безобидно ровно до третьего.' }
@@ -242,6 +243,7 @@ const EN = {
                 { p: 'The phrase also tells you where you are: in a pause, “next: mountain climbers”; between rounds, “new round: burpees”. In a long pause the phrase is fuller, and ten seconds before work the name is repeated — “get ready: burpees” — because a minute of rest is long enough to forget.' },
                 { hint: 'In a pause shorter than seven seconds the voice stays silent: the phrase does not fit and would run into the three-two-one countdown. Two signals at once are worse than one.' },
                 { hint: 'When one exercise runs the whole program the voice stays silent: eight rounds of “next: burpees” is noise, not help. It can be turned off in the profile — “Announce exercises”. The voice adds to the sounds rather than replacing them: speech, unlike tones, cannot be prepared in advance, and a backgrounded app will not produce it.' },
+                { hint: 'On iPhone there is a caveat: the sound plays only while the screen is on. A phone in your pocket will not voice the program — put it next to you face up. The app reminds you of this on the program screen itself.' },
                 { sub: 'What gets recorded' },
                 { p: 'Every work interval you see through becomes a set with a duration. A program of eight rounds gives eight sets of 20 seconds — they land in your history and stats like any other.' },
                 { hint: 'The first time, set four rounds instead of eight. Tabata looks harmless right up to the third.' }
@@ -376,6 +378,7 @@ const DE = {
                 { p: 'Die Ansage sagt dir zugleich, wo du bist: in der Pause „weiter: Bergsteiger“, zwischen den Runden „neue Runde: Burpees“. In einer langen Pause ist der Satz ausführlicher, und zehn Sekunden vor der Arbeit wird der Name wiederholt — „mach dich bereit: Burpees“ —, denn eine Minute Pause reicht zum Vergessen.' },
                 { hint: 'In einer Pause unter sieben Sekunden schweigt die Stimme: der Satz passt nicht hinein und liefe in den Countdown drei-zwei-eins hinein. Zwei Signale gleichzeitig sind schlechter als eines.' },
                 { hint: 'Läuft eine einzige Übung durch das ganze Programm, schweigt die Stimme: acht Runden „weiter: Burpees“ sind Lärm und keine Hilfe. Abschalten kannst du sie im Profil unter „Übungen ansagen“. Die Stimme kommt zu den Tönen dazu, sie ersetzt sie nicht: Sprache lässt sich, anders als Töne, nicht im Voraus vorbereiten, und in einer im Hintergrund liegenden App gibt es sie nicht.' },
+                { hint: 'Auf dem iPhone gibt es einen Vorbehalt: Der Ton läuft nur bei eingeschaltetem Bildschirm. Ein Handy in der Tasche vertont das Programm nicht — leg es mit dem Display nach oben neben dich. Die App erinnert daran auf dem Programmbildschirm selbst.' },
                 { sub: 'Was erfasst wird' },
                 { p: 'Jeder Arbeitsabschnitt, den du zu Ende bringst, wird zu einem Satz mit Dauer. Ein Programm aus acht Runden ergibt acht Sätze zu 20 Sekunden — sie landen im Verlauf und in der Statistik wie alle anderen.' },
                 { hint: 'Nimm beim ersten Mal vier Runden statt acht. Tabata sieht bis zur dritten harmlos aus.' }

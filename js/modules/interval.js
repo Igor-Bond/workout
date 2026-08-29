@@ -19,7 +19,7 @@ import { interval } from '../core/interval.js';
 import { beeper } from '../core/beeper.js';
 import { voice } from '../core/voice.js';
 import { wakeLock } from '../core/wakelock.js';
-import { config } from '../config.js';
+import { config, appleMobile } from '../config.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
@@ -289,6 +289,20 @@ export const intervalScreen = {
             ${config.get('restSound') ? '' : ui.html`
                 <p class="hint">${t('Звук выключен в профиле — переходы будут беззвучными.')}</p>
             `}
+
+            <!--
+                Про iPhone сказано на самом экране, а не в справке (§54.1).
+
+                Там звуковой контекст засыпает вместе с приложением, и
+                программа, убранная в карман, замолкает. Починить это со
+                стороны страницы нечем, и единственное честное — предупредить
+                до того, как человек это обнаружит посреди круга. В справке
+                это тоже написано, но справку читают до тренировки, а не в
+                тот момент, когда собираются убрать телефон.
+            -->
+            ${appleMobile() && config.get('restSound') ? ui.html`
+                <p class="hint">${t('На iPhone звук идёт, пока экран включён. Положи телефон рядом экраном вверх — в кармане программа замолчит.')}</p>
+            ` : ''}
 
             ${ring(view, state)}
         `;
