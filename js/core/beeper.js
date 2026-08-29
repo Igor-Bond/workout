@@ -62,8 +62,17 @@ const VOICES = {
 };
 
 let ctx = null;
+let master = null;
 let planned = [];
+let key = null;
 
+/**
+ * Общий выход со сжатием.
+ *
+ * Сжатие поднимает то, что тише порога, и придерживает пики — на слух это
+ * заметно громче при той же амплитуде. Без него сигнал упирается в потолок
+ * дорожки и дальше растёт только хрипом.
+ */
 function context() {
     if (ctx && ctx.state !== 'closed') return ctx;
 
@@ -71,34 +80,55 @@ function context() {
     if (!Ctx) return null;
 
     ctx = new Ctx();
+
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -24;
+    comp.knee.value = 8;
+    comp.ratio.value = 12;
+    comp.attack.value = 0.002;
+    comp.release.value = 0.12;
+
+    master = ctx.createGain();
+    master.gain.value = 1;
+
+    master.connect(comp).connect(ctx.destination);
     return ctx;
 }
 
-/** Один тон в заданный момент звукового движка. */
+/**
+ * Один тон в заданный момент звукового движка.
+ *
+ * Тон двойной: к основной частоте подмешивается октава выше вполовину тише.
+ * Один голос на телефоне звучит плоско и теряется в шуме зала, а пара даёт
+ * тембр, который слышно, не поднимая амплитуду.
+ */
 function tone(at, { freq, length, gain: peak }) {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    for (const [multiple, share] of [[1, 1], [2, 0.5]]) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-    osc.type = WAVE;
-    osc.frequency.value = freq;
+        osc.type = WAVE;
+        osc.frequency.value = freq * multiple;
 
-    /*
-     * Нарастание и затухание: резко оборванный тон щёлкает.
-     *
-     * Держим громкость на полке почти до конца и роняем в последней трети:
-     * прежний тон затухал с самого начала и на слух был вдвое тише
-     * собственного пика.
-     */
-    gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(peak, at + 0.012);
-    gain.gain.setValueAtTime(peak, at + length * 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
+        const level = peak * share;
 
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(at);
-    osc.stop(at + length + 0.02);
+        /*
+         * Нарастание и затухание: резко оборванный тон щёлкает.
+         *
+         * Громкость держится на полке до последней трети: тон, затухающий с
+         * первой миллисекунды, на слух вдвое тише собственного пика.
+         */
+        gain.gain.setValueAtTime(0.0001, at);
+        gain.gain.exponentialRampToValueAtTime(level, at + 0.012);
+        gain.gain.setValueAtTime(level, at + length * 0.7);
+        gain.gain.exponentialRampToValueAtTime(0.0001, at + length);
 
-    planned.push(osc);
+        osc.connect(gain).connect(master);
+        osc.start(at);
+        osc.stop(at + length + 0.02);
+
+        planned.push(osc);
+    }
 }
 
 export const beeper = {
@@ -116,8 +146,13 @@ export const beeper = {
      * Вызывать только из обработчика действия: без нажатия браузер звук не
      * разрешит, и вся очередь окажется беззвучной.
      */
-    schedule(cues = [], offset = 0) {
+    schedule(cues = [], offset = 0, { key: token = null } = {}) {
+        // Та же очередь уже выложена: снимать и класть заново значило бы
+        // оборвать сигнал, который звучит прямо сейчас
+        if (token && token === key) return 0;
+
         beeper.stop();
+        key = token;
 
         if (!config.get('restSound')) return 0;
 
@@ -154,6 +189,28 @@ export const beeper = {
         }
 
         planned = [];
+        key = null;
+    },
+
+    /**
+     * Проиграть один сигнал прямо сейчас — для прослушивания в профиле.
+     *
+     * Сигналы интервальной программы слышны только во время программы, а
+     * узнать, что означает каждый, хочется заранее: посреди бёрпи разбираться
+     * поздно.
+     */
+    play(type) {
+        if (!VOICES[type]) return false;
+
+        const audio = context();
+        if (!audio) return false;
+
+        if (audio.state === 'suspended') audio.resume().catch(() => {});
+
+        const at = audio.currentTime + 0.03;
+        for (const part of VOICES[type]) tone(at + (part.after || 0), part);
+
+        return true;
     },
 
     /** Закрыть движок совсем: экран покинут, звук больше не нужен. */

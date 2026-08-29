@@ -199,10 +199,20 @@ export const intervalScreen = {
         clearInterval(ticker);
         ticker = 0;
 
-        beeper.stop();
         wakeLock.disable();
-
         shownIndex = -1;
+
+        /*
+         * Уход это или перерисовка — видно по адресу: при уходе он уже
+         * сменился, перерисовка оставляет прежний.
+         *
+         * Различать обязательно. Раньше очередь снималась при любой
+         * перерисовке, а перерисовка случается ровно на смене отрезка —
+         * то есть сигнал начала упражнения глушился через доли секунды
+         * после того, как зазвучал. Именно тот сигнал, ради которого всё и
+         * затевалось.
+         */
+        if (!location.hash.startsWith('#/interval')) beeper.release();
     },
 
     async render() {
@@ -267,16 +277,24 @@ export const intervalScreen = {
 };
 
 /**
- * Перевыкладка сигналов от текущего момента.
+ * Выкладка сигналов, если она ещё не сделана для этого хода программы.
  *
- * Нужна после каждой отрисовки: перед ней очередь снимается, иначе сигналы
- * копились бы по кругу и звучали внахлёст. Движок при этом не пересоздаётся —
- * он создан по нажатию «Начать» и продолжает работать.
+ * Ключ описывает отсчёт целиком: пока он тот же, очередь верна и трогать её
+ * нельзя. Перевыкладка на каждой перерисовке обрывала звучащий сигнал —
+ * а перерисовка случается как раз на смене отрезка, то есть ровно в тот
+ * момент, когда сигнал и должен звучать.
  */
+function soundKey(workout) {
+    const run = workout.run || {};
+    return `${workout.id}:${run.state}:${run.startedAt || 0}:${run.elapsed || 0}`;
+}
+
 function resyncSound() {
     if (!view || view.run.state !== 'running') return;
 
-    beeper.schedule(interval.cues(view.phases), elapsedOf(view.workout));
+    beeper.schedule(interval.cues(view.phases), elapsedOf(view.workout), {
+        key: soundKey(view.workout)
+    });
 }
 
 /**
