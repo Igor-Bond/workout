@@ -401,10 +401,22 @@ export const stats = {
     },
 
     /**
-     * Тепловая карта: клетка на день за последний год (§26).
+     * Тепловая карта: клетка на день (§26).
+     *
+     * Окно — квартал, а не год: год в одну ширину карточки давал клетку в
+     * девять пикселей, где оттенки неразличимы, а сама карта читалась как
+     * серое пятно. Квартал той же шириной — клетка вчетверо крупнее, и рядом
+     * помещаются подписи дней недели.
+     *
+     * offset сдвигает окно в прошлое шагами по окну: ноль — последний
+     * квартал, единица — предыдущий. Так вся история остаётся доступной,
+     * просто по частям.
+     *
      * Возвращает дни по возрастанию с уровнем насыщенности 0–4.
      */
-    heatmap(entries = [], now = Date.now()) {
+    HEAT_WEEKS: 13,
+
+    heatmap(entries = [], now = Date.now(), { offset = 0, weeks = stats.HEAT_WEEKS } = {}) {
         const byDay = new Map();
 
         for (const entry of entries) {
@@ -413,8 +425,9 @@ export const stats = {
         }
 
         // Начинаем с понедельника, чтобы столбцы карты были целыми неделями
-        const end = dates.startOfDay(now);
-        const start = stats.weekStart(end - 364 * DAY);
+        const last = stats.weekStart(now) - Math.max(0, offset) * weeks * 7 * DAY;
+        const start = last - (weeks - 1) * 7 * DAY;
+        const end = last + 6 * DAY;
 
         const result = [];
 
@@ -429,5 +442,22 @@ export const stats = {
         }
 
         return result;
+    },
+
+    /**
+     * Сколько окон карты назад есть смысл листать.
+     *
+     * Дальше первой тренировки истории нет, и пустые полгода показывать
+     * незачем — кнопка «назад» там просто гаснет.
+     */
+    heatWindows(entries = [], now = Date.now(), { weeks = stats.HEAT_WEEKS } = {}) {
+        if (entries.length === 0) return 1;
+
+        const earliest = entries.reduce(
+            (min, e) => Math.min(min, e.workout.startedAt), Infinity
+        );
+
+        const span = stats.weekStart(now) - stats.weekStart(earliest);
+        return Math.max(1, Math.floor(span / (weeks * 7 * DAY)) + 1);
     }
 };
