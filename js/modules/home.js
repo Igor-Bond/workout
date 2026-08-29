@@ -200,8 +200,14 @@ function startBlock(last, templates, suggestion, names, due) {
                 ${templates.length ? 'Все шаблоны' : 'Создать шаблон'}
             </button>
 
+            <!--
+                Не «начать»: кнопка ведёт на подбор упражнений, а сама
+                тренировка стартует уже оттуда, второй кнопкой. Одинаковая
+                надпись на двух разных действиях обещала первым нажатием
+                то, чего оно не делает.
+            -->
             <button class="btn btn-accent btn-lg" data-action="nav" data-screen="plan">
-                Начать тренировку
+                Собрать тренировку
             </button>
         </div>
     `;
