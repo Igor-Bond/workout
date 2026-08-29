@@ -170,7 +170,7 @@ describe('Сигналы', () => {
     const cues = interval.cues(phases);
 
     it('на каждой границе — свой сигнал', () => {
-        const границы = cues.filter((c) => c.type !== 'count');
+        const границы = cues.filter((c) => c.type !== 'count' && c.type !== 'pulse');
 
         equal(границы.length, phases.length, 'по одному на отрезок');
         equal(границы[границы.length - 1].type, 'done', 'конец программы звучит иначе');
@@ -220,11 +220,44 @@ describe('Сигналы', () => {
 
     it('сигналы слышны: громкость не ниже половины', () => {
         for (const [name, parts] of Object.entries(beeper.VOICES)) {
+            // Пульс — единственный, кому громким быть нельзя: он отвечает на
+            // вопрос, а не зовёт что-то делать
+            if (name === 'pulse') continue;
+
             for (const part of parts) {
                 assert(part.gain >= 0.4, `${name}: ${part.gain} — в зале такое тонет`);
                 assert(part.gain <= 1, `${name}: ${part.gain} — выше единицы звук захрипит`);
             }
         }
+    });
+
+    /*
+     * Между сигналами двадцать секунд тишины, и в них непонятно, идёт
+     * работа или уже пауза, — особенно когда на телефон не смотришь.
+     */
+    it('во время работы идёт тихий пульс', () => {
+        // Первая работа: с 5 по 25 секунду
+        const пульс = cues.filter((c) => c.type === 'pulse' && c.at > 5 && c.at < 25).map((c) => c.at);
+
+        equal(пульс, [10, 15, 20], 'каждые пять секунд, кроме последних трёх');
+    });
+
+    it('в паузах пульса нет — в том и смысл', () => {
+        // Отдых идёт с 25 по 35 секунду
+        equal(cues.filter((c) => c.type === 'pulse' && c.at > 25 && c.at < 35), []);
+    });
+
+    it('пульс не накладывается на отсчёт', () => {
+        const пульс = new Set(cues.filter((c) => c.type === 'pulse').map((c) => c.at));
+        const отсчёт = cues.filter((c) => c.type === 'count').map((c) => c.at);
+
+        assert(отсчёт.every((t) => !пульс.has(t)), 'два разных сигнала разом сбивают с толку');
+    });
+
+    it('короткому отрезку пульс не нужен', () => {
+        const короткая = interval.cues(interval.build({ work: 5, rest: 3, rounds: 1, lead: 0 }, УПР));
+
+        equal(короткая.filter((c) => c.type === 'pulse'), []);
     });
 
     it('сигналы идут по возрастанию времени', () => {
