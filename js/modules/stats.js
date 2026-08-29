@@ -14,7 +14,7 @@ import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
-import { t } from '../core/i18n.js';
+import { t, i18n } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
@@ -45,10 +45,18 @@ function tile(label, value, change) {
     `;
 }
 
-/** «Июнь 2026» — для лучшего месяца (§23.1). */
+/**
+ * «июнь 2026» — для лучшего месяца (§23.1).
+ *
+ * Строчная буква только по-русски: месяц там имя нарицательное и посреди
+ * фразы пишется малой. В английском и немецком это имя собственное, и
+ * «juni 2026» читается как опечатка.
+ */
 function monthName(at) {
     const d = new Date(at);
-    return `${dates.MONTHS_NOM[d.getMonth()].toLowerCase()} ${d.getFullYear()}`;
+    const month = dates.MONTHS_NOM[d.getMonth()];
+
+    return `${i18n.lang === 'ru' ? month.toLowerCase() : month} ${d.getFullYear()}`;
 }
 
 /**
@@ -114,7 +122,7 @@ function bodyBlock(weights, range) {
                     }))]
                 }], { height: 130 }) : ''}
 
-                <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at).toLowerCase() })}</p>
+                <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at, Date.now(), { lower: true }) })}</p>
             ` : ui.empty(t('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.'))}
 
             <button class="btn btn-ghost btn-sm" data-action="body-add">

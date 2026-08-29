@@ -12,9 +12,18 @@ import { migrations } from './migrations.js';
 import { merge, SYNCED } from '../core/merge.js';
 import { config } from '../config.js';
 import { t } from '../core/i18n.js';
+import { format } from '../core/format.js';
 
 /** Версия формата файла. Растёт, когда меняется состав или смысл полей. */
 const FORMAT = 1;
+
+/** Как назвать таблицу человеку. Имена в базе английские и служебные. */
+const TABLE_WORDS = {
+    exercises:  format.WORDS.exercise,
+    templates:  format.WORDS.template,
+    workouts:   format.WORDS.workout,
+    bodyWeight: format.WORDS.weighIn
+};
 
 export const backup = {
 
@@ -116,14 +125,28 @@ export const backup = {
         return { kind: 'full', ...parsed };
     },
 
-    /** Что в файле, одной строкой — для окна подтверждения. */
+    /**
+     * Что в файле, одной строкой — для окна подтверждения.
+     *
+     * Таблицы названы словами, а не именами из базы: «workouts: 12» —
+     * это внутренность приложения, показанная человеку, и по-русски она
+     * читалась не лучше, чем по-немецки. Незнакомая таблица (файл из
+     * будущей версии) остаётся под своим именем: соврать про неё нечем.
+     */
     describe(payload) {
         if (payload.kind === 'v1') {
-            return t('{сколько} тренировок из прошлой версии', { сколько: payload.v1.length });
+            return t('{сколько} из прошлой версии', {
+                сколько: format.count(payload.v1.length, format.WORDS.workout)
+            });
         }
 
         return Object.entries(payload.data)
-            .map(([name, list]) => `${name}: ${Array.isArray(list) ? list.length : 0}`)
+            .map(([name, list]) => {
+                const количество = Array.isArray(list) ? list.length : 0;
+                const слово = TABLE_WORDS[name];
+
+                return слово ? format.count(количество, слово) : `${name}: ${количество}`;
+            })
             .join(', ');
     },
 

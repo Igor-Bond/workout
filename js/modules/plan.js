@@ -33,8 +33,13 @@ const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио
  * Проверяется по типу, а не по отдельному признаку: тип пользователь и так
  * выбирает первым делом, и заводить рядом с ним второй переключатель «а это
  * интервальная?» значило бы спрашивать одно и то же дважды.
+ *
+ * Сравнивается ключ, а не подпись. Подпись переводится: по-немецки тип
+ * называется Tabata, и сравнение с «Табата» переставало совпадать —
+ * интервальный режим на других языках не включался вовсе. Ни настроек
+ * отрезков, ни программы: «Табата» заводила обычную тренировку.
  */
-const isInterval = (type) => type === 'Табата';
+const isInterval = (key) => key === 'Табата';
 
 /**
  * Ключ типа по сохранённой подписи (§53).
@@ -334,7 +339,7 @@ export const plan = {
         }
 
         const isTemplate = draft.mode === 'template';
-        const timed = isInterval(typeLabel());
+        const timed = isInterval(draft.type);
 
         const chips = [...TYPES, 'Своё'].map((key) => ui.html`
             <button class="chip ${draft.type === key ? 'is-active' : ''}"
@@ -548,7 +553,7 @@ actions.on('plan-save-template', async () => {
 
         // Отрезки — часть шаблона наравне с составом: табата без своих
         // двадцати и десяти это уже не та тренировка (§50)
-        interval: isInterval(typeLabel()) ? interval.normalize(draft.interval) : undefined
+        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined
     });
 
     reset();
@@ -568,7 +573,7 @@ actions.on('plan-as-template', async () => {
         name: values.name,
         type: typeLabel(),
         items: toItems(),
-        interval: isInterval(typeLabel()) ? interval.normalize(draft.interval) : undefined
+        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined
     });
 
     await dialog.alert({ title: t('Шаблон сохранён'), text: t('«{имя}» теперь в списке шаблонов.', { имя: values.name }) });
@@ -607,7 +612,7 @@ actions.on('plan-start', async () => {
 
     // Интервальная тренировка идёт на своём экране: там нет полей ввода,
     // потому что вводить между отрезками нечего и некогда (§50)
-    if (isInterval(typeLabel())) {
+    if (isInterval(draft.type)) {
         await dbService.updateWorkout(workout.id, {
             interval: interval.normalize(draft.interval),
             run: { state: 'idle', elapsed: 0, startedAt: null }

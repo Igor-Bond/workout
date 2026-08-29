@@ -62,7 +62,7 @@ async function activeBlock() {
             <div class="card">
                 <div class="active-type">${workout.type}</div>
                 <div class="active-meta">
-                    ${t('начата {день} в {время}', { день: dates.formatDayLabel(workout.startedAt).toLowerCase(), время: dates.formatTime(workout.startedAt) })}
+                    ${t('начата {день} в {время}', { день: dates.formatDayLabel(workout.startedAt, Date.now(), { lower: true }), время: dates.formatTime(workout.startedAt) })}
                     · ${t('{done} из {planned} подходов', { done: totals.done, planned: totals.planned })}
                 </div>
 
@@ -117,7 +117,7 @@ function rhythmStrip(workouts) {
         ? t('{n} без тренировки', { n: format.count(r.daysSince, format.WORDS.day) })
         : r.state === 'due'
             ? t('Пора тренироваться')
-            : t('Следующая — {день}', { день: dates.formatDayLabel(r.nextAt).toLowerCase() });
+            : t('Следующая — {день}', { день: dates.formatDayLabel(r.nextAt, Date.now(), { lower: true }) });
 
     return ui.html`
         <div class="rhythm-strip is-${r.state}">
@@ -181,7 +181,7 @@ function startBlock(last, templates, suggestion, names, due) {
                     <span class="rep-names">${exerciseLine(last, names)}</span>
                     <span class="rep-meta">
                         ${last.workout.type}
-                        · ${dates.formatDayLabel(last.workout.startedAt).toLowerCase()}
+                        · ${dates.formatDayLabel(last.workout.startedAt, Date.now(), { lower: true })}
                         · ${format.count(last.sets, format.WORDS.set)}
                     </span>
                 </button>
@@ -301,7 +301,7 @@ function bodyBlock(records) {
                 <span class="w-meta">
                     ${month && month.delta
                         ? `${sign(month.delta)}${format.weight(Math.abs(month.delta))} ${t('кг за месяц')} · `
-                        : ''}${dates.formatDayLabel(last.at).toLowerCase()}
+                        : ''}${dates.formatDayLabel(last.at, Date.now(), { lower: true })}
                 </span>
             </button>
         </div>

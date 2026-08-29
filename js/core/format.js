@@ -25,6 +25,8 @@ const WORDS = {
     rep:      { ru: ['повторение', 'повторения', 'повторений'], en: ['rep', 'reps'],           de: ['Wiederholung', 'Wiederholungen'] },
     exercise: { ru: ['упражнение', 'упражнения', 'упражнений'], en: ['exercise', 'exercises'], de: ['Übung', 'Übungen'] },
     workout:  { ru: ['тренировка', 'тренировки', 'тренировок'], en: ['workout', 'workouts'],   de: ['Training', 'Trainings'] },
+    template: { ru: ['шаблон', 'шаблона', 'шаблонов'],          en: ['template', 'templates'], de: ['Vorlage', 'Vorlagen'] },
+    weighIn:  { ru: ['взвешивание', 'взвешивания', 'взвешиваний'], en: ['weigh-in', 'weigh-ins'], de: ['Wiegung', 'Wiegungen'] },
     day:      { ru: ['день', 'дня', 'дней'],                    en: ['day', 'days'],           de: ['Tag', 'Tage'] },
     minute:   { ru: ['минута', 'минуты', 'минут'],              en: ['minute', 'minutes'],     de: ['Minute', 'Minuten'] }
 };

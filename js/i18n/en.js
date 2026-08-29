@@ -603,7 +603,7 @@ export const EN = {
     'Не похоже на резервную копию трекера': 'This does not look like a tracker backup',
     'Файл от другого приложения': 'The file is from another app',
     'Файл сделан более новой версией приложения — обновите его': 'The file was made by a newer version of the app — update it first',
-    '{сколько} тренировок из прошлой версии': '{сколько} workouts from the previous version',
+    '{сколько} из прошлой версии': '{сколько} from the previous version',
 
     // ================== КАРТОЧКА УПРАЖНЕНИЯ ==================
 

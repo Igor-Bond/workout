@@ -91,11 +91,19 @@ export const dates = {
         return `${dates.formatDate(ts)} ${dates.formatTime(ts)}`;
     },
 
-    /** Сегодня / Вчера / 27 августа / 27 августа 2025 */
-    formatDayLabel(ts, now = Date.now()) {
+    /**
+     * Сегодня / Вчера / 27 августа / 27 августа 2025.
+     *
+     * lower — для середины фразы: «начата сегодня в 21:40». Опускать регистр
+     * у готовой подписи нельзя: в немецком месяц — существительное и пишется
+     * с большой буквы, и «26. august» там читается как опечатка. Поэтому
+     * строчными становятся только «сегодня» и «вчера», у которых для этого
+     * есть свои ключи в словаре.
+     */
+    formatDayLabel(ts, now = Date.now(), { lower = false } = {}) {
         const diff = dates.daysBetween(ts, now);
-        if (diff === 0) return i18n.t('Сегодня');
-        if (diff === 1) return i18n.t('Вчера');
+        if (diff === 0) return i18n.t(lower ? 'сегодня' : 'Сегодня');
+        if (diff === 1) return i18n.t(lower ? 'вчера' : 'Вчера');
 
         const d = new Date(ts);
         const month = dates.MONTHS_GEN[d.getMonth()];

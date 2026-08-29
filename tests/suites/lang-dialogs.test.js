@@ -14,7 +14,7 @@
  */
 
 import { describe, it, assert } from '../runner.js';
-import { screen, seed, workout, press } from '../helpers/dom.js';
+import { screen, seed, workout, press, hasAction } from '../helpers/dom.js';
 import { inLang, leftovers, TARGETS } from '../helpers/lang.js';
 import { watchDialogs } from '../helpers/dialogs.js';
 import { dbService } from '../../js/services/db.js';
@@ -27,6 +27,7 @@ import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
 import { summary } from '../../js/modules/summary.js';
 import { recordsScreen } from '../../js/modules/records.js';
+import { plan } from '../../js/modules/plan.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 
 /**
@@ -144,6 +145,32 @@ describe('Перевод на разных данных', () => {
             assert(остатки.length === 0, `не переведено:\n${остатки.join('\n')}`);
         });
     }
+
+    /**
+     * Интервальный режим включается на любом языке.
+     *
+     * Он опознавался по подписи типа, а подпись переводится: по-немецки тип
+     * называется Tabata, сравнение с «Табата» не совпадало, и режим не
+     * включался вовсе — ни настроек отрезков, ни программы. Проверяется по
+     * наличию готовых наборов: они есть только в карточке отрезков.
+     */
+    it('табата остаётся интервальной на любом языке', async () => {
+        await seed({ name: 'Burpees', kind: 'reps', group: 'Ganzkörper' });
+
+        for (const lang of TARGETS) {
+            await inLang(lang, async () => {
+                await screen(plan);
+                await press('plan-type', { type: 'Табата' });
+
+                assert(hasAction(await screen(plan), 'plan-preset'),
+                    `${lang}: отрезки не появились — интервальный режим не включился`);
+
+                // Тип возвращается на место: черновик живёт в модуле и
+                // переехал бы в следующую проверку
+                await press('plan-type', { type: 'Силовая' });
+            });
+        }
+    });
 
     /*
      * Выполнение и итоги — на настоящей тренировке, а не на пустой: поля

@@ -600,7 +600,7 @@ export const DE = {
     'Не похоже на резервную копию трекера': 'Das sieht nicht nach einer Sicherung des Trackers aus',
     'Файл от другого приложения': 'Die Datei stammt aus einer anderen App',
     'Файл сделан более новой версией приложения — обновите его': 'Die Datei stammt aus einer neueren Version der App — bitte zuerst aktualisieren',
-    '{сколько} тренировок из прошлой версии': '{сколько} Trainings aus der alten Version',
+    '{сколько} из прошлой версии': '{сколько} aus der alten Version',
 
     // ================== КАРТОЧКА УПРАЖНЕНИЯ ==================
 
