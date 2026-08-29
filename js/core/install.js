@@ -26,9 +26,17 @@ export const install = {
         return deferred !== null;
     },
 
-    /** Уже открыто как установленное приложение. */
+    /**
+     * Уже открыто как установленное приложение.
+     *
+     * Режимов два: fullscreen просит манифест, standalone остаётся тем, кто
+     * поставил приложение раньше или чей браузер fullscreen не даёт.
+     * Проверять только standalone значило бы считать неустановленным
+     * приложение, установленное правильнее всех.
+     */
     get installed() {
-        return window.matchMedia('(display-mode: standalone)').matches
+        return window.matchMedia('(display-mode: fullscreen)').matches
+            || window.matchMedia('(display-mode: standalone)').matches
             || window.navigator.standalone === true;
     },
 

@@ -216,3 +216,64 @@ describe('Полный экран при запуске', () => {
         }
     });
 });
+
+/*
+ * Полный экран из манифеста (§31).
+ *
+ * Просить его у браузера нужно не всегда: `display: fullscreen` разворачивает
+ * приложение сам, с первого запуска и без касания. Запрашивать поверх этого
+ * нечего, и настройка в профиле там ни при чём.
+ */
+describe('Полный экран из манифеста', () => {
+
+    /** Подменяет ответ на вопрос о режиме отображения. */
+    function mode(value) {
+        const real = window.matchMedia;
+
+        window.matchMedia = (query) => (
+            query.includes('display-mode')
+                ? { matches: query.includes(value), media: query }
+                : real.call(window, query)
+        );
+
+        return () => { window.matchMedia = real; };
+    }
+
+    it('видно, что система уже развернула приложение', () => {
+        const restore = mode('fullscreen');
+
+        try {
+            equal(fullscreen.byManifest, true);
+        } finally {
+            restore();
+        }
+    });
+
+    it('в таком режиме у браузера ничего не просим', () => {
+        const s = stub();
+        const restore = mode('fullscreen');
+        const было = config.get('fullscreen');
+
+        try {
+            config.set('fullscreen', true);
+            equal(fullscreen.wanted, false, 'просить нечего — режим уже есть');
+        } finally {
+            config.set('fullscreen', было);
+            restore();
+            s.restore();
+        }
+    });
+
+    it('в оконном режиме просить по-прежнему надо', () => {
+        const restore = mode('standalone');
+        const было = config.get('fullscreen');
+
+        try {
+            config.set('fullscreen', true);
+            equal(fullscreen.byManifest, false);
+        } finally {
+            config.set('fullscreen', было);
+            restore();
+        }
+    });
+});

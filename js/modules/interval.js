@@ -339,13 +339,47 @@ function resyncSound() {
  */
 const VOICE_AFTER = 1;
 
+/**
+ * Пауза, короче которой не говорим вовсе.
+ *
+ * Фраза начинается через секунду и длится ещё полторы-две, а последние три
+ * секунды заняты отсчётом. В паузу короче семи секунд речь просто не
+ * помещается: она наползает на отсчёт, и вместо двух понятных сигналов
+ * выходит каша.
+ */
+const VOICE_MIN = 7;
+
+/** Пауза, в которой хватает места на длинную фразу. */
+const VOICE_LONG = 20;
+
+/**
+ * Что говорится, коротко и полно.
+ *
+ * Длинная фраза — только там, где под неё есть место: отдых между кругами
+ * это минута, и в ней «начнём с упражнения» звучит уместно. В десяти
+ * секундах обычного отдыха та же фраза договаривалась уже поверх отсчёта, и
+ * на телефоне, где синтез медленнее настольного, — тем более. Короткая
+ * форма говорит то же самое втрое быстрее.
+ */
 const PHRASE = {
-    lead:      (name) => `Начнём с упражнения: ${name}`,
-    roundRest: (name) => `Новый круг. Начнём с упражнения: ${name}`,
-    rest:      (name) => `Дальше: ${name}`,
+    lead: {
+        short: (name) => `Начинаем. ${name}`,
+        long:  (name) => `Начнём с упражнения: ${name}`
+    },
+    roundRest: {
+        short: (name) => `Новый круг. ${name}`,
+        long:  (name) => `Новый круг. Начнём с упражнения: ${name}`
+    },
+    rest: {
+        short: (name) => `Дальше: ${name}`,
+        long:  (name) => `Дальше: ${name}`
+    },
 
     // Повтор под конец длинной паузы — уже команда, а не объявление
-    remind:    (name) => `Готовься: ${name}`
+    remind: {
+        short: (name) => `Готовься: ${name}`,
+        long:  (name) => `Готовься: ${name}`
+    }
 };
 
 /**
@@ -364,16 +398,20 @@ function resyncVoice(state) {
     if (!view || view.run.state !== 'running' || !state || state.done) return;
 
     const key = `${view.workout.id}:${state.index}`;
+    const seconds = state.phase ? state.phase.seconds : 0;
 
-    const скажи = (фраза, id) => {
+    // Длинная форма — только там, где под неё есть место
+    const форма = seconds >= VOICE_LONG ? 'long' : 'short';
+
+    const скажи = (набор, id) => {
         const name = view.exercises[id]?.name;
-        if (name) voice.say(фраза(name));
+        if (name) voice.say(набор[форма](name));
     };
 
     // Пропущенный сигнал смены: пока он звучит, молчим
-    const отзвучало = state.phase && state.remaining <= state.phase.seconds - VOICE_AFTER;
+    const отзвучало = state.phase && state.remaining <= seconds - VOICE_AFTER;
 
-    if (spoken.start !== key && отзвучало) {
+    if (spoken.start !== key && отзвучало && seconds >= VOICE_MIN) {
         spoken.start = key;
 
         const what = interval.announceAt(view.phases, state.index);

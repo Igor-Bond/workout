@@ -47,7 +47,8 @@ export const feedback = {
             'Браузер': (navigator.userAgent || '').slice(0, 300),
             'Язык': navigator.language || '—',
             'Экран': `${window.screen?.width || 0}×${window.screen?.height || 0}`,
-            'Установлено на экран': matchMedia('(display-mode: standalone)').matches ? 'да' : 'нет',
+            'Установлено на экран': matchMedia('(display-mode: fullscreen)').matches ? 'да, во весь экран'
+                : matchMedia('(display-mode: standalone)').matches ? 'да' : 'нет',
             'Синхронизация': config.get('syncEnabled') ? 'включена' : 'выключена'
         };
 
