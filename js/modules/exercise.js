@@ -155,20 +155,20 @@ export const exercise = {
 
         return ui.html`
             ${ui.title(record.name,
-                [KIND_LABEL[record.kind], record.group, record.archived ? 'в архиве' : null]
+                [t(KIND_LABEL[record.kind]), record.group, record.archived ? t('в архиве') : null]
                     .filter(Boolean).join(' · '))}
 
             <div class="card">
                 <div class="tiles">
                     ${tile(t('Лучший результат'), records.describe(best, record.kind))}
-                    ${oneRep ? tile("Разово, кг", format.decimal(oneRep, 0)) : ""}
+                    ${oneRep ? tile(t('Разово, кг'), format.decimal(oneRep, 0)) : ''}
                     ${tile(t('Тренировок'), String(workoutIds.size))}
                     ${tile(t('Подходов'), String(sets.length))}
                     ${reps ? tile(t('Повторений'), String(reps)) : ''}
                     ${volume ? tile(t('Тоннаж, кг'), format.decimal(volume, 0)) : ''}
                     ${bodyLoad ? tile(t('С весом тела, кг'), format.decimal(bodyLoad, 0)) : ''}
                     ${relative ? tile(t('К своему весу'), `×${format.decimal(relative, 2)}`) : ''}
-                    ${tile(t('Последний раз'), daysAgo === 0 ? 'сегодня' : format.count(daysAgo, format.WORDS.day))}
+                    ${tile(t('Последний раз'), daysAgo === 0 ? t('сегодня') : format.count(daysAgo, format.WORDS.day))}
                 </div>
 
                 ${record.kind === 'reps' && !bodyLoad ? ui.html`
@@ -192,7 +192,7 @@ export const exercise = {
             ` : ''}
 
             <div class="card">
-                <div class="card-title">История — ${format.count(workoutIds.size, format.WORDS.workout)}</div>
+                <div class="card-title">${t('История — {n}', { n: format.count(workoutIds.size, format.WORDS.workout) })}</div>
                 ${history}
             </div>
 

@@ -571,7 +571,7 @@ actions.on('plan-as-template', async () => {
         interval: isInterval(typeLabel()) ? interval.normalize(draft.interval) : undefined
     });
 
-    await dialog.alert({ title: 'Шаблон сохранён', text: `«${values.name}» теперь в списке шаблонов.` });
+    await dialog.alert({ title: t('Шаблон сохранён'), text: t('«{имя}» теперь в списке шаблонов.', { имя: values.name }) });
 });
 
 // ================== СТАРТ ==================

@@ -181,7 +181,7 @@ function block(b, note) {
             ${note ? ui.html`<p class="note-shown">${note}</p>` : ''}
 
             <button class="link-btn" data-action="summary-note-exercise" data-exercise="${b.exerciseId}">
-                ${note ? 'изменить заметку' : '＋ заметка к упражнению'}
+                ${note ? t('изменить заметку') : t('＋ заметка к упражнению')}
             </button>
         </div>
     `;
@@ -287,7 +287,7 @@ export const summary = {
                 <div class="card-title">${t('Заметка к тренировке')}</div>
                 ${workout.note ? ui.html`<p>${workout.note}</p>` : ui.empty(t('Не заполнена.'))}
                 <button class="btn btn-ghost btn-sm" data-action="summary-note" data-id="${workout.id}">
-                    ${workout.note ? 'Изменить' : 'Добавить заметку'}
+                    ${workout.note ? t('Изменить') : t('Добавить заметку')}
                 </button>
             </div>
 

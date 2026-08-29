@@ -25,6 +25,8 @@ import { dbService } from '../../js/services/db.js';
 import { home } from '../../js/modules/home.js';
 import { plan } from '../../js/modules/plan.js';
 import { summary } from '../../js/modules/summary.js';
+import { session } from '../../js/modules/session.js';
+import { intervalScreen } from '../../js/modules/interval.js';
 import { history } from '../../js/modules/history.js';
 import { calendar } from '../../js/modules/calendar.js';
 import { stats } from '../../js/modules/stats.js';
@@ -94,27 +96,52 @@ describe('Полнота перевода', () => {
     }
 
     /*
-     * Итоги проверяются отдельно: у них есть состояние, в которое обычным
-     * переходом не попасть, — только что законченная тренировка.
+     * Экраны, в которые обычным переходом не попасть: у них есть состояние —
+     * незавершённая тренировка, идущая программа, только что законченная
+     * тренировка. Именно в них и нашлись первые пропуски, когда проверка их
+     * ещё не охватывала.
      */
-    it('итоги только что законченной тренировки переведены', async () => {
+    it('экраны с состоянием переведены', async () => {
         const ex = await seedLatin();
-        const list = await dbService.listWorkoutSummaries();
-        const id = list[0]?.workout.id;
+
+        const активная = await dbService.createWorkout({
+            type: 'Strength',
+            plan: [{ exerciseId: ex.id, plannedSets: 3, targetReps: 10, weight: 60, skipped: false }]
+        });
+
+        const остатки = [];
+
+        const собрать = async (lang, название, экран, params = []) => {
+            const found = leftovers(await screen(экран, params));
+            if (found.length) остатки.push(`${lang} ${название}: ${found.slice(0, 6).join(' · ')}`);
+        };
 
         for (const lang of TARGETS) {
             await inLang(lang, async () => {
-                const view = await screen(summary, [id, 'done']);
-                const found = leftovers(view);
+                await собрать(lang, 'Выполнение', session, [активная.id]);
 
-                if (i18n.ready) {
-                    assert(found.length === 0, `${lang}: ${found.join(' · ')}`);
-                } else {
-                    console.info(`[Перевод ${lang}] итоги: ${found.length}`);
-                }
+                await dbService.updateWorkout(активная.id, {
+                    interval: { work: 20, rest: 10, rounds: 2, roundRest: 60, lead: 10 },
+                    run: { state: 'idle', elapsed: 0, startedAt: null }
+                });
+
+                await собрать(lang, 'Программа', intervalScreen);
             });
         }
 
-        assert(!!ex, 'засев должен был пройти');
+        await dbService.finishWorkout(активная.id);
+
+        for (const lang of TARGETS) {
+            await inLang(lang, async () => {
+                await собрать(lang, 'Итоги', summary, [активная.id, 'done']);
+            });
+        }
+
+        if (!i18n.ready) {
+            остатки.forEach((line) => console.info(`  ${line}`));
+            return;
+        }
+
+        assert(остатки.length === 0, `не переведено:\n${остатки.join('\n')}`);
     });
 });

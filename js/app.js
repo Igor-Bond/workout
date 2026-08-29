@@ -129,6 +129,11 @@ export const app = {
 
         current = { ...route, screen };
 
+        // Меню живёт вне экрана и само по себе не перерисовывается. Переводить
+        // его в одном лишь обработчике смены языка — значит забыть про любой
+        // другой способ языку смениться
+        app.translateStatic();
+
         app.syncNav(screen.nav || route.name);
         document.title = screen.title
             ? `${i18n.t(screen.title)} · ${i18n.t('Трекер')}`

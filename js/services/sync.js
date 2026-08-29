@@ -15,6 +15,7 @@
  * из облака.
  */
 
+import { t } from '../core/i18n.js';
 import { auth } from './auth.js';
 import { dbService } from './db.js';
 import { merge, SYNCED } from '../core/merge.js';
@@ -214,7 +215,7 @@ export const sync = {
         if (sync.inProgress) return { skipped: 'already-running' };
 
         sync.inProgress = true;
-        if (!silent) emit('running', 'Синхронизация…');
+        if (!silent) emit('running', t('Синхронизация…'));
 
         const startedAt = Date.now();
         const since = sync.getLastSync();
@@ -232,7 +233,7 @@ export const sync = {
             // Сессия могла истечь или быть отозвана на стороне Google
             if (!auth.isSignedIn) {
                 config.set('syncEnabled', false);
-                if (!silent) emit('error', 'Вход больше не действует — войдите заново');
+                if (!silent) emit('error', t('Вход больше не действует — войдите заново'));
                 return { skipped: 'signed-out' };
             }
 
@@ -269,7 +270,7 @@ export const sync = {
                 emit('done', [
                     result.received || result.sent
                         ? `Получено ${result.received}, отправлено ${result.sent}`
-                        : 'Изменений нет',
+                        : t('Изменений нет'),
                     result.merged ? `объединено двойников: ${result.merged}` : ''
                 ].filter(Boolean).join(', '));
             }
@@ -280,7 +281,7 @@ export const sync = {
 
             // Метка последней синхронизации не сдвигается: неотправленное
             // должно уехать при следующей попытке, а не пропасть
-            emit('error', e?.message || 'Не удалось синхронизировать');
+            emit('error', e?.message || t('Не удалось синхронизировать'));
 
             return { error: e?.message || String(e) };
         } finally {

@@ -240,7 +240,7 @@ function currentCard({ workout, sets, exercises, rows }) {
             <div class="sess-name">${exercise.name || 'Упражнение'}</div>
             <div class="sess-set">
                 ${row.planned > 0
-                    ? `Подход ${row.done + 1} из ${row.planned}`
+                    ? t('Подход {n} из {всего}', { n: row.done + 1, всего: row.planned })
                     : `Подход ${row.done + 1}`}
             </div>
 
@@ -254,7 +254,7 @@ function currentCard({ workout, sets, exercises, rows }) {
             <div class="note-row">
                 <button class="link-btn" data-action="sess-note-toggle">${t('＋ заметка к подходу')}</button>
                 <input type="text" id="f-note" class="note-input" hidden
-                       placeholder="техника, самочувствие, особенности" autocomplete="off">
+                       placeholder="${t('техника, самочувствие, особенности')}" autocomplete="off">
             </div>
 
             <button class="btn btn-done btn-lg" data-action="sess-done">${t('Выполнено')}</button>
@@ -285,11 +285,11 @@ function currentCard({ workout, sets, exercises, rows }) {
                     <button class="btn btn-ghost btn-sm" data-action="sess-undo">${t('Отменить последний подход')}</button>
                 ` : ''}
                 <button class="btn btn-ghost btn-sm" data-action="sess-note-exercise">
-                    ${planItem?.note ? 'Заметка к упражнению ✎' : 'Заметка к упражнению'}
+                    ${planItem?.note ? `${t('Заметка к упражнению')} ✎` : t('Заметка к упражнению')}
                 </button>
                 <button class="btn btn-ghost btn-sm" data-action="sess-rest">
-                    Отдых: ${format.seconds(exercise.restSeconds || config.get('restSeconds'))}
-                    ${exercise.restSeconds ? '' : ' (общий)'}
+                    ${t('Отдых: {время}', { время: format.seconds(exercise.restSeconds || config.get('restSeconds')) })}
+                    ${exercise.restSeconds ? '' : ` ${t('(общий)')}`}
                 </button>
             </div>
 
@@ -305,7 +305,7 @@ function exerciseList({ exercises, rows }) {
             ${i < 9 ? ui.html`<span class="prog-key">${String(i + 1)}</span>` : ''}
             <span class="prog-name">${exercises[row.exerciseId]?.name || 'Упражнение'}</span>
             <span class="prog-count">${row.planned > 0 ? `${row.done}/${row.planned}` : String(row.done)}</span>
-            <span class="prog-state">${STATE_LABEL[row.state]}</span>
+            <span class="prog-state">${t(STATE_LABEL[row.state])}</span>
         </button>
     `);
 
@@ -348,14 +348,14 @@ export const session = {
                     <div class="sess-type">${workout.type}</div>
                     <div class="sess-meta">
                         <strong id="sess-elapsed">${format.duration(Date.now() - workout.startedAt)}</strong>
-                        · ${String(totals.done)} из ${String(totals.planned)} подходов
+                        · ${t('{done} из {planned} подходов', { done: totals.done, planned: totals.planned })}
                     </div>
                 </div>
                 <div class="chips">
                     ${MODES.map((m) => ui.html`
                         <button class="chip ${mode === m.value ? 'is-active' : ''}"
                                 data-action="sess-mode" data-mode="${m.value}"
-                                title="${m.hint}">${m.label}</button>
+                                title="${t(m.hint)}">${t(m.label)}</button>
                     `)}
                 </div>
             </div>
@@ -374,7 +374,7 @@ export const session = {
             ` : ''}
 
             <button class="btn btn-ghost" data-action="sess-note-workout">
-                ${workout.note ? 'Изменить заметку к тренировке' : 'Заметка к тренировке'}
+                ${workout.note ? t('Изменить заметку к тренировке') : t('Заметка к тренировке')}
             </button>
 
             <button class="btn ${complete ? 'btn-accent' : 'btn-ghost'}" data-action="sess-finish">
@@ -693,7 +693,7 @@ actions.on('sess-rest', async () => {
     const exercise = view.exercises[currentId];
 
     const values = await dialog.form({
-        title: `Отдых: ${exercise.name}`,
+        title: t('Отдых: {время}', { время: exercise.name }),
         text: `Общая настройка — ${format.seconds(config.get('restSeconds'))}. Пустое поле вернёт её.`,
         fields: [{
             name: 'rest',

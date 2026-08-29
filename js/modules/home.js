@@ -297,7 +297,7 @@ function bodyBlock(records) {
             <div class="section-title">${t('Вес тела')}</div>
 
             <button class="weight-row" data-action="body-add">
-                <span class="w-value">${format.weight(last.weight)} <small>кг</small></span>
+                <span class="w-value">${format.weight(last.weight)} <small>${t('кг')}</small></span>
                 <span class="w-meta">
                     ${month && month.delta
                         ? `${sign(month.delta)}${format.weight(Math.abs(month.delta))} ${t('кг за месяц')} · `

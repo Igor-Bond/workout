@@ -118,7 +118,7 @@ function head({ workout, phases, run }, state) {
             <div>
                 <h1>${workout.type}</h1>
                 <div class="iv-meta">
-                    ${format.count(работа, format.WORDS.set)} · всего ${format.seconds(total)}
+                    ${format.count(работа, format.WORDS.set)} · ${t('всего {время}', { время: format.seconds(total) })}
                 </div>
             </div>
             <button class="link-btn" data-action="iv-finish">${t('Закончить')}</button>
@@ -136,7 +136,7 @@ function clock({ exercises, phases }, state) {
 
     return ui.html`
         <div class="iv-clock ${info.tone}">
-            <div class="iv-phase">${info.label}</div>
+            <div class="iv-phase">${t(info.label)}</div>
             <div class="iv-time" id="iv-time">${format.seconds(state.remaining)}</div>
 
             <div class="iv-now">${exercise ? exercise.name : (next?.name || '')}</div>
@@ -149,12 +149,12 @@ function clock({ exercises, phases }, state) {
                 бы напечатать одно название дважды подряд.
             -->
             ${phase.kind === 'work' && next ? ui.html`
-                <div class="iv-next">дальше — ${next.name}</div>
+                <div class="iv-next">${t('дальше — {что}', { что: next.name })}</div>
             ` : ''}
 
             ${phase.round ? ui.html`
                 <div class="iv-where">
-                    круг ${String(phase.round)} из ${String(interval.normalize(view.workout.interval).rounds)}
+                    ${t('круг {n} из {всего}', { n: phase.round, всего: interval.normalize(view.workout.interval).rounds })}
                 </div>
             ` : ''}
         </div>
@@ -174,7 +174,7 @@ function ring({ workout, exercises }, state) {
             ${items.map((item, i) => ui.html`
                 <div class="iv-row ${item.exerciseId === nowId ? 'is-now' : ''}">
                     <span class="iv-num">${String(i + 1)}</span>
-                    <span>${exercises[item.exerciseId]?.name || 'Упражнение'}</span>
+                    <span>${exercises[item.exerciseId]?.name || t('Упражнение')}</span>
                 </div>
             `)}
         </div>
@@ -257,7 +257,7 @@ export const intervalScreen = {
                 <div class="iv-clock is-done">
                     <div class="iv-phase">${t('Программа пройдена')}</div>
                     <div class="iv-time">${format.seconds(interval.total(view.phases))}</div>
-                    <div class="iv-now">${format.count(view.sets.length, format.WORDS.set)} записано</div>
+                    <div class="iv-now">${t('{n} записано', { n: format.count(view.sets.length, format.WORDS.set) })}</div>
                 </div>
                 <button class="btn btn-accent btn-lg" data-action="iv-finish">${t('Завершить тренировку')}</button>
             `;
@@ -273,7 +273,7 @@ export const intervalScreen = {
                 ${running
                     ? ui.html`<button class="btn btn-ghost" data-action="iv-pause">${t('Пауза')}</button>`
                     : ui.html`<button class="btn btn-accent btn-lg" data-action="iv-start">
-                          ${view.run.elapsed > 0 ? 'Продолжить' : 'Начать'}
+                          ${view.run.elapsed > 0 ? t('Продолжить') : t('Начать')}
                       </button>`}
 
                 ${running ? ui.html`

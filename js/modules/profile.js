@@ -137,11 +137,18 @@ export const profile = {
                 <div class="card-title">${t('Язык')}</div>
 
                 <div class="field">
-                    <select id="set-lang" data-change="lang">
-                        ${i18n.LANGS.map((l) => ui.html`
-                            <option value="${l.value}" ${ui.raw(i18n.setting === l.value ? 'selected' : '')}>${l.label}</option>
-                        `)}
-                    </select>
+                    <!--
+                        Своё окно выбора, а не системный список.
+
+                        Родной <select> открывает список средствами телефона:
+                        он выглядит чужим, живёт по своим правилам и на
+                        Android рисуется поверх приложения белым по светлому.
+                        Окно выбора в приложении одно и то же везде — тем же
+                        оно должно быть и здесь.
+                    -->
+                    <button class="btn btn-ghost" data-action="lang-pick">
+                        ${i18n.LANGS.find((l) => l.value === i18n.setting)?.label || t('Язык')}
+                    </button>
                     <!--
                         «Как в телефоне» стоит первым и выбрано по умолчанию:
                         приложение, отданное за пределы русскоязычных стран,
@@ -514,9 +521,28 @@ document.addEventListener('change', async (e) => {
  * Перерисовкой всего экрана, а не одной подписи: язык меняет всё сразу —
  * меню, заголовки, разделитель дробной части, названия месяцев.
  */
-actions.onChange('lang', (el) => {
-    i18n.set(el.value);
-    app.translateStatic();
+actions.on('lang-pick', async () => {
+    const chosen = await dialog.choose({
+        title: t('Язык'),
+        options: i18n.LANGS.map((l) => ({
+            value: l.value,
+
+            /*
+             * Название языка — на нём самом, и без перевода.
+             *
+             * Тот, кто ищет свой язык, ищет знакомое слово: «Deutsch», а не
+             * «немецкий». Исключение — «как в телефоне»: это не язык, а
+             * правило, и его надо понимать на том языке, который сейчас
+             * перед глазами.
+             */
+            label: l.value === 'auto' ? t(l.label) : l.label,
+            hint: l.value === i18n.setting ? t('выбран сейчас') : null
+        }))
+    });
+
+    if (!chosen) return;
+
+    i18n.set(chosen);
     app.render();
 });
 

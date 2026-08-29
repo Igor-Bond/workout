@@ -78,12 +78,25 @@ describe('Выбор языка', () => {
      */
     it('недоделанный перевод не предлагается', async () => {
         const view = await screen(profile);
+        const выбор = view.querySelector('[data-action="lang-pick"]');
 
         if (i18n.ready) {
-            assert(!!view.querySelector('[data-change="lang"]'), 'готовый перевод обязан быть доступен');
+            assert(!!выбор, 'готовый перевод обязан быть доступен');
         } else {
-            assert(!view.querySelector('[data-change="lang"]'), 'половина языка хуже, чем его отсутствие');
+            assert(!выбор, 'половина языка хуже, чем его отсутствие');
         }
+    });
+
+    /*
+     * Список языков открывается своим окном, а не системным <select>: тот
+     * выглядит чужим и на Android рисуется поверх приложения белым по
+     * светлому. Окно выбора в приложении одно и то же везде.
+     */
+    it('языки предлагаются окном приложения, а не списком браузера', async () => {
+        const view = await screen(profile);
+
+        assert(!view.querySelector('select#set-lang'), 'системный список здесь не к месту');
+        assert(!!view.querySelector('[data-action="lang-pick"]'));
     });
 
     it('русский обходится без словаря', () => {
