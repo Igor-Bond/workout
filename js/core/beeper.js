@@ -43,11 +43,15 @@ const VOICES = {
      */
     pulse: [{ freq: 392, length: 0.05, gain: 0.15 }],
 
-    // Начало работы — восходящая пара: «поехали»
-    go: [
-        { freq: 1047, length: 0.12, gain: 0.85 },
-        { freq: 1568, length: 0.35, gain: 0.85, after: 0.13 }
-    ],
+    /*
+     * Начало работы — сплошной взлёт тона, а не две ноты.
+     *
+     * Раньше и старт, и конец программы были восходящими наборами нот и
+     * потому путались между собой. Различать их высотой мало — различаться
+     * должно само устройство сигнала: здесь непрерывный подъём, там
+     * отдельные ноты.
+     */
+    go: [{ freq: 660, to: 1600, length: 0.42, gain: 0.9 }],
 
     // Конец работы — нисходящая пара: «стоп». Зеркало предыдущего
     rest: [
@@ -62,11 +66,18 @@ const VOICES = {
         { freq: 523, length: 0.45, gain: 0.75, after: 0.4 }
     ],
 
-    // Конец программы — восходящая тройка, самая громкая
+    /*
+     * Конец программы — четыре отдельные ноты с долгой последней.
+     *
+     * Он один длится больше секунды: длительность сама по себе говорит, что
+     * кончилось всё, а не очередной отрезок. Спутать с взлётом на старте
+     * нельзя — там сплошная линия, здесь отчётливые ступени.
+     */
     done: [
-        { freq: 523,  length: 0.2,  gain: 0.9 },
-        { freq: 784,  length: 0.2,  gain: 0.9, after: 0.24 },
-        { freq: 1047, length: 0.5,  gain: 0.9, after: 0.48 }
+        { freq: 523,  length: 0.16, gain: 0.85 },
+        { freq: 659,  length: 0.16, gain: 0.85, after: 0.18 },
+        { freq: 784,  length: 0.16, gain: 0.85, after: 0.36 },
+        { freq: 1047, length: 0.7,  gain: 0.9,  after: 0.54 }
     ]
 };
 
@@ -111,13 +122,17 @@ function context() {
  * Один голос на телефоне звучит плоско и теряется в шуме зала, а пара даёт
  * тембр, который слышно, не поднимая амплитуду.
  */
-function tone(at, { freq, length, gain: peak }) {
+function tone(at, { freq, to = null, length, gain: peak }) {
     for (const [multiple, share] of [[1, 1], [2, 0.5]]) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
 
         osc.type = WAVE;
-        osc.frequency.value = freq * multiple;
+        osc.frequency.setValueAtTime(freq * multiple, at);
+
+        // Сплошной подъём тона, если задан конец: сигнал старта отличается
+        // от прочих не нотой, а самим движением
+        if (to) osc.frequency.exponentialRampToValueAtTime(to * multiple, at + length * 0.75);
 
         const level = peak * share;
 
