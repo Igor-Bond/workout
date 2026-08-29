@@ -7,6 +7,7 @@
  * давние видно первыми.
  */
 
+import { t } from '../core/i18n.js';
 import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dbService } from '../services/db.js';
@@ -61,9 +62,9 @@ export const recordsScreen = {
 
         if (rows.length === 0) {
             return ui.html`
-                ${ui.title('Личные рекорды')}
-                ${ui.empty('Рекорды появятся после первой тренировки.')}
-                <button class="btn btn-ghost" data-action="nav" data-screen="stats">← К статистике</button>
+                ${ui.title(t('Личные рекорды'))}
+                ${ui.empty(t('Рекорды появятся после первой тренировки.'))}
+                <button class="btn btn-ghost" data-action="nav" data-screen="stats">${t('← К статистике')}</button>
             `;
         }
 
@@ -81,7 +82,7 @@ export const recordsScreen = {
 
         const chips = SORTS.map((s) => ui.html`
             <button class="chip ${sort === s.key ? 'is-active' : ''}"
-                    data-action="prs-sort" data-sort="${s.key}">${s.label}</button>
+                    data-action="prs-sort" data-sort="${s.key}">${t(s.label)}</button>
         `);
 
         const list = sorted.map((row) => ui.html`
@@ -100,21 +101,21 @@ export const recordsScreen = {
         `);
 
         return ui.html`
-            ${ui.title('Личные рекорды',
-                'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список')}
+            ${ui.title(t('Личные рекорды'),
+                t('Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список'))}
 
             <div class="chips">${chips}</div>
 
             <div class="card">
                 <div class="tiles">
-                    ${ui.raw(`<div class="tile"><strong>${rows.length}</strong><span>Упражнений</span></div>`)}
-                    ${ui.raw(`<div class="tile"><strong>${fresh}</strong><span>Обновлено за месяц</span></div>`)}
+                    ${ui.raw(`<div class="tile"><strong>${rows.length}</strong><span>${t('Упражнений')}</span></div>`)}
+                    ${ui.raw(`<div class="tile"><strong>${fresh}</strong><span>${t('Обновлено за месяц')}</span></div>`)}
                 </div>
             </div>
 
             <div class="card">${list}</div>
 
-            <button class="btn btn-ghost" data-action="nav" data-screen="stats">← К статистике</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="stats">${t('← К статистике')}</button>
         `;
     }
 };

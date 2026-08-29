@@ -94,7 +94,7 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
 
     return ui.html`
         <div class="rec-line">
-            <span class="rec-label">Примерная нагрузка</span>
+            <span class="rec-label">${t('Примерная нагрузка')}</span>
             <span class="rec-value">≈ ${format.weight(value)} кг</span>
             <span class="rec-when">${kind === 'time' ? 'на удержании' : 'за повторение'}</span>
         </div>
@@ -110,13 +110,13 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
  */
 function recordsBlock({ last, best, kind }) {
     if (!last && !best) {
-        return ui.html`<div class="rec-line rec-empty">Первый раз — ориентиров пока нет</div>`;
+        return ui.html`<div class="rec-line rec-empty">${t('Первый раз — ориентиров пока нет')}</div>`;
     }
 
     return ui.html`
         ${last ? ui.html`
             <div class="rec-line">
-                <span class="rec-label">Последний раз</span>
+                <span class="rec-label">${t('Последний раз')}</span>
                 <span class="rec-value">${records.describeSession(last.sets, kind)}</span>
                 <span class="rec-when">${dates.formatDayLabel(last.performedAt)}</span>
             </div>
@@ -124,7 +124,7 @@ function recordsBlock({ last, best, kind }) {
 
         ${best ? ui.html`
             <div class="rec-line">
-                <span class="rec-label">Лучший результат</span>
+                <span class="rec-label">${t('Лучший результат')}</span>
                 <span class="rec-value">${records.describe(best, kind)}</span>
             </div>
         ` : ''}
@@ -161,7 +161,7 @@ function deltaLine({ last, kind }, own) {
     if (!delta) return '';
 
     if (delta.parts.length === 0) {
-        return ui.html`<div class="sess-delta is-same">как в прошлый раз</div>`;
+        return ui.html`<div class="sess-delta is-same">${t('как в прошлый раз')}</div>`;
     }
 
     return ui.html`
@@ -177,11 +177,11 @@ function restBar() {
 
     return ui.html`
         <div class="rest-bar">
-            <span class="rest-label">Отдых</span>
+            <span class="rest-label">${t('Отдых')}</span>
             <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
-            <button class="chip" data-action="rest-shorten">−30 с</button>
-            <button class="chip" data-action="rest-extend">+30 с</button>
-            <button class="chip" data-action="rest-skip">Пропустить</button>
+            <button class="chip" data-action="rest-shorten">${t('−30 с')}</button>
+            <button class="chip" data-action="rest-extend">${t('+30 с')}</button>
+            <button class="chip" data-action="rest-skip">${t('Пропустить')}</button>
         </div>
     `;
 }
@@ -194,7 +194,7 @@ function fields(kind, prefill) {
         return ui.html`
             <input type="number" class="big-input" id="f-duration" min="0" inputmode="numeric"
                    placeholder="0" value="${value(prefill.duration)}" data-enter="sess-done">
-            <div class="big-label">секунд</div>
+            <div class="big-label">${t('секунд')}</div>
         `;
     }
 
@@ -202,12 +202,12 @@ function fields(kind, prefill) {
         return ui.html`
             <input type="number" class="big-input" id="f-distance" min="0" inputmode="numeric"
                    placeholder="0" value="${value(prefill.distance)}" data-enter="sess-done">
-            <div class="big-label">метров</div>
+            <div class="big-label">${t('метров')}</div>
             <div class="inline-field">
-                <span>время:</span>
+                <span>${t('время:')}</span>
                 <input type="number" id="f-duration" min="0" inputmode="numeric"
                        placeholder="—" value="${value(prefill.duration)}">
-                <span>сек</span>
+                <span>${t('сек')}</span>
             </div>
         `;
     }
@@ -215,19 +215,19 @@ function fields(kind, prefill) {
     return ui.html`
         <input type="number" class="big-input" id="f-reps" min="0" inputmode="numeric"
                placeholder="0" value="${value(prefill.reps)}" data-enter="sess-done">
-        <div class="big-label">повторений</div>
+        <div class="big-label">${t('повторений')}</div>
         <div class="inline-field">
-            <span>вес:</span>
+            <span>${t('вес:')}</span>
             <input type="number" id="f-weight" min="0" step="0.5" inputmode="decimal"
                    placeholder="—" value="${value(prefill.weight)}">
-            <span>кг</span>
+            <span>${t('кг')}</span>
         </div>
     `;
 }
 
 function currentCard({ workout, sets, exercises, rows }) {
     const row = rows.find((r) => r.exerciseId === currentId);
-    if (!row) return ui.empty('Добавь упражнение, чтобы начать.');
+    if (!row) return ui.empty(t('Добавь упражнение, чтобы начать.'));
 
     const exercise = exercises[currentId] || {};
     const prefill = engine.prefill(workout.plan, sets, currentId);
@@ -252,18 +252,18 @@ function currentCard({ workout, sets, exercises, rows }) {
             ${fields(exercise.kind || 'weight', prefill)}
 
             <div class="note-row">
-                <button class="link-btn" data-action="sess-note-toggle">＋ заметка к подходу</button>
+                <button class="link-btn" data-action="sess-note-toggle">${t('＋ заметка к подходу')}</button>
                 <input type="text" id="f-note" class="note-input" hidden
                        placeholder="техника, самочувствие, особенности" autocomplete="off">
             </div>
 
-            <button class="btn btn-done btn-lg" data-action="sess-done">Выполнено</button>
+            <button class="btn btn-done btn-lg" data-action="sess-done">${t('Выполнено')}</button>
 
             ${restBar()}
 
             ${own.length ? ui.html`
                 <div class="sess-done">
-                    <span class="sess-done-label">Сделано</span>
+                    <span class="sess-done-label">${t('Сделано')}</span>
                     <span class="num">${records.describeSession(own, exercise.kind)}</span>
                 </div>
                 ${deltaLine(view, own)}
@@ -276,13 +276,13 @@ function currentCard({ workout, sets, exercises, rows }) {
                 записи — так и задумано.
             -->
             <div class="note-row">
-                <button class="link-btn" data-action="sess-more">Ещё…</button>
+                <button class="link-btn" data-action="sess-more">${t('Ещё…')}</button>
             </div>
 
             <div class="sess-tools" hidden>
-                <button class="btn btn-ghost btn-sm" data-action="sess-skip">Пропустить упражнение</button>
+                <button class="btn btn-ghost btn-sm" data-action="sess-skip">${t('Пропустить упражнение')}</button>
                 ${own.length ? ui.html`
-                    <button class="btn btn-ghost btn-sm" data-action="sess-undo">Отменить последний подход</button>
+                    <button class="btn btn-ghost btn-sm" data-action="sess-undo">${t('Отменить последний подход')}</button>
                 ` : ''}
                 <button class="btn btn-ghost btn-sm" data-action="sess-note-exercise">
                     ${planItem?.note ? 'Заметка к упражнению ✎' : 'Заметка к упражнению'}
@@ -311,10 +311,10 @@ function exerciseList({ exercises, rows }) {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">Упражнения</div>
+            <div class="card-title">${t('Упражнения')}</div>
             <div class="prog-list">${items}</div>
-            <button class="btn btn-ghost btn-sm" data-action="sess-add">+ Добавить упражнение</button>
-            <p class="hint keys-hint">Цифра — выбрать упражнение, Enter — записать подход, пробел — пропустить отдых.</p>
+            <button class="btn btn-ghost btn-sm" data-action="sess-add">${t('+ Добавить упражнение')}</button>
+            <p class="hint keys-hint">${t('Цифра — выбрать упражнение, Enter — записать подход, пробел — пропустить отдых.')}</p>
         </div>
     `;
 }
@@ -331,10 +331,10 @@ export const session = {
 
         if (!view) {
             return ui.html`
-                ${ui.title('Выполнение')}
-                ${ui.empty('Активной тренировки нет.')}
-                <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
-                <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
+                ${ui.title(t('Выполнение'))}
+                ${ui.empty(t('Активной тренировки нет.'))}
+                <button class="btn btn-accent" data-action="nav" data-screen="plan">${t('Новая тренировка')}</button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="home">${t('← На главную')}</button>
             `;
         }
 
@@ -361,7 +361,7 @@ export const session = {
             </div>
 
             ${complete ? ui.html`
-                <div class="banner"><span>План выполнен — можно завершать</span></div>
+                <div class="banner"><span>${t('План выполнен — можно завершать')}</span></div>
             ` : ''}
 
             <div class="sess-layout">
@@ -370,7 +370,7 @@ export const session = {
             </div>
 
             ${workout.note ? ui.html`
-                <div class="card"><div class="card-title">Заметка к тренировке</div><p>${workout.note}</p></div>
+                <div class="card"><div class="card-title">${t('Заметка к тренировке')}</div><p>${workout.note}</p></div>
             ` : ''}
 
             <button class="btn btn-ghost" data-action="sess-note-workout">
@@ -378,7 +378,7 @@ export const session = {
             </button>
 
             <button class="btn ${complete ? 'btn-accent' : 'btn-ghost'}" data-action="sess-finish">
-                Завершить тренировку
+                ${t('Завершить тренировку')}
             </button>
         `;
     },

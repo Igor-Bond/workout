@@ -94,16 +94,16 @@ function bodyBlock(weights, range) {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">Вес тела</div>
+            <div class="card-title">${t('Вес тела')}</div>
 
             ${last ? ui.html`
                 <div class="tiles">
-                    ${tile('Сейчас, кг', format.weight(last.weight))}
+                    ${tile(t('Сейчас, кг'), format.weight(last.weight))}
                     ${change ? tile(
                         'За период, кг',
                         `${change.delta > 0 ? '+' : change.delta < 0 ? '−' : ''}${format.weight(Math.abs(change.delta))}`
                     ) : ''}
-                    ${tile('Взвешиваний', String(series.length))}
+                    ${tile(t('Взвешиваний'), String(series.length))}
                 </div>
 
                 ${series.length >= 2 ? chart.line([{
@@ -115,10 +115,10 @@ function bodyBlock(weights, range) {
                 }], { height: 130 }) : ''}
 
                 <p class="hint">Последнее взвешивание — ${dates.formatDayLabel(last.at).toLowerCase()}.</p>
-            ` : ui.empty('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.')}
+            ` : ui.empty(t('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.'))}
 
             <button class="btn btn-ghost btn-sm" data-action="body-add">
-                ${last ? 'Отметить вес' : 'Отметить вес сегодня'}
+                ${last ? t('Отметить вес') : t('Отметить вес сегодня')}
             </button>
         </div>
     `;
@@ -143,8 +143,8 @@ export const stats = {
 
         if (entries.length === 0) {
             return ui.html`
-                ${ui.title('Статистика')}
-                ${ui.empty('Нет данных — сначала проведи тренировку.')}
+                ${ui.title(t('Статистика'))}
+                ${ui.empty(t('Нет данных — сначала проведи тренировку.'))}
                 ${bodyBlock(weights, null)}
             `;
         }
@@ -168,7 +168,7 @@ export const stats = {
 
         const periodChips = calc.PERIODS.map((p) => ui.html`
             <button class="chip ${period === p.key ? 'is-active' : ''}"
-                    data-action="stats-period" data-period="${p.key}">${p.label}</button>
+                    data-action="stats-period" data-period="${p.key}">${t(p.label)}</button>
         `);
 
         // Объём последних тренировок: свежие справа, как на любом графике времени
@@ -182,31 +182,31 @@ export const stats = {
             }));
 
         return ui.html`
-            ${ui.title('Статистика')}
+            ${ui.title(t('Статистика'))}
 
             <div class="chips">${periodChips}</div>
 
             <div class="card">
                 <div class="tiles">
-                    ${tile('Тренировок', String(now.workouts), change.workouts)}
-                    ${tile('Подходов', String(now.sets), change.sets)}
-                    ${tile('Повторений', String(now.reps), change.reps)}
-                    ${tile('Тоннаж, кг', format.decimal(now.volume, 0), change.volume)}
-                    ${tile('Общее время', format.duration(now.durationMs), change.durationMs)}
-                    ${tile('Подх. / трен.', format.decimal(now.avgSets), change.avgSets)}
-                    ${tile('Повт. / подх.', format.decimal(now.avgReps), change.avgReps)}
-                    ${tile('Средняя длит.', format.duration(now.avgDuration), change.avgDuration)}
+                    ${tile(t('Тренировок'), String(now.workouts), change.workouts)}
+                    ${tile(t('Подходов'), String(now.sets), change.sets)}
+                    ${tile(t('Повторений'), String(now.reps), change.reps)}
+                    ${tile(t('Тоннаж, кг'), format.decimal(now.volume, 0), change.volume)}
+                    ${tile(t('Общее время'), format.duration(now.durationMs), change.durationMs)}
+                    ${tile(t('Подх. / трен.'), format.decimal(now.avgSets), change.avgSets)}
+                    ${tile(t('Повт. / подх.'), format.decimal(now.avgReps), change.avgReps)}
+                    ${tile(t('Средняя длит.'), format.duration(now.avgDuration), change.avgDuration)}
                 </div>
 
                 ${was ? ui.html`
-                    <p class="hint">Изменение — к предыдущему такому же периоду.</p>
+                    <p class="hint">${t('Изменение — к предыдущему такому же периоду.')}</p>
                 ` : ui.html`
-                    <p class="hint">Сравнивать не с чем: за всё время предыдущего периода нет.</p>
+                    <p class="hint">${t('Сравнивать не с чем: за всё время предыдущего периода нет.')}</p>
                 `}
 
                 ${best ? ui.html`
                     <div class="best-month">
-                        <span class="best-label">Лучший месяц за всё время</span>
+                        <span class="best-label">${t('Лучший месяц за всё время')}</span>
                         <span>
                             ${monthName(best.byWorkouts.at)} —
                             ${format.count(best.byWorkouts.workouts, format.WORDS.workout)}
@@ -224,23 +224,23 @@ export const stats = {
             </div>
 
             <div class="card">
-                <div class="card-title">Подходы по тренировкам</div>
+                <div class="card-title">${t('Подходы по тренировкам')}</div>
                 ${chart.bars(recent, { maxLabel: 5 })}
             </div>
 
             ${bodyBlock(weights, current)}
 
             <div class="card">
-                <div class="card-title">Постоянство</div>
+                <div class="card-title">${t('Постоянство')}</div>
 
                 <div class="tiles">
-                    ${tile('Недель подряд', String(streaks.weeks))}
-                    ${tile('Рекорд недель', String(streaks.longestWeeks))}
-                    ${tile('Дней подряд', String(streaks.days))}
-                    ${tile('Дней с тренировкой', String(days.length))}
+                    ${tile(t('Недель подряд'), String(streaks.weeks))}
+                    ${tile(t('Рекорд недель'), String(streaks.longestWeeks))}
+                    ${tile(t('Дней подряд'), String(streaks.days))}
+                    ${tile(t('Дней с тренировкой'), String(days.length))}
                 </div>
 
-                <div class="chart-title">По дням недели</div>
+                <div class="chart-title">${t('По дням недели')}</div>
                 ${chart.bars(
                     dates.WEEKDAYS_SHORT.map((label, i) => ({ label, value: weekdays[i] })),
                     { height: 120, maxLabel: 2 }
@@ -248,20 +248,20 @@ export const stats = {
             </div>
 
             <div class="card">
-                <div class="card-title">По дням</div>
+                <div class="card-title">${t('По дням')}</div>
 
                 ${chart.heatmap(
                     heat.map((d) => ({
                         ...d,
-                        title: `${dates.formatDate(d.day)} — ${d.sets ? format.count(d.sets, format.WORDS.set) : 'без тренировки'}`
+                        title: `${dates.formatDate(d.day)} — ${d.sets ? format.count(d.sets, format.WORDS.set) : t('без тренировки')}`
                     })),
                     { months: monthLabels(heat) }
                 )}
-                <p class="hint">Насыщенность — по количеству подходов за день. Карта листается вбок.</p>
+                <p class="hint">${t('Насыщенность — по количеству подходов за день. Карта листается вбок.')}</p>
             </div>
 
             <div class="card">
-                <div class="card-title">Объём по группам мышц</div>
+                <div class="card-title">${t('Объём по группам мышц')}</div>
                 ${chart.hbars(
                     muscles.map((m) => ({ label: m.group, value: m.sets })),
                     { format: (v) => `${v}` }
@@ -269,12 +269,12 @@ export const stats = {
                 ${muscles.some((m) => m.group === 'Без группы') ? ui.html`
                     <p class="hint">
                         У части упражнений группа не указана.
-                        <button class="link-btn" data-action="nav" data-screen="exercises">Проставить в справочнике</button>
+                        <button class="link-btn" data-action="nav" data-screen="exercises">${t('Проставить в справочнике')}</button>
                     </p>
                 ` : ''}
             </div>
 
-            <button class="btn btn-ghost" data-action="nav" data-screen="records">Личные рекорды</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('Личные рекорды')}</button>
         `;
     }
 };

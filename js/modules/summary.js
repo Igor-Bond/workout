@@ -122,7 +122,9 @@ function columnsOf(block) {
 function setRow(set, recordId, kind, columns) {
     return ui.html`
         <tr class="${set.id === recordId ? 'is-record' : ''}">
-            <td>${String(set.setNumber)}${set.id === recordId ? ui.raw(' <span class="record-mark" title="Новый рекорд">★</span>') : ''}</td>
+            <td>${String(set.setNumber)}${set.id === recordId
+                ? ui.raw(` <span class="record-mark" title="${ui.esc(t('Новый рекорд'))}">★</span>`)
+                : ''}</td>
 
             ${columns.map((field) => ui.html`
                 <td>${set[field] === undefined ? '—' : CELL[field](set)}</td>
@@ -130,9 +132,9 @@ function setRow(set, recordId, kind, columns) {
 
             <td class="cell-tools">
                 <button class="icon-btn" data-action="summary-edit-set" data-id="${set.id}"
-                        data-kind="${kind || 'weight'}" title="Изменить подход">✎</button>
+                        data-kind="${kind || 'weight'}" title="${t('Изменить подход')}">✎</button>
                 <button class="icon-btn is-danger" data-action="summary-drop-set" data-id="${set.id}"
-                        title="Удалить подход">×</button>
+                        title="${t('Удалить подход')}">×</button>
             </td>
         </tr>
         ${set.note ? ui.html`
@@ -167,7 +169,7 @@ function block(b, note) {
                 <table class="log">
                     <thead>
                         <tr>
-                            <th>Подход</th>
+                            <th>${t('Подход')}</th>
                             ${columns.map((field) => ui.html`<th>${COLUMN_HEAD[field]}</th>`)}
                             <th></th>
                         </tr>
@@ -214,9 +216,9 @@ export const summary = {
 
         if (!workout) {
             return ui.html`
-                ${ui.title('Итоги тренировки')}
-                ${ui.empty('Тренировка не найдена — возможно, она была удалена.')}
-                <button class="btn btn-ghost" data-action="nav" data-screen="history">← В историю</button>
+                ${ui.title(t('Итоги тренировки'))}
+                ${ui.empty(t('Тренировка не найдена — возможно, она была удалена.'))}
+                <button class="btn btn-ghost" data-action="nav" data-screen="history">${t('← В историю')}</button>
             `;
         }
 
@@ -249,7 +251,7 @@ export const summary = {
         );
 
         return ui.html`
-            ${ui.title('Итоги тренировки',
+            ${ui.title(t('Итоги тренировки'),
                 `${workout.type} · ${dates.formatDateTime(workout.startedAt)}`)}
 
             <!--
@@ -262,28 +264,28 @@ export const summary = {
             ${fresh ? ui.html`
                 <div class="saved-strip">
                     <span class="saved-mark">✓</span>
-                    <span>Тренировка записана. Всё сохранено — можно закрывать.</span>
+                    <span>${t('Тренировка записана. Всё сохранено — можно закрывать.')}</span>
                 </div>
             ` : ''}
 
             ${blocks.length
                 ? blocks.map((b) => block(b, notes[b.exerciseId]))
-                : ui.empty('Ни одного подхода не записано.')}
+                : ui.empty(t('Ни одного подхода не записано.'))}
 
             <div class="card">
                 <div class="tiles">
-                    ${tile('Упражнений', String(totals.exercises))}
-                    ${tile('Подходов', String(totals.sets))}
-                    ${tile('Повторений', String(totals.reps))}
-                    ${tile('Время', format.duration(totals.durationMs))}
-                    ${totals.hasWeight ? tile('Тоннаж, кг', format.weight(totals.volume)) : ''}
-                    ${tile('Повт. на подход', totals.avgReps ? format.decimal(totals.avgReps) : '—')}
+                    ${tile(t('Упражнений'), String(totals.exercises))}
+                    ${tile(t('Подходов'), String(totals.sets))}
+                    ${tile(t('Повторений'), String(totals.reps))}
+                    ${tile(t('Время'), format.duration(totals.durationMs))}
+                    ${totals.hasWeight ? tile(t('Тоннаж, кг'), format.weight(totals.volume)) : ''}
+                    ${tile(t('Повт. на подход'), totals.avgReps ? format.decimal(totals.avgReps) : '—')}
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">Заметка к тренировке</div>
-                ${workout.note ? ui.html`<p>${workout.note}</p>` : ui.empty('Не заполнена.')}
+                <div class="card-title">${t('Заметка к тренировке')}</div>
+                ${workout.note ? ui.html`<p>${workout.note}</p>` : ui.empty(t('Не заполнена.'))}
                 <button class="btn btn-ghost btn-sm" data-action="summary-note" data-id="${workout.id}">
                     ${workout.note ? 'Изменить' : 'Добавить заметку'}
                 </button>
@@ -296,12 +298,12 @@ export const summary = {
                 было нечем, отчего экран и казался недоделанным.
             -->
             ${fresh
-                ? ui.html`<button class="btn btn-accent btn-lg" data-action="nav" data-screen="home">Готово</button>`
-                : ui.html`<button class="btn btn-accent" data-action="nav" data-screen="history">← В историю</button>`}
+                ? ui.html`<button class="btn btn-accent btn-lg" data-action="nav" data-screen="home">${t('Готово')}</button>`
+                : ui.html`<button class="btn btn-accent" data-action="nav" data-screen="history">${t('← В историю')}</button>`}
 
-            <button class="btn btn-ghost" data-action="summary-as-template" data-id="${workout.id}">Сохранить как шаблон</button>
-            ${fresh ? ui.html`<button class="btn btn-ghost" data-action="nav" data-screen="history">В историю</button>` : ''}
-            <button class="btn btn-danger" data-action="summary-delete" data-id="${workout.id}">Удалить тренировку</button>
+            <button class="btn btn-ghost" data-action="summary-as-template" data-id="${workout.id}">${t('Сохранить как шаблон')}</button>
+            ${fresh ? ui.html`<button class="btn btn-ghost" data-action="nav" data-screen="history">${t('В историю')}</button>` : ''}
+            <button class="btn btn-danger" data-action="summary-delete" data-id="${workout.id}">${t('Удалить тренировку')}</button>
         `;
     }
 };

@@ -5,6 +5,7 @@
  * история подходов. Открывается по #/exercise/<id>.
  */
 
+import { t } from '../core/i18n.js';
 import { ui } from '../core/ui.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
@@ -76,9 +77,9 @@ export const exercise = {
 
         if (!record) {
             return ui.html`
-                ${ui.title('Упражнение')}
-                ${ui.empty('Упражнение не найдено.')}
-                <button class="btn btn-ghost" data-action="nav" data-screen="records">← К рекордам</button>
+                ${ui.title(t('Упражнение'))}
+                ${ui.empty(t('Упражнение не найдено.'))}
+                <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('← К рекордам')}</button>
             `;
         }
 
@@ -90,8 +91,8 @@ export const exercise = {
         if (sets.length === 0) {
             return ui.html`
                 ${ui.title(record.name, KIND_LABEL[record.kind])}
-                ${ui.empty('Это упражнение ещё ни разу не выполнялось.')}
-                <button class="btn btn-ghost" data-action="nav" data-screen="records">← К рекордам</button>
+                ${ui.empty(t('Это упражнение ещё ни разу не выполнялось.'))}
+                <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('← К рекордам')}</button>
             `;
         }
 
@@ -159,33 +160,33 @@ export const exercise = {
 
             <div class="card">
                 <div class="tiles">
-                    ${tile('Лучший результат', records.describe(best, record.kind))}
+                    ${tile(t('Лучший результат'), records.describe(best, record.kind))}
                     ${oneRep ? tile("Разово, кг", format.decimal(oneRep, 0)) : ""}
-                    ${tile('Тренировок', String(workoutIds.size))}
-                    ${tile('Подходов', String(sets.length))}
-                    ${reps ? tile('Повторений', String(reps)) : ''}
-                    ${volume ? tile('Тоннаж, кг', format.decimal(volume, 0)) : ''}
-                    ${bodyLoad ? tile('С весом тела, кг', format.decimal(bodyLoad, 0)) : ''}
-                    ${relative ? tile('К своему весу', `×${format.decimal(relative, 2)}`) : ''}
-                    ${tile('Последний раз', daysAgo === 0 ? 'сегодня' : format.count(daysAgo, format.WORDS.day))}
+                    ${tile(t('Тренировок'), String(workoutIds.size))}
+                    ${tile(t('Подходов'), String(sets.length))}
+                    ${reps ? tile(t('Повторений'), String(reps)) : ''}
+                    ${volume ? tile(t('Тоннаж, кг'), format.decimal(volume, 0)) : ''}
+                    ${bodyLoad ? tile(t('С весом тела, кг'), format.decimal(bodyLoad, 0)) : ''}
+                    ${relative ? tile(t('К своему весу'), `×${format.decimal(relative, 2)}`) : ''}
+                    ${tile(t('Последний раз'), daysAgo === 0 ? 'сегодня' : format.count(daysAgo, format.WORDS.day))}
                 </div>
 
                 ${record.kind === 'reps' && !bodyLoad ? ui.html`
                     <p class="hint">
                         Объём не считается: не отмечен вес тела.
-                        <button class="link-btn" data-action="nav" data-screen="stats">Отметить в статистике</button>
+                        <button class="link-btn" data-action="nav" data-screen="stats">${t('Отметить в статистике')}</button>
                     </p>
                 ` : ''}
             </div>
 
             ${series.length >= 2 ? ui.html`
                 <div class="card">
-                    <div class="card-title">Динамика</div>
+                    <div class="card-title">${t('Динамика')}</div>
                     ${dynamics(series, best?.workoutId)}
                     <div class="legend">
-                        <span class="legend-item"><i class="dot is-accent"></i>рабочий результат</span>
-                        <span class="legend-item"><i class="dot is-blue"></i>объём</span>
-                        <span class="legend-item"><i class="dot is-dim"></i>тренд</span>
+                        <span class="legend-item"><i class="dot is-accent"></i>${t('рабочий результат')}</span>
+                        <span class="legend-item"><i class="dot is-blue"></i>${t('объём')}</span>
+                        <span class="legend-item"><i class="dot is-dim"></i>${t('тренд')}</span>
                     </div>
                 </div>
             ` : ''}
@@ -195,8 +196,8 @@ export const exercise = {
                 ${history}
             </div>
 
-            <button class="btn btn-ghost" data-action="nav" data-screen="records">← К рекордам</button>
-            <button class="btn btn-ghost" data-action="nav" data-screen="stats">К статистике</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('← К рекордам')}</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="stats">${t('К статистике')}</button>
         `;
     }
 };

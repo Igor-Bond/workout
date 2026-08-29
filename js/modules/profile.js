@@ -12,7 +12,7 @@ import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
 import { voice } from '../core/voice.js';
-import { i18n } from '../core/i18n.js';
+import { i18n, t } from '../core/i18n.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -48,47 +48,47 @@ function toggle(key, label, hint) {
 function syncBlock() {
     if (!auth.isConfigured()) {
         return ui.html`
-            ${ui.empty('Не настроена. Приложение работает локально: тренировки, история и статистика на месте, просто не переносятся между устройствами.')}
-            <p class="hint">Чтобы включить — заполнить <code>js/firebase.config.js</code>. Порядок в <code>docs/DEPLOY.md</code>.</p>
+            ${ui.empty(t('Не настроена. Приложение работает локально: тренировки, история и статистика на месте, просто не переносятся между устройствами.'))}
+            <p class="hint">${t('Чтобы включить — заполнить')} <code>js/firebase.config.js</code>. ${t('Порядок в')} <code>docs/DEPLOY.md</code>.</p>
         `;
     }
 
     if (!auth.isSignedIn) {
         return ui.html`
-            ${ui.empty('Вход не выполнен. Локальные данные при входе не стираются — они объединятся с облачными.')}
-            <button class="btn btn-accent" data-action="sync-in">Войти через Google</button>
+            ${ui.empty(t('Вход не выполнен. Локальные данные при входе не стираются — они объединятся с облачными.'))}
+            <button class="btn btn-accent" data-action="sync-in">${t('Войти через Google')}</button>
         `;
     }
 
     const last = sync.getLastSync();
 
     return ui.html`
-        <div class="info-row"><span>Учётная запись</span><strong>${auth.user?.email || 'вход выполнен'}</strong></div>
+        <div class="info-row"><span>${t('Учётная запись')}</span><strong>${auth.user?.email || t('вход выполнен')}</strong></div>
         <div class="info-row">
-            <span>Последний обмен</span>
-            <strong>${last ? dates.formatDateTime(last) : 'ещё не было'}</strong>
+            <span>${t('Последний обмен')}</span>
+            <strong>${last ? dates.formatDateTime(last) : t('ещё не было')}</strong>
         </div>
 
         <div id="sync-status" class="sync-status"></div>
 
-        <button class="btn btn-accent" data-action="sync-now">Синхронизировать</button>
-        <button class="btn btn-ghost" data-action="sync-full">Полный обмен заново</button>
-        <button class="btn btn-ghost" data-action="sync-out">Выйти</button>
-        <p class="hint">Выход не удаляет локальные данные. Незавершённая тренировка в облако не уезжает — она живёт только на этом устройстве.</p>
+        <button class="btn btn-accent" data-action="sync-now">${t('Синхронизировать')}</button>
+        <button class="btn btn-ghost" data-action="sync-full">${t('Полный обмен заново')}</button>
+        <button class="btn btn-ghost" data-action="sync-out">${t('Выйти')}</button>
+        <p class="hint">${t('Выход не удаляет локальные данные. Незавершённая тренировка в облако не уезжает — она живёт только на этом устройстве.')}</p>
     `;
 }
 
 function installBlock() {
     if (install.installed) {
-        return ui.empty('Приложение уже установлено.');
+        return ui.empty(t('Приложение уже установлено.'));
     }
     if (install.available) {
-        return ui.html`<button class="btn btn-accent" data-action="install">Установить приложение</button>`;
+        return ui.html`<button class="btn btn-accent" data-action="install">${t('Установить приложение')}</button>`;
     }
     if (install.supported) {
-        return ui.empty('Браузер пока не предложил установку. Она станет доступна после нескольких заходов.');
+        return ui.empty(t('Браузер пока не предложил установку. Она станет доступна после нескольких заходов.'));
     }
-    return ui.empty('Установка делается вручную: «Поделиться» → «На экран Домой».');
+    return ui.empty(t('Установка делается вручную: «Поделиться» → «На экран Домой».'));
 }
 
 export const profile = {
@@ -109,7 +109,7 @@ export const profile = {
         if (sync.available) await auth.init().catch(() => {});
 
         return ui.html`
-            ${ui.raw(ui.title('Профиль'))}
+            ${ui.raw(ui.title(t('Профиль')))}
 
             <!--
                 Справка стоит первой и выделена цветом, хотя нажимают её
@@ -123,7 +123,7 @@ export const profile = {
                 нужная кнопка на экране.
             -->
             <button class="btn btn-accent" data-action="nav" data-screen="guide">
-                Как пользоваться приложением
+                ${t('Как пользоваться приложением')}
             </button>
 
             <!--
@@ -134,7 +134,7 @@ export const profile = {
             -->
             ${i18n.ready ? ui.html`
             <div class="card">
-                <div class="card-title">Язык</div>
+                <div class="card-title">${t('Язык')}</div>
 
                 <div class="field">
                     <select id="set-lang" data-change="lang">
@@ -150,27 +150,26 @@ export const profile = {
                         и не знает.
                     -->
                     <div class="hint">
-                        Язык интерфейса. Названия упражнений и заметки остаются
-                        такими, какими записаны.
+                        ${t('Язык интерфейса. Названия упражнений и заметки остаются такими, какими записаны.')}
                     </div>
                 </div>
             </div>
             ` : ''}
 
             <div class="card">
-                <div class="card-title">Тренировка</div>
+                <div class="card-title">${t('Тренировка')}</div>
 
                 <div class="field">
-                    <label for="set-mode">Порядок упражнений</label>
+                    <label for="set-mode">${t('Порядок упражнений')}</label>
                     <select id="set-mode" data-change="setting" data-key="mode">
                         ${MODES.map((m) => ui.html`
-                            <option value="${m.value}" ${ui.raw(mode === m.value ? 'selected' : '')}>${m.label}</option>
+                            <option value="${m.value}" ${ui.raw(mode === m.value ? 'selected' : '')}>${t(m.label)}</option>
                         `)}
                     </select>
-                    <div class="hint">${MODES.find((m) => m.value === mode)?.hint || ''}</div>
+                    <div class="hint">${t(MODES.find((m) => m.value === mode)?.hint || '')}</div>
                 </div>
 
-                ${ui.raw(toggle('keepAwake', 'Не гасить экран', 'Во время тренировки'))}
+                ${ui.raw(toggle('keepAwake', t('Не гасить экран'), t('Во время тренировки')))}
 
                 <!--
                     Выключателя нет, когда решает не он.
@@ -182,8 +181,8 @@ export const profile = {
                 -->
                 ${fullscreen.supported && !fullscreen.byManifest ? ui.raw(toggle(
                     'fullscreen',
-                    'Полноэкранный режим',
-                    'Скрывает системные панели всё время работы'
+                    t('Полноэкранный режим'),
+                    t('Скрывает системные панели всё время работы')
                 )) : ''}
 
                 <!--
@@ -197,18 +196,18 @@ export const profile = {
                     нельзя — ни владельцу, ни мне по его рассказу.
                 -->
                 <div class="info-row">
-                    <span>Сейчас</span>
-                    <strong>${fullscreen.byManifest ? 'во весь экран с запуска'
-                        : !fullscreen.supported ? 'браузер не умеет'
-                        : fullscreen.active ? 'включён' : 'выключен'}</strong>
+                    <span>${t('Сейчас')}</span>
+                    <strong>${fullscreen.byManifest ? t('во весь экран с запуска')
+                        : !fullscreen.supported ? t('браузер не умеет')
+                        : fullscreen.active ? t('включён') : t('выключен')}</strong>
                 </div>
 
                 ${fullscreen.lastError && !fullscreen.byManifest ? ui.html`
-                    <div class="info-row"><span>Отказ браузера</span><strong>${fullscreen.lastError}</strong></div>
+                    <div class="info-row"><span>${t('Отказ браузера')}</span><strong>${fullscreen.lastError}</strong></div>
                 ` : ''}
 
                 ${!fullscreen.byManifest && fullscreen.supported && !fullscreen.active ? ui.html`
-                    <button class="btn btn-ghost btn-sm" data-action="fs-now">Включить сейчас</button>
+                    <button class="btn btn-ghost btn-sm" data-action="fs-now">${t('Включить сейчас')}</button>
                 ` : ''}
 
                 <!--
@@ -228,18 +227,18 @@ export const profile = {
             </div>
 
             <div class="card">
-                <div class="card-title">Отдых и сигналы</div>
+                <div class="card-title">${t('Отдых и сигналы')}</div>
 
-                ${ui.raw(toggle('restEnabled', 'Таймер отдыха', 'Запускается после записи подхода'))}
+                ${ui.raw(toggle('restEnabled', t('Таймер отдыха'), t('Запускается после записи подхода')))}
 
                 <div class="field">
-                    <label for="set-rest">Длительность отдыха: <strong id="rest-value">${format.seconds(rest)}</strong></label>
+                    <label for="set-rest">${t('Длительность отдыха:')} <strong id="rest-value">${format.seconds(rest)}</strong></label>
                     <input type="range" id="set-rest" min="15" max="300" step="15"
                            value="${rest}" data-change="setting" data-key="restSeconds">
                 </div>
 
-                ${ui.raw(toggle('restSound', 'Звук по окончании', 'Он же управляет сигналами интервальной программы'))}
-                ${ui.raw(toggle('restVibration', 'Вибрация по окончании'))}
+                ${ui.raw(toggle('restSound', t('Звук по окончании'), t('Он же управляет сигналами интервальной программы')))}
+                ${ui.raw(toggle('restVibration', t('Вибрация по окончании')))}
 
                 <!--
                     Выключатель показывается только там, где есть чем
@@ -248,60 +247,59 @@ export const profile = {
                 -->
                 ${voice.available ? ui.raw(toggle(
                     'voiceNames',
-                    'Проговаривать упражнения',
-                    'В интервальной программе — название следующего вслух'
+                    t('Проговаривать упражнения'),
+                    t('В интервальной программе — название следующего вслух')
                 )) : ''}
             </div>
 
             <div class="card">
-                <div class="card-title">Данные</div>
+                <div class="card-title">${t('Данные')}</div>
 
-                <div class="info-row"><span>Упражнений</span><strong>${counts.exercises}${counts.archived ? ` (${counts.archived} в архиве)` : ''}</strong></div>
-                <div class="info-row"><span>Тренировок</span><strong>${counts.workouts}</strong></div>
-                <div class="info-row"><span>Подходов</span><strong>${counts.sets}</strong></div>
-                <div class="info-row"><span>Шаблонов</span><strong>${counts.templates}</strong></div>
+                <div class="info-row"><span>${t('Упражнений')}</span><strong>${counts.exercises}${counts.archived ? ` (${counts.archived} в архиве)` : ''}</strong></div>
+                <div class="info-row"><span>${t('Тренировок')}</span><strong>${counts.workouts}</strong></div>
+                <div class="info-row"><span>${t('Подходов')}</span><strong>${counts.sets}</strong></div>
+                <div class="info-row"><span>${t('Шаблонов')}</span><strong>${counts.templates}</strong></div>
                 ${imported ? ui.html`
                     <div class="info-row">
-                        <span>Перенесено из версии 1</span>
-                        <strong>${imported.workouts} трен. / ${imported.sets} подх.</strong>
+                        <span>${t('Перенесено из версии 1')}</span>
+                        <strong>${t('{т} трен. / {п} подх.', { т: imported.workouts, п: imported.sets })}</strong>
                     </div>
                 ` : ''}
 
                 <button class="btn btn-ghost" data-action="nav" data-screen="exercises">
-                    Справочник упражнений
+                    ${t('Справочник упражнений')}
                 </button>
             </div>
 
             <div class="card">
-                <div class="card-title">Синхронизация</div>
+                <div class="card-title">${t('Синхронизация')}</div>
                 ${syncBlock()}
             </div>
 
             <div class="card">
-                <div class="card-title">Резервная копия</div>
+                <div class="card-title">${t('Резервная копия')}</div>
                 <p class="hint">
-                    Файл на диске не зависит от облака и учётной записи — это копия,
-                    которая целиком в твоих руках.
+                    ${t('Файл на диске не зависит от облака и учётной записи — это копия, которая целиком в твоих руках.')}
                 </p>
-                <button class="btn btn-ghost" data-action="backup-save">Выгрузить в файл</button>
-                <button class="btn btn-ghost" data-action="backup-load">Загрузить из файла</button>
+                <button class="btn btn-ghost" data-action="backup-save">${t('Выгрузить в файл')}</button>
+                <button class="btn btn-ghost" data-action="backup-load">${t('Загрузить из файла')}</button>
                 <input type="file" id="backup-file" accept="application/json,.json" hidden>
             </div>
 
             <div class="card">
-                <div class="card-title">Установка</div>
+                <div class="card-title">${t('Установка')}</div>
                 ${ui.raw(installBlock())}
             </div>
 
             <div class="card">
-                <div class="card-title">О приложении</div>
-                <div class="info-row"><span>Версия</span><strong>${VERSION}</strong></div>
-                <div class="info-row"><span>Хранилище</span><strong>IndexedDB + localStorage</strong></div>
+                <div class="card-title">${t('О приложении')}</div>
+                <div class="info-row"><span>${t('Версия')}</span><strong>${VERSION}</strong></div>
+                <div class="info-row"><span>${t('Хранилище')}</span><strong>IndexedDB + localStorage</strong></div>
                 <button class="btn btn-ghost" data-action="nav" data-screen="survey">
-                    Оставить отзыв
+                    ${t('Оставить отзыв')}
                 </button>
-                <button class="btn btn-ghost" data-action="check-update">Проверить обновление</button>
-                <button class="btn btn-danger" data-action="reset-settings">Сбросить настройки</button>
+                <button class="btn btn-ghost" data-action="check-update">${t('Проверить обновление')}</button>
+                <button class="btn btn-danger" data-action="reset-settings">${t('Сбросить настройки')}</button>
             </div>
         `;
     }

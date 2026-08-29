@@ -10,6 +10,7 @@
  * порядок сравнения.
  */
 
+import { t } from './i18n.js';
 import { format } from './format.js';
 
 /** Значение поля с заменой отсутствующего на «хуже некуда». */
@@ -168,8 +169,15 @@ export const records = {
         const parts = [];
         let score = 0;
 
-        /** Одна величина: подпись и в какую сторону считать улучшением. */
-        const compare = (field, label, unit, moreIsBetter = true) => {
+        /**
+         * Одна величина: подпись и в какую сторону считать улучшением.
+         *
+         * Подпись переводится здесь, а не приходит переведённой: по ней же
+         * различается вес — его показывают дробным, — и сравнивать с
+         * переведённым словом значило бы, что на другом языке вес округлится
+         * до целого.
+         */
+        const compare = (field, unit, moreIsBetter = true) => {
             const now = set[field] ?? 0;
             const was = previous[field] ?? 0;
             const diff = now - was;
@@ -179,19 +187,19 @@ export const records = {
             const sign = diff > 0 ? '+' : '−';
             const value = unit === 'кг' ? format.weight(Math.abs(diff)) : String(Math.abs(diff));
 
-            parts.push(`${sign}${value} ${label}`);
+            parts.push(`${sign}${value} ${t(unit)}`);
             score += (diff > 0) === moreIsBetter ? 1 : -1;
         };
 
         if (measure === 'time') {
-            compare('duration', 'с', 'с');
+            compare('duration', 'с');
         } else if (measure === 'distance') {
-            compare('distance', 'м', 'м');
+            compare('distance', 'м');
             // Пройти то же быстрее — это лучше, а не хуже
-            compare('duration', 'с', 'с', false);
+            compare('duration', 'с', false);
         } else {
-            compare('weight', 'кг', 'кг');
-            compare('reps', 'повт.', 'повт.');
+            compare('weight', 'кг');
+            compare('reps', 'повт.');
         }
 
         return {
@@ -218,7 +226,9 @@ export const records = {
         }
 
         const reps = set.reps ?? 0;
-        return set.weight ? `${format.weight(set.weight)} кг × ${reps}` : `${reps} повт.`;
+        return set.weight
+            ? `${format.weight(set.weight)} ${t('кг')} × ${reps}`
+            : `${reps} ${t('повт.')}`;
     },
 
     /** Строка вида «60 кг × 10, 60 × 9, 55 × 8» для подходов одного раза. */
@@ -238,7 +248,7 @@ export const records = {
                 const reps = s.reps ?? 0;
                 if (!s.weight) return `${reps}`;
                 return i === 0
-                    ? `${format.weight(s.weight)} кг × ${reps}`
+                    ? `${format.weight(s.weight)} ${t('кг')} × ${reps}`
                     : `${format.weight(s.weight)} × ${reps}`;
             })
             .join(', ');

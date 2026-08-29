@@ -121,7 +121,7 @@ function head({ workout, phases, run }, state) {
                     ${format.count(работа, format.WORDS.set)} · всего ${format.seconds(total)}
                 </div>
             </div>
-            <button class="link-btn" data-action="iv-finish">Закончить</button>
+            <button class="link-btn" data-action="iv-finish">${t('Закончить')}</button>
         </div>
     `;
 }
@@ -170,7 +170,7 @@ function ring({ workout, exercises }, state) {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">Круг</div>
+            <div class="card-title">${t('Круг')}</div>
             ${items.map((item, i) => ui.html`
                 <div class="iv-row ${item.exerciseId === nowId ? 'is-now' : ''}">
                     <span class="iv-num">${String(i + 1)}</span>
@@ -239,10 +239,10 @@ export const intervalScreen = {
 
         if (!view) {
             return ui.html`
-                ${ui.title('Программа')}
-                ${ui.empty('Интервальной тренировки нет.')}
-                <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
-                <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
+                ${ui.title(t('Программа'))}
+                ${ui.empty(t('Интервальной тренировки нет.'))}
+                <button class="btn btn-accent" data-action="nav" data-screen="plan">${t('Новая тренировка')}</button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="home">${t('← На главную')}</button>
             `;
         }
 
@@ -255,11 +255,11 @@ export const intervalScreen = {
             return ui.html`
                 ${head(view, state)}
                 <div class="iv-clock is-done">
-                    <div class="iv-phase">Программа пройдена</div>
+                    <div class="iv-phase">${t('Программа пройдена')}</div>
                     <div class="iv-time">${format.seconds(interval.total(view.phases))}</div>
                     <div class="iv-now">${format.count(view.sets.length, format.WORDS.set)} записано</div>
                 </div>
-                <button class="btn btn-accent btn-lg" data-action="iv-finish">Завершить тренировку</button>
+                <button class="btn btn-accent btn-lg" data-action="iv-finish">${t('Завершить тренировку')}</button>
             `;
         }
 
@@ -271,13 +271,13 @@ export const intervalScreen = {
 
             <div class="iv-tools">
                 ${running
-                    ? ui.html`<button class="btn btn-ghost" data-action="iv-pause">Пауза</button>`
+                    ? ui.html`<button class="btn btn-ghost" data-action="iv-pause">${t('Пауза')}</button>`
                     : ui.html`<button class="btn btn-accent btn-lg" data-action="iv-start">
                           ${view.run.elapsed > 0 ? 'Продолжить' : 'Начать'}
                       </button>`}
 
                 ${running ? ui.html`
-                    <button class="btn btn-ghost" data-action="iv-skip">Пропустить отрезок</button>
+                    <button class="btn btn-ghost" data-action="iv-skip">${t('Пропустить отрезок')}</button>
                 ` : ''}
             </div>
 
@@ -287,7 +287,7 @@ export const intervalScreen = {
                 искать причину в профиле, если ему о ней не сказать.
             -->
             ${config.get('restSound') ? '' : ui.html`
-                <p class="hint">Звук выключен в профиле — переходы будут беззвучными.</p>
+                <p class="hint">${t('Звук выключен в профиле — переходы будут беззвучными.')}</p>
             `}
 
             ${ring(view, state)}
