@@ -177,9 +177,15 @@ export const chart = {
     heatmap(days = [], { months = [] } = {}) {
         if (days.length === 0) return empty();
 
-        const cell = 9;
-        const gap = 2;
-        const topOffset = 12;
+        /*
+         * Клетка и просвет — в единицах картинки, а не в пикселях экрана:
+         * карта тянется на всю ширину карточки и масштабируется вместе с
+         * ними. Просвет взят третью клетки, а не пятой: при 2 из 9 клетки
+         * слипались в серую массу, и год читался как пятно.
+         */
+        const cell = 10;
+        const gap = 3;
+        const topOffset = 16;
 
         const weeks = Math.ceil(days.length / 7);
         const width = weeks * (cell + gap);
@@ -195,13 +201,18 @@ export const chart = {
         });
 
         const labels = months.map((m) => ui.raw(`
-            <text x="${m.week * (cell + gap)}" y="8" class="chart-label">${esc(m.label)}</text>
+            <text x="${m.week * (cell + gap)}" y="10" class="chart-label heat-month">${esc(m.label)}</text>
         `));
 
+        /*
+         * Без width и height: размер задаёт разметка, а картинка тянется по
+         * ней. С ними карта оставалась 583 px в карточке шириной 844 и
+         * выглядела сжатой в углу, а треть карточки пустовала.
+         */
         return ui.html`
             <div class="heatmap-scroll">
                 <svg class="heatmap" viewBox="0 0 ${String(width)} ${String(height)}"
-                     width="${String(width)}" height="${String(height)}" role="img">
+                     preserveAspectRatio="xMinYMid meet" role="img">
                     ${labels}
                     ${rects}
                 </svg>
