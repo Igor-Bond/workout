@@ -212,5 +212,34 @@ export const interval = {
     /** Сколько рабочих отрезков в программе — столько подходов и запишется. */
     workCount(phases = []) {
         return phases.filter((p) => p.kind === 'work').length;
+    },
+
+    /**
+     * Рабочие отрезки, доведённые до конца к этому моменту.
+     *
+     * По ним пишутся подходы. Считается от прошедшего времени, а не
+     * копится по ходу: программа могла доотсчитаться в свёрнутом
+     * приложении, и записать надо всё, что успело пройти, — иначе
+     * тренировка потеряется тем вернее, чем меньше на неё смотрели.
+     */
+    completedWork(phases = [], elapsed = 0) {
+        const done = [];
+        let at = 0;
+
+        for (const phase of phases) {
+            at += phase.seconds;
+            if (phase.kind === 'work' && at <= elapsed) done.push(phase);
+        }
+
+        return done;
+    },
+
+    /** Конец отрезка в секундах от начала программы — для пропуска. */
+    endOf(phases = [], index = 0) {
+        let at = 0;
+
+        for (let i = 0; i <= index && i < phases.length; i++) at += phases[i].seconds;
+
+        return at;
     }
 };

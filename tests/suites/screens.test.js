@@ -20,6 +20,7 @@ import { stats } from '../../js/modules/stats.js';
 import { recordsScreen } from '../../js/modules/records.js';
 import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
+import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 import { exercises } from '../../js/modules/exercises.js';
@@ -590,5 +591,81 @@ describe('Экран: журнал подходов по видам', () => {
         const view = await однимУпражнением('time', { duration: 60, weight: 5 });
 
         equal(колонки(view), ['Подход', 'Вес, кг', 'Время']);
+    });
+});
+
+describe('Экран: интервальная программа', () => {
+
+    /** Табата из трёх упражнений, отсчёт которой уже идёт. */
+    async function табата(прошло = 0, config = {}) {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps' });
+        const b = await dbService.createExercise({ name: 'Приседания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({
+            type: 'Табата',
+            plan: [ex, b].map((e) => ({ exerciseId: e.id, skipped: false }))
+        });
+
+        await dbService.updateWorkout(w.id, {
+            interval: { work: 20, rest: 10, rounds: 2, roundRest: 60, lead: 0, ...config },
+            run: { state: 'running', elapsed: 0, startedAt: Date.now() - прошло * 1000 }
+        });
+
+        return { w, ex, b };
+    }
+
+    it('во время работы видно упражнение и что дальше', async () => {
+        await табата(1);
+        const view = await screen(intervalScreen);
+
+        assert(has(view, 'Работа'));
+        assert(has(view, 'Отжимания'));
+        assert(has(view, 'дальше — Приседания'), 'предупреждать о следующем — половина смысла');
+    });
+
+    /*
+     * В паузе следующее упражнение уже стоит крупно, и строка «дальше»
+     * напечатала бы то же название второй раз подряд.
+     */
+    it('в паузе название не печатается дважды', async () => {
+        await табата(25);
+        const view = await screen(intervalScreen);
+
+        assert(has(view, 'Отдых'));
+        assert(!has(view, 'дальше —'), 'в паузе строка «дальше» лишняя');
+    });
+
+    it('отдых между кругами отличается от обычного', async () => {
+        // work20 rest10 work20 roundRest60 ...
+        await табата(55);
+        const view = await screen(intervalScreen);
+
+        assert(has(view, 'Отдых между кругами'));
+    });
+
+    it('пройденная программа предлагает завершить', async () => {
+        await табата(10000);
+        const view = await screen(intervalScreen);
+
+        assert(has(view, 'Программа пройдена'));
+        assert(hasAction(view, 'iv-finish'));
+    });
+
+    it('без интервальной тренировки экран честно пустой', async () => {
+        await seed();
+        const view = await screen(intervalScreen);
+
+        assert(has(view, 'Интервальной тренировки нет'));
+    });
+
+    /*
+     * Полей ввода на экране нет вовсе — в этом всё отличие от выполнения:
+     * двадцать секунд работы не оставляют времени на телефон.
+     */
+    it('полей ввода на экране нет', async () => {
+        await табата(1);
+        const view = await screen(intervalScreen);
+
+        equal(view.querySelectorAll('input').length, 0);
     });
 });

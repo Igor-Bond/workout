@@ -20,9 +20,20 @@ import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
 import { rhythm } from '../core/rhythm.js';
 import { estimate } from '../core/estimate.js';
+import { interval } from '../core/interval.js';
+import { format } from '../core/format.js';
 import { app } from '../app.js';
 
-const TYPES = ['Силовая', 'Зарядка', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
+const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
+
+/**
+ * Тип, у которого не подходы, а отрезки времени (§50).
+ *
+ * Проверяется по типу, а не по отдельному признаку: тип пользователь и так
+ * выбирает первым делом, и заводить рядом с ним второй переключатель «а это
+ * интервальная?» значило бы спрашивать одно и то же дважды.
+ */
+const isInterval = (type) => type === 'Табата';
 
 const KIND_HINT = {
     weight: 'повторения и вес',
@@ -96,6 +107,7 @@ async function build(params) {
                 name: template.name,
                 type: TYPES.includes(template.type) ? template.type : 'Своё',
                 customType: TYPES.includes(template.type) ? '' : template.type,
+                interval: template.interval || undefined,
                 items: await decorate(template.items)
             };
         }
@@ -178,7 +190,56 @@ async function build(params) {
 
 const typeLabel = () => (draft.type === 'Своё' ? draft.customType.trim() || 'Тренировка' : draft.type);
 
-function itemRow(item, index, total) {
+/**
+ * Настройки интервальной программы (§50).
+ *
+ * Отдельной карточкой над упражнениями, а не полем у каждого: отрезки в
+ * табате общие для всей программы, и повторять их в каждой строке значило бы
+ * предлагать разное там, где разного не бывает.
+ */
+function intervalCard() {
+    const c = draft.interval;
+    const phases = interval.build(c, toItems());
+
+    const поле = (key, label, hint) => ui.html`
+        <div class="field">
+            <label for="iv-${key}">${label}</label>
+            <input id="iv-${key}" type="number" inputmode="numeric"
+                   min="${String(interval.LIMITS[key].min)}" max="${String(interval.LIMITS[key].max)}"
+                   value="${String(c[key])}" data-change="plan-interval" data-key="${key}">
+            ${hint ? ui.html`<div class="hint">${hint}</div>` : ''}
+        </div>
+    `;
+
+    const presets = interval.PRESETS.map((p) => ui.html`
+        <button class="chip ${c.work === p.work && c.rest === p.rest ? 'is-active' : ''}"
+                data-action="plan-preset" data-preset="${p.key}">${p.label}</button>
+    `);
+
+    return ui.html`
+        <div class="card">
+            <div class="card-title">Отрезки</div>
+
+            <div class="chips">${presets}</div>
+
+            <div class="plan-row-fields">
+                ${поле('work', 'Работа, с')}
+                ${поле('rest', 'Отдых, с')}
+                ${поле('rounds', 'Кругов')}
+                ${поле('roundRest', 'Между кругами, с')}
+            </div>
+
+            ${phases.length ? ui.html`
+                <p class="hint">
+                    ${format.count(interval.workCount(phases), format.WORDS.set)}
+                    · всего ${format.seconds(interval.total(phases))}
+                </p>
+            ` : ui.html`<p class="hint">Добавь упражнения — и здесь появится длительность программы.</p>`}
+        </div>
+    `;
+}
+
+function itemRow(item, index, total, timed = false) {
     return ui.html`
         <div class="plan-row">
             <div class="plan-row-head">
@@ -199,6 +260,13 @@ function itemRow(item, index, total) {
                 </div>
             </div>
 
+            <!--
+                В интервальной программе полей у строки нет вовсе: подходы,
+                повторения и вес там задаёт не упражнение, а отрезки времени,
+                общие для всей программы (§50). Строка остаётся списком
+                порядка — и только им.
+            -->
+            ${timed ? '' : ui.html`
             <div class="plan-row-fields">
                 <div class="field">
                     <label for="p-sets-${index}">Подходы</label>
@@ -225,6 +293,7 @@ function itemRow(item, index, total) {
                     </div>
                 ` : ''}
             </div>
+            `}
         </div>
     `;
 }
@@ -239,10 +308,12 @@ export const plan = {
 
         if (!draft || loadedFor !== key) {
             draft = await build(params);
+            draft.interval = interval.normalize(draft.interval);
             loadedFor = key;
         }
 
         const isTemplate = draft.mode === 'template';
+        const timed = isInterval(typeLabel());
 
         const chips = [...TYPES, 'Своё'].map((t) => ui.html`
             <button class="chip ${draft.type === t ? 'is-active' : ''}"
@@ -277,11 +348,13 @@ export const plan = {
                 ` : ''}
             </div>
 
+            ${timed ? intervalCard() : ''}
+
             <div class="card">
                 <div class="card-title">Упражнения — ${String(draft.items.length)}</div>
 
                 ${draft.items.length
-                    ? draft.items.map((item, i) => itemRow(item, i, draft.items.length))
+                    ? draft.items.map((item, i) => itemRow(item, i, draft.items.length, timed))
                     : ui.empty('Пока пусто. Добавь хотя бы одно упражнение.')}
 
                 <button class="btn btn-ghost" data-action="plan-add">+ Добавить упражнение</button>
@@ -324,6 +397,22 @@ const toItems = () => draft.items.map((item) => ({
 actions.on('plan-type', (el) => {
     draft.type = el.dataset.type;
     app.render();
+});
+
+actions.on('plan-preset', (el) => {
+    const preset = interval.PRESETS.find((p) => p.key === el.dataset.preset);
+    if (preset) draft.interval = interval.normalize({ ...draft.interval, ...preset });
+
+    app.render();
+});
+
+/*
+ * Поля отрезков не перерисовывают экран: правка идёт посреди набора, и
+ * перерисовка забирала бы фокус на каждой цифре. Границы применяются
+ * позже — при построении программы.
+ */
+actions.onChange('plan-interval', (el) => {
+    draft.interval = { ...draft.interval, [el.dataset.key]: el.value };
 });
 
 // Без перерисовки: она бы забрала фокус из поля посреди набора
@@ -432,7 +521,11 @@ actions.on('plan-save-template', async () => {
         id: draft.templateId,
         name: draft.name,
         type: typeLabel(),
-        items: toItems()
+        items: toItems(),
+
+        // Отрезки — часть шаблона наравне с составом: табата без своих
+        // двадцати и десяти это уже не та тренировка (§50)
+        interval: isInterval(typeLabel()) ? interval.normalize(draft.interval) : undefined
     });
 
     reset();
@@ -448,7 +541,12 @@ actions.on('plan-as-template', async () => {
 
     if (!values) return;
 
-    await dbService.saveTemplate({ name: values.name, type: typeLabel(), items: toItems() });
+    await dbService.saveTemplate({
+        name: values.name,
+        type: typeLabel(),
+        items: toItems(),
+        interval: isInterval(typeLabel()) ? interval.normalize(draft.interval) : undefined
+    });
 
     await dialog.alert({ title: 'Шаблон сохранён', text: `«${values.name}» теперь в списке шаблонов.` });
 });
@@ -483,6 +581,18 @@ actions.on('plan-start', async () => {
         templateId: draft.templateId,
         plan: toItems().map((item) => ({ ...item, skipped: false }))
     });
+
+    // Интервальная тренировка идёт на своём экране: там нет полей ввода,
+    // потому что вводить между отрезками нечего и некогда (§50)
+    if (isInterval(typeLabel())) {
+        await dbService.updateWorkout(workout.id, {
+            interval: interval.normalize(draft.interval),
+            run: { state: 'idle', elapsed: 0, startedAt: null }
+        });
+
+        reset();
+        return app.go('interval');
+    }
 
     reset();
     app.go('session', workout.id);

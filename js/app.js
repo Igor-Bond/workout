@@ -14,6 +14,7 @@ import { home } from './modules/home.js';
 import { templates } from './modules/templates.js';
 import { plan } from './modules/plan.js';
 import { session } from './modules/session.js';
+import { intervalScreen } from './modules/interval.js';
 import { summary } from './modules/summary.js';
 import { history } from './modules/history.js';
 import { calendar } from './modules/calendar.js';
@@ -44,6 +45,7 @@ function screens() {
     if (!SCREENS) {
         SCREENS = {
             home, templates, plan, session, summary,
+            interval: intervalScreen,
             history, calendar, stats, exercise, exercises,
             records: recordsScreen,
             profile

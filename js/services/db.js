@@ -704,15 +704,20 @@ export const dbService = {
         return alive(found) ? found : null;
     },
 
-    async saveTemplate({ id, name, type = 'Тренировка', items = [] }) {
+    /**
+     * interval — настройки отрезков интервальной программы (§50). Хранятся
+     * внутри записи как есть: схема их не описывает, и версию базы поднимать
+     * ради них не нужно — старая версия просто не заметит поля.
+     */
+    async saveTemplate({ id, name, type = 'Тренировка', items = [], interval = null }) {
         const now = Date.now();
 
         if (id) {
-            await db.templates.update(id, { name, type, items, updatedAt: now });
+            await db.templates.update(id, { name, type, items, interval, updatedAt: now });
             return dbService.getTemplate(id);
         }
 
-        const record = { id: newId(), name, type, items, updatedAt: now };
+        const record = { id: newId(), name, type, items, interval, updatedAt: now };
         await db.templates.add(record);
         return record;
     },

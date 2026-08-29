@@ -72,7 +72,13 @@ async function activeBlock() {
                     </button>
                     <div class="row-links">${drop}</div>
                 ` : ui.html`
-                    <button class="btn btn-accent btn-lg" data-action="nav" data-screen="session">Продолжить</button>
+                    <!--
+                        Интервальная тренировка живёт на своём экране (§50):
+                        там отсчёт, а не поля ввода, и вести к обычному
+                        выполнению значило бы показать пустую форму
+                    -->
+                    <button class="btn btn-accent btn-lg" data-action="nav"
+                            data-screen="${workout.interval ? 'interval' : 'session'}">Продолжить</button>
                     <div class="row-links">
                         <button class="link-btn" data-action="home-finish" data-id="${workout.id}">Завершить как есть</button>
                         ${drop}

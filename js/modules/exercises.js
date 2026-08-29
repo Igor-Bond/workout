@@ -139,6 +139,20 @@ actions.on('ex-edit', async (el) => {
             { name: 'name', label: 'Название', value: exercise.name, required: true },
             { name: 'kind', label: 'Вид', type: 'select', value: exercise.kind, options: kindOptions },
             { name: 'group', label: 'Группа мышц', value: exercise.group || '' },
+
+            /*
+             * Как выполнять (§50). Показывается там, где вспоминать некогда:
+             * на экране интервальной программы под названием упражнения.
+             * Своими словами — чужое описание всё равно пришлось бы
+             * переписывать под себя.
+             */
+            {
+                name: 'howTo',
+                label: 'Как выполнять (необязательно)',
+                type: 'textarea',
+                value: exercise.howTo || ''
+            },
+
             {
                 name: 'restSeconds',
                 label: 'Свой отдых, секунд (пусто — общий)',
