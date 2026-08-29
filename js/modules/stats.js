@@ -118,7 +118,7 @@ function bodyBlock(weights, range) {
                     color: 'var(--purple)',
                     segments: [series.map((p) => ({
                         x: p.at, y: p.weight, key: String(p.at),
-                        label: dates.formatDate(p.at).slice(0, 5)
+                        label: dates.formatShort(p.at)
                     }))]
                 }], { height: 130 }) : ''}
 
@@ -185,7 +185,7 @@ export const stats = {
             .slice(0, 12)
             .reverse()
             .map((e) => ({
-                label: dates.formatDate(e.workout.startedAt).slice(0, 5),
+                label: dates.formatShort(e.workout.startedAt),
                 value: e.sets
             }));
 
@@ -255,7 +255,7 @@ export const stats = {
                 <div class="chart-title">${t('По дням недели')}</div>
                 ${chart.bars(
                     dates.WEEKDAYS_SHORT.map((label, i) => ({ label, value: weekdays[i] })),
-                    { height: 120, maxLabel: 2 }
+                    { height: 120, maxLabel: 3 }
                 )}
             </div>
 

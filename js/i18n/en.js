@@ -76,7 +76,7 @@ export const EN = {
     'Следующая — {день}': 'Next — {день}',
     '{n} без тренировки': '{n} without a workout',
     'Обычно раз в {n}': 'Usually every {n}',
-    'Ещё {n} — и появится прогноз ритма': '{n} more and a rhythm forecast appears',
+    'Ещё {n} — и появится прогноз ритма': '{n} to go — then a rhythm forecast appears',
     'кг за месяц': 'kg this month',
     ', ритм рваный — день примерный': ', the rhythm is uneven — the day is a guess',
     'По чередованию дальше — «{тип}»': 'Next in the rotation — “{тип}”',
@@ -222,7 +222,7 @@ export const EN = {
     'Подходы по тренировкам': 'Sets per workout',
     'Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.':
         'No body weight recorded. It is what stops pull-ups and push-ups from counting as zero load.',
-    'Отметить вес сегодня': 'Record weight today',
+    'Отметить вес сегодня': 'Log weight today',
     'Постоянство': 'Consistency',
     'Недель подряд': 'Weeks in a row',
     'Рекорд недель': 'Best week streak',
@@ -360,7 +360,7 @@ export const EN = {
     'Перенесено из версии 1': 'Imported from version 1',
     'Чтобы включить — заполнить': 'To turn it on, fill in',
     'Порядок в': 'Instructions in',
-    'Отметить вес': 'Record weight',
+    'Отметить вес': 'Log weight',
     '{т} трен. / {п} подх.': '{т} workouts / {п} sets',
 
     // ================== ОТЗЫВ ==================

@@ -41,7 +41,7 @@ function dynamics(series, recordWorkoutId) {
         x: p.at,
         y,
         key: p.workoutId,
-        label: dates.formatDate(p.at).slice(0, 5)
+        label: dates.formatShort(p.at)
     });
 
     return chart.line([
