@@ -33,14 +33,16 @@ let view = null;
 let shownIndex = -1;
 
 /**
- * Отрезок, о котором уже сказано вслух.
+ * Отрезки, о которых уже сказано вслух: отдельно первая фраза, отдельно
+ * повтор под конец длинной паузы.
  *
- * Ключом, а не флагом: отрисовка случается не только на смене отрезка, и без
- * такой отметки название повторялось бы при каждом возвращении на экран.
+ * Ключами, а не флагами: голос вызывается каждым тактом, и без такой отметки
+ * название повторялось бы четыре раза в секунду.
+ *
  * Живёт в модуле, а не в тренировке: сказанное вслух ничего не меняет в
  * записанном и хранить его между запусками незачем.
  */
-let spokenKey = null;
+let spoken = { start: null, remind: null };
 
 const PHASE = {
     lead:      { label: 'Приготовься', tone: 'is-lead' },
@@ -204,7 +206,10 @@ export const intervalScreen = {
         fullscreen.enterIfWanted();
 
         resyncSound();
-        resyncVoice();
+
+        // Первый заход на экран и продолжение после паузы: такта ещё не
+        // было, а объявить текущий отрезок надо
+        if (view) resyncVoice(interval.at(view.phases, elapsedOf(view.workout)));
     },
 
     unmount() {
@@ -327,32 +332,49 @@ function resyncSound() {
 const PHRASE = {
     lead:      (name) => `Начнём с упражнения: ${name}`,
     roundRest: (name) => `Новый круг. Начнём с упражнения: ${name}`,
-    rest:      (name) => `Дальше: ${name}`
+    rest:      (name) => `Дальше: ${name}`,
+
+    // Повтор под конец длинной паузы — уже команда, а не объявление
+    remind:    (name) => `Готовься: ${name}`
 };
 
 /**
- * Название следующего упражнения вслух — один раз на паузу.
+ * Название следующего упражнения вслух.
  *
- * Говорится в начале паузы, а не перед самой работой: за десять секунд
- * отдыха фраза успевает прозвучать и осесть, а перед стартом ей пришлось бы
- * тесниться с отсчётом.
+ * Первая фраза — в начале паузы, чтобы прозвучать сразу за сигналом конца
+ * работы. В длинной паузе она повторяется за десять секунд до работы: за
+ * минуту отдыха сказанное вначале успевает забыться.
+ *
+ * Вызывается прямо из такта, до записи подхода и до отрисовки. Раньше голос
+ * звучал после них, а и то и другое ходит в базу: на телефоне между сигналом
+ * и фразой набегала секунда с лишним, и объявление опаздывало к тому, что
+ * объявляло.
  */
-function resyncVoice() {
-    if (!view || view.run.state !== 'running' || shownIndex < 0) return;
+function resyncVoice(state) {
+    if (!view || view.run.state !== 'running' || !state || state.done) return;
 
-    const key = `${view.workout.id}:${shownIndex}`;
-    if (key === spokenKey) return;
+    const key = `${view.workout.id}:${state.index}`;
 
-    spokenKey = key;
+    const скажи = (фраза, id) => {
+        const name = view.exercises[id]?.name;
+        if (name) voice.say(фраза(name));
+    };
 
-    const what = interval.announceAt(view.phases, shownIndex);
-    if (!what) return;
+    if (spoken.start !== key) {
+        spoken.start = key;
 
-    const name = view.exercises[what.exerciseId]?.name;
-    if (!name) return;
+        const what = interval.announceAt(view.phases, state.index);
+        if (what) скажи(PHRASE[what.kind] || PHRASE.rest, what.exerciseId);
+    }
 
-    const фраза = PHRASE[what.kind] || PHRASE.rest;
-    voice.say(фраза(name));
+    if (spoken.remind !== key && state.remaining <= interval.REMIND) {
+        const again = interval.remindAt(view.phases, state.index);
+
+        if (again) {
+            spoken.remind = key;
+            скажи(PHRASE.remind, again.exerciseId);
+        }
+    }
 }
 
 /**
@@ -368,6 +390,10 @@ async function tick() {
     const elapsed = elapsedOf(view.workout);
     const state = interval.at(view.phases, elapsed);
 
+    // До записи и до отрисовки: и то и другое ходит в базу, а голос обязан
+    // прозвучать вплотную к сигналу, который он объясняет
+    resyncVoice(state);
+
     const written = await record(view, elapsed);
 
     if (state.index !== shownIndex || state.done || written) {
@@ -379,15 +405,22 @@ async function tick() {
     if (el) el.textContent = format.seconds(state.remaining);
 }
 
-/** Программа доотсчиталась: отсчёт останавливается, тренировка ещё нет. */
+/**
+ * Программа доотсчиталась: отсчёт останавливается, тренировка ещё нет.
+ *
+ * Очередь сигналов здесь не снимается, и это важно. Последний сигнал —
+ * четыре ноты длиной больше секунды — начинается ровно в конце программы,
+ * а конец программы обнаруживается тем же тактом. Снятие очереди глушило
+ * его через четверть секунды после начала: на слух программа кончалась
+ * обрубленным звуком. Снимать нечего и незачем — за концом в очереди
+ * ничего нет, а отсчёт остановлен состоянием.
+ */
 async function finishRun() {
     const elapsed = interval.total(view.phases);
 
     await dbService.updateWorkout(view.workout.id, {
         run: { state: 'done', elapsed, startedAt: null }
     });
-
-    beeper.stop();
 }
 
 // ================== ДЕЙСТВИЯ ==================
@@ -411,7 +444,13 @@ actions.on('iv-start', async () => {
 
     await dbService.updateWorkout(view.workout.id, { run });
 
-    beeper.schedule(interval.cues(view.phases), run.elapsed);
+    // С ключом того же вида, что и при перерисовке: иначе отрисовка следом
+    // сняла бы только что выложенную очередь и выложила её заново, оборвав
+    // сигнал, если он успел зазвучать
+    beeper.schedule(interval.cues(view.phases), run.elapsed, {
+        key: soundKey({ ...view.workout, run })
+    });
+
     fullscreen.enterIfWanted();
 
     app.render();
@@ -441,7 +480,10 @@ actions.on('iv-skip', async () => {
 
     await dbService.updateWorkout(view.workout.id, { run });
 
-    beeper.schedule(interval.cues(view.phases), elapsed);
+    beeper.schedule(interval.cues(view.phases), elapsed, {
+        key: soundKey({ ...view.workout, run })
+    });
+
     app.render();
 });
 

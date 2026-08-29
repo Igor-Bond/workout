@@ -371,3 +371,52 @@ describe('Объявление следующего упражнения', () =>
         equal(interval.announceAt(phases, круг), { exerciseId: 'а', kind: 'roundRest' });
     });
 });
+
+/*
+ * Повтор под конец длинной паузы.
+ *
+ * Минута отдыха между кругами — минута, за которую сказанное вначале
+ * успевает забыться. В десятисекундной паузе повторять нечего: второе
+ * напоминание наложилось бы на первое.
+ */
+describe('Повтор названия в длинной паузе', () => {
+
+    it('отдых между кругами напоминает', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, roundRest: 60, lead: 0 }, УПР);
+        const круг = phases.findIndex((p) => p.kind === 'roundRest');
+
+        equal(interval.remindAt(phases, круг), { exerciseId: 'а', kind: 'roundRest' });
+    });
+
+    it('короткий отдых не напоминает', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 2, roundRest: 60, lead: 0 }, УПР);
+        const отдых = phases.findIndex((p) => p.kind === 'rest');
+
+        equal(interval.remindAt(phases, отдых), null, 'десять секунд короче самого напоминания');
+    });
+
+    it('во время работы не напоминает, как бы длинной она ни была', () => {
+        const phases = interval.build({ work: 120, rest: 10, rounds: 2, lead: 0 }, УПР);
+
+        equal(interval.remindAt(phases, 0), null);
+    });
+
+    /*
+     * Иначе программа из одного упражнения с длинным отдыхом повторяла бы
+     * его название дважды за круг — ровно тот шум, от которого молчание и
+     * защищает.
+     */
+    it('одно упражнение не напоминает о себе', () => {
+        const phases = interval.build({ work: 20, rest: 40, rounds: 3, lead: 0 }, [{ exerciseId: 'а' }]);
+        const отдых = phases.findIndex((p) => p.kind === 'rest');
+
+        assert(отдых > 0, 'отдых должен быть');
+        equal(interval.remindAt(phases, отдых), null);
+    });
+
+    it('длинная подготовка тоже напоминает', () => {
+        const phases = interval.build({ work: 20, rest: 10, rounds: 1, lead: 30 }, УПР);
+
+        equal(interval.remindAt(phases, 0), { exerciseId: 'а', kind: 'lead' });
+    });
+});
