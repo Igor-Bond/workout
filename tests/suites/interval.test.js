@@ -316,7 +316,7 @@ describe('Объявление следующего упражнения', () =>
         const phases = interval.build({ work: 20, rest: 10, rounds: 2, lead: 10 }, УПР);
 
         equal(phases[0].kind, 'lead');
-        equal(interval.announceAt(phases, 0), { exerciseId: 'а', first: true });
+        equal(interval.announceAt(phases, 0), { exerciseId: 'а', kind: 'lead' });
     });
 
     it('в отдыхе объявляется то, что дальше', () => {
@@ -324,7 +324,7 @@ describe('Объявление следующего упражнения', () =>
 
         // 0 — подготовка, 1 — работа «а», 2 — отдых перед «б»
         equal(phases[2].kind, 'rest');
-        equal(interval.announceAt(phases, 2), { exerciseId: 'б', first: false });
+        equal(interval.announceAt(phases, 2), { exerciseId: 'б', kind: 'rest' });
     });
 
     /*
@@ -338,7 +338,7 @@ describe('Объявление следующего упражнения', () =>
             .map((p, i) => interval.announceAt(phases, i))
             .filter(Boolean);
 
-        equal(сказано, [{ exerciseId: 'а', first: true }]);
+        equal(сказано, [{ exerciseId: 'а', kind: 'lead' }]);
     });
 
     it('во время работы молчим', () => {
@@ -368,6 +368,6 @@ describe('Объявление следующего упражнения', () =>
         const круг = phases.findIndex((p) => p.kind === 'roundRest');
 
         assert(круг > 0, 'граница круга должна быть');
-        equal(interval.announceAt(phases, круг), { exerciseId: 'а', first: false });
+        equal(interval.announceAt(phases, круг), { exerciseId: 'а', kind: 'roundRest' });
     });
 });

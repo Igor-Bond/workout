@@ -251,7 +251,7 @@ function itemRow(item, index, total, timed = false) {
     return ui.html`
         <div class="plan-row">
             <div class="plan-row-head">
-                <div>
+                <div class="plan-row-title">
                     <div class="plan-row-name">${item.name}</div>
                     ${item.lastLine
                         ? ui.html`<div class="plan-row-last">Последний раз: ${item.lastLine}</div>`
