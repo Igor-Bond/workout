@@ -129,6 +129,23 @@ export const EN = {
     'всего {время}': '{время} total',
     'Тип тренировки:': 'Workout type:',
     'Название': 'Name',
+    'Шаблон': 'Template',
+    'Изменения не тронут уже проведённые тренировки — их план сохранён внутри них':
+        'Changes will not touch finished workouts — their plan is stored inside them',
+    'Название шаблона': 'Template name',
+    'Название типа': 'Type name',
+    'Грудь + трицепс': 'Chest + triceps',
+    'Например: йога': 'For example: yoga',
+    'Пока пусто. Добавь хотя бы одно упражнение.': 'Nothing here yet. Add at least one exercise.',
+    'Сохранить шаблон': 'Save template',
+    '← К шаблонам': '← To templates',
+    'Упражнение': 'Exercise',
+
+    // Виды упражнений: подсказка под названием в окне выбора
+    'повторения и вес': 'reps and weight',
+    'повторения': 'reps',
+    'длительность': 'duration',
+    'время и дистанция': 'time and distance',
 
     // ================== ВЫПОЛНЕНИЕ ==================
 

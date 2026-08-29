@@ -127,6 +127,23 @@ export const DE = {
         'Füge Übungen hinzu — dann erscheint hier die Gesamtdauer.',
     'всего {время}': '{время} gesamt',
     'Название': 'Name',
+    'Шаблон': 'Vorlage',
+    'Изменения не тронут уже проведённые тренировки — их план сохранён внутри них':
+        'Änderungen betreffen bereits absolvierte Trainings nicht — deren Plan ist in ihnen gespeichert',
+    'Название шаблона': 'Name der Vorlage',
+    'Название типа': 'Name der Art',
+    'Грудь + трицепс': 'Brust + Trizeps',
+    'Например: йога': 'Zum Beispiel: Yoga',
+    'Пока пусто. Добавь хотя бы одно упражнение.': 'Noch leer. Füge mindestens eine Übung hinzu.',
+    'Сохранить шаблон': 'Vorlage speichern',
+    '← К шаблонам': '← Zu den Vorlagen',
+    'Упражнение': 'Übung',
+
+    // Виды упражнений: подсказка под названием в окне выбора
+    'повторения и вес': 'Wiederholungen und Gewicht',
+    'повторения': 'Wiederholungen',
+    'длительность': 'Dauer',
+    'время и дистанция': 'Zeit und Distanz',
 
     // ================== ВЫПОЛНЕНИЕ ==================
 

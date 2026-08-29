@@ -22,6 +22,7 @@ import { rhythm } from '../core/rhythm.js';
 import { estimate } from '../core/estimate.js';
 import { interval } from '../core/interval.js';
 import { format } from '../core/format.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио', 'Растяжка', 'Дома без инвентаря'];
@@ -36,6 +37,16 @@ const TYPES = ['Силовая', 'Зарядка', 'Табата', 'Кардио
 const isInterval = (type) => type === 'Табата';
 
 /**
+ * Ключ типа по сохранённой подписи (§53).
+ *
+ * В плане тип живёт ключом — русским словом из TYPES, — а в записанную
+ * тренировку уходит подписью на языке того, кто её проводил. Открывая свой
+ * же шаблон, англичанин видит в нём «Strength», и без обратного поиска
+ * приложение сочло бы это чужим типом и предложило бы «Своё».
+ */
+const typeKey = (stored) => TYPES.find((key) => key === stored || t(key) === stored) || null;
+
+/**
  * Группы упражнений для отбора в окне выбора.
  *
  * Берутся из самих упражнений, а не из списка в коде: пользователь заводит
@@ -43,6 +54,8 @@ const isInterval = (type) => type === 'Табата';
  */
 const groupsOf = (list) => [...new Set(list.map((e) => e.group).filter(Boolean))].sort();
 
+/** Подписи видов упражнений. Переводятся при показе, а не здесь: список
+ *  собирается один раз при загрузке модуля, а язык меняется на ходу. */
 const KIND_HINT = {
     weight: 'повторения и вес',
     reps: 'повторения',
@@ -93,7 +106,7 @@ async function decorate(items) {
 
         return {
             ...item,
-            name: exercise?.name || 'Упражнение',
+            name: exercise?.name || t('Упражнение'),
             kind: exercise?.kind || 'weight',
             weight: item.weight || guess || 0,
             estimated: !!guess,
@@ -113,8 +126,8 @@ async function build(params) {
                 mode: what === 'template' ? 'template' : 'workout',
                 templateId: template.id,
                 name: template.name,
-                type: TYPES.includes(template.type) ? template.type : 'Своё',
-                customType: TYPES.includes(template.type) ? '' : template.type,
+                type: typeKey(template.type) || 'Своё',
+                customType: typeKey(template.type) ? '' : template.type,
                 interval: template.interval || undefined,
                 items: await decorate(template.items)
             };
@@ -147,8 +160,8 @@ async function build(params) {
                 mode: 'workout',
                 templateId: null,
                 name: '',
-                type: TYPES.includes(last.type) ? last.type : 'Своё',
-                customType: TYPES.includes(last.type) ? '' : last.type,
+                type: typeKey(last.type) || 'Своё',
+                customType: typeKey(last.type) ? '' : last.type,
                 items: await decorate(items)
             };
         }
@@ -196,7 +209,7 @@ async function build(params) {
     return { mode: 'workout', templateId: null, name: '', type: TYPES[0], customType: '', items: [] };
 }
 
-const typeLabel = () => (draft.type === 'Своё' ? draft.customType.trim() || 'Тренировка' : draft.type);
+const typeLabel = () => (draft.type === 'Своё' ? draft.customType.trim() || t('Тренировка') : t(draft.type));
 
 /**
  * Настройки интервальной программы (§50).
@@ -226,23 +239,23 @@ function intervalCard() {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">Отрезки</div>
+            <div class="card-title">${t('Отрезки')}</div>
 
             <div class="chips">${presets}</div>
 
             <div class="plan-row-fields">
-                ${поле('work', 'Работа, с')}
-                ${поле('rest', 'Отдых, с')}
-                ${поле('rounds', 'Кругов')}
-                ${поле('roundRest', 'Между кругами, с')}
+                ${поле('work', t('Работа, с'))}
+                ${поле('rest', t('Отдых, с'))}
+                ${поле('rounds', t('Кругов'))}
+                ${поле('roundRest', t('Между кругами, с'))}
             </div>
 
             ${phases.length ? ui.html`
                 <p class="hint">
                     ${format.count(interval.workCount(phases), format.WORDS.set)}
-                    · всего ${format.seconds(interval.total(phases))}
+                    · ${t('всего {время}', { время: format.seconds(interval.total(phases)) })}
                 </p>
-            ` : ui.html`<p class="hint">Добавь упражнения — и здесь появится длительность программы.</p>`}
+            ` : ui.html`<p class="hint">${t('Добавь упражнения — и здесь появится длительность программы.')}</p>`}
         </div>
     `;
 }
@@ -254,17 +267,17 @@ function itemRow(item, index, total, timed = false) {
                 <div class="plan-row-title">
                     <div class="plan-row-name">${item.name}</div>
                     ${item.lastLine
-                        ? ui.html`<div class="plan-row-last">Последний раз: ${item.lastLine}</div>`
+                        ? ui.html`<div class="plan-row-last">${t('Последний раз: {что}', { что: item.lastLine })}</div>`
                         : item.estimated
-                            ? ui.html`<div class="plan-row-last is-guess">Вес прикинут от веса тела — поправь под себя</div>`
+                            ? ui.html`<div class="plan-row-last is-guess">${t('Вес прикинут от веса тела — поправь под себя')}</div>`
                             : ''}
                 </div>
                 <div class="plan-row-tools">
                     <button class="icon-btn" data-action="plan-up" data-index="${index}"
-                            ${ui.raw(index === 0 ? 'disabled' : '')} title="Выше">↑</button>
+                            ${ui.raw(index === 0 ? 'disabled' : '')} title="${t('Выше')}">↑</button>
                     <button class="icon-btn" data-action="plan-down" data-index="${index}"
-                            ${ui.raw(index === total - 1 ? 'disabled' : '')} title="Ниже">↓</button>
-                    <button class="icon-btn is-danger" data-action="plan-remove" data-index="${index}" title="Убрать">×</button>
+                            ${ui.raw(index === total - 1 ? 'disabled' : '')} title="${t('Ниже')}">↓</button>
+                    <button class="icon-btn is-danger" data-action="plan-remove" data-index="${index}" title="${t('Убрать')}">×</button>
                 </div>
             </div>
 
@@ -277,7 +290,7 @@ function itemRow(item, index, total, timed = false) {
             ${timed ? '' : ui.html`
             <div class="plan-row-fields">
                 <div class="field">
-                    <label for="p-sets-${index}">Подходы</label>
+                    <label for="p-sets-${index}">${t('Подходы')}</label>
                     <input id="p-sets-${index}" type="number" min="1" inputmode="numeric"
                            value="${item.plannedSets}"
                            data-change="plan-field" data-index="${index}" data-key="plannedSets">
@@ -285,7 +298,7 @@ function itemRow(item, index, total, timed = false) {
 
                 ${item.kind === 'time' || item.kind === 'distance' ? '' : ui.html`
                     <div class="field">
-                        <label for="p-reps-${index}">Повторения</label>
+                        <label for="p-reps-${index}">${t('Повторения')}</label>
                         <input id="p-reps-${index}" type="number" min="0" inputmode="numeric"
                                placeholder="—" value="${item.targetReps ?? ''}"
                                data-change="plan-field" data-index="${index}" data-key="targetReps">
@@ -294,7 +307,7 @@ function itemRow(item, index, total, timed = false) {
 
                 ${item.kind === 'weight' || item.kind === 'reps' ? ui.html`
                     <div class="field">
-                        <label for="p-weight-${index}">Вес, кг</label>
+                        <label for="p-weight-${index}">${t('Вес, кг')}</label>
                         <input id="p-weight-${index}" type="number" min="0" step="0.5" inputmode="decimal"
                                placeholder="—" value="${item.weight || ''}"
                                data-change="plan-field" data-index="${index}" data-key="weight">
@@ -323,35 +336,35 @@ export const plan = {
         const isTemplate = draft.mode === 'template';
         const timed = isInterval(typeLabel());
 
-        const chips = [...TYPES, 'Своё'].map((t) => ui.html`
-            <button class="chip ${draft.type === t ? 'is-active' : ''}"
-                    data-action="plan-type" data-type="${t}">${t}</button>
+        const chips = [...TYPES, 'Своё'].map((key) => ui.html`
+            <button class="chip ${draft.type === key ? 'is-active' : ''}"
+                    data-action="plan-type" data-type="${key}">${t(key)}</button>
         `);
 
         return ui.html`
             ${ui.title(
-                isTemplate ? 'Шаблон' : 'План тренировки',
+                isTemplate ? t('Шаблон') : t('План тренировки'),
                 isTemplate
-                    ? 'Изменения не тронут уже проведённые тренировки — их план сохранён внутри них'
-                    : 'Порядок можно будет нарушить: приложение считает подходы, а не командует')}
+                    ? t('Изменения не тронут уже проведённые тренировки — их план сохранён внутри них')
+                    : t('Порядок можно будет нарушить: приложение считает подходы, а не командует'))}
 
             <div class="card">
                 ${isTemplate ? ui.html`
                     <div class="field">
-                        <label for="p-name">Название шаблона</label>
+                        <label for="p-name">${t('Название шаблона')}</label>
                         <input id="p-name" type="text" value="${draft.name}"
-                               placeholder="Грудь + трицепс" data-change="plan-name">
+                               placeholder="${t('Грудь + трицепс')}" data-change="plan-name">
                     </div>
                 ` : ''}
 
-                <div class="card-title">Тип тренировки</div>
+                <div class="card-title">${t('Тип тренировки')}</div>
                 <div class="chips">${chips}</div>
 
                 ${draft.type === 'Своё' ? ui.html`
                     <div class="field">
-                        <label for="p-custom">Название типа</label>
+                        <label for="p-custom">${t('Название типа')}</label>
                         <input id="p-custom" type="text" value="${draft.customType}"
-                               placeholder="Например: йога" data-change="plan-custom">
+                               placeholder="${t('Например: йога')}" data-change="plan-custom">
                     </div>
                 ` : ''}
             </div>
@@ -359,28 +372,28 @@ export const plan = {
             ${timed ? intervalCard() : ''}
 
             <div class="card">
-                <div class="card-title">Упражнения — ${String(draft.items.length)}</div>
+                <div class="card-title">${t('Упражнения — {n}', { n: draft.items.length })}</div>
 
                 ${draft.items.length
                     ? draft.items.map((item, i) => itemRow(item, i, draft.items.length, timed))
-                    : ui.empty('Пока пусто. Добавь хотя бы одно упражнение.')}
+                    : ui.empty(t('Пока пусто. Добавь хотя бы одно упражнение.'))}
 
-                <button class="btn btn-ghost" data-action="plan-add">+ Добавить упражнение</button>
+                <button class="btn btn-ghost" data-action="plan-add">${t('+ Добавить упражнение')}</button>
             </div>
 
             ${isTemplate ? ui.html`
-                <button class="btn btn-accent btn-lg" data-action="plan-save-template">Сохранить шаблон</button>
-                <button class="btn btn-ghost" data-action="nav" data-screen="templates">← К шаблонам</button>
+                <button class="btn btn-accent btn-lg" data-action="plan-save-template">${t('Сохранить шаблон')}</button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="templates">${t('← К шаблонам')}</button>
             ` : ui.html`
                 <button class="btn btn-accent btn-lg" data-action="plan-start"
                         ${ui.raw(draft.items.length ? '' : 'disabled')}>
-                    Начать тренировку
+                    ${t('Начать тренировку')}
                 </button>
                 <button class="btn btn-ghost" data-action="plan-as-template"
                         ${ui.raw(draft.items.length ? '' : 'disabled')}>
-                    Сохранить как шаблон
+                    ${t('Сохранить как шаблон')}
                 </button>
-                <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
+                <button class="btn btn-ghost" data-action="nav" data-screen="home">${t('← На главную')}</button>
             `}
         `;
     }
@@ -449,16 +462,16 @@ actions.on('plan-add', async () => {
     const all = await dbService.listExercises();
 
     const chosen = await dialog.pick({
-        title: 'Добавить упражнение',
+        title: t('Добавить упражнение'),
         items: all.map((e) => ({
             value: e.id,
             label: e.name,
             group: e.group,
-            hint: [KIND_HINT[e.kind], e.group].filter(Boolean).join(' · ')
+            hint: [t(KIND_HINT[e.kind]), e.group].filter(Boolean).join(' · ')
         })),
         groups: groupsOf(all),
-        placeholder: 'Название упражнения',
-        createLabel: 'Создать'
+        placeholder: t('Название упражнения'),
+        createLabel: t('Создать')
     });
 
     if (!chosen) return;
@@ -519,8 +532,8 @@ actions.on('plan-down', (el) => {
 actions.on('plan-save-template', async () => {
     if (!draft.name.trim()) {
         const values = await dialog.form({
-            title: 'Название шаблона',
-            fields: [{ name: 'name', label: 'Название', required: true }]
+            title: t('Название шаблона'),
+            fields: [{ name: 'name', label: t('Название'), required: true }]
         });
 
         if (!values) return;
@@ -544,9 +557,9 @@ actions.on('plan-save-template', async () => {
 
 actions.on('plan-as-template', async () => {
     const values = await dialog.form({
-        title: 'Сохранить как шаблон',
+        title: t('Сохранить как шаблон'),
         text: 'Состав и подходы запомнятся, тренировка при этом не начнётся.',
-        fields: [{ name: 'name', label: 'Название', required: true, value: typeLabel() }]
+        fields: [{ name: 'name', label: t('Название'), required: true, value: typeLabel() }]
     });
 
     if (!values) return;
