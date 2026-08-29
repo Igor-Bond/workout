@@ -167,6 +167,40 @@ export const DE = {
     'Прогресс': 'Fortschritt',
     'Круг': 'Runde',
 
+    // ================== ИСТОРИЯ, КАЛЕНДАРЬ, ШАБЛОНЫ ==================
+
+    'Всё проведённое: поиск, отбор по типу и по упражнению':
+        'Alles Absolvierte: Suche, Filter nach Art und nach Übung',
+    'Список': 'Liste',
+    'Календарь': 'Kalender',
+    'Поиск по упражнению, типу или заметке': 'Suche nach Übung, Art oder Notiz',
+    'Все': 'Alle',
+    'Фильтр по упражнению': 'Nach Übung filtern',
+    'Упражнение: {что}': 'Übung: {что}',
+    'Сбросить': 'Zurücksetzen',
+    'Проведённых тренировок пока нет.': 'Noch keine abgeschlossenen Trainings.',
+    'Под фильтры ничего не подходит.': 'Nichts passt zu den Filtern.',
+    'Показать ещё {n} из {всего}': 'Weitere {n} von {всего} anzeigen',
+    'Без упражнений': 'Ohne Übungen',
+    'упражнение': 'Übung',
+    'Месяц целиком: насыщенность дня — по объёму':
+        'Ein ganzer Monat: je dunkler der Tag, desto mehr Volumen',
+    'Предыдущий месяц': 'Voriger Monat',
+    'Следующий месяц': 'Nächster Monat',
+    'Без тренировки': 'Kein Training',
+    'В этом месяце тренировок не было': 'In diesem Monat gab es keine Trainings',
+    'В этот день тренировок не было.': 'An diesem Tag gab es keine Trainings.',
+    'Шаблоны': 'Vorlagen',
+    'Сохранённая тренировка, которую можно запускать сколько угодно раз':
+        'Ein gespeichertes Training, das du beliebig oft starten kannst',
+    'Шаблонов пока нет. Их можно создать здесь или сохранить из проведённой тренировки в её итогах.':
+        'Noch keine Vorlagen. Erstelle eine hier oder speichere sie aus einem abgeschlossenen Training im Ergebnis.',
+    '+ Создать шаблон': '+ Vorlage erstellen',
+    'Дублировать': 'Duplizieren',
+    'Удалить «{имя}»?': '„{имя}“ löschen?',
+    'Проведённые по нему тренировки останутся в истории — план хранится внутри каждой из них.':
+        'Damit absolvierte Trainings bleiben im Verlauf — jedes hat seine eigene Kopie des Plans.',
+
     // ================== ИТОГИ ==================
 
     'Итоги тренировки': 'Trainingsergebnis',

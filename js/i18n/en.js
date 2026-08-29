@@ -169,6 +169,40 @@ export const EN = {
     'Прогресс': 'Progress',
     'Круг': 'Round',
 
+    // ================== ИСТОРИЯ, КАЛЕНДАРЬ, ШАБЛОНЫ ==================
+
+    'Всё проведённое: поиск, отбор по типу и по упражнению':
+        'Everything you have done: search, filter by type and by exercise',
+    'Список': 'List',
+    'Календарь': 'Calendar',
+    'Поиск по упражнению, типу или заметке': 'Search by exercise, type or note',
+    'Все': 'All',
+    'Фильтр по упражнению': 'Filter by exercise',
+    'Упражнение: {что}': 'Exercise: {что}',
+    'Сбросить': 'Reset',
+    'Проведённых тренировок пока нет.': 'No finished workouts yet.',
+    'Под фильтры ничего не подходит.': 'Nothing matches the filters.',
+    'Показать ещё {n} из {всего}': 'Show {n} more of {всего}',
+    'Без упражнений': 'No exercises',
+    'упражнение': 'exercise',
+    'Месяц целиком: насыщенность дня — по объёму':
+        'A whole month: the darker the day, the more volume',
+    'Предыдущий месяц': 'Previous month',
+    'Следующий месяц': 'Next month',
+    'Без тренировки': 'No workout',
+    'В этом месяце тренировок не было': 'No workouts this month',
+    'В этот день тренировок не было.': 'No workouts on this day.',
+    'Шаблоны': 'Templates',
+    'Сохранённая тренировка, которую можно запускать сколько угодно раз':
+        'A saved workout you can start as many times as you like',
+    'Шаблонов пока нет. Их можно создать здесь или сохранить из проведённой тренировки в её итогах.':
+        'No templates yet. Create one here, or save one from a finished workout on its summary.',
+    '+ Создать шаблон': '+ Create a template',
+    'Дублировать': 'Duplicate',
+    'Удалить «{имя}»?': 'Delete “{имя}”?',
+    'Проведённые по нему тренировки останутся в истории — план хранится внутри каждой из них.':
+        'Workouts done from it stay in your history — each keeps its own copy of the plan.',
+
     // ================== ИТОГИ ==================
 
     'Итоги тренировки': 'Workout summary',

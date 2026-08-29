@@ -11,6 +11,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Фильтры переживают уход на карточку тренировки и возврат назад. */
@@ -35,7 +36,7 @@ function item(entry, names) {
     const { workout } = entry;
 
     const exercises = entry.exerciseIds
-        .map((id) => names[id] || 'упражнение')
+        .map((id) => names[id] || t('упражнение'))
         .join(', ');
 
     const duration = workout.finishedAt ? workout.finishedAt - workout.startedAt : 0;
@@ -46,7 +47,7 @@ function item(entry, names) {
                 <span>${dates.formatDayLabel(workout.startedAt)}, ${dates.formatTime(workout.startedAt)}</span>
                 <span class="h-badge">${workout.type}</span>
             </span>
-            <span class="h-name">${exercises || 'Без упражнений'}</span>
+            <span class="h-name">${exercises || t('Без упражнений')}</span>
             <!--
                 Ноль не печатается: тоннаж и так показывался только при
                 наличии, а повторения печатались всегда — и у интервальной
@@ -57,7 +58,7 @@ function item(entry, names) {
                 ${[
                     format.count(entry.sets, format.WORDS.set),
                     entry.reps ? format.count(entry.reps, format.WORDS.rep) : null,
-                    entry.volume ? `${format.weight(entry.volume)} кг` : null,
+                    entry.volume ? `${format.weight(entry.volume)} ${t('кг')}` : null,
                     duration >= 1000 ? format.duration(duration) : null
                 ].filter(Boolean).join(' · ')}
             </span>
@@ -104,22 +105,22 @@ export const history = {
         const page = matched.slice(0, shown);
         const rest = matched.length - page.length;
 
-        const typeChips = ['all', ...types].map((t) => ui.html`
-            <button class="chip ${filter.type === t ? 'is-active' : ''}"
-                    data-action="hist-type" data-type="${t}">${t === 'all' ? 'Все' : t}</button>
+        const typeChips = ['all', ...types].map((type) => ui.html`
+            <button class="chip ${filter.type === type ? 'is-active' : ''}"
+                    data-action="hist-type" data-type="${type}">${type === 'all' ? t('Все') : type}</button>
         `);
 
         return ui.html`
-            ${ui.title('История')}
+            ${ui.title(t('История'))}
 
             <div class="chips">
-                <button class="chip is-active" data-action="nav" data-screen="history">Список</button>
-                <button class="chip" data-action="nav" data-screen="calendar">Календарь</button>
+                <button class="chip is-active" data-action="nav" data-screen="history">${t('Список')}</button>
+                <button class="chip" data-action="nav" data-screen="calendar">${t('Календарь')}</button>
             </div>
 
-            ${entries.length === 0 ? ui.empty('Проведённых тренировок пока нет.') : ui.html`
+            ${entries.length === 0 ? ui.empty(t('Проведённых тренировок пока нет.')) : ui.html`
                 <div class="field">
-                    <input type="text" id="hist-search" placeholder="Поиск по упражнению, типу или заметке"
+                    <input type="text" id="hist-search" placeholder="${t('Поиск по упражнению, типу или заметке')}"
                            value="${filter.query}" data-change="hist-search" autocomplete="off">
                 </div>
 
@@ -127,10 +128,10 @@ export const history = {
 
                 <div class="chips">
                     <button class="chip ${filter.exerciseId ? 'is-active' : ''}" data-action="hist-exercise">
-                        ${filter.exerciseId ? `Упражнение: ${names[filter.exerciseId]}` : 'Фильтр по упражнению'}
+                        ${filter.exerciseId ? t('Упражнение: {что}', { что: names[filter.exerciseId] }) : t('Фильтр по упражнению')}
                     </button>
                     ${filter.exerciseId || filter.type !== 'all' || filter.query
-                        ? ui.html`<button class="chip" data-action="hist-reset">Сбросить</button>`
+                        ? ui.html`<button class="chip" data-action="hist-reset">${t('Сбросить')}</button>`
                         : ''}
                 </div>
 
@@ -142,11 +143,11 @@ export const history = {
 
                 ${page.length
                     ? ui.html`<div class="grid-2">${page.map((entry) => item(entry, names))}</div>`
-                    : ui.empty('Под фильтры ничего не подходит.')}
+                    : ui.empty(t('Под фильтры ничего не подходит.'))}
 
                 ${rest > 0 ? ui.html`
                     <button class="btn btn-ghost" data-action="hist-more">
-                        Показать ещё ${String(Math.min(PAGE, rest))} из ${String(rest)}
+                        ${t('Показать ещё {n} из {всего}', { n: Math.min(PAGE, rest), всего: rest })}
                     </button>
                 ` : ''}
             `}
@@ -209,9 +210,9 @@ actions.on('hist-exercise', async () => {
     const all = await dbService.listExercises({ includeArchived: true });
 
     const chosen = await dialog.pick({
-        title: 'Фильтр по упражнению',
+        title: t('Фильтр по упражнению'),
         items: all.map((e) => ({ value: e.id, label: e.name, hint: e.group })),
-        placeholder: 'Название упражнения'
+        placeholder: t('Название упражнения')
     });
 
     if (!chosen || chosen.create) return;

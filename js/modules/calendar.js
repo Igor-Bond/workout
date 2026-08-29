@@ -11,6 +11,7 @@ import { actions } from '../core/actions.js';
 import { dbService } from '../services/db.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Показываемый месяц: смещение от текущего. Ноль — этот месяц. */
@@ -62,7 +63,7 @@ function grid(month, byDay) {
         cells.push(ui.html`
             <button class="${classes}" data-action="cal-day" data-day="${String(ts)}"
                     ${ui.raw(entries.length ? '' : 'disabled')}
-                    title="${entries.length ? `${sets} подходов` : 'Без тренировки'}">
+                    title="${entries.length ? format.count(sets, format.WORDS.set) : t('Без тренировки')}">
                 ${String(day)}
             </button>
         `);
@@ -102,21 +103,21 @@ export const calendar = {
         const chosen = selected ? (byDay.get(selected) || []) : [];
 
         return ui.html`
-            ${ui.title('Календарь')}
+            ${ui.title(t('Календарь'))}
 
             <div class="chips">
-                <button class="chip" data-action="nav" data-screen="history">Список</button>
-                <button class="chip is-active" data-action="nav" data-screen="calendar">Календарь</button>
+                <button class="chip" data-action="nav" data-screen="history">${t('Список')}</button>
+                <button class="chip is-active" data-action="nav" data-screen="calendar">${t('Календарь')}</button>
             </div>
 
             <div class="card">
                 <div class="cal-head">
-                    <button class="icon-btn" data-action="cal-prev" title="Предыдущий месяц">←</button>
+                    <button class="icon-btn" data-action="cal-prev" title="${t('Предыдущий месяц')}">←</button>
                     <div class="cal-title">
                         ${dates.MONTHS_NOM[month.getMonth()]} ${String(month.getFullYear())}
                     </div>
                     <button class="icon-btn" data-action="cal-next"
-                            ${ui.raw(offset >= 0 ? 'disabled' : '')} title="Следующий месяц">→</button>
+                            ${ui.raw(offset >= 0 ? 'disabled' : '')} title="${t('Следующий месяц')}">→</button>
                 </div>
 
                 <div class="cal-weekdays">
@@ -128,7 +129,7 @@ export const calendar = {
                 <div class="cal-summary">
                     ${inMonth.length
                         ? `${format.count(inMonth.length, format.WORDS.workout)} · ${format.count(monthSets, format.WORDS.set)}`
-                        : 'В этом месяце тренировок не было'}
+                        : t('В этом месяце тренировок не было')}
                 </div>
             </div>
 
@@ -148,7 +149,7 @@ export const calendar = {
                                 </span>
                             </button>
                         `)
-                        : ui.empty('В этот день тренировок не было.')}
+                        : ui.empty(t('В этот день тренировок не было.'))}
                 </div>
             ` : ''}
         `;
