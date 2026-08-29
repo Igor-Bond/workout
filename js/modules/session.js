@@ -333,7 +333,7 @@ export const session = {
             return ui.html`
                 ${ui.title('Выполнение')}
                 ${ui.empty('Активной тренировки нет.')}
-                <button class="btn btn-accent" data-action="nav" data-screen="plan">Составить тренировку</button>
+                <button class="btn btn-accent" data-action="nav" data-screen="plan">Новая тренировка</button>
                 <button class="btn btn-ghost" data-action="nav" data-screen="home">← На главную</button>
             `;
         }
