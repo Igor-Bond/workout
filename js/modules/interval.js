@@ -21,6 +21,7 @@ import { voice } from '../core/voice.js';
 import { wakeLock } from '../core/wakelock.js';
 import { config } from '../config.js';
 import { format } from '../core/format.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 let ticker = 0;
@@ -543,11 +544,11 @@ actions.on('iv-finish', async () => {
 
     if (sets.length === 0) {
         const choice = await dialog.choose({
-            title: 'Ни одного отрезка не пройдено',
-            text: 'Завершать нечего.',
+            title: t('Ни одного отрезка не пройдено'),
+            text: t('Завершать нечего.'),
             options: [
-                { value: 'delete', label: 'Удалить тренировку', danger: true },
-                { value: 'stay', label: 'Вернуться к программе' }
+                { value: 'delete', label: t('Удалить тренировку'), danger: true },
+                { value: 'stay', label: t('Вернуться к программе') }
             ]
         });
 
@@ -558,9 +559,9 @@ actions.on('iv-finish', async () => {
     }
 
     const ok = await dialog.confirm({
-        title: 'Завершить тренировку?',
+        title: t('Завершить тренировку?'),
         text: `Записано ${format.count(sets.length, format.WORDS.set)}. Повторения можно проставить на итогах.`,
-        confirmText: 'Завершить'
+        confirmText: t('Завершить')
     });
 
     if (!ok) return;

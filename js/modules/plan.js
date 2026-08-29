@@ -558,7 +558,7 @@ actions.on('plan-save-template', async () => {
 actions.on('plan-as-template', async () => {
     const values = await dialog.form({
         title: t('Сохранить как шаблон'),
-        text: 'Состав и подходы запомнятся, тренировка при этом не начнётся.',
+        text: t('Состав и подходы запомнятся, тренировка при этом не начнётся.'),
         fields: [{ name: 'name', label: t('Название'), required: true, value: typeLabel() }]
     });
 
@@ -585,11 +585,11 @@ actions.on('plan-start', async () => {
 
     if (active) {
         const choice = await dialog.choose({
-            title: 'Есть незавершённая тренировка',
-            text: 'Одновременно может идти только одна.',
+            title: t('Есть незавершённая тренировка'),
+            text: t('Одновременно может идти только одна.'),
             options: [
-                { value: 'continue', label: 'Вернуться к ней', hint: 'Новая не начнётся' },
-                { value: 'finish', label: 'Завершить её и начать новую', hint: 'Записанные подходы сохранятся' }
+                { value: 'continue', label: t('Вернуться к ней'), hint: t('Новая не начнётся') },
+                { value: 'finish', label: t('Завершить её и начать новую'), hint: t('Записанные подходы сохранятся') }
             ]
         });
 

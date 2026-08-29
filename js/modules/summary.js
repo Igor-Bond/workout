@@ -13,6 +13,7 @@ import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Как называются правимые величины подхода — для вопроса об остальных. */
@@ -312,9 +313,9 @@ export const summary = {
  */
 actions.on('summary-drop-set', async (el) => {
     const ok = await dialog.confirm({
-        title: 'Удалить подход?',
-        text: 'Итоги, рекорды и статистика пересчитаются.',
-        confirmText: 'Удалить',
+        title: t('Удалить подход?'),
+        text: t('Итоги, рекорды и статистика пересчитаются.'),
+        confirmText: t('Удалить'),
         danger: true
     });
 
@@ -344,9 +345,9 @@ actions.on('summary-edit-set', async (el) => {
 
     const values = await dialog.form({
         title: `Подход ${set.setNumber}`,
-        text: 'Итоги, рекорды и статистика пересчитаются.',
-        fields: [...fields, { name: 'note', label: 'Заметка к подходу', value: set.note || '' }],
-        confirmText: 'Сохранить'
+        text: t('Итоги, рекорды и статистика пересчитаются.'),
+        fields: [...fields, { name: 'note', label: t('Заметка к подходу'), value: set.note || '' }],
+        confirmText: t('Сохранить')
     });
 
     if (!values) return;
@@ -393,9 +394,9 @@ actions.on('summary-edit-set', async (el) => {
             });
 
             const ok = await dialog.confirm({
-                title: 'Применить к остальным подходам?',
+                title: t('Применить к остальным подходам?'),
                 text: `${exercise?.name || 'Упражнение'}, ещё ${format.count(rest.length, format.WORDS.set)}. ${lines.join(', ')}. Заметка останется только у этого подхода.`,
-                confirmText: 'Применить ко всем'
+                confirmText: t('Применить ко всем')
             });
 
             if (ok) {
@@ -418,8 +419,8 @@ actions.on('summary-note-exercise', async (el) => {
     const item = workout.plan.find((p) => p.exerciseId === exerciseId);
 
     const values = await dialog.form({
-        title: 'Заметка к упражнению',
-        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: item?.note || '' }]
+        title: t('Заметка к упражнению'),
+        fields: [{ name: 'note', label: t('Заметка'), type: 'textarea', value: item?.note || '' }]
     });
 
     if (!values) return;
@@ -447,8 +448,8 @@ actions.on('summary-as-template', async (el) => {
     if (byExercise.size === 0) return;
 
     const values = await dialog.form({
-        title: 'Сохранить как шаблон',
-        fields: [{ name: 'name', label: 'Название', required: true, value: workout.type }]
+        title: t('Сохранить как шаблон'),
+        fields: [{ name: 'name', label: t('Название'), required: true, value: workout.type }]
     });
 
     if (!values) return;
@@ -472,9 +473,9 @@ actions.on('summary-note', async (el) => {
     if (!workout) return;
 
     const values = await dialog.form({
-        title: 'Заметка к тренировке',
-        text: 'Самочувствие, общие впечатления, что учесть в следующий раз.',
-        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: workout.note || '' }]
+        title: t('Заметка к тренировке'),
+        text: t('Самочувствие, общие впечатления, что учесть в следующий раз.'),
+        fields: [{ name: 'note', label: t('Заметка'), type: 'textarea', value: workout.note || '' }]
     });
 
     if (!values) return;
@@ -485,9 +486,9 @@ actions.on('summary-note', async (el) => {
 
 actions.on('summary-delete', async (el) => {
     const ok = await dialog.confirm({
-        title: 'Удалить тренировку?',
-        text: 'Она исчезнет из истории и статистики.',
-        confirmText: 'Удалить',
+        title: t('Удалить тренировку?'),
+        text: t('Она исчезнет из истории и статистики.'),
+        confirmText: t('Удалить'),
         danger: true
     });
 

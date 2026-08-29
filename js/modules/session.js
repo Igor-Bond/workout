@@ -21,6 +21,7 @@ import { wakeLock } from '../core/wakelock.js';
 import { config, MODES } from '../config.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
@@ -612,11 +613,11 @@ async function finishWorkout(workout) {
 async function askAfterPlan(what, workout) {
     if (what === 'workout') {
         const choice = await dialog.choose({
-            title: 'План тренировки выполнен',
-            text: 'Можно завершать, а можно добавить ещё — записанное не пропадёт.',
+            title: t('План тренировки выполнен'),
+            text: t('Можно завершать, а можно добавить ещё — записанное не пропадёт.'),
             options: [
-                { value: 'continue', label: 'Продолжить', hint: 'Подходы сверх плана' },
-                { value: 'finish', label: 'Завершить тренировку', hint: 'Перейти к итогам' }
+                { value: 'continue', label: t('Продолжить'), hint: t('Подходы сверх плана') },
+                { value: 'finish', label: t('Завершить тренировку'), hint: t('Перейти к итогам') }
             ]
         });
 
@@ -625,11 +626,11 @@ async function askAfterPlan(what, workout) {
     }
 
     const choice = await dialog.choose({
-        title: 'План по упражнению закрыт',
+        title: t('План по упражнению закрыт'),
         options: [
-            { value: 'continue', label: 'Продолжить', hint: 'Ещё подход этого же упражнения' },
-            { value: 'next', label: 'Следующее упражнение', hint: 'Дальше по плану' },
-            { value: 'finish', label: 'Завершить тренировку', hint: 'Остальное останется невыполненным' }
+            { value: 'continue', label: t('Продолжить'), hint: t('Ещё подход этого же упражнения') },
+            { value: 'next', label: t('Следующее упражнение'), hint: t('Дальше по плану') },
+            { value: 'finish', label: t('Завершить тренировку'), hint: t('Остальное останется невыполненным') }
         ]
     });
 
@@ -696,7 +697,7 @@ actions.on('sess-rest', async () => {
         text: `Общая настройка — ${format.seconds(config.get('restSeconds'))}. Пустое поле вернёт её.`,
         fields: [{
             name: 'rest',
-            label: 'Секунд',
+            label: t('Секунд'),
             type: 'number',
             value: exercise.restSeconds ?? '',
             placeholder: String(config.get('restSeconds'))
@@ -720,8 +721,8 @@ actions.on('sess-note-exercise', async () => {
 
     const values = await dialog.form({
         title: `Заметка: ${view.exercises[currentId]?.name || 'упражнение'}`,
-        text: 'Относится к этому упражнению в текущей тренировке.',
-        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: item?.note || '' }]
+        text: t('Относится к этому упражнению в текущей тренировке.'),
+        fields: [{ name: 'note', label: t('Заметка'), type: 'textarea', value: item?.note || '' }]
     });
 
     if (!values) return;
@@ -737,9 +738,9 @@ actions.on('sess-note-workout', async () => {
     if (!view) return;
 
     const values = await dialog.form({
-        title: 'Заметка к тренировке',
-        text: 'Самочувствие, общие впечатления, что учесть в следующий раз.',
-        fields: [{ name: 'note', label: 'Заметка', type: 'textarea', value: view.workout.note || '' }]
+        title: t('Заметка к тренировке'),
+        text: t('Самочувствие, общие впечатления, что учесть в следующий раз.'),
+        fields: [{ name: 'note', label: t('Заметка'), type: 'textarea', value: view.workout.note || '' }]
     });
 
     if (!values) return;
@@ -754,9 +755,9 @@ actions.on('sess-undo', async () => {
     if (!last) return;
 
     const ok = await dialog.confirm({
-        title: 'Отменить последний подход?',
-        text: 'Запись будет удалена из журнала тренировки.',
-        confirmText: 'Отменить подход',
+        title: t('Отменить последний подход?'),
+        text: t('Запись будет удалена из журнала тренировки.'),
+        confirmText: t('Отменить подход'),
         danger: true
     });
 
@@ -810,12 +811,12 @@ actions.on('sess-add', async () => {
     const inPlan = new Set(view.workout.plan.map((p) => p.exerciseId));
 
     const chosen = await dialog.pick({
-        title: 'Добавить упражнение',
-        text: 'Оно встанет в план текущей тренировки.',
+        title: t('Добавить упражнение'),
+        text: t('Оно встанет в план текущей тренировки.'),
         items: all.filter((e) => !inPlan.has(e.id))
             .map((e) => ({ value: e.id, label: e.name, group: e.group, hint: e.group })),
         groups: [...new Set(all.map((e) => e.group).filter(Boolean))].sort(),
-        createLabel: 'Создать'
+        createLabel: t('Создать')
     });
 
     if (!chosen) return;
@@ -850,11 +851,11 @@ actions.on('sess-finish', async () => {
 
     if (sets.length === 0) {
         const choice = await dialog.choose({
-            title: 'Ни одного подхода не записано',
-            text: 'Завершать нечего.',
+            title: t('Ни одного подхода не записано'),
+            text: t('Завершать нечего.'),
             options: [
-                { value: 'delete', label: 'Удалить тренировку', danger: true },
-                { value: 'stay', label: 'Вернуться к тренировке' }
+                { value: 'delete', label: t('Удалить тренировку'), danger: true },
+                { value: 'stay', label: t('Вернуться к тренировке') }
             ]
         });
 
@@ -865,9 +866,9 @@ actions.on('sess-finish', async () => {
     }
 
     const ok = await dialog.confirm({
-        title: 'Завершить тренировку?',
+        title: t('Завершить тренировку?'),
         text: `Записано ${format.count(sets.length, format.WORDS.set)}.`,
-        confirmText: 'Завершить'
+        confirmText: t('Завершить')
     });
 
     if (!ok) return;

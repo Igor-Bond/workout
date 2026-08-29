@@ -357,7 +357,7 @@ actions.on('sync-in', async () => {
         status('Первый обмен…');
         await sync.run({ silent: true });
     } catch (e) {
-        await dialog.alert({ title: 'Не удалось войти', text: e.message });
+        await dialog.alert({ title: t('Не удалось войти'), text: e.message });
     }
 
     app.render();
@@ -369,7 +369,7 @@ actions.on('sync-now', async () => {
     off();
 
     if (result.error) {
-        await dialog.alert({ title: 'Обмен не прошёл', text: result.error });
+        await dialog.alert({ title: t('Обмен не прошёл'), text: result.error });
     }
 
     app.render();
@@ -377,9 +377,9 @@ actions.on('sync-now', async () => {
 
 actions.on('sync-full', async () => {
     const ok = await dialog.confirm({
-        title: 'Обменяться заново?',
-        text: 'Приложение пройдёт по всей истории, а не по изменениям. Данные не потеряются — просто дольше и дороже по операциям.',
-        confirmText: 'Обменяться'
+        title: t('Обменяться заново?'),
+        text: t('Приложение пройдёт по всей истории, а не по изменениям. Данные не потеряются — просто дольше и дороже по операциям.'),
+        confirmText: t('Обменяться')
     });
 
     if (!ok) return;
@@ -391,9 +391,9 @@ actions.on('sync-full', async () => {
 
 actions.on('sync-out', async () => {
     const ok = await dialog.confirm({
-        title: 'Выйти из учётной записи?',
-        text: 'Локальные данные останутся на месте — отключится только обмен с облаком.',
-        confirmText: 'Выйти'
+        title: t('Выйти из учётной записи?'),
+        text: t('Локальные данные останутся на месте — отключится только обмен с облаком.'),
+        confirmText: t('Выйти')
     });
 
     if (!ok) return;
@@ -410,11 +410,11 @@ actions.on('backup-save', async () => {
         const payload = await backup.download();
 
         await dialog.alert({
-            title: 'Копия выгружена',
+            title: t('Копия выгружена'),
             text: `${backup.fileName(payload.exportedAt)} — тренировки, упражнения, шаблоны и вес тела.`
         });
     } catch (e) {
-        await dialog.alert({ title: 'Не удалось выгрузить', text: e.message });
+        await dialog.alert({ title: t('Не удалось выгрузить'), text: e.message });
     }
 });
 
@@ -432,16 +432,16 @@ document.addEventListener('change', async (e) => {
     try {
         payload = backup.parse(await file.text());
     } catch (error) {
-        return dialog.alert({ title: 'Файл не подходит', text: error.message });
+        return dialog.alert({ title: t('Файл не подходит'), text: error.message });
     }
 
     // Выгрузка версии 1 всегда добавляется к текущим данным: заменять ими
     // всё бессмысленно, там нет ни шаблонов, ни веса тела
     if (payload.kind === 'v1') {
         const ok = await dialog.confirm({
-            title: 'Загрузить историю прошлой версии?',
+            title: t('Загрузить историю прошлой версии?'),
             text: `В файле — ${backup.describe(payload)}. Уже загруженные тренировки повторно не добавятся.`,
-            confirmText: 'Загрузить'
+            confirmText: t('Загрузить')
         });
 
         if (!ok) return;
@@ -450,7 +450,7 @@ document.addEventListener('change', async (e) => {
             const result = await backup.restoreV1(payload.v1);
 
             await dialog.alert({
-                title: 'Готово',
+                title: t('Готово'),
                 text: [
                     `Добавлено тренировок: ${result.workouts}.`,
                     result.skipped ? `Уже были: ${result.skipped}.` : '',
@@ -458,18 +458,18 @@ document.addEventListener('change', async (e) => {
                 ].filter(Boolean).join(' ')
             });
         } catch (error) {
-            await dialog.alert({ title: 'Не удалось загрузить', text: error.message });
+            await dialog.alert({ title: t('Не удалось загрузить'), text: error.message });
         }
 
         return app.render();
     }
 
     const mode = await dialog.choose({
-        title: 'Как загрузить?',
+        title: t('Как загрузить?'),
         text: `В файле — ${backup.describe(payload)}.`,
         options: [
-            { value: 'merge', label: 'Объединить', hint: 'Побеждает более свежая запись' },
-            { value: 'replace', label: 'Заменить всё', hint: 'Текущие данные будут стёрты', danger: true }
+            { value: 'merge', label: t('Объединить'), hint: t('Побеждает более свежая запись') },
+            { value: 'replace', label: t('Заменить всё'), hint: t('Текущие данные будут стёрты'), danger: true }
         ]
     });
 
@@ -477,9 +477,9 @@ document.addEventListener('change', async (e) => {
 
     if (mode === 'replace') {
         const ok = await dialog.confirm({
-            title: 'Стереть текущие данные?',
-            text: 'Вся история в этом браузере будет заменена содержимым файла.',
-            confirmText: 'Заменить',
+            title: t('Стереть текущие данные?'),
+            text: t('Вся история в этом браузере будет заменена содержимым файла.'),
+            confirmText: t('Заменить'),
             danger: true
         });
 
@@ -488,9 +488,9 @@ document.addEventListener('change', async (e) => {
 
     try {
         await backup.restore(payload, { mode });
-        await dialog.alert({ title: 'Готово', text: 'Данные загружены.' });
+        await dialog.alert({ title: t('Готово'), text: t('Данные загружены.') });
     } catch (error) {
-        await dialog.alert({ title: 'Не удалось загрузить', text: error.message });
+        await dialog.alert({ title: t('Не удалось загрузить'), text: error.message });
     }
 
     app.render();
@@ -529,7 +529,7 @@ actions.on('fs-now', async () => {
 
     if (!ok) {
         await dialog.alert({
-            title: 'Браузер отказал',
+            title: t('Браузер отказал'),
             text: `${fullscreen.lastError || 'Причина неизвестна.'}\n\nПолноэкранный режим есть не везде: в установленном приложении его может запрещать система, а на iPhone его нет вовсе.`
         });
     }
@@ -540,8 +540,8 @@ actions.on('fs-now', async () => {
 actions.on('check-update', async () => {
     if (!updater.available) {
         return dialog.alert({
-            title: 'Проверить нечем',
-            text: 'Приложение открыто без сервис-воркера. Обновление придёт при обычной перезагрузке страницы.'
+            title: t('Проверить нечем'),
+            text: t('Приложение открыто без сервис-воркера. Обновление придёт при обычной перезагрузке страницы.')
         });
     }
 
@@ -550,15 +550,15 @@ actions.on('check-update', async () => {
     // Найденная версия ставится сама и перезагружает приложение, так что
     // это сообщение пользователь чаще всего увидеть не успеет
     await dialog.alert(found
-        ? { title: 'Найдена новая версия', text: 'Она уже ставится — приложение перезагрузится само.' }
-        : { title: 'Установлена последняя версия', text: `Версия ${VERSION}.` });
+        ? { title: t('Найдена новая версия'), text: t('Она уже ставится — приложение перезагрузится само.') }
+        : { title: t('Установлена последняя версия'), text: `Версия ${VERSION}.` });
 });
 
 actions.on('reset-settings', async () => {
     const ok = await dialog.confirm({
-        title: 'Сбросить настройки?',
-        text: 'История тренировок останется на месте — сбросятся только настройки приложения.',
-        confirmText: 'Сбросить',
+        title: t('Сбросить настройки?'),
+        text: t('История тренировок останется на месте — сбросятся только настройки приложения.'),
+        confirmText: t('Сбросить'),
         danger: true
     });
 

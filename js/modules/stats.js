@@ -14,6 +14,7 @@ import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
@@ -288,15 +289,15 @@ actions.on('body-add', async () => {
     const last = today || await dbService.lastBodyWeight();
 
     const values = await dialog.form({
-        title: 'Вес тела',
+        title: t('Вес тела'),
         text: today
             ? 'Сегодня вес уже отмечен — новое значение заменит прежнее.'
             : 'Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.',
         fields: [
-            { name: 'weight', label: 'Вес, кг', type: 'number', required: true, value: last?.weight ?? '' },
-            { name: 'note', label: 'Заметка (необязательно)', value: today?.note || '' }
+            { name: 'weight', label: t('Вес, кг'), type: 'number', required: true, value: last?.weight ?? '' },
+            { name: 'note', label: t('Заметка (необязательно)'), value: today?.note || '' }
         ],
-        confirmText: 'Сохранить'
+        confirmText: t('Сохранить')
     });
 
     if (!values || !values.weight) return;

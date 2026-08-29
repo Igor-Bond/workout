@@ -13,6 +13,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
+import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { format } from '../core/format.js';
 
@@ -23,7 +24,7 @@ const KINDS = [
     { value: 'distance', label: 'Кардио',           hint: 'время и дистанция' }
 ];
 
-const kindLabel = (kind) => KINDS.find((k) => k.value === kind)?.label || kind;
+const kindLabel = (kind) => t(KINDS.find((k) => k.value === kind)?.label || kind);
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
 function row(exercise, usage) {
@@ -43,19 +44,19 @@ function row(exercise, usage) {
                 <div class="ex-meta">
                     ${kindLabel(exercise.kind)}
                     ${exercise.group ? ui.raw(` · ${ui.esc(exercise.group)}`) : ''}
-                    ${exercise.restSeconds ? ui.raw(` · отдых ${ui.esc(format.seconds(exercise.restSeconds))}`) : ''}
+                    ${exercise.restSeconds ? ui.raw(` · ${ui.esc(t('отдых {время}', { время: format.seconds(exercise.restSeconds) }))}`) : ''}
                     ${used > 0 ? ui.raw(` · ${ui.esc(format.count(used, format.WORDS.set))}`) : ''}
                 </div>
             </div>
             <div class="ex-actions">
-                <button class="icon-btn" data-action="ex-edit" data-id="${exercise.id}" title="Изменить">✎</button>
+                <button class="icon-btn" data-action="ex-edit" data-id="${exercise.id}" title="${t('Изменить')}">✎</button>
                 <button class="icon-btn" data-action="ex-merge" data-id="${exercise.id}"
-                        title="Объединить с другим">⇥</button>
+                        title="${t('Объединить с другим')}">⇥</button>
                 ${exercise.archived
-                    ? ui.raw(`<button class="icon-btn" data-action="ex-restore" data-id="${ui.esc(exercise.id)}" title="Вернуть из архива">↩</button>`)
-                    : ui.raw(`<button class="icon-btn" data-action="ex-archive" data-id="${ui.esc(exercise.id)}" title="В архив">⌫</button>`)}
+                    ? ui.raw(`<button class="icon-btn" data-action="ex-restore" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('Вернуть из архива'))}">↩</button>`)
+                    : ui.raw(`<button class="icon-btn" data-action="ex-archive" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('В архив'))}">⌫</button>`)}
                 ${used === 0
-                    ? ui.raw(`<button class="icon-btn is-danger" data-action="ex-delete" data-id="${ui.esc(exercise.id)}" title="Удалить">×</button>`)
+                    ? ui.raw(`<button class="icon-btn is-danger" data-action="ex-delete" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('Удалить'))}">×</button>`)
                     : ''}
             </div>
         </div>
@@ -81,43 +82,43 @@ export const exercises = {
         const archived = all.filter((e) => e.archived);
 
         return ui.html`
-            ${ui.raw(ui.title('Справочник упражнений',
-                'История упражнения держится на его записи здесь, поэтому используемое упражнение можно только архивировать'))}
+            ${ui.raw(ui.title(t('Справочник упражнений'),
+                t('История упражнения держится на его записи здесь, поэтому используемое упражнение можно только архивировать')))}
 
-            <button class="btn btn-accent" data-action="ex-add">Добавить упражнение</button>
+            <button class="btn btn-accent" data-action="ex-add">${t('Добавить упражнение')}</button>
 
             <div class="card">
-                <div class="card-title">В работе — ${ui.esc(String(active.length))}</div>
+                <div class="card-title">${t('В работе — {n}', { n: active.length })}</div>
                 ${active.length
                     ? active.map((e) => row(e, usage))
-                    : ui.raw(ui.empty('Все упражнения в архиве.'))}
+                    : ui.raw(ui.empty(t('Все упражнения в архиве.')))}
             </div>
 
             ${archived.length ? ui.html`
                 <div class="card">
-                    <div class="card-title">Архив — ${ui.esc(String(archived.length))}</div>
+                    <div class="card-title">${t('Архив — {n}', { n: archived.length })}</div>
                     ${archived.map((e) => row(e, usage))}
                 </div>
             ` : ''}
 
-            <button class="btn btn-ghost" data-action="nav" data-screen="profile">← В профиль</button>
+            <button class="btn btn-ghost" data-action="nav" data-screen="profile">${t('← В профиль')}</button>
         `;
     }
 };
 
 // ================== ДЕЙСТВИЯ ==================
 
-const kindOptions = KINDS.map((k) => ({ value: k.value, label: `${k.label} — ${k.hint}` }));
+const kindOptions = () => KINDS.map((k) => ({ value: k.value, label: `${t(k.label)} — ${t(k.hint)}` }));
 
 actions.on('ex-add', async () => {
     const values = await dialog.form({
-        title: 'Новое упражнение',
+        title: t('Новое упражнение'),
         fields: [
-            { name: 'name', label: 'Название', required: true, placeholder: 'Жим лёжа' },
-            { name: 'kind', label: 'Вид', type: 'select', value: 'weight', options: kindOptions },
-            { name: 'group', label: 'Группа мышц (необязательно)', placeholder: 'Грудь' }
+            { name: 'name', label: t('Название'), required: true, placeholder: t('Жим лёжа') },
+            { name: 'kind', label: t('Вид'), type: 'select', value: 'weight', options: kindOptions() },
+            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') }
         ],
-        confirmText: 'Добавить'
+        confirmText: t('Добавить')
     });
 
     if (!values) return;
@@ -125,8 +126,8 @@ actions.on('ex-add', async () => {
     const existing = await dbService.findExerciseByName(values.name);
     if (existing) {
         await dialog.alert({
-            title: 'Такое упражнение уже есть',
-            text: `«${existing.name}» уже в справочнике${existing.archived ? ', сейчас в архиве' : ''}.`
+            title: t('Такое упражнение уже есть'),
+            text: t('«{имя}» уже в справочнике{архив}.', { имя: existing.name, архив: existing.archived ? t(', сейчас в архиве') : '' })
         });
         return;
     }
@@ -155,7 +156,7 @@ actions.on('ex-info', async (el) => {
             ? `${где}\n\n${exercise.howTo}`
             : `${где}\n\nОписания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.`,
         options: [
-            { value: 'video', label: 'Найти видео', hint: 'Откроется поиск в новой вкладке' },
+            { value: 'video', label: t('Найти видео'), hint: t('Откроется поиск в новой вкладке') },
             { value: 'edit', label: exercise.howTo ? 'Изменить описание' : 'Добавить описание' }
         ]
     });
@@ -172,12 +173,12 @@ actions.on('ex-info', async (el) => {
 async function editExercise(exercise) {
 
     const values = await dialog.form({
-        title: 'Изменить упражнение',
-        text: 'Переименование не разрывает историю: она привязана к записи, а не к названию.',
+        title: t('Изменить упражнение'),
+        text: t('Переименование не разрывает историю: она привязана к записи, а не к названию.'),
         fields: [
-            { name: 'name', label: 'Название', value: exercise.name, required: true },
-            { name: 'kind', label: 'Вид', type: 'select', value: exercise.kind, options: kindOptions },
-            { name: 'group', label: 'Группа мышц', value: exercise.group || '' },
+            { name: 'name', label: t('Название'), value: exercise.name, required: true },
+            { name: 'kind', label: t('Вид'), type: 'select', value: exercise.kind, options: kindOptions() },
+            { name: 'group', label: t('Группа мышц'), value: exercise.group || '' },
 
             /*
              * Как выполнять (§50). Показывается там, где вспоминать некогда:
@@ -187,14 +188,14 @@ async function editExercise(exercise) {
              */
             {
                 name: 'howTo',
-                label: 'Как выполнять (необязательно)',
+                label: t('Как выполнять (необязательно)'),
                 type: 'textarea',
                 value: exercise.howTo || ''
             },
 
             {
                 name: 'restSeconds',
-                label: 'Свой отдых, секунд (пусто — общий)',
+                label: t('Свой отдых, секунд (пусто — общий)'),
                 type: 'number',
                 value: exercise.restSeconds ?? ''
             }
@@ -207,7 +208,7 @@ async function editExercise(exercise) {
     // историю, ради чего справочник и заводился
     const clash = await dbService.findExerciseByName(values.name);
     if (clash && clash.id !== exercise.id) {
-        await dialog.alert({ title: 'Название занято', text: `«${clash.name}» уже есть в справочнике.` });
+        await dialog.alert({ title: t('Название занято'), text: `«${clash.name}» уже есть в справочнике.` });
         return;
     }
 
@@ -220,9 +221,9 @@ async function editExercise(exercise) {
 
         if (used > 0) {
             const ok = await dialog.confirm({
-                title: 'Изменить вид упражнения?',
+                title: t('Изменить вид упражнения?'),
                 text: `В истории ${format.count(used, format.WORDS.set)}. Они останутся как есть, но следующие подходы будут записываться другими величинами, и в истории окажется два вида сразу.`,
-                confirmText: 'Изменить'
+                confirmText: t('Изменить')
             });
 
             if (!ok) return;
@@ -260,20 +261,20 @@ actions.on('ex-merge', async (el) => {
         .filter((e) => e.id !== source.id);
 
     if (others.length === 0) {
-        return dialog.alert({ title: 'Объединять не с чем', text: 'В справочнике только одно упражнение.' });
+        return dialog.alert({ title: t('Объединять не с чем'), text: t('В справочнике только одно упражнение.') });
     }
 
     const usage = await dbService.countSetsOfExercise(source.id);
 
     const chosen = await dialog.pick({
         title: `Объединить «${source.name}» с…`,
-        text: 'Выбранное упражнение останется, текущее исчезнет вместе со своим названием.',
+        text: t('Выбранное упражнение останется, текущее исчезнет вместе со своим названием.'),
         items: others.map((e) => ({
             value: e.id,
             label: e.name,
-            hint: [kindLabel(e.kind), e.group, e.archived ? 'в архиве' : null].filter(Boolean).join(' · ')
+            hint: [kindLabel(e.kind), e.group, e.archived ? t('в архиве') : null].filter(Boolean).join(' · ')
         })),
-        placeholder: 'Название упражнения'
+        placeholder: t('Название упражнения')
     });
 
     if (!chosen || chosen.create) return;
@@ -288,7 +289,7 @@ actions.on('ex-merge', async (el) => {
         text: usage > 0
             ? `К «${target.name}» перейдёт подходов: ${usage}. «${source.name}» исчезнет из справочника, и отменить это будет нечем.`
             : `«${source.name}» исчезнет из справочника. Подходов у него нет, так что переносить нечего.`,
-        confirmText: 'Объединить'
+        confirmText: t('Объединить')
     });
 
     if (!ok) return;
@@ -296,7 +297,7 @@ actions.on('ex-merge', async (el) => {
     const result = await dbService.mergeExercises(source.id, target.id);
 
     await dialog.alert({
-        title: 'Объединено',
+        title: t('Объединено'),
         text: [
             `«${result.from}» → «${result.to}».`,
             result.sets ? `Перенесено подходов: ${result.sets}.` : '',
@@ -324,8 +325,8 @@ actions.on('ex-delete', async (el) => {
 
     const ok = await dialog.confirm({
         title: `Удалить «${exercise.name}»?`,
-        text: 'Упражнение ни разу не выполнялось, поэтому удаление ничего не разорвёт.',
-        confirmText: 'Удалить',
+        text: t('Упражнение ни разу не выполнялось, поэтому удаление ничего не разорвёт.'),
+        confirmText: t('Удалить'),
         danger: true
     });
 
@@ -334,7 +335,7 @@ actions.on('ex-delete', async (el) => {
     try {
         await dbService.deleteExercise(exercise.id);
     } catch (e) {
-        await dialog.alert({ title: 'Не удалось удалить', text: e.message });
+        await dialog.alert({ title: t('Не удалось удалить'), text: e.message });
     }
 
     app.render();
