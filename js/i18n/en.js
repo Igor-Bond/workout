@@ -401,6 +401,17 @@ export const EN = {
     'Итоги': 'Summary',
     'Программа': 'Program',
     'Разово, кг': 'One-rep max, kg',
+
+    // Перевод базового справочника по просьбе (§53)
+    '{n} из базового списка стоят на другом языке. Свои названия и те, что ты правил, останутся как есть.':
+        '{n} from the built-in list are in another language. Your own names, and any you edited, stay as they are.',
+    'Перевести базовые упражнения': 'Translate the built-in exercises',
+    'Перевести базовые упражнения?': 'Translate the built-in exercises?',
+    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые ты завёл или переименовал сам, останутся как есть. История не пострадает: меняется имя, а не запись.':
+        'Names and muscle groups from the built-in list will switch to the current language. Exercises you created or renamed yourself stay untouched. Your history is safe: the name changes, the record does not.',
+    'Перевести': 'Translate',
+    'Переведено: {n}.': 'Translated: {n}.',
+    'Переводить оказалось нечего.': 'There turned out to be nothing to translate.',
     'Первый раз — ориентиров пока нет': 'First time — nothing to compare with yet',
     'Изменить заметку к тренировке': 'Edit the workout note',
     'повторений': 'reps',

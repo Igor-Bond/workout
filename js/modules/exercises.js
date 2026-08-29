@@ -80,12 +80,35 @@ export const exercises = {
 
         const active = all.filter((e) => !e.archived);
         const archived = all.filter((e) => e.archived);
+        const foreign = await dbService.countForeignBaseExercises();
 
         return ui.html`
             ${ui.raw(ui.title(t('Справочник упражнений'),
                 t('История упражнения держится на его записи здесь, поэтому используемое упражнение можно только архивировать')))}
 
             <button class="btn btn-accent" data-action="ex-add">${t('Добавить упражнение')}</button>
+
+            <!--
+                Предложение перевести справочник появляется, только когда
+                есть что переводить (§53).
+
+                Само приложение названия не переименовывает: они записаны
+                человеком, а переименовывать записанное оно не вправе. Но у
+                того, кто сменил язык на давно заведённой базе, остаётся
+                чужой список посреди своего экрана — и это тоже неправильно.
+                Разрешает спор он сам, одним нажатием.
+            -->
+            ${foreign > 0 ? ui.html`
+                <div class="card">
+                    <p class="hint" style="margin:0 0 10px">
+                        ${t('{n} из базового списка стоят на другом языке. Свои названия и те, что ты правил, останутся как есть.',
+                            { n: format.count(foreign, format.WORDS.exercise) })}
+                    </p>
+                    <button class="btn btn-ghost" data-action="ex-relocalize">
+                        ${t('Перевести базовые упражнения')}
+                    </button>
+                </div>
+            ` : ''}
 
             <div class="card">
                 <div class="card-title">${t('В работе — {n}', { n: active.length })}</div>
@@ -337,6 +360,34 @@ actions.on('ex-delete', async (el) => {
     } catch (e) {
         await dialog.alert({ title: t('Не удалось удалить'), text: e.message });
     }
+
+    app.render();
+});
+
+/**
+ * Перевод базовых упражнений на текущий язык (§53).
+ *
+ * По явной просьбе и с предупреждением: действие меняет названия в
+ * справочнике, а через них — то, как выглядит вся история. История при этом
+ * цела: упражнение остаётся тем же, у него меняется только имя.
+ */
+actions.on('ex-relocalize', async () => {
+    const ok = await dialog.confirm({
+        title: t('Перевести базовые упражнения?'),
+        text: t('Названия и группы из базового списка станут на текущем языке. Упражнения, которые ты завёл или переименовал сам, останутся как есть. История не пострадает: меняется имя, а не запись.'),
+        confirmText: t('Перевести')
+    });
+
+    if (!ok) return;
+
+    const renamed = await dbService.relocalizeBaseExercises();
+
+    await dialog.alert({
+        title: t('Готово'),
+        text: renamed.length
+            ? t('Переведено: {n}.', { n: format.count(renamed.length, format.WORDS.exercise) })
+            : t('Переводить оказалось нечего.')
+    });
 
     app.render();
 });

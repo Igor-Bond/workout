@@ -242,6 +242,50 @@ const ALL = { en: EN, de: DE };
  * Отсутствующий перевод тоже отдаёт русское — лучше чужое слово в
  * справочнике, чем пустая строка вместо названия.
  */
+/**
+ * Русское имя базового упражнения по названию на любом языке.
+ *
+ * Нужно, чтобы узнать своё же упражнение, поставленное на другом языке.
+ * Возвращает null, если названия нет ни в одном словаре, — а значит, его
+ * придумал или поправил человек, и трогать его нельзя.
+ */
+export function canonicalName(name) {
+    if (!name) return null;
+    if (EN.names[name] !== undefined) return name;
+
+    for (const dict of Object.values(ALL)) {
+        for (const [ru, translated] of Object.entries(dict.names)) {
+            if (translated === name) return ru;
+        }
+    }
+
+    return null;
+}
+
+/** То же для группы мышц. */
+export function canonicalGroup(group) {
+    if (!group) return '';
+    if (EN.groups[group] !== undefined) return group;
+
+    for (const dict of Object.values(ALL)) {
+        for (const [ru, translated] of Object.entries(dict.groups)) {
+            if (translated === group) return ru;
+        }
+    }
+
+    return group;
+}
+
+/**
+ * Все описания техники, которые приложение когда-либо ставило этому
+ * упражнению. По ним отличается наш текст от написанного человеком.
+ */
+export function deliveredHowTo(canonical) {
+    return Object.values(ALL)
+        .map((dict) => dict.howTo[canonical])
+        .filter(Boolean);
+}
+
 export function localizeExercise(item, lang, howToRu = '') {
     const dict = ALL[lang];
 

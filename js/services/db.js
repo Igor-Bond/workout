@@ -16,7 +16,7 @@ import Dexie from '../../vendor/dexie.min.js';
 import { migrations } from './migrations.js';
 import { howTo } from './howto.js';
 import { i18n } from '../core/i18n.js';
-import { localizeExercise } from '../i18n/exercises.js';
+import { localizeExercise, canonicalName, canonicalGroup, deliveredHowTo } from '../i18n/exercises.js';
 
 /**
  * Имя базы можно подменить до первого импорта модуля. Нужно ровно одному
@@ -657,6 +657,97 @@ export const dbService = {
 
         await dbService.setSetting('baseInstalled', all.length);
         return added;
+    },
+
+    /**
+     * Перевод базовых упражнений на текущий язык (§53).
+     *
+     * Справочник ставится один раз, на языке первого запуска, и при смене
+     * языка не переименовывается сам: переименовывать записанное человеком
+     * приложение не вправе. Но у того, кто сменил язык на своей давно
+     * заведённой базе, остаётся русский список посреди немецкого экрана —
+     * и это тоже неправильно.
+     *
+     * Поэтому переименование есть, но только по явной просьбе и только для
+     * нетронутого: упражнение переводится, если его нынешнее название в
+     * точности совпадает с базовым на каком-то из языков. Стоит человеку
+     * поправить название хоть на букву — оно становится его, и действие
+     * обходит его стороной.
+     *
+     * Идентификатор не меняется: на него ссылается вся история. Меняются
+     * название, ключ поиска, группа и описание.
+     */
+    async relocalizeBaseExercises() {
+        const all = await db.exercises.toArray();
+        const занятые = new Set(all.filter(alive).map((e) => e.nameKey));
+
+        const now = Date.now();
+        const renamed = [];
+
+        for (const exercise of all) {
+            if (!alive(exercise) || !exercise.id.startsWith('base-')) continue;
+
+            const canonical = canonicalName(exercise.name);
+            if (!canonical) continue;
+
+            const item = { name: canonical, group: canonicalGroup(exercise.group) };
+            const local = localizeExercise(item, i18n.lang, howTo(migrations.normalizeName(canonical)));
+
+            if (local.name === exercise.name && local.group === exercise.group) continue;
+
+            const nameKey = migrations.normalizeName(local.name);
+
+            // Такое название уже занято другой записью — переименование
+            // склеило бы два разных упражнения в одно по ключу поиска
+            if (nameKey !== exercise.nameKey && занятые.has(nameKey)) continue;
+
+            занятые.delete(exercise.nameKey);
+            занятые.add(nameKey);
+
+            const changes = { name: local.name, nameKey, group: local.group, updatedAt: now };
+
+            /*
+             * Описание переписывается, только если прежнее тоже наше.
+             *
+             * Свой текст человека сильнее готового (§5.2), и заменить его
+             * переводом — та же потеря, что переименовать упражнение,
+             * которое он назвал сам.
+             */
+            const наше = !exercise.howTo
+                || exercise.howTo === howTo(migrations.normalizeName(canonical))
+                || deliveredHowTo(canonical).includes(exercise.howTo);
+
+            if (наше && local.howTo) changes.howTo = local.howTo;
+
+            await db.exercises.update(exercise.id, changes);
+            renamed.push(local.name);
+        }
+
+        return renamed;
+    },
+
+    /**
+     * Сколько базовых упражнений стоит не на текущем языке.
+     *
+     * По этому числу экран решает, предлагать ли перевод: предлагать его
+     * там, где переводить нечего, значит держать на виду кнопку, которая
+     * ничего не делает.
+     */
+    async countForeignBaseExercises() {
+        const all = await db.exercises.toArray();
+        let count = 0;
+
+        for (const exercise of all) {
+            if (!alive(exercise) || !exercise.id.startsWith('base-')) continue;
+
+            const canonical = canonicalName(exercise.name);
+            if (!canonical) continue;
+
+            const local = localizeExercise({ name: canonical, group: canonicalGroup(exercise.group) }, i18n.lang);
+            if (local.name !== exercise.name || local.group !== exercise.group) count += 1;
+        }
+
+        return count;
     },
 
     /**

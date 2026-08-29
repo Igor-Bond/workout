@@ -16,7 +16,7 @@
  * оставшееся — интерфейс, а не данные человека.
  */
 
-import { describe, it, assert } from '../runner.js';
+import { describe, it, assert, equal } from '../runner.js';
 import { screen, seed, workout } from '../helpers/dom.js';
 import { inLang, leftovers, TARGETS } from '../helpers/lang.js';
 import { i18n } from '../../js/core/i18n.js';
@@ -202,6 +202,82 @@ describe('Справочник на языке первого запуска', (
 
             const found = await dbService.findExerciseByName('Bench press');
             assert(!!found, 'поставленное упражнение обязано находиться по своему названию');
+        });
+    });
+});
+
+/*
+ * Перевод справочника по просьбе (§53).
+ *
+ * Самое опасное действие во всём переводе: оно меняет данные человека.
+ * Поэтому проверяется не то, что оно переводит, а то, чего оно не трогает.
+ */
+describe('Перевод базовых упражнений', () => {
+
+    /** Русская база с двумя записями, которые трогать нельзя. */
+    async function базаСоСвоим() {
+        await inLang('ru', async () => {
+            await seed();
+            await dbService.setSetting('baseInstalled', 0);
+            await dbService.installBaseExercises();
+
+            await dbService.createExercise({ name: 'Моё упражнение', kind: 'reps', group: 'Своя группа' });
+
+            const жим = await dbService.findExerciseByName('Жим лёжа');
+            await dbService.updateExercise(жим.id, { name: 'Жим лёжа узким хватом' });
+        });
+    }
+
+    it('переводит базовое и не трогает чужое', async () => {
+        await базаСоСвоим();
+
+        await inLang('de', async () => {
+            const было = await dbService.countForeignBaseExercises();
+            assert(было > 30, `переводить должно быть что: ${было}`);
+
+            const renamed = await dbService.relocalizeBaseExercises();
+            assert(renamed.length === было, `переведено ${renamed.length} из ${было}`);
+
+            equal(await dbService.countForeignBaseExercises(), 0, 'после перевода чужого языка остаться не должно');
+
+            const list = await dbService.listExercises({ includeArchived: true });
+
+            assert(list.some((e) => e.name === 'Моё упражнение'),
+                'своё упражнение переименовывать нельзя ни при каких условиях');
+            assert(list.some((e) => e.name === 'Жим лёжа узким хватом'),
+                'поправленное человеком название становится его — и остаётся');
+        });
+    });
+
+    /*
+     * История держится на идентификаторе, а не на названии. Если бы перевод
+     * заводил новую запись, все подходы остались бы у старой — то есть
+     * пропали бы из виду вместе с ней.
+     */
+    it('история переживает переименование', async () => {
+        await inLang('ru', async () => {
+            /*
+             * Засев с другим названием намеренно: seed() заводит своё «Жим
+             * лёжа» случайным идентификатором, и базовое с тем же названием
+             * уже не поставится — а проверять надо именно базовое.
+             */
+            await seed({ name: 'Что-то своё', kind: 'reps' });
+            await dbService.setSetting('baseInstalled', 0);
+            await dbService.installBaseExercises();
+        });
+
+        const жим = await dbService.findExerciseByName('Жим лёжа');
+        assert(жим.id.startsWith('base-'), 'проверяется базовое упражнение, а не заведённое засевом');
+        await workout(жим, [[10, 60], [8, 60]], { type: 'Силовая' });
+
+        const былоПодходов = await dbService.countSetsOfExercise(жим.id);
+
+        await inLang('en', async () => {
+            await dbService.relocalizeBaseExercises();
+
+            const запись = await dbService.getExercise(жим.id);
+            equal(запись.name, 'Bench press');
+            equal(await dbService.countSetsOfExercise(жим.id), былоПодходов, 'подходы остаются при упражнении');
         });
     });
 });

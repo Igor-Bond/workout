@@ -398,6 +398,17 @@ export const DE = {
     'Отзыв': 'Feedback',
     'Итоги': 'Ergebnis',
     'Разово, кг': 'Einmalmaximum, kg',
+
+    // Перевод базового справочника по просьбе (§53)
+    '{n} из базового списка стоят на другом языке. Свои названия и те, что ты правил, останутся как есть.':
+        '{n} aus der mitgelieferten Liste stehen in einer anderen Sprache. Eigene und von dir geänderte Namen bleiben, wie sie sind.',
+    'Перевести базовые упражнения': 'Mitgelieferte Übungen übersetzen',
+    'Перевести базовые упражнения?': 'Mitgelieferte Übungen übersetzen?',
+    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые ты завёл или переименовал сам, останутся как есть. История не пострадает: меняется имя, а не запись.':
+        'Namen und Muskelgruppen aus der mitgelieferten Liste wechseln in die aktuelle Sprache. Selbst angelegte oder umbenannte Übungen bleiben unberührt. Dein Verlauf bleibt heil: der Name ändert sich, nicht der Eintrag.',
+    'Перевести': 'Übersetzen',
+    'Переведено: {n}.': 'Übersetzt: {n}.',
+    'Переводить оказалось нечего.': 'Es gab nichts zu übersetzen.',
     'Первый раз — ориентиров пока нет': 'Zum ersten Mal — noch nichts zum Vergleichen',
     'Изменить заметку к тренировке': 'Notiz zum Training ändern',
     'повторений': 'Wiederholungen',
