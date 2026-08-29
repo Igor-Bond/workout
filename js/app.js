@@ -24,6 +24,7 @@ import { exercises } from './modules/exercises.js';
 import { recordsScreen } from './modules/records.js';
 import { profile } from './modules/profile.js';
 import { guide } from './modules/guide.js';
+import { surveyScreen } from './modules/survey.js';
 
 /**
  * Список экранов собирается при первом обращении, а не при загрузке модуля.
@@ -49,7 +50,8 @@ function screens() {
             interval: intervalScreen,
             history, calendar, stats, exercise, exercises,
             records: recordsScreen,
-            profile, guide
+            profile, guide,
+            survey: surveyScreen
         };
     }
 

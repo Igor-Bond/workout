@@ -162,23 +162,35 @@ describe('Полный экран при запуске', () => {
     });
 
     /*
-     * Один раз за загрузку: если человек вышел из полного экрана жестом,
-     * возвращать его при следующем нажатии значит спорить с ним.
+     * Режим слетает сам: от переключения на другое приложение, от
+     * системного окна, от возврата по кнопке «назад». Поэтому его
+     * возвращает любое следующее касание, а не только первое.
      */
-    it('на следующих касаниях не повторяется', async () => {
+    it('слетевший режим возвращается следующим касанием', async () => {
         const s = stub();
         const было = config.get('fullscreen');
+        const касание = async () => {
+            document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+            await new Promise((r) => setTimeout(r, 20));
+        };
 
         try {
             config.set('fullscreen', true);
             fullscreen.watch();
 
-            for (let i = 0; i < 3; i++) {
-                document.dispatchEvent(new Event('pointerdown', { bubbles: true }));
-                await new Promise((r) => setTimeout(r, 20));
-            }
-
+            await касание();
             equal(s.calls.enter, 1);
+
+            // Пока режим держится, лишних запросов нет
+            await касание();
+            equal(s.calls.enter, 1, 'повторять уже включённое незачем');
+
+            // Так режим слетает сам: другое приложение, системное окно,
+            // кнопка «назад»
+            await fullscreen.exit();
+            await касание();
+
+            equal(s.calls.enter, 2, 'вернуть его должно первое же касание');
         } finally {
             config.set('fullscreen', было);
             await fullscreen.exit();

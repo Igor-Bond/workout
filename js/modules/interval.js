@@ -19,7 +19,6 @@ import { interval } from '../core/interval.js';
 import { beeper } from '../core/beeper.js';
 import { voice } from '../core/voice.js';
 import { wakeLock } from '../core/wakelock.js';
-import { fullscreen } from '../core/fullscreen.js';
 import { config } from '../config.js';
 import { format } from '../core/format.js';
 import { app } from '../app.js';
@@ -203,7 +202,6 @@ export const intervalScreen = {
         ticker = setInterval(tick, 250);
 
         wakeLock.enable();
-        fullscreen.enterIfWanted();
 
         resyncSound();
 
@@ -465,8 +463,6 @@ actions.on('iv-start', async () => {
     beeper.schedule(interval.cues(view.phases), run.elapsed, {
         key: soundKey({ ...view.workout, run })
     });
-
-    fullscreen.enterIfWanted();
 
     app.render();
 });

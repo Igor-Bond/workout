@@ -28,5 +28,30 @@ service cloud.firestore {
                            && request.auth.uid == userId;
       }
     }
+
+    // Анкета тестировщика (§52) — ящик без обратной стороны.
+    //
+    // Положить ответ может любой, в том числе не входивший в учётную
+    // запись: человека, которого позвали посмотреть приложение, нельзя
+    // заставлять заводить отношения с Google ради отзыва.
+    //
+    // Достать не может никто. Ответы читаются в консоли Firebase, и
+    // тестировщики не видят ответов друг друга — в отличие от анкеты,
+    // хранящей их прямо в своей странице.
+    //
+    // Проверка формы — не защита от злого умысла, а предел ущерба:
+    // случайный или намеренный мусор ограничен тремя полями и разумным
+    // числом ключей.
+    match /feedback/{entry} {
+      allow create: if request.resource.data.keys().hasOnly(['at', 'answers', 'about'])
+                    && request.resource.data.at is string
+                    && request.resource.data.at.size() < 40
+                    && request.resource.data.answers is map
+                    && request.resource.data.answers.size() <= 40
+                    && request.resource.data.about is map
+                    && request.resource.data.about.size() <= 20;
+
+      allow read, update, delete: if false;
+    }
   }
 }

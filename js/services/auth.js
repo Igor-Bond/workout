@@ -62,7 +62,9 @@ export const auth = {
 
         sdk = { app, authModule, firestore };
 
-        firebaseApp = app.initializeApp(firebaseConfig);
+        // Приложение могло быть поднято отправкой анкеты (§52), которой
+        // вход не нужен: второй initializeApp с тем же именем — ошибка
+        firebaseApp = app.getApps().length ? app.getApp() : app.initializeApp(firebaseConfig);
         authInstance = authModule.getAuth(firebaseApp);
         firestoreInstance = firestore.getFirestore(firebaseApp);
 

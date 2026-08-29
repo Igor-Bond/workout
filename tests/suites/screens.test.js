@@ -26,6 +26,8 @@ import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
+import { surveyScreen } from '../../js/modules/survey.js';
+import { survey } from '../../js/core/survey.js';
 
 import { beeper } from '../../js/core/beeper.js';
 import { dbService } from '../../js/services/db.js';
@@ -803,5 +805,74 @@ describe('Экран: как пользоваться', () => {
 
         assert(!hasAction(view, 'try-sound'), 'таблица сигналов в настройках лишняя');
         assert(!!view.querySelector('[data-screen="guide"]'), 'в профиль нужен вход в справку');
+    });
+});
+
+/*
+ * Анкета тестировщика (§52).
+ *
+ * Проверяется то, из-за чего ответ теряется или искажается: обязательное
+ * поле, пустые значения и сборка текста для запасного пути. Отправка
+ * требует сети и здесь не трогается.
+ */
+describe('Экран: анкета тестировщика', () => {
+
+    it('открывается и показывает все разделы', async () => {
+        const view = await screen(surveyScreen);
+        const заголовки = [...view.querySelectorAll('.section-title')].map((s) => s.textContent.trim());
+
+        equal(заголовки.length, survey.SECTIONS.length);
+        assert(has(view, 'Анкета тестировщика'));
+        assert(hasAction(view, 'sv-send'), 'без кнопки отправки анкета бесполезна');
+    });
+
+    it('обязательный вопрос ровно один', () => {
+        const обязательные = survey.QUESTIONS.filter((q) => q.required).map((q) => q.id);
+
+        equal(обязательные, ['freq'], 'анкета, где обязательно всё, собирает выдуманные ответы');
+    });
+
+    /*
+     * Ключ с пустой строкой в разборе неотличим от ответа «ничего», а
+     * разница существенная: пропущенный вопрос это не мнение.
+     */
+    it('пустое не отправляется', () => {
+        const собрано = survey.compose({ freq: '3–4 раза', unclear: '   ', used: [], r_look: null, tg: '' });
+
+        equal(Object.keys(собрано), ['freq']);
+    });
+
+    it('незаполненное обязательное находится', () => {
+        equal(survey.missing({}).map((q) => q.id), ['freq']);
+        equal(survey.missing({ freq: '3–4 раза' }), []);
+    });
+
+    it('множественный выбор и оценки доходят как есть', () => {
+        const собрано = survey.compose({ freq: '3–4 раза', used: ['Табата', 'История'], r_speed: 4 });
+
+        equal(собрано.used, ['Табата', 'История']);
+        equal(собрано.r_speed, 4);
+    });
+
+    /*
+     * Запасной путь: отправить может не выйти, и тогда единственное, что
+     * стоит между человеком и потерянными пятью минутами, — этот текст.
+     */
+    it('ответ собирается текстом', () => {
+        const текст = survey.asText({
+            answers: { freq: '3–4 раза', used: ['Табата', 'История'], bug: 'сломалось вот тут' },
+            about: { 'Версия приложения': '9.9.9' }
+        });
+
+        assert(текст.includes('Как часто тренируешься?: 3–4 раза'));
+        assert(текст.includes('Табата, История'), 'список должен быть перечислением, а не массивом');
+        assert(текст.includes('сломалось вот тут'));
+        assert(текст.includes('Версия приложения: 9.9.9'), 'сведения об устройстве нужны и в запасном пути');
+    });
+
+    it('пустой ответ не печатает пустых разделов', () => {
+        const текст = survey.asText({ answers: {}, about: {} });
+
+        equal(текст, 'Анкета тестировщика «Трекер»');
     });
 });

@@ -18,7 +18,6 @@ import { records } from '../core/records.js';
 import { estimate } from '../core/estimate.js';
 import { restTimer } from '../core/timer.js';
 import { wakeLock } from '../core/wakelock.js';
-import { fullscreen } from '../core/fullscreen.js';
 import { config, MODES } from '../config.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
@@ -417,12 +416,6 @@ export const session = {
         // Между подходами проходит минута-полторы, и экран успевает
         // погаснуть ровно к моменту записи результата (§28)
         wakeLock.enable();
-
-        // Полный экран включается на первом касании после запуска (§31), но
-        // из него можно выйти жестом. Начало тренировки — надёжное действие
-        // пользователя и хороший повод вернуться туда, где панели мешают
-        // больше всего
-        fullscreen.enterIfWanted();
     },
 
     unmount() {

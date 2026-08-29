@@ -1819,3 +1819,62 @@ button.ex-name:active { color: var(--accent); }
 .guide-sound:last-child { border-bottom: none; }
 .guide-sound-text { flex: 1; min-width: 0; }
 .guide-sound .chip { flex: none; margin: 0; }
+
+/* ================== АНКЕТА ТЕСТИРОВЩИКА (§52) ================== */
+
+.sv-q {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+}
+
+/* Незаполненное обязательное: рамка, а не текст с упрёком */
+.sv-q.is-missing { border-color: var(--accent); }
+
+.sv-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.sv-req { color: var(--accent); }
+.sv-hint { margin: -4px 0 10px; }
+.sv-sec-hint { margin: -4px 0 10px; }
+
+.sv-q .opts { margin-bottom: 0; }
+.sv-q textarea, .sv-q input[type=text] { margin-bottom: 0; }
+
+/* Шкала: цифры одной ширины, подписи концов по краям */
+.sv-scale { align-items: center; }
+.sv-scale .chip, .sv-scale .opt { min-width: 44px; text-align: center; }
+.sv-end { color: var(--text-dim); font-size: 11px; }
+
+.sv-about { margin-top: 10px; }
+.sv-about .info-row strong { font-weight: 400; text-align: right; max-width: 60%; word-break: break-word; }
+
+.sv-failed { border-color: var(--accent); }
+.sv-failed .sv-text { margin: 10px 0; font-size: 13px; }
+
+/*
+ * Кнопки выбора в анкете.
+ *
+ * Отдельно от .chip: те живут в строке отбора и умышленно мелкие, а здесь
+ * по ним попадают пальцем на бегу, и промах стоит потерянного ответа.
+ */
+.opt {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 15px;
+    cursor: pointer;
+    min-height: 40px;
+}
+
+.opt.is-on {
+    background: rgba(255, 122, 51, 0.14);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
