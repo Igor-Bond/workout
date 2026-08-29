@@ -185,12 +185,18 @@ export const interval = {
         let at = 0;
 
         phases.forEach((phase, i) => {
-            // Три щелчка в конце паузы: «три, два, один» перед работой
-            if (phase.kind !== 'work') {
-                for (let n = 3; n >= 1; n--) {
-                    const when = at + phase.seconds - n;
-                    if (when > at) list.push({ at: when, type: 'count' });
-                }
+            /*
+             * Три щелчка перед концом любого отрезка, работы в том числе.
+             *
+             * Сначала отсчёт стоял только перед началом работы: казалось, что
+             * работу незачем прерывать сигналом. Оказалось наоборот —
+             * упражнение обрывалось без предупреждения, и по звуку нельзя
+             * было понять, что оно кончилось. Знать, что осталось три
+             * секунды, нужно в обе стороны.
+             */
+            for (let n = 3; n >= 1; n--) {
+                const when = at + phase.seconds - n;
+                if (when > at) list.push({ at: when, type: 'count' });
             }
 
             at += phase.seconds;
