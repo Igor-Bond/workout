@@ -155,7 +155,7 @@ export const survey = {
      */
     asText(entry = {}) {
         const answers = entry.answers || {};
-        const lines = ['Анкета тестировщика «Трекер»', ''];
+        const lines = ['Отзыв о приложении «Трекер»', ''];
 
         for (const section of SECTIONS) {
             const filled = section.items.filter((q) => answers[q.id] !== undefined);

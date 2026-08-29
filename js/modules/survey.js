@@ -123,7 +123,7 @@ function failedBlock() {
 
 export const surveyScreen = {
 
-    title: 'Анкета',
+    title: 'Отзыв',
     nav: 'profile',
 
     async render() {
@@ -133,9 +133,9 @@ export const surveyScreen = {
             return ui.html`
                 ${ui.raw(ui.title('Спасибо'))}
                 <div class="card">
-                    <p>Ответ записан. Если вспомнится что-то ещё — напиши разработчику,
-                       или заполни анкету снова: лишним не будет.</p>
-                    <button class="btn btn-ghost" data-action="sv-again">Заполнить ещё раз</button>
+                    <p>Отзыв записан. Если вспомнится что-то ещё — напиши разработчику
+                       или оставь ещё один: лишним не будет.</p>
+                    <button class="btn btn-ghost" data-action="sv-again">Оставить ещё один</button>
                     <button class="btn btn-accent" data-action="nav" data-screen="home">К тренировкам</button>
                 </div>
             `;
@@ -153,7 +153,15 @@ export const surveyScreen = {
         `);
 
         return ui.html`
-            ${ui.raw(ui.title('Анкета тестировщика',
+            <!--
+                «Оставить отзыв», а не «анкета тестировщика».
+
+                Анкета — то, что заполняют по обязанности, и слово это ставит
+                открывшего в положение подопытного. Отзыв оставляют по своей
+                воле и о том, что успели заметить, — а нужно здесь именно
+                это.
+            -->
+            ${ui.raw(ui.title('Оставить отзыв',
                 'Пять минут. Обязательный вопрос один — остальное отвечай там, где есть что сказать'))}
 
             <div class="card">

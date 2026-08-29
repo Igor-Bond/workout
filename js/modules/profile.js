@@ -266,7 +266,7 @@ export const profile = {
                 <div class="info-row"><span>Версия</span><strong>${VERSION}</strong></div>
                 <div class="info-row"><span>Хранилище</span><strong>IndexedDB + localStorage</strong></div>
                 <button class="btn btn-ghost" data-action="nav" data-screen="survey">
-                    Анкета тестировщика
+                    Оставить отзыв
                 </button>
                 <button class="btn btn-ghost" data-action="check-update">Проверить обновление</button>
                 <button class="btn btn-danger" data-action="reset-settings">Сбросить настройки</button>
