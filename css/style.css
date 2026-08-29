@@ -55,6 +55,16 @@
 
 * { box-sizing: border-box; }
 
+/*
+ * Скрытое остаётся скрытым.
+ *
+ * Браузер прячет [hidden] своим правилом display: none, но любое наше
+ * правило с display перебивает его — оно сильнее по происхождению. Из-за
+ * этого кнопка «Создать» в окне выбора, объявленная скрытой, всё равно
+ * висела под списком с пустым названием в кавычках.
+ */
+[hidden] { display: none !important; }
+
 html, body {
     margin: 0;
     padding: 0;
@@ -591,7 +601,6 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .sess-delta.is-same { font-style: italic; }
 
 .sess-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.sess-tools[hidden] { display: none; }
 .sess-tools .btn { flex: 1; margin-bottom: 0; min-width: 150px; }
 .btn-sm { padding: 9px 12px; font-size: 13px; min-height: 38px; }
 
@@ -1346,8 +1355,23 @@ svg.heatmap { display: block; }
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
 
-/* Диалог с поиском: список прокручивается, кнопки остаются на виду */
-.dialog-tall { display: flex; flex-direction: column; max-height: 80vh; }
+/*
+ * Окно выбора занимает отведённую высоту сразу, а не растёт под содержимое.
+ *
+ * Раньше высоту задавал список: короткий отбор — низкое окно, прижатое к
+ * низу экрана, и до него приходилось тянуться, приподнимая страницу
+ * прокруткой. Место наверху при этом пустовало.
+ *
+ * Высота считается от --app-height, а не от vh: на телефоне vh включает
+ * полосу адреса, которой на экране нет, и окно вылезало бы за край.
+ */
+.dialog-tall {
+    display: flex;
+    flex-direction: column;
+    height: calc(var(--app-height) * 0.82);
+    max-height: calc(var(--app-height) - 32px);
+}
+
 .dialog-tall .dialog-options { overflow-y: auto; flex: 1; min-height: 80px; }
 
 .dialog-search {
