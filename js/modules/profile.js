@@ -157,7 +157,7 @@ export const profile = {
 
                 <div class="info-row"><span>Отсчёт три-два-один</span>
                     <button class="chip" data-action="try-sound" data-sound="count">Послушать</button></div>
-                <div class="info-row"><span>Начало работы — взлёт</span>
+                <div class="info-row"><span>Начало работы — долгий тон</span>
                     <button class="chip" data-action="try-sound" data-sound="go">Послушать</button></div>
                 <div class="info-row"><span>Конец работы — вниз</span>
                     <button class="chip" data-action="try-sound" data-sound="rest">Послушать</button></div>
