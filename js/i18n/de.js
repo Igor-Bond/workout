@@ -316,7 +316,7 @@ export const DE = {
     'Отдых и сигналы': 'Pause und Signale',
     'Таймер отдыха': 'Pausentimer',
     'Запускается после записи подхода': 'Startet, sobald ein Satz erfasst ist',
-    'Длительность отдыха:': 'Pausenlänge:',
+    'Длительность отдыха': 'Pausenlänge',
     'Звук по окончании': 'Ton am Ende',
     'Он же управляет сигналами интервальной программы': 'Er steuert auch die Signale des Intervallprogramms',
     'Вибрация по окончании': 'Vibration am Ende',

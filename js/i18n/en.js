@@ -318,7 +318,7 @@ export const EN = {
     'Отдых и сигналы': 'Rest and sounds',
     'Таймер отдыха': 'Rest timer',
     'Запускается после записи подхода': 'Starts after a set is recorded',
-    'Длительность отдыха:': 'Rest length:',
+    'Длительность отдыха': 'Rest length',
     'Звук по окончании': 'Sound when it ends',
     'Он же управляет сигналами интервальной программы': 'It also controls the interval program sounds',
     'Вибрация по окончании': 'Vibration when it ends',

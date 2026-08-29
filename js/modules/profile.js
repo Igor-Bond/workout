@@ -20,9 +20,52 @@ import { auth } from '../services/auth.js';
 import { sync } from '../services/sync.js';
 import { backup } from '../services/backup.js';
 import { dates } from '../core/dates.js';
+import { restTimer } from '../core/timer.js';
 import { app } from '../app.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
+
+/**
+ * Докуда достаёт ползунок отдыха.
+ *
+ * Обычные десять минут — и дальше ровно настолько, насколько человек сам
+ * вписал в поле. Растягивать ползунок до получаса «на всякий случай» нельзя:
+ * шаг остался бы прежним, а полторы минуты пришлось бы ловить в первой
+ * двадцатой его длины.
+ */
+const SLIDER_MAX = 600;
+
+/**
+ * Откуда начинается ползунок.
+ *
+ * Четверть минуты — разумное начало: короче отдыхают между разминочными
+ * подходами, и подбирать такое ползунком незачем. Но если в поле вписали
+ * меньше, начало опускается следом: ползунок, застрявший на пятнадцати там,
+ * где настройка равна пяти, показывал бы неправду.
+ */
+const SLIDER_MIN = 15;
+
+function restCeiling(seconds) {
+    return Math.max(SLIDER_MAX, Math.ceil(seconds / 15) * 15);
+}
+
+/**
+ * Показать длительность отдыха, не перерисовывая экран.
+ *
+ * Значение видно в трёх местах сразу — в поле, в подписи и положением
+ * ползунка, — и разойтись им нельзя. Перерисовка же посреди набора отняла бы
+ * фокус из поля на каждой цифре.
+ */
+function showRest(seconds) {
+    const label = document.getElementById('rest-value');
+    if (label) label.textContent = format.seconds(seconds);
+
+    const field = document.getElementById('set-rest-exact');
+    if (field && Number(field.value) !== seconds) field.value = String(seconds);
+
+    const slider = document.getElementById('set-rest');
+    if (slider && Number(slider.value) !== seconds) slider.value = String(seconds);
+}
 
 /** Переключатель настройки. */
 function toggle(key, label, hint) {
@@ -249,9 +292,28 @@ export const profile = {
 
                 ${ui.raw(toggle('restEnabled', t('Таймер отдыха'), t('Запускается после записи подхода')))}
 
+                <!--
+                    Поле рядом с ползунком, а не вместо него.
+
+                    Ползунком удобно подбирать на слух — подвинул и слышишь,
+                    сколько получилось; полем удобно задать то, что уже
+                    знаешь. Ползунок один этого не давал: он кончался на пяти
+                    минутах, а тем, кто тянет тяжёлое, нужно больше, и
+                    добирать пришлось бы кнопкой «+30 с» посреди отдыха.
+                -->
                 <div class="field">
-                    <label for="set-rest">${t('Длительность отдыха:')} <strong id="rest-value">${format.seconds(rest)}</strong></label>
-                    <input type="range" id="set-rest" min="15" max="300" step="15"
+                    <label for="set-rest-exact">${t('Длительность отдыха')}</label>
+
+                    <div class="rest-set">
+                        <input type="number" id="set-rest-exact" class="rest-exact"
+                               min="${String(restTimer.SHORTEST)}" max="${String(restTimer.LONGEST)}" step="5"
+                               inputmode="numeric" value="${String(rest)}" data-change="rest-exact">
+                        <span class="rest-unit">${t('с')}</span>
+                        <strong id="rest-value">${format.seconds(rest)}</strong>
+                    </div>
+
+                    <input type="range" id="set-rest"
+                           min="${String(Math.min(SLIDER_MIN, rest))}" max="${String(restCeiling(rest))}" step="15"
                            value="${rest}" data-change="setting" data-key="restSeconds">
                 </div>
 
@@ -335,12 +397,9 @@ actions.onChange('setting', (el) => {
 
     config.set(key, value);
 
-    // Ползунок отдыха подписан значением — обновляем на месте,
-    // перерисовывать весь экран ради одной цифры незачем
-    if (key === 'restSeconds') {
-        const label = document.getElementById('rest-value');
-        if (label) label.textContent = format.seconds(value);
-    }
+    // Ползунок отдыха подписан значением и продублирован полем — обновляем
+    // на месте, перерисовывать весь экран ради одной цифры незачем
+    if (key === 'restSeconds') showRest(value);
 
     // Полный экран применяется сразу: иначе проверить, помогло ли, можно
     // только начав тренировку, а нажатие на переключатель — как раз то
@@ -569,6 +628,27 @@ actions.on('fs-now', async () => {
         });
     }
 
+    app.render();
+});
+
+/**
+ * Отдых, вписанный руками.
+ *
+ * Экран перерисовывается, потому что от значения зависит длина ползунка:
+ * вписанное больше десяти минут он должен доставать. Перерисовка здесь
+ * безопасна — событие change приходит по уходу из поля, а не на каждой цифре.
+ */
+actions.onChange('rest-exact', (el) => {
+    const seconds = restTimer.clamp(el.value);
+
+    // Пустое поле и мусор возвращают то, что было: молча поставить ноль
+    // значит выключить отдых, о чём никто не просил
+    if (seconds === null) {
+        showRest(config.get('restSeconds'));
+        return;
+    }
+
+    config.set('restSeconds', seconds);
     app.render();
 });
 

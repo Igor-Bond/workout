@@ -16,6 +16,7 @@ import { dbService } from '../services/db.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { format } from '../core/format.js';
+import { restTimer } from '../core/timer.js';
 
 const KINDS = [
     { value: 'weight',   label: 'Силовое с весом',  hint: 'повторения и вес' },
@@ -253,12 +254,12 @@ async function editExercise(exercise) {
         }
     }
 
-    // Пустое поле означает «как у всех», а не «ноль секунд»
-    const rest = Number(values.restSeconds);
+    // Пустое поле означает «как у всех», а не «ноль секунд»; границы общие
+    const rest = restTimer.clamp(values.restSeconds);
 
     await dbService.updateExercise(exercise.id, {
         ...values,
-        restSeconds: rest > 0 ? rest : undefined
+        restSeconds: rest ?? undefined
     });
 
     app.render();

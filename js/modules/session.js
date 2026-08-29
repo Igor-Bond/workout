@@ -706,9 +706,9 @@ actions.on('sess-rest', async () => {
 
     if (!values) return;
 
-    const seconds = Number(values.rest);
+    const seconds = restTimer.clamp(values.rest);
     await dbService.updateExercise(currentId, {
-        restSeconds: seconds > 0 ? seconds : undefined
+        restSeconds: seconds ?? undefined
     });
 
     app.render();
