@@ -1664,3 +1664,129 @@ button.ex-name:active { color: var(--accent); }
 
 /* Отбор по группам в окне выбора: над поиском, чипами */
 .dialog-groups { margin-bottom: 10px; }
+
+/* ================== КАК ПОЛЬЗОВАТЬСЯ ================== */
+
+/*
+ * Разделы справки — гармошкой на <details>.
+ *
+ * Собственная стрелка вместо браузерной: у Safari она своей формы и своего
+ * места, и заголовки на разных устройствах вставали по-разному.
+ */
+.guide {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.guide > summary {
+    padding: 15px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.guide > summary::-webkit-details-marker { display: none; }
+
+.guide > summary::before {
+    content: '';
+    flex: none;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid var(--accent);
+    border-bottom: 2px solid var(--accent);
+    transform: rotate(-45deg);
+    transition: transform 0.15s;
+    margin-left: 2px;
+}
+
+.guide[open] > summary::before { transform: rotate(45deg); }
+.guide[open] > summary { color: var(--accent); }
+
+.guide-body {
+    padding: 0 16px 16px;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.guide-body p { margin: 0 0 12px; }
+.guide-body b { color: var(--text); font-weight: 700; }
+
+/* Подзаголовок внутри раздела: табата длинная и без разбивки не читается */
+.guide-sub {
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 18px 0 10px;
+}
+
+/*
+ * Порядок действий. Номер вынесен в свою колонку, а не идёт строкой:
+ * шаги длиной в две-три строки, и с обычным маркером вторая строка
+ * подъезжала под цифру.
+ */
+.guide-steps {
+    margin: 0 0 12px;
+    padding: 0;
+    list-style: none;
+    counter-reset: guide;
+}
+
+.guide-steps li {
+    counter-increment: guide;
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 10px;
+}
+
+.guide-steps li::before {
+    content: counter(guide);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 20px;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    line-height: 18px;
+}
+
+/* Понятие и пояснение: имя строкой сверху, а не колонкой слева — на
+   телефоне колонка оставляла пояснению полосу в двадцать знаков */
+.guide-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.guide-row:last-child { border-bottom: none; padding-bottom: 0; }
+.guide-rows { margin-bottom: 6px; }
+
+.guide-row-name { font-weight: 700; margin-bottom: 2px; }
+.guide-row-text { color: var(--text-dim); font-size: 13px; }
+
+/* Пример — тем же цветом, что подсказки, но с полосой слева: это не
+   указание, а иллюстрация, и путать их не надо */
+.guide-example {
+    border-left: 2px solid var(--line);
+    padding-left: 12px;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.guide-sound {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+
+.guide-sound:last-child { border-bottom: none; }
+.guide-sound-text { flex: 1; min-width: 0; }
+.guide-sound .chip { flex: none; margin: 0; }

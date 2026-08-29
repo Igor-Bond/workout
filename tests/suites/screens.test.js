@@ -24,7 +24,10 @@ import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 import { exercises } from '../../js/modules/exercises.js';
+import { profile } from '../../js/modules/profile.js';
+import { guide } from '../../js/modules/guide.js';
 
+import { beeper } from '../../js/core/beeper.js';
 import { dbService } from '../../js/services/db.js';
 
 const DAY = 86400000;
@@ -717,5 +720,75 @@ describe('Экран: история интервальных тренирово
         assert(has(view, '4 подхода'));
         assert(!has(view, '0 повторений'), 'нечего показывать — нечего и печатать');
         assert(!has(view, '0 кг'));
+    });
+});
+
+/*
+ * Справка (§29).
+ *
+ * Проверяется не текст — он меняется, — а то, из-за чего справка молча
+ * устаревает: набор разделов, свёрнутость всех кроме первого и совпадение
+ * списка сигналов с настоящими голосами. Добавить голос и забыть про
+ * справку легче всего, а узнать об этом можно только на своей табате.
+ */
+describe('Экран: как пользоваться', () => {
+
+    const РАЗДЕЛЫ = [
+        'С чего начать',
+        'Четыре раздела: где что искать',
+        'Быстрые способы начать',
+        'Во время тренировки',
+        'Табата и интервальные программы',
+        'Что настроить сразу',
+        'Данные, копия и установка',
+        'Частые вопросы'
+    ];
+
+    it('все разделы на месте', async () => {
+        const view = await screen(guide);
+        const заголовки = [...view.querySelectorAll('details.guide > summary')].map((s) => s.textContent.trim());
+
+        equal(заголовки.length, РАЗДЕЛЫ.length);
+
+        for (const название of РАЗДЕЛЫ) {
+            assert(заголовки.includes(название), `нет раздела «${название}», есть ${заголовки.join(' · ')}`);
+        }
+    });
+
+    /*
+     * Развёрнутые целиком, разделы дают полотно в несколько экранов, по
+     * которому нельзя понять, где искать нужное. Открыт только первый — он
+     * же ответ на вопрос, с которого справку открывают.
+     */
+    it('открыт только первый раздел', async () => {
+        const view = await screen(guide);
+        const открытые = [...view.querySelectorAll('details.guide[open] > summary')].map((s) => s.textContent.trim());
+
+        equal(открытые.length, 1);
+        equal(открытые[0], 'С чего начать');
+    });
+
+    it('послушать можно каждый сигнал табаты', async () => {
+        const view = await screen(guide);
+        const кнопки = [...view.querySelectorAll('[data-action="try-sound"]')].map((b) => b.dataset.sound);
+
+        for (const голос of Object.keys(beeper.VOICES)) {
+            assert(кнопки.includes(голос), `сигнал «${голос}» не объяснён в справке`);
+        }
+
+        equal(кнопки.length, Object.keys(beeper.VOICES).length, 'лишние кнопки означают несуществующий сигнал');
+    });
+
+    /*
+     * В профиле сигналов больше нет: там их искали не за объяснением, а
+     * натыкались на таблицу частот среди настроек. Объяснение переехало
+     * туда, где рядом сказано, что эти сигналы значат.
+     */
+    it('из профиля сигналы убраны, а справка доступна', async () => {
+        await seed();
+        const view = await screen(profile);
+
+        assert(!hasAction(view, 'try-sound'), 'таблица сигналов в настройках лишняя');
+        assert(!!view.querySelector('[data-screen="guide"]'), 'в профиль нужен вход в справку');
     });
 });

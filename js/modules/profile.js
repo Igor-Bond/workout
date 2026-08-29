@@ -11,7 +11,6 @@ import { config, MODES } from '../config.js';
 import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
-import { beeper } from '../core/beeper.js';
 import { format } from '../core/format.js';
 import { VERSION } from '../version.js';
 import { dbService } from '../services/db.js';
@@ -110,6 +109,19 @@ export const profile = {
         return ui.html`
             ${ui.raw(ui.title('Профиль'))}
 
+            <!--
+                Справка стоит первой, хотя нужна реже всего остального.
+
+                Ищут её именно здесь и именно тогда, когда не нашли ничего
+                другого: раздел настроек — последнее место, куда заглядывает
+                тот, кому непонятно. Ниже настроек её пришлось бы искать
+                прокруткой, то есть тем самым способом, от которого справка
+                и должна избавлять.
+            -->
+            <button class="btn btn-ghost" data-action="nav" data-screen="guide">
+                Как пользоваться приложением
+            </button>
+
             <div class="card">
                 <div class="card-title">Тренировка</div>
 
@@ -145,31 +157,6 @@ export const profile = {
 
                 ${ui.raw(toggle('restSound', 'Звук по окончании'))}
                 ${ui.raw(toggle('restVibration', 'Вибрация по окончании'))}
-            </div>
-
-            <!--
-                Сигналы интервальной программы слышны только во время
-                программы, а узнать, что означает каждый, хочется заранее:
-                посреди бёрпи разбираться поздно.
-            -->
-            <div class="card">
-                <div class="card-title">Сигналы табаты</div>
-
-                <div class="info-row"><span>Отсчёт три-два-один</span>
-                    <button class="chip" data-action="try-sound" data-sound="count">Послушать</button></div>
-                <div class="info-row"><span>Начало работы — долгий тон</span>
-                    <button class="chip" data-action="try-sound" data-sound="go">Послушать</button></div>
-                <div class="info-row"><span>Конец работы — вниз</span>
-                    <button class="chip" data-action="try-sound" data-sound="rest">Послушать</button></div>
-                <div class="info-row"><span>Конец круга</span>
-                    <button class="chip" data-action="try-sound" data-sound="round">Послушать</button></div>
-                <div class="info-row"><span>Конец программы — четыре ноты</span>
-                    <button class="chip" data-action="try-sound" data-sound="done">Послушать</button></div>
-
-                <p class="hint">
-                    Громкость приложение не задаёт — она общая для устройства.
-                    Если тихо, проверь громкость мультимедиа, а не звонка.
-                </p>
             </div>
 
             <div class="card">
@@ -419,10 +406,6 @@ document.addEventListener('change', async (e) => {
  * версию только при возвращении к нему. Кнопка нужна для случая, когда
  * обновление ждут прямо сейчас и хотят знать наверняка.
  */
-actions.on('try-sound', (el) => {
-    beeper.play(el.dataset.sound);
-});
-
 actions.on('check-update', async () => {
     if (!updater.available) {
         return dialog.alert({
