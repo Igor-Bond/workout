@@ -768,6 +768,19 @@ describe('Экран: как пользоваться', () => {
         equal(открытые[0], 'С чего начать');
     });
 
+    /*
+     * Выделение названий кнопок собирается разметкой, а ui.html экранирует
+     * подстановки: обычная строка с <b> печаталась в тексте как есть —
+     * «Всё это в <b>Профиле</b>».
+     */
+    it('разметка выделения не попадает в текст', async () => {
+        const view = await screen(guide);
+        const t = text(view);
+
+        assert(!t.includes('<b>') && !t.includes('</b>'), 'выделение должно быть жирным, а не напечатанным');
+        assert(view.querySelectorAll('.guide-body b').length > 0, 'выделение должно быть');
+    });
+
     it('послушать можно каждый сигнал табаты', async () => {
         const view = await screen(guide);
         const кнопки = [...view.querySelectorAll('[data-action="try-sound"]')].map((b) => b.dataset.sound);
