@@ -669,3 +669,53 @@ describe('Экран: интервальная программа', () => {
         equal(view.querySelectorAll('input').length, 0);
     });
 });
+
+describe('Экран: история интервальных тренировок', () => {
+
+    /** Завершённая табата: подходы на время, без повторений и веса. */
+    async function табата() {
+        const ex = await seed({ name: 'Берпи', kind: 'reps' });
+
+        const w = await dbService.createWorkout({
+            type: 'Табата',
+            plan: [{ exerciseId: ex.id, skipped: false }]
+        });
+
+        await dbService.updateWorkout(w.id, {
+            interval: { work: 20, rest: 10, rounds: 4, roundRest: 0, lead: 0 }
+        });
+
+        for (let i = 1; i <= 4; i++) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: i, setNumber: i, duration: 20 });
+        }
+
+        await dbService.finishWorkout(w.id, Date.now() + 180000);
+        return w;
+    }
+
+    /*
+     * Чипы типов строятся из того, что есть в истории, поэтому «Табата»
+     * появляется среди них сама — как только проведена первая.
+     */
+    it('среди фильтров появляется «Табата»', async () => {
+        await табата();
+        const view = await screen(history);
+
+        const чипы = [...view.querySelectorAll('[data-action="hist-type"]')].map((b) => b.textContent.trim());
+
+        assert(чипы.includes('Табата'), `в фильтрах должно быть «Табата», а есть ${чипы.join(', ')}`);
+    });
+
+    /*
+     * Повторения печатались всегда, и у интервальной тренировки карточка
+     * сообщала «0 повторений». Ноль здесь не сведение, а его отсутствие.
+     */
+    it('нулевые величины в карточке не печатаются', async () => {
+        await табата();
+        const view = await screen(history);
+
+        assert(has(view, '4 подхода'));
+        assert(!has(view, '0 повторений'), 'нечего показывать — нечего и печатать');
+        assert(!has(view, '0 кг'));
+    });
+});

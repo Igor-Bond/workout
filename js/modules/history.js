@@ -47,11 +47,19 @@ function item(entry, names) {
                 <span class="h-badge">${workout.type}</span>
             </span>
             <span class="h-name">${exercises || 'Без упражнений'}</span>
+            <!--
+                Ноль не печатается: тоннаж и так показывался только при
+                наличии, а повторения печатались всегда — и у интервальной
+                тренировки, где их не считают, карточка сообщала
+                «0 повторений». Ноль здесь не сведение, а его отсутствие.
+            -->
             <span class="h-stats">
-                ${format.count(entry.sets, format.WORDS.set)}
-                · ${format.count(entry.reps, format.WORDS.rep)}
-                ${entry.volume ? ui.raw(` · ${ui.esc(format.weight(entry.volume))} кг`) : ''}
-                · ${format.duration(duration)}
+                ${[
+                    format.count(entry.sets, format.WORDS.set),
+                    entry.reps ? format.count(entry.reps, format.WORDS.rep) : null,
+                    entry.volume ? `${format.weight(entry.volume)} кг` : null,
+                    duration >= 1000 ? format.duration(duration) : null
+                ].filter(Boolean).join(' · ')}
             </span>
             ${workout.note ? ui.html`<span class="h-note">${workout.note}</span>` : ''}
         </button>
