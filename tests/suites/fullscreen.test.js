@@ -10,6 +10,11 @@
 import { describe, it, equal } from '../runner.js';
 import { fullscreen } from '../../js/core/fullscreen.js';
 import { config } from '../../js/config.js';
+import { press } from '../helpers/dom.js';
+
+// Действие «выйти сейчас» живёт в профиле; без импорта его некому
+// зарегистрировать, и нажатие ушло бы в пустоту
+import '../../js/modules/profile.js';
 
 /** Подменяет то, чем пользуется модуль, и возвращает способ всё вернуть. */
 function stub({ supported = true, fails = false } = {}) {
@@ -274,6 +279,74 @@ describe('Полный экран из манифеста', () => {
         } finally {
             config.set('fullscreen', было);
             restore();
+        }
+    });
+});
+
+/**
+ * Значение по умолчанию и выход (§31).
+ *
+ * Полный экран задуман против системной панели навигации. На компьютере
+ * такой панели нет, зато окно во весь экран прячет вкладки и панель задач,
+ * а приложение там обычно одно из нескольких открытых.
+ */
+describe('Полный экран на компьютере', () => {
+
+    /** Подменяет вид указателя: палец или мышь. */
+    function pointer(value) {
+        const real = window.matchMedia;
+
+        window.matchMedia = (query) => (
+            query.includes('pointer')
+                ? { matches: query.includes(value), media: query }
+                : real.call(window, query)
+        );
+
+        return () => { window.matchMedia = real; };
+    }
+
+    it('с мышью по умолчанию выключен, с пальцем включён', () => {
+        const было = localStorage.getItem('wt_fullscreen');
+        localStorage.removeItem('wt_fullscreen');
+
+        let restore = pointer('coarse');
+        try {
+            equal(config.get('fullscreen'), true, 'на телефоне режим нужен');
+        } finally { restore(); }
+
+        restore = pointer('fine');
+        try {
+            equal(config.get('fullscreen'), false, 'на компьютере прятать нечего');
+        } finally {
+            restore();
+            if (было !== null) localStorage.setItem('wt_fullscreen', было);
+        }
+    });
+
+    /*
+     * Выход обязан выключать настройку.
+     *
+     * Пока она включена, любое касание возвращает режим — иначе он слетал бы
+     * от каждого системного окна. Выход «на время» поэтому невозможен, и
+     * кнопка в профиле выключает настройку явно.
+     */
+    it('после выхода режим не просится обратно', async () => {
+        const s = stub();
+        const было = localStorage.getItem('wt_fullscreen');
+
+        try {
+            config.set('fullscreen', true);
+            await fullscreen.enter();
+            equal(fullscreen.active, true);
+
+            await press('fs-off');
+
+            equal(config.get('fullscreen'), false, 'настройка выключена');
+            equal(fullscreen.active, false, 'режим снят');
+            equal(fullscreen.wanted, false, 'обратно не просится');
+        } finally {
+            if (было === null) localStorage.removeItem('wt_fullscreen'); else localStorage.setItem('wt_fullscreen', было);
+            s.restore();
         }
     });
 });

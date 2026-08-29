@@ -310,6 +310,8 @@ export const DE = {
     'во весь экран с запуска': 'Vollbild ab dem Start',
     'Отказ браузера': 'Browser hat abgelehnt',
     'Включить сейчас': 'Jetzt einschalten',
+    'Выйти сейчас': 'Jetzt beenden',
+    'Выход выключает и саму настройку: пока она включена, режим возвращается от первого же касания.': 'Das Beenden schaltet auch die Einstellung aus: Solange sie an ist, kehrt der Modus beim ersten Tippen zurück.',
     'Браузер отказал': 'Der Browser hat abgelehnt',
     'Отдых и сигналы': 'Pause und Signale',
     'Таймер отдыха': 'Pausentimer',

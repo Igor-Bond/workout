@@ -121,7 +121,7 @@ const RU = {
                     ['Язык', 'Русский, английский или немецкий. По умолчанию берётся у телефона. Названия упражнений и заметки остаются такими, какими записаны.'],
                     ['Порядок упражнений', 'По кругу, по одному или свободно. Влияет только на то, что приложение предлагает следующим, — записать можно что угодно и когда угодно.'],
                     ['Не гасить экран', 'На время тренировки. Без этого телефон гаснет посреди подхода.'],
-                    ['Полноэкранный режим', 'Убирает системные полосы. Если приложение поставлено на домашний экран, оно и так открывается во весь экран.'],
+                    ['Полноэкранный режим', 'Убирает системные полосы. На телефоне включён сразу, на компьютере — нет: там прятать нечего. Рядом с выключателем есть кнопка выхода, она же выключает и настройку.'],
                     ['Таймер отдыха', 'Включение и длительность по умолчанию. У отдельного упражнения может быть своя — задаётся в справочнике.'],
                     ['Звук и вибрация', 'По окончании отдыха. Этот же выключатель звука управляет сигналами табаты.'],
                     ['Проговаривать упражнения', 'Название следующего упражнения вслух в интервальной программе. Появляется, если на устройстве есть голос нужного языка.']
@@ -255,7 +255,7 @@ const EN = {
                     ['Language', 'Russian, English or German. By default it follows your phone. Exercise names and notes stay exactly as you typed them.'],
                     ['Exercise order', 'Round robin, one at a time, or free. It only affects what the app offers next — you can record anything at any time.'],
                     ['Keep the screen on', 'For the duration of a workout. Without it the phone goes dark mid-set.'],
-                    ['Full screen', 'Hides the system bars. If the app is on your home screen it already opens full screen.'],
+                    ['Full screen', 'Hides the system bars. On a phone it is on from the start; on a computer it is not — there is nothing to hide there. Next to the switch there is an exit button, which also turns the setting off.'],
                     ['Rest timer', 'Whether it runs and its default length. An individual exercise can have its own — set in the catalogue.'],
                     ['Sound and vibration', 'When rest ends. That same sound switch also controls the Tabata signals.'],
                     ['Announce exercises', 'The next exercise said out loud in an interval program. It appears if your device has a voice for your language.']
@@ -389,7 +389,7 @@ const DE = {
                     ['Sprache', 'Russisch, Englisch oder Deutsch. Standardmäßig richtet sie sich nach deinem Handy. Übungsnamen und Notizen bleiben so, wie du sie eingetragen hast.'],
                     ['Reihenfolge der Übungen', 'Im Kreis, nacheinander oder frei. Es beeinflusst nur, was die App als Nächstes vorschlägt — erfassen kannst du jederzeit alles.'],
                     ['Bildschirm anlassen', 'Für die Dauer des Trainings. Ohne das geht das Handy mitten im Satz aus.'],
-                    ['Vollbild', 'Blendet die Systemleisten aus. Liegt die App auf dem Home-Bildschirm, startet sie ohnehin im Vollbild.'],
+                    ['Vollbild', 'Blendet die Systemleisten aus. Auf dem Handy ist es von Anfang an an, auf dem Computer nicht — dort gibt es nichts zu verbergen. Neben dem Schalter steht eine Schaltfläche zum Beenden, die auch die Einstellung ausschaltet.'],
                     ['Pausentimer', 'Ob er läuft und wie lang er standardmäßig ist. Eine einzelne Übung kann eine eigene Länge haben — im Katalog einstellbar.'],
                     ['Ton und Vibration', 'Am Ende der Pause. Derselbe Tonschalter steuert auch die Tabata-Signale.'],
                     ['Übungen ansagen', 'Die nächste Übung wird im Intervallprogramm laut angesagt. Erscheint, wenn dein Gerät eine Stimme für deine Sprache hat.']

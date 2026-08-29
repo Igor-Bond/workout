@@ -312,6 +312,8 @@ export const EN = {
     'во весь экран с запуска': 'full screen from launch',
     'Отказ браузера': 'Browser refused',
     'Включить сейчас': 'Turn on now',
+    'Выйти сейчас': 'Exit now',
+    'Выход выключает и саму настройку: пока она включена, режим возвращается от первого же касания.': 'Exiting also turns the setting off: while it is on, the mode comes back at the first tap.',
     'Браузер отказал': 'The browser refused',
     'Отдых и сигналы': 'Rest and sounds',
     'Таймер отдыха': 'Rest timer',
