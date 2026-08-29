@@ -33,6 +33,7 @@ await import('./suites/migrations.test.js');
 await import('./suites/db.test.js');
 await import('./suites/screens.test.js');
 await import('./suites/kinds.test.js');
+await import('./suites/docs.test.js');
 await import('./suites/guide.test.js');
 await import('./suites/lang-coverage.test.js');
 await import('./suites/lang-source.test.js');

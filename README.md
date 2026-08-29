@@ -8,6 +8,7 @@
 
 Полное описание — [docs/SPEC.md](docs/SPEC.md).
 Что уже сделано — [docs/STATUS.md](docs/STATUS.md).
+Чем оно было прежде и почему поменяли — [docs/DECISIONS.md](docs/DECISIONS.md).
 Разбор и что стоит починить — [docs/AUDIT.md](docs/AUDIT.md).
 Набор тестировщиков и анкета — [docs/BETA.md](docs/BETA.md).
 
