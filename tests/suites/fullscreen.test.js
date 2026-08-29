@@ -42,6 +42,10 @@ function stub({ supported = true, fails = false } = {}) {
 
     return {
         calls,
+
+        /** Браузер вышел из режима сам — так это выглядит после Esc. */
+        leave() { active = null; },
+
         restore() {
             root.requestFullscreen = realRequest;
             document.exitFullscreen = realExit;
@@ -388,6 +392,84 @@ describe('Выход из полного экрана', () => {
             equal(fullscreen.active, false, 'после выхода режим не должен вернуться');
             equal(s.calls.exit, 1, 'выход состоялся, а не прошёл впустую');
         } finally {
+            s.restore();
+        }
+    });
+});
+
+/**
+ * На компьютере Esc — это выход, а не помеха (§31).
+ *
+ * На телефоне режим слетает сам: от системного окна, от перехода в другое
+ * приложение, от кнопки «назад», — и сторож обязан его возвращать. На
+ * компьютере ничто не выводит из полного экрана, кроме самого человека, и
+ * возврат следующим же кликом читается как сломанный выход: нажал Esc,
+ * панели вернулись, ткнул мышью — и снова полный экран.
+ */
+describe('Выход с клавиатуры на компьютере', () => {
+
+    /** Подменяет вид указателя: палец или мышь. */
+    function pointer(value) {
+        const real = window.matchMedia;
+
+        window.matchMedia = (query) => (
+            query.includes('pointer')
+                ? { matches: query.includes(value), media: query }
+                : real.call(window, query)
+        );
+
+        return () => { window.matchMedia = real; };
+    }
+
+    /** Браузер вышел из режима сам — так это выглядит после Esc. */
+    function escape(s) {
+        s.leave();
+        document.dispatchEvent(new Event('fullscreenchange'));
+    }
+
+    it('с мышью выход выключает настройку', async () => {
+        const s = stub();
+        const restore = pointer('fine');
+        const было = localStorage.getItem('wt_fullscreen');
+
+        try {
+            fullscreen.watch();
+            config.set('fullscreen', true);
+            await fullscreen.enter();
+
+            escape(s);
+            await new Promise((r) => setTimeout(r, 20));
+
+            equal(config.get('fullscreen'), false, 'иначе следующий клик вернёт режим');
+            equal(fullscreen.wanted, false);
+        } finally {
+            if (было === null) localStorage.removeItem('wt_fullscreen');
+            else localStorage.setItem('wt_fullscreen', было);
+
+            restore();
+            s.restore();
+        }
+    });
+
+    it('с пальцем настройка остаётся: режим слетел, а не выключен', async () => {
+        const s = stub();
+        const restore = pointer('coarse');
+        const было = localStorage.getItem('wt_fullscreen');
+
+        try {
+            fullscreen.watch();
+            config.set('fullscreen', true);
+            await fullscreen.enter();
+
+            escape(s);
+            await new Promise((r) => setTimeout(r, 20));
+
+            equal(config.get('fullscreen'), true, 'системное окно — не повод выключать режим');
+        } finally {
+            if (было === null) localStorage.removeItem('wt_fullscreen');
+            else localStorage.setItem('wt_fullscreen', было);
+
+            restore();
             s.restore();
         }
     });
