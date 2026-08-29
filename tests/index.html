@@ -80,59 +80,47 @@
     Имя базы подменяется обычным скриптом, а не модульным: модули
     выполняются после разбора всей страницы, и db.js успел бы открыть
     настоящую базу пользователя раньше, чем сюда дошла бы очередь.
+    Поэтому же оно стоит первой строкой в скрипте ниже.
+-->
+
+<!--
+    Проверки идут мимо сервис-воркера.
+
+    Иначе они проверяют не то, что лежит в репозитории, а то, что осталось в
+    кэше у этого браузера. Дважды за день это давало ложную тревогу: код был
+    исправен, а воркер отдавал старые файлы наборов — и наоборот, свежие
+    наборы гонялись по старому коду. Разобраться в этом со стороны нельзя
+    вообще: страница выглядит нормально, цифры врут.
+
+    Снять воркер после загрузки уже поздно — модули к тому времени
+    запрошены. Поэтому: сначала снимаем, и если он этой загрузкой ещё
+    управлял, перезагружаемся один раз. Отсюда же динамический импорт вместо
+    статического тега: тег начал бы грузиться при разборе страницы.
+
+    Приложению это стоит одной перерегистрации воркера при следующем
+    открытии — цена, которую видно только тому, кто заходил на проверки.
 -->
 <script>
     globalThis.__WORKOUT_DB__ = 'WorkoutTrackerTestDB';
-</script>
 
-<script type="module">
-    import { run } from './runner.js';
-    import { actions } from '../js/core/actions.js';
+    (async () => {
+        const управлял = !!navigator.serviceWorker?.controller;
 
-    // Делегирование событий нужно поднять: проверки на него нажимают
-    // настоящие кнопки, а слушатели вешает именно init()
-    actions.init();
+        try {
+            for (const reg of await navigator.serviceWorker?.getRegistrations?.() || []) {
+                await reg.unregister();
+            }
 
-    // Наборы регистрируют проверки самим фактом импорта
-    await import('./suites/i18n.test.js');
-    await import('./suites/actions.test.js');
-    await import('./suites/wakelock.test.js');
-    await import('./suites/updater.test.js');
-    await import('./suites/timer.test.js');
-    await import('./suites/interval.test.js');
-    await import('./suites/fullscreen.test.js');
-    await import('./suites/engine.test.js');
-    await import('./suites/records.test.js');
-    await import('./suites/rhythm.test.js');
-    await import('./suites/estimate.test.js');
-    await import('./suites/stats.test.js');
-    await import('./suites/merge.test.js');
-    await import('./suites/migrations.test.js');
-    await import('./suites/db.test.js');
-    await import('./suites/screens.test.js');
-    await import('./suites/lang-coverage.test.js');
-    await import('./suites/lang-source.test.js');
-    await import('./suites/lang-dialogs.test.js');
-    await import('./suites/e2e.test.js');
+            for (const name of await caches?.keys?.() || []) await caches.delete(name);
+        } catch {
+            // Ни воркера, ни хранилища кэшей может не быть вовсе — тогда и
+            // снимать нечего, а проверкам это безразлично
+        }
 
-    /*
-     * Проверки идут по-русски, каким бы ни был выбранный язык.
-     *
-     * Ожидаемые строки в них написаны по-русски, и после переключения
-     * приложения на немецкий проваливалось разом полсотни проверок — не
-     * потому, что что-то сломалось, а потому, что ответ пришёл на другом
-     * языке. Настройка общая с приложением, поэтому её возвращаем на место.
-     */
-    const { i18n } = await import('../js/core/i18n.js');
-    const выбранный = i18n.setting;
-    i18n.set('ru');
+        if (управлял) return location.reload();
 
-    try {
-        const summary = await run(document.getElementById('results'));
-        console.log('[Проверки]', summary);
-    } finally {
-        i18n.set(выбранный);
-    }
+        await import('./run.js');
+    })();
 </script>
 </body>
 </html>
