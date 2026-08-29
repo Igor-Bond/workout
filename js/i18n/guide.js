@@ -97,10 +97,10 @@ const RU = {
                 { sounds: [
                     ['count', 'Отсчёт три-два-один', 'Три сухих щелчка, как у метронома, — перед каждой сменой: и перед началом работы, и перед её концом.'],
                     ['go', 'Начало работы', 'Удар колокола, как гонг в зале. Работай.'],
-                    ['pulse', 'Пульс во время работы', 'Низкий короткий толчок каждые пять секунд: подтверждает, что идёт работа, а не пауза. Его скорее чувствуешь, чем слышишь, — на телефон смотреть не нужно.'],
+                    ['pulse', 'Пульс во время работы', 'Низкий короткий толчок каждые три секунды: подтверждает, что идёт работа, а не пауза. Отмеряется от конца отрезка, поэтому последний толчок всегда за три секунды до отсчёта. Его скорее чувствуешь, чем слышишь, — на телефон смотреть не нужно.'],
                     ['rest', 'Конец работы', 'Два удара вниз. Правило простое: вверх — начинай, вниз — заканчивай.'],
                     ['round', 'Конец круга', 'Двойной удар в одну ноту, как гонг на ринге. Дальше длинный отдых между кругами.'],
-                    ['done', 'Конец программы', 'Три ноты вверх и двойной удар на вершине — «та-да», с долгим звоном. Длится дольше всех — спутать не с чем.']
+                    ['done', 'Конец программы', 'Три коротких ноты вверх и долгая на вершине, с долгим звоном. Длится дольше всех — спутать не с чем.']
                 ] },
                 { hint: 'Громкость приложение не задаёт — она общая для устройства. Если тихо, проверь громкость мультимедиа, а не звонка. И включи «Звук по окончании» в настройках отдыха: этим же выключателем управляются сигналы табаты.' },
                 { sub: 'Голос' },
@@ -231,10 +231,10 @@ const EN = {
                 { sounds: [
                     ['count', 'Three-two-one countdown', 'Three dry clicks, like a metronome, before every change — both before work starts and before it ends.'],
                     ['go', 'Work starts', 'A bell, like a gong in a gym. Go.'],
-                    ['pulse', 'Pulse during work', 'A low short thump every five seconds: it confirms that work is running, not rest. You feel it more than hear it — no need to look at the phone.'],
+                    ['pulse', 'Pulse during work', 'A low short thump every three seconds: it confirms that work is running, not rest. It is measured from the end of the interval, so the last thump always lands three seconds before the countdown. You feel it more than hear it — no need to look at the phone.'],
                     ['rest', 'Work ends', 'Two strikes down. The rule is simple: up means begin, down means stop.'],
                     ['round', 'Round ends', 'A double strike on one note, like a boxing bell. A long rest between rounds follows.'],
-                    ['done', 'Program ends', 'Three notes up and a double hit at the top — a ta-da, ringing out. It lasts longer than any other — impossible to confuse.']
+                    ['done', 'Program ends', 'Three short notes up and a long one at the top, ringing out. It lasts longer than any other — impossible to confuse.']
                 ] },
                 { hint: 'The app does not set the volume — that belongs to the device. If it is quiet, check the media volume, not the ringer. And turn on “Sound when it ends” in the rest settings: the same switch controls the Tabata sounds.' },
                 { sub: 'Voice' },
@@ -365,10 +365,10 @@ const DE = {
                 { sounds: [
                     ['count', 'Countdown drei-zwei-eins', 'Drei trockene Klicks wie bei einem Metronom, vor jedem Wechsel — vor dem Beginn der Arbeit wie vor ihrem Ende.'],
                     ['go', 'Arbeit beginnt', 'Ein Glockenschlag, wie ein Gong im Studio. Los.'],
-                    ['pulse', 'Puls während der Arbeit', 'Ein tiefer kurzer Stoß alle fünf Sekunden: er bestätigt, dass Arbeit läuft und keine Pause. Du spürst ihn eher, als dass du ihn hörst — aufs Handy schauen musst du nicht.'],
+                    ['pulse', 'Puls während der Arbeit', 'Ein tiefer kurzer Stoß alle drei Sekunden: er bestätigt, dass Arbeit läuft und keine Pause. Er wird vom Ende des Intervalls gezählt, der letzte Stoß liegt also immer drei Sekunden vor dem Countdown. Du spürst ihn eher, als dass du ihn hörst — aufs Handy schauen musst du nicht.'],
                     ['rest', 'Arbeit endet', 'Zwei Schläge abwärts. Die Regel ist einfach: aufwärts heißt anfangen, abwärts heißt aufhören.'],
                     ['round', 'Runde endet', 'Ein Doppelschlag auf einem Ton, wie die Ringglocke. Danach kommt die lange Pause zwischen den Runden.'],
-                    ['done', 'Programm endet', 'Drei Töne aufwärts und ein Doppelschlag oben — ein Tada, lange nachklingend. Es dauert länger als alle anderen — verwechseln kann man es nicht.']
+                    ['done', 'Programm endet', 'Drei kurze Töne aufwärts und ein langer oben, lange nachklingend. Es dauert länger als alle anderen — verwechseln kann man es nicht.']
                 ] },
                 { hint: 'Die Lautstärke bestimmt nicht die App, sondern das Gerät. Ist es zu leise, prüfe die Medienlautstärke, nicht die des Klingeltons. Und schalte „Ton am Ende“ in den Pauseneinstellungen ein: derselbe Schalter steuert die Tabata-Signale.' },
                 { sub: 'Stimme' },
