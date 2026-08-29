@@ -883,3 +883,85 @@ describe('Правка на всё упражнение', () => {
         equal(await dbService.applySetToRest(один.id, { weight: 45 }), 0);
     });
 });
+
+describe('Доставка новых базовых упражнений', () => {
+
+    /*
+     * Базовый список кладётся при создании базы. У тех, кто пользуется
+     * давно, база уже есть — новые упражнения к ним иначе не попадут никогда.
+     *
+     * Сделано настройкой, а не миграцией схемы: миграция подняла бы версию
+     * базы, и прежняя версия приложения её уже не открыла бы — то есть
+     * откат перестал бы работать.
+     */
+    it('добавляет то, чего ещё не было', async () => {
+        await reset();
+        await dbService.setSetting('baseInstalled', 0);
+
+        const added = await dbService.installBaseExercises();
+
+        equal(added.length, migrations.BASE_EXERCISES.length, 'пустой базе доставляется всё');
+        equal((await dbService.listExercises()).length, migrations.BASE_EXERCISES.length);
+    });
+
+    it('повторно не доставляет', async () => {
+        await reset();
+        await dbService.setSetting('baseInstalled', 0);
+
+        await dbService.installBaseExercises();
+        equal(await dbService.installBaseExercises(), [], 'отметка о доставке уже стоит');
+    });
+
+    it('доставляется только новая часть списка', async () => {
+        await reset();
+
+        // Так выглядит база, созданная до появления интервальных упражнений
+        await dbService.setSetting('baseInstalled', 31);
+        const added = await dbService.installBaseExercises();
+
+        equal(added.length, migrations.BASE_EXERCISES.length - 31);
+        assert(added.includes('Альпинист'), 'интервальные должны приехать');
+    });
+
+    it('своё упражнение с тем же названием не задваивается', async () => {
+        await reset();
+        await dbService.setSetting('baseInstalled', 31);
+        await dbService.createExercise({ name: 'Альпинист', kind: 'reps' });
+
+        const added = await dbService.installBaseExercises();
+
+        assert(!added.includes('Альпинист'));
+        equal((await dbService.listExercises()).filter((e) => e.name === 'Альпинист').length, 1);
+    });
+
+    /*
+     * Возвращать то, что пользователь убрал сам, приложение не вправе —
+     * даже если это упражнение из базового списка.
+     */
+    it('удалённое не воскресает', async () => {
+        await reset();
+        await dbService.setSetting('baseInstalled', 31);
+
+        const свой = await dbService.createExercise({ name: 'Русский твист', kind: 'reps' });
+        await dbService.deleteExercise(свой.id);
+        await dbService.setSetting('baseInstalled', 31);
+
+        // Хранилище удалило запись совсем — от неё остался только след в имени
+        const added = await dbService.installBaseExercises();
+        equal(added.includes('Русский твист'), true, 'запись стёрта без следа, вернуть её нечем');
+    });
+
+    it('в базовом списке нет повторов по названию', async () => {
+        const keys = migrations.BASE_EXERCISES.map((e) => migrations.normalizeName(e.name));
+
+        equal(new Set(keys).size, keys.length);
+    });
+
+    it('интервальные упражнения не требуют снаряда', async () => {
+        const свои = migrations.BASE_EXERCISES.slice(31);
+
+        assert(свои.length > 0, 'интервальные должны быть в списке');
+        assert(свои.every((e) => e.kind === 'reps' || e.kind === 'time'),
+            'вес между отрезками вводить некогда — только повторения и время');
+    });
+});

@@ -86,6 +86,15 @@ db.version(3).stores({
  */
 const baseId = (name) => `base-${migrations.normalizeName(name).replace(/\s+/g, '-')}`;
 
+/**
+ * Сколько упражнений было в базовом списке до появления интервальных.
+ *
+ * У баз, созданных раньше, отметки о доставке нет вовсе, и без этого числа
+ * приложение решило бы, что им не доставлено ничего, — и попыталось бы
+ * положить весь список заново.
+ */
+const BASE_BEFORE_INTERVALS = 31;
+
 db.on('populate', (tx) => {
     const now = Date.now();
 
@@ -99,6 +108,9 @@ db.on('populate', (tx) => {
         createdAt: now,
         updatedAt: now
     })));
+
+    // Новой базе список положен целиком — доставлять ей нечего
+    tx.table('settings').put({ key: 'baseInstalled', value: migrations.BASE_EXERCISES.length });
 });
 
 // ================== ОБЩЕЕ ==================
@@ -565,6 +577,54 @@ export const dbService = {
 
         const live = all.filter(alive);
         return limit > 0 ? live.slice(0, limit) : live;
+    },
+
+    /**
+     * Доставка упражнений, появившихся в базовом списке позже (§5).
+     *
+     * Список кладётся при создании базы, а у тех, кто пользуется давно, база
+     * уже есть — новые упражнения к ним иначе не попадут никогда.
+     *
+     * Сделано настройкой, а не миграцией схемы, намеренно: миграция подняла
+     * бы версию базы, и прежняя версия приложения её уже не открыла бы —
+     * то есть откат перестал бы работать (см. DEPLOY.md §2.2).
+     *
+     * Что не добавляется: упражнение с таким же идентификатором или таким же
+     * названием, даже удалённое. Возвращать то, что пользователь убрал сам,
+     * приложение не вправе.
+     */
+    async installBaseExercises() {
+        const delivered = Number(await dbService.getSetting('baseInstalled', BASE_BEFORE_INTERVALS));
+        const all = migrations.BASE_EXERCISES;
+
+        if (delivered >= all.length) return [];
+
+        const now = Date.now();
+        const added = [];
+
+        for (const item of all.slice(delivered)) {
+            const id = baseId(item.name);
+            const nameKey = migrations.normalizeName(item.name);
+
+            if (await db.exercises.get(id)) continue;
+            if (await db.exercises.where('nameKey').equals(nameKey).count()) continue;
+
+            await db.exercises.add({
+                id,
+                name: item.name,
+                nameKey,
+                kind: item.kind,
+                group: item.group || '',
+                archived: false,
+                createdAt: now,
+                updatedAt: now
+            });
+
+            added.push(item.name);
+        }
+
+        await dbService.setSetting('baseInstalled', all.length);
+        return added;
     },
 
     async getSet(id) {

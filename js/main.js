@@ -156,6 +156,21 @@ async function boot() {
          * лежат в базе и мозолят глаза. Сведение при запуске чинит это сразу
          * и без сети; молчать о нём нельзя: оно переписывает историю.
          */
+        /*
+         * Упражнения, появившиеся в базовом списке позже (§5). Список
+         * кладётся при создании базы, и без этой доставки тот, кто
+         * пользуется приложением давно, новых не увидел бы никогда.
+         */
+        const добавлено = await dbService.installBaseExercises();
+
+        if (добавлено.length) {
+            app.showBanner('base', ui.html`
+                <span>В справочник добавлены упражнения для интервальных тренировок:
+                    ${format.count(добавлено.length, format.WORDS.exercise)}.</span>
+                <button class="banner-btn" data-action="dismiss-banner" data-banner="base">Понятно</button>
+            `);
+        }
+
         const merged = await dbService.dedupeExercises();
 
         if (merged.length) {
