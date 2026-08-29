@@ -7,7 +7,7 @@
  */
 
 import { ui } from '../core/ui.js';
-import { config } from '../config.js';
+import { config, MODES } from '../config.js';
 import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
@@ -96,7 +96,7 @@ export const profile = {
 
     async render() {
         const rest = config.get('restSeconds');
-        const mode = config.get('mode');
+        const mode = config.mode();
 
         const counts = await dbService.stats();
         const imported = await dbService.getSetting('v1ImportSummary');
@@ -113,12 +113,13 @@ export const profile = {
                 <div class="card-title">Тренировка</div>
 
                 <div class="field">
-                    <label for="set-mode">Режим по умолчанию</label>
+                    <label for="set-mode">Порядок упражнений</label>
                     <select id="set-mode" data-change="setting" data-key="mode">
-                        <option value="plan" ${ui.raw(mode === 'plan' ? 'selected' : '')}>По плану</option>
-                        <option value="free" ${ui.raw(mode === 'free' ? 'selected' : '')}>Свободный</option>
+                        ${MODES.map((m) => ui.html`
+                            <option value="${m.value}" ${ui.raw(mode === m.value ? 'selected' : '')}>${m.label}</option>
+                        `)}
                     </select>
-                    <div class="hint">По плану приложение само предлагает следующий подход. В свободном упражнение выбираешь сам.</div>
+                    <div class="hint">${MODES.find((m) => m.value === mode)?.hint || ''}</div>
                 </div>
 
                 ${ui.raw(toggle('keepAwake', 'Не гасить экран', 'Во время тренировки'))}

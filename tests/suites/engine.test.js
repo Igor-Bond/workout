@@ -257,3 +257,69 @@ describe('Итоги тренировки', () => {
         equal(result.totals.avgReps, 0);
     });
 });
+
+describe('Круговой обход упражнений', () => {
+
+    /** План из трёх упражнений по три подхода. */
+    const plan = [
+        { exerciseId: 'жим', plannedSets: 3, skipped: false },
+        { exerciseId: 'тяга', plannedSets: 3, skipped: false },
+        { exerciseId: 'присед', plannedSets: 3, skipped: false }
+    ];
+
+    const подходы = (...ids) => ids.map((exerciseId, i) => ({ exerciseId, order: i + 1 }));
+
+    /*
+     * Отличие от последовательного обхода в одном: круг уходит с текущего
+     * упражнения, даже если его план не закрыт. Так и тренируются: пока
+     * отдыхает грудь, работает спина.
+     */
+    it('уходит на следующее, не закрыв текущее', () => {
+        equal(engine.nextCircuit(plan, подходы('жим'), 'жим').exerciseId, 'тяга');
+        equal(engine.nextStep(plan, подходы('жим')).exerciseId, 'жим',
+            'а последовательный остаётся — в этом и разница');
+    });
+
+    it('замыкается на начало плана', () => {
+        equal(engine.nextCircuit(plan, подходы('жим', 'тяга', 'присед'), 'присед').exerciseId, 'жим');
+    });
+
+    it('закрытые упражнения пропускаются', () => {
+        const sets = подходы('жим', 'жим', 'жим', 'тяга');
+
+        equal(engine.nextCircuit(plan, sets, 'тяга').exerciseId, 'присед');
+        equal(engine.nextCircuit(plan, sets, 'присед').exerciseId, 'тяга',
+            'жим закрыт, круг перешагивает через него');
+    });
+
+    it('пропущенные тоже', () => {
+        const свой = plan.map((p) => (p.exerciseId === 'тяга' ? { ...p, skipped: true } : p));
+
+        equal(engine.nextCircuit(свой, подходы('жим'), 'жим').exerciseId, 'присед');
+    });
+
+    /*
+     * Круг из одного упражнения — это оно само, а не пустота: иначе после
+     * подхода приложение уводило бы взгляд в никуда.
+     */
+    it('возвращается к текущему, когда открытых больше нет', () => {
+        const sets = подходы('жим', 'тяга', 'тяга', 'тяга', 'присед', 'присед', 'присед');
+
+        equal(engine.nextCircuit(plan, sets, 'жим').exerciseId, 'жим');
+    });
+
+    it('закрытый план круга не даёт', () => {
+        const все = подходы(...Array(9).fill(0).flatMap((_, i) =>
+            ['жим', 'тяга', 'присед'][i % 3]));
+
+        equal(engine.nextCircuit(plan, все, 'жим'), null);
+    });
+
+    it('упражнение вне плана начинает круг с начала', () => {
+        equal(engine.nextCircuit(plan, подходы('добавленное'), 'добавленное').exerciseId, 'жим');
+    });
+
+    it('пустой план круга не даёт', () => {
+        equal(engine.nextCircuit([], [], null), null);
+    });
+});

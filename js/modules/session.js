@@ -19,7 +19,7 @@ import { estimate } from '../core/estimate.js';
 import { restTimer } from '../core/timer.js';
 import { wakeLock } from '../core/wakelock.js';
 import { fullscreen } from '../core/fullscreen.js';
-import { config } from '../config.js';
+import { config, MODES } from '../config.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { app } from '../app.js';
@@ -325,7 +325,7 @@ export const session = {
     nav: 'workout',
 
     async render() {
-        if (mode === null) mode = config.get('mode');
+        if (mode === null) mode = config.mode();
 
         view = await load();
 
@@ -352,8 +352,11 @@ export const session = {
                     </div>
                 </div>
                 <div class="chips">
-                    <button class="chip ${mode === 'plan' ? 'is-active' : ''}" data-action="sess-mode" data-mode="plan">По плану</button>
-                    <button class="chip ${mode === 'free' ? 'is-active' : ''}" data-action="sess-mode" data-mode="free">Свободный</button>
+                    ${MODES.map((m) => ui.html`
+                        <button class="chip ${mode === m.value ? 'is-active' : ''}"
+                                data-action="sess-mode" data-mode="${m.value}"
+                                title="${m.hint}">${m.label}</button>
+                    `)}
                 </div>
             </div>
 
@@ -551,15 +554,103 @@ actions.on('sess-done', async () => {
     // приседа и планки отдыхают по-разному (§16)
     restTimer.start(exercises[currentId]?.restSeconds || config.get('restSeconds'), currentId);
 
-    // В режиме «по плану» приложение само переводит к следующему шагу,
-    // в свободном — остаётся там, где стоял пользователь (§11)
-    if (mode === 'plan') {
-        const next = engine.nextStep(workout.plan, [...sets, { exerciseId: currentId, order: 0 }]);
+    /*
+     * Что изменилось этим подходом. Записанное в базу читать заново незачем:
+     * достаточно приписать его к тому, что уже на экране.
+     */
+    const after = [...sets, { exerciseId: currentId, order: 0 }];
+
+    const stateOf = (list) => engine.progress(workout.plan, list)
+        .find((r) => r.exerciseId === currentId)?.state;
+
+    const justClosed = stateOf(sets) !== STATE.DONE && stateOf(after) === STATE.DONE;
+    const allDone = engine.isComplete(workout.plan, after);
+
+    // Разговор о судьбе тренировки — только там, где это правда развилка
+    // (§12.1). В круговом приложение и так ведёт дальше, и спрашивать после
+    // каждого закрытого упражнения значит прерывать ровно тот поток, ради
+    // которого круговой и нужен
+    const ask = allDone ? 'workout'
+        : (mode === 'linear' && justClosed && workout.plan.length > 1) ? 'exercise'
+        : null;
+
+    /*
+     * Перевод взгляда (§11). В круговом уходим с упражнения, даже если его
+     * план не закрыт; по одному — остаёмся, пока не закрыт; в свободном не
+     * трогаем вовсе.
+     *
+     * Кроме случая, когда сейчас спросим: увести и тут же предложить
+     * «перейти к следующему» — значит спросить о том, что уже сделано.
+     */
+    if (mode !== 'free' && ask !== 'exercise') {
+        const next = mode === 'circuit'
+            ? engine.nextCircuit(workout.plan, after, currentId)
+            : engine.nextStep(workout.plan, after);
+
         if (next) currentId = next.exerciseId;
     }
 
-    app.render();
+    await app.render();
+
+    if (ask) await askAfterPlan(ask, workout);
 });
+
+/** Завершение с переходом к итогам — общее для кнопки и разговора о плане. */
+async function finishWorkout(workout) {
+    await dbService.finishWorkout(workout.id);
+
+    restTimer.stop();
+    currentId = null;
+    mode = null;
+
+    app.go('summary', workout.id);
+}
+
+/**
+ * Что делать после закрытого плана (§12.1).
+ *
+ * Без этого разговора закрытый план не отличался от любого другого подхода:
+ * приложение молча уводило дальше, а человек узнавал о конце тренировки
+ * только заглянув в список упражнений.
+ *
+ * «Продолжить» ничего не делает намеренно: лишние подходы уже считаются как
+ * «вне плана» и знаменатель прогресса не ломают.
+ */
+async function askAfterPlan(what, workout) {
+    if (what === 'workout') {
+        const choice = await dialog.choose({
+            title: 'План тренировки выполнен',
+            text: 'Можно завершать, а можно добавить ещё — записанное не пропадёт.',
+            options: [
+                { value: 'continue', label: 'Продолжить', hint: 'Подходы сверх плана' },
+                { value: 'finish', label: 'Завершить тренировку', hint: 'Перейти к итогам' }
+            ]
+        });
+
+        if (choice === 'finish') await finishWorkout(workout);
+        return;
+    }
+
+    const choice = await dialog.choose({
+        title: 'План по упражнению закрыт',
+        options: [
+            { value: 'continue', label: 'Продолжить', hint: 'Ещё подход этого же упражнения' },
+            { value: 'next', label: 'Следующее упражнение', hint: 'Дальше по плану' },
+            { value: 'finish', label: 'Завершить тренировку', hint: 'Остальное останется невыполненным' }
+        ]
+    });
+
+    if (choice === 'next') {
+        const sets = await dbService.listSets(workout.id);
+        const next = engine.nextStep(workout.plan, sets);
+
+        if (next) currentId = next.exerciseId;
+        app.render();
+        return;
+    }
+
+    if (choice === 'finish') await finishWorkout(workout);
+}
 
 // ================== ОТДЫХ ==================
 
@@ -696,8 +787,13 @@ actions.on('sess-select', (el) => {
 actions.on('sess-mode', (el) => {
     mode = el.dataset.mode;
 
-    if (mode === 'plan' && view) {
-        const next = engine.nextStep(view.workout.plan, view.sets);
+    // Переключились с ручного выбора на ведомый — приложение обязано сразу
+    // показать, куда оно ведёт, а не ждать следующего подхода
+    if (mode !== 'free' && view) {
+        const next = mode === 'circuit'
+            ? engine.nextCircuit(view.workout.plan, view.sets, currentId)
+            : engine.nextStep(view.workout.plan, view.sets);
+
         if (next) currentId = next.exerciseId;
     }
 
@@ -781,11 +877,5 @@ actions.on('sess-finish', async () => {
 
     if (!ok) return;
 
-    await dbService.finishWorkout(workout.id);
-
-    restTimer.stop();
-    currentId = null;
-    mode = null;
-
-    app.go('summary', workout.id);
+    await finishWorkout(workout);
 });

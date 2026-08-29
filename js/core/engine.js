@@ -124,6 +124,39 @@ export const engine = {
         return null;
     },
 
+    /**
+     * Следующее упражнение по кругу (§11).
+     *
+     * Отличие от nextStep в одном: круг уходит с текущего упражнения, даже
+     * если его план ещё не закрыт. Так и тренируются на самом деле — пока
+     * отдыхает грудь, работает спина, — и отдых между подходами одного
+     * упражнения набегает сам собой.
+     *
+     * Возвращается к текущему, когда открытых больше нет: круг из одного
+     * упражнения — это оно само, а не пустота.
+     */
+    nextCircuit(plan = [], sets = [], currentId = null) {
+        if (plan.length === 0) return null;
+
+        const rows = engine.progress(plan, sets);
+        const from = plan.findIndex((p) => p.exerciseId === currentId);
+
+        // Упражнения может не быть в плане — его добавили по ходу. Тогда
+        // круг начинается с начала плана
+        for (let step = 1; step <= plan.length; step++) {
+            const row = rows[(from + step + plan.length) % plan.length];
+            if (row.state === STATE.SKIPPED || row.state === STATE.DONE) continue;
+
+            return {
+                exerciseId: row.exerciseId,
+                setNumber: row.done + 1,
+                planIndex: plan.findIndex((p) => p.exerciseId === row.exerciseId)
+            };
+        }
+
+        return null;
+    },
+
     /** Выполнен ли план целиком. */
     isComplete(plan = [], sets = []) {
         return engine.nextStep(plan, sets) === null;

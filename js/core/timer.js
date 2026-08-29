@@ -31,9 +31,20 @@ function emit(event) {
  * к этому времени пользователь уже нажимал кнопку, и браузер не считает
  * звук самовольным.
  */
+/**
+ * Три восходящих тона, около секунды.
+ *
+ * Один короткий сигнал в зале терялся: полсекунды на фоне музыки и лязга —
+ * это ничто. Три тона подряд и с растущей высотой слышны как «сигнал», а не
+ * как случайный звук, и не похожи на уведомление мессенджера.
+ */
+const TONES = [880, 1100, 1320];
+const TONE_LENGTH = 0.28;
+const TONE_GAP = 0.14;
+
 function signal() {
     if (config.get('restVibration') && navigator.vibrate) {
-        navigator.vibrate([180, 90, 180]);
+        navigator.vibrate([200, 100, 200, 100, 400]);
     }
 
     if (!config.get('restSound')) return;
@@ -43,22 +54,29 @@ function signal() {
         if (!Ctx) return;
 
         const ctx = new Ctx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
+        const start = ctx.currentTime;
 
-        osc.type = 'sine';
-        osc.frequency.value = 880;
+        TONES.forEach((frequency, i) => {
+            const at = start + i * (TONE_LENGTH + TONE_GAP);
 
-        // Плавное затухание: резко оборванный тон щёлкает
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
 
-        osc.connect(gain).connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.5);
+            osc.type = 'sine';
+            osc.frequency.value = frequency;
 
-        osc.onended = () => ctx.close();
+            // Плавное нарастание и затухание: резко оборванный тон щёлкает
+            gain.gain.setValueAtTime(0.0001, at);
+            gain.gain.exponentialRampToValueAtTime(0.3, at + 0.02);
+            gain.gain.exponentialRampToValueAtTime(0.0001, at + TONE_LENGTH);
+
+            osc.connect(gain).connect(ctx.destination);
+            osc.start(at);
+            osc.stop(at + TONE_LENGTH + 0.02);
+
+            // Контекст закрывается один раз — после последнего тона
+            if (i === TONES.length - 1) osc.onended = () => ctx.close();
+        });
     } catch (e) {
         console.warn('[Отдых] Звук недоступен:', e);
     }
