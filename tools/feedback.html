@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Отзывы тестировщиков</title>
+<style>
+    body {
+        background: #14110f;
+        color: #f3ede4;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.5;
+        margin: 0;
+        padding: 24px 16px 60px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 6px; }
+    h2 {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #ff7a33;
+        margin: 26px 0 10px;
+    }
+    p { margin: 0 0 12px; font-size: 14px; }
+    .lead { color: #a89a8a; font-size: 13px; margin-bottom: 22px; }
+    ol { padding-left: 20px; font-size: 14px; }
+    li { margin-bottom: 10px; }
+    code {
+        background: #241f1b;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    pre {
+        background: #1d1916;
+        border: 1px solid #332c26;
+        border-radius: 8px;
+        padding: 12px 14px;
+        overflow-x: auto;
+        font-size: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .card {
+        background: #1d1916;
+        border: 1px solid #332c26;
+        border-radius: 10px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+    }
+    .card-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+    .when { color: #a89a8a; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .q { color: #a89a8a; font-size: 12px; margin-top: 8px; }
+    .a { font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .about { color: #a89a8a; font-size: 12px; margin-top: 10px; border-top: 1px solid #332c26; padding-top: 8px; }
+    button {
+        background: #241f1b;
+        border: 1px solid #332c26;
+        border-radius: 8px;
+        color: #f3ede4;
+        font-family: inherit;
+        font-size: 14px;
+        padding: 10px 16px;
+        cursor: pointer;
+        min-height: 44px;
+    }
+    button.accent { background: #ff7a33; border-color: #ff7a33; color: #14110f; font-weight: 700; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+    .note { color: #a89a8a; font-size: 13px; }
+    .bad { color: #c0392b; }
+    .good { color: #6fae6f; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Отзывы тестировщиков</h1>
+<p class="lead">
+    Читает коллекцию <code>feedback</code> и показывает ответы. Правила
+    Firestore по умолчанию запрещают её читать кому бы то ни было — этим
+    инструментом пользуется владелец, и доступ ему открывается отдельным
+    правилом, по его собственному идентификатору.
+</p>
+
+<div class="row">
+    <button id="signin" class="accent">Войти</button>
+    <button id="load" disabled>Загрузить отзывы</button>
+    <button id="save" disabled>Скачать JSON</button>
+    <button id="signout" disabled>Выйти</button>
+</div>
+
+<p id="status" class="note">Не выполнен вход.</p>
+
+<div id="uid-block" hidden>
+    <h2>Идентификатор владельца</h2>
+    <p>
+        Вставьте его в <code>docs/firestore.rules</code> вместо
+        <code>ВАШ_UID</code> и опубликуйте правила: консоль Firebase →
+        Firestore Database → Rules → Publish.
+    </p>
+    <pre id="uid"></pre>
+</div>
+
+<div id="list"></div>
+
+<h2>Если чтение отклонено</h2>
+<ol>
+    <li>Войдите — идентификатор появится выше.</li>
+    <li>Подставьте его в <code>docs/firestore.rules</code>, в правило
+        <code>match /feedback/{entry}</code>, строку <code>allow read</code>.</li>
+    <li>Опубликуйте правила в консоли Firebase.</li>
+    <li>Нажмите «Загрузить отзывы» снова.</li>
+</ol>
+
+</div>
+
+<script type="module">
+/*
+ * Отдельная страница, а не экран приложения (§52).
+ *
+ * Отзывы читает один человек и несколько раз в год. Ради этого держать в
+ * приложении экран, который у всех остальных пуст и бесполезен, незачем —
+ * тем более что читать коллекцию всем остальным и запрещено.
+ *
+ * Права даёт правило Firestore, а не эта страница: без строки allow read с
+ * нужным идентификатором она покажет отказ, кто бы её ни открыл. Класть
+ * сюда ключ сервисного аккаунта нельзя — он лежал бы в репозитории на
+ * общем доступе.
+ */
+
+import { firebaseConfig } from '../js/firebase.config.js';
+
+const $ = (id) => document.getElementById(id);
+const статус = (текст, класс = 'note') => { $('status').className = класс; $('status').textContent = текст; };
+
+let sdk = null;
+let app = null;
+let auth = null;
+let db = null;
+let записи = [];
+
+async function подключить() {
+    if (sdk) return sdk;
+
+    if (!firebaseConfig?.apiKey || !firebaseConfig?.projectId) {
+        throw new Error('Firebase не настроен: заполните js/firebase.config.js');
+    }
+
+    const [appModule, authModule, firestore] = await Promise.all([
+        import('../vendor/firebase/firebase-app.js'),
+        import('../vendor/firebase/firebase-auth.js'),
+        import('../vendor/firebase/firebase-firestore.js')
+    ]);
+
+    sdk = { appModule, authModule, firestore };
+
+    app = appModule.getApps().length ? appModule.getApp() : appModule.initializeApp(firebaseConfig);
+    auth = authModule.getAuth(app);
+    db = firestore.getFirestore(app);
+
+    await authModule.setPersistence(auth, authModule.browserLocalPersistence).catch(() => {});
+    await authModule.getRedirectResult(auth).catch(() => {});
+
+    authModule.onAuthStateChanged(auth, показатьВход);
+
+    return sdk;
+}
+
+function показатьВход(user) {
+    const вошёл = !!user;
+
+    $('load').disabled = !вошёл;
+    $('signout').disabled = !вошёл;
+    $('signin').disabled = вошёл;
+    $('uid-block').hidden = !вошёл;
+
+    if (вошёл) {
+        $('uid').textContent = user.uid;
+        статус(`Вход выполнен: ${user.email || user.uid}`, 'good');
+    } else {
+        статус('Не выполнен вход.');
+        $('list').innerHTML = '';
+        $('save').disabled = true;
+        записи = [];
+    }
+}
+
+$('signin').onclick = async () => {
+    try {
+        статус('Вход…');
+        const { authModule } = await подключить();
+        const provider = new authModule.GoogleAuthProvider();
+
+        try {
+            await authModule.signInWithPopup(auth, provider);
+        } catch (e) {
+            if (e?.code === 'auth/popup-closed-by-user') return статус('Окно входа закрыто.');
+            await authModule.signInWithRedirect(auth, provider);
+        }
+    } catch (e) {
+        статус(`Не удалось войти: ${e.message}`, 'bad');
+    }
+};
+
+$('signout').onclick = async () => {
+    const { authModule } = await подключить();
+    await authModule.signOut(auth);
+};
+
+$('load').onclick = async () => {
+    try {
+        статус('Читаем…');
+
+        const { firestore } = await подключить();
+        const снимок = await firestore.getDocs(
+            firestore.query(firestore.collection(db, 'feedback'), firestore.orderBy('at', 'desc'))
+        );
+
+        записи = снимок.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        нарисовать(записи);
+        $('save').disabled = записи.length === 0;
+
+        статус(записи.length
+            ? `Загружено: ${записи.length}`
+            : 'Коллекция пуста — ответов пока нет.', записи.length ? 'good' : 'note');
+    } catch (e) {
+        /*
+         * Отказ здесь — обычное дело, а не поломка: правила по умолчанию
+         * читать не разрешают. Поэтому сообщение объясняет, что делать,
+         * а не просто передаёт код ошибки.
+         */
+        const отказ = e?.code === 'permission-denied';
+
+        статус(отказ
+            ? 'Чтение отклонено правилами. Добавьте себе allow read — как это сделать, написано ниже.'
+            : `Не удалось прочитать: ${e.message}`, 'bad');
+    }
+};
+
+$('save').onclick = () => {
+    const blob = new Blob([JSON.stringify(записи, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+
+    a.href = URL.createObjectURL(blob);
+    a.download = `feedback-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+
+    URL.revokeObjectURL(a.href);
+};
+
+const строка = (текст) => {
+    const el = document.createElement('div');
+    el.textContent = текст;
+    return el.innerHTML;
+};
+
+function нарисовать(список) {
+    $('list').innerHTML = список.map((запись) => {
+        const ответы = Object.entries(запись.answers || {})
+            .map(([q, a]) => `<div class="q">${строка(q)}</div><div class="a">${строка(String(a))}</div>`)
+            .join('');
+
+        const сведения = Object.entries(запись.about || {})
+            .map(([k, v]) => `${строка(k)}: ${строка(String(v))}`)
+            .join(' · ');
+
+        return `
+            <div class="card">
+                <div class="card-head">
+                    <strong>${строка(запись.id)}</strong>
+                    <span class="when">${строка(запись.at || '—')}</span>
+                </div>
+                ${ответы || '<div class="note">Ответов нет.</div>'}
+                ${сведения ? `<div class="about">${сведения}</div>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+подключить().catch((e) => статус(e.message, 'bad'));
+</script>
+</body>
+</html>
