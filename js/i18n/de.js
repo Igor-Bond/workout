@@ -62,8 +62,7 @@ export const DE = {
         'Es sind mehr als 12 Stunden vergangen. Fortsetzen lohnt nicht — ein Training wird ab dem Start gezählt.',
     'Начать': 'Starten',
     'Повторить прошлую': 'Letztes wiederholen',
-    'Пора по периодичности': 'Nach eigenem Rhythmus fällig',
-    'собрать тренировку': 'ein Training bauen',
+    'Следующее': 'Weiter',
     'Все шаблоны': 'Alle Vorlagen',
     'Создать шаблон': 'Vorlage erstellen',
     'Новая тренировка': 'Neues Training',
@@ -85,6 +84,8 @@ export const DE = {
     'начата {день} в {время}': 'begonnen {день} um {время}',
     '{done} из {planned} подходов': '{done} von {planned} Sätzen',
     'и ещё {n}': 'und {n} weitere',
+    '{n} дн': '{n} T',
+    'забыто': 'vergessen',
 
     // ================== ПЛАН ==================
 

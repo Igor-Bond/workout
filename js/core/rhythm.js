@@ -376,12 +376,18 @@ export const rhythm = {
                     // обычного. Меньше единицы тоже показываем: это очередь
                     overdue: interval ? daysSince / interval : 0,
 
+                    // На сколько дней опоздали. Этим и сортируем: множитель
+                    // точнее, но подпись на плашке говорит в днях, и порядок,
+                    // который ей противоречит, читается как ошибка. «5 дней»
+                    // выше «12 дней» — верно по множителю и дико на вид
+                    late: interval ? daysSince - interval : 0,
+
                     // Пропущено, пока человек был в строю, — мера заброшенности
                     skipped: interval ? Math.max(0, daysSince - простой) / interval : 0
                 };
             })
             .filter((g) => g.interval && g.daysSince >= 1 && g.skipped <= cap)
-            .sort((a, b) => (b.enough - a.enough) || (b.overdue - a.overdue))
+            .sort((a, b) => (b.enough - a.enough) || (b.late - a.late) || (b.overdue - a.overdue))
             .slice(0, limit);
     },
 

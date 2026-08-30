@@ -51,6 +51,14 @@ const NAMES_SHOWN = 3;
  */
 const NAMES_ON_CHIP = 2;
 
+/**
+ * Которое из забытых упражнений показано сейчас (§29.1).
+ *
+ * Живёт в модуле, а не в хранилище: это положение листалки, а не решение
+ * человека, и переживать перезапуск ему незачем.
+ */
+let показано = 0;
+
 async function activeBlock() {
     const workout = await dbService.getActiveWorkout();
     if (!workout) return null;
@@ -177,7 +185,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
         ? очередь.map((f) => ui.html`
             <button class="chip" data-action="home-like" data-id="${f.workoutId}">
                 ${compositionName(f, names, templates)}
-                <span class="chip-count">${format.count(f.daysSince, format.WORDS.day)}</span>
+                <span class="chip-count">${t('{n} дн', { n: f.daysSince })}</span>
             </button>
         `)
         : frequent.length
@@ -193,13 +201,39 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
         `);
 
     /*
-     * Чему пора по периодичности каждого упражнения (§26.2.3).
+     * Забытые упражнения (§26.2.3).
      *
-     * Точнее подсказки по типу тренировки: тип у всех может быть один —
-     * «Силовая», — и цикла в одинаковых значениях нет. Упражнения же
-     * различаются всегда, и у каждого свой промежуток.
+     * Это остаток от плашек: упражнение, просроченное по своей периодичности,
+     * но не собранное ни в один повторяющийся состав. Оно расходится по
+     * разным тренировкам и потому выпадает из очереди — а из виду выпадает
+     * вместе с ней.
+     *
+     * Раньше стояло карточкой в рамке, рядом с повтором прошлой. После того
+     * как плашки стали очередью, карточка почти всегда показывала одно
+     * упражнение, а места занимала как полноценный способ начать. Теперь это
+     * такая же плашка, только пунктиром: пунктир и говорит, что тренировку
+     * ещё предстоит собрать, а не повторить готовую.
      */
-    const dueNames = due.map((d) => names.get(d.exerciseId)).filter(Boolean);
+    const forgotten = due.map((d) => names.get(d.exerciseId)).filter(Boolean);
+
+    /*
+     * Забытых бывает много, а места — на одно. Поэтому листалка: стрелка
+     * перебирает их по одному, не занимая ряда. Список целиком здесь и не
+     * нужен — нужно узнать, что выпало из виду, а собирает тренировку одно
+     * нажатие на саму плашку.
+     */
+    const forgottenChip = forgotten.length ? ui.html`
+        <span class="chip is-draft">
+            <button class="chip-main" data-action="nav-plan-due">
+                ${forgotten[показано % forgotten.length]}
+                <span class="chip-count">${t('забыто')}</span>
+            </button>
+            ${forgotten.length > 1 ? ui.html`
+                <button class="chip-next" data-action="home-forgotten-next"
+                        aria-label="${t('Следующее')}">›</button>
+            ` : ''}
+        </span>
+    ` : '';
 
     return ui.html`
         <div class="section">
@@ -217,13 +251,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 </button>
             ` : ''}
 
-            ${dueNames.length ? ui.html`
-                <button class="due-card" data-action="nav-plan-due">
-                    <span class="rep-label">${t('Пора по периодичности')}</span>
-                    <span class="rep-names">${dueNames.join(' · ')}</span>
-                    <span class="rep-meta">${t('собрать тренировку')}</span>
-                </button>
-            ` : differs ? ui.html`
+            ${!forgotten.length && differs ? ui.html`
                 <p class="hint">
                     ${suggestion.reason === 'cycle'
                         ? t('По чередованию дальше — «{тип}»', { тип: suggestion.type })
@@ -231,7 +259,9 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 </p>
             ` : ''}
 
-            ${chips.length ? ui.html`<div class="chips">${chips}</div>` : ''}
+            ${chips.length || forgotten.length ? ui.html`
+                <div class="chips">${chips}${forgottenChip}</div>
+            ` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
                 ${templates.length ? t('Все шаблоны') : t('Создать шаблон')}
@@ -411,6 +441,8 @@ actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
  * названная плашкой: состав и веса берутся из неё.
  */
 actions.on('home-like', (el) => app.go('plan', 'repeat', el.dataset.id));
+
+actions.on('home-forgotten-next', () => { показано += 1; app.render(); });
 
 actions.on('home-finish', async (el) => {
     const ok = await dialog.confirm({

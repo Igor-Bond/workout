@@ -955,32 +955,6 @@ table.log tr:last-child td { border-bottom: none; }
 .repeat-card .rep-names { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; }
 .repeat-card .rep-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
-/*
- * Подсказка по периодичности упражнений (§26.2.3). Оформлена как повтор —
- * это такой же способ начать, — но отделена рамкой цвета внимания: она
- * говорит не «как в прошлый раз», а «этому пора».
- */
-.due-card {
-    display: block;
-    width: 100%;
-    text-align: left;
-    background: var(--panel-2);
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--accent);
-    border-radius: var(--radius-sm);
-    color: var(--text);
-    padding: 12px 14px;
-    font-family: inherit;
-    cursor: pointer;
-    margin-bottom: 12px;
-    min-height: 44px;
-}
-
-.due-card:active { border-color: var(--accent); }
-.due-card .rep-label { display: block; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 5px; }
-.due-card .rep-names { display: block; font-size: 14px; font-weight: 700; line-height: 1.35; }
-.due-card .rep-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
-
 /* Второстепенные действия строкой ссылок — но с пальцевой площадью нажатия */
 .row-links {
     display: flex;
@@ -1340,11 +1314,49 @@ svg.heatmap { display: block; }
 .chip.is-active { border-color: var(--accent); color: var(--accent); }
 
 /*
-    Сколько раз состав повторялся (§29.1).
+    Забытое упражнение (§29.1): такая же плашка, но пунктиром.
 
-    Цифра приглушена и стоит после названия: она отвечает на вопрос «почему
-    это здесь», а выбирают всё-таки по названию. Крупнее её делать нечего —
-    сравнивать плашки между собой по числу никто не будет.
+    Пунктир и говорит, что за ней не готовая тренировка, а сбор новой —
+    одинаковый вид у разных действий обещал бы повтор там, где его нет.
+    Раньше это была карточка в рамке рядом с повтором прошлой; после того
+    как плашки стали очередью, она показывала одно упражнение, а места
+    занимала как полноценный способ начать.
+*/
+.chip.is-draft {
+    display: inline-flex;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+    border-style: dashed;
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.chip.is-draft .chip-main,
+.chip.is-draft .chip-next {
+    background: none;
+    border: 0;
+    color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+    padding: 8px 14px;
+}
+
+/* Листалка отделена чертой: это другое действие, а не часть названия */
+.chip.is-draft .chip-next {
+    border-left: 1px dashed var(--accent);
+    padding: 8px 12px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+/*
+    Сколько дней прошло с прошлого раза (§29.1).
+
+    Приглушено и стоит после названия: отвечает на вопрос «почему это
+    здесь», а выбирают всё-таки по названию. Сокращённо, «12 дн»: полное
+    слово удлиняло плашку так, что в ряд их вставало на одну меньше.
 */
 .chip-count {
     margin-left: 6px;
