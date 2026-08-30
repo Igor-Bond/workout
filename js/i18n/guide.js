@@ -61,7 +61,7 @@ const RU = {
                 { rows: [
                     ['Повторить прошлую', 'Верхняя карточка на главной. Берёт не план прошлой тренировки, а то, что в ней было фактически сделано.'],
                     ['Быстрый старт', 'Плашки под карточкой повтора — очередь составов, которые вы повторяете. Впереди тот, чей срок ближе; подпись говорит, сколько дней прошло с прошлого раза. Нажатие собирает план по самой свежей такой тренировке.'],
-                    ['Забыто', 'Плашка пунктиром. Упражнение, которое не делалось дольше обычного для него срока и не входит ни в один повторяющийся состав. Стрелка листает такие упражнения, нажатие на название собирает тренировку из них.'],
+                    ['Забытое', 'Плашка пунктиром во всю ширину, своим разделом. Упражнение, которое не делалось дольше обычного для него срока и не входит ни в один повторяющийся состав. Стрелки по краям листают такие упражнения, счётчик говорит, сколько их всего, а нажатие на название собирает из них тренировку.'],
                     ['Шаблоны', 'Сохранённый состав. Открываются кнопкой «Все шаблоны»; пока истории мало, они же стоят плашками. Шаблон можно менять и дублировать; на уже проведённые тренировки правка не влияет.']
                 ] }
             ]
@@ -197,7 +197,7 @@ const EN = {
                 { rows: [
                     ['Repeat last', 'The top card on the main screen. It takes not the plan of the last workout but what you actually did in it.'],
                     ['Quick start', 'The chips under the repeat card are a queue of the line-ups you keep coming back to. First in line is the one whose turn is closest; the label says how many days have passed since last time. A tap builds the plan from the most recent such workout.'],
-                    ['Forgotten', 'A dashed chip. An exercise that has gone longer than its usual gap and belongs to no repeating line-up. The arrow flips through them; a tap on the name builds a workout out of them.'],
+                    ['Forgotten', 'A dashed full-width chip in a section of its own. An exercise that has gone longer than its usual gap and belongs to no repeating line-up. The arrows on either side flip through them, the counter says how many there are, and a tap on the name builds a workout out of them.'],
                     ['Templates', 'A saved line-up. Open them with “All templates”; while there is little history they also stand as chips. A template can be edited and duplicated; editing does not touch workouts already done.']
                 ] }
             ]
@@ -333,7 +333,7 @@ const DE = {
                 { rows: [
                     ['Letztes wiederholen', 'Die oberste Karte auf der Startseite. Sie nimmt nicht den Plan des letzten Trainings, sondern das, was du tatsächlich gemacht hast.'],
                     ['Schnellstart', 'Die Chips unter der Wiederholen-Karte sind eine Warteschlange der Zusammenstellungen, zu denen du zurückkehrst. Vorn steht die, deren Termin am nächsten liegt; die Beschriftung sagt, wie viele Tage seit dem letzten Mal vergangen sind. Ein Tippen baut den Plan aus dem jüngsten solchen Training.'],
-                    ['Vergessen', 'Ein Chip mit gestrichelter Linie. Eine Übung, die länger als sonst nicht dran war und zu keiner wiederkehrenden Zusammenstellung gehört. Der Pfeil blättert durch sie, ein Tippen auf den Namen baut daraus ein Training.'],
+                    ['Vergessen', 'Ein gestrichelter Chip über die ganze Breite, in einem eigenen Abschnitt. Eine Übung, die länger als sonst nicht dran war und zu keiner wiederkehrenden Zusammenstellung gehört. Die Pfeile an den Seiten blättern durch sie, der Zähler sagt, wie viele es sind, und ein Tippen auf den Namen baut daraus ein Training.'],
                     ['Vorlagen', 'Eine gespeicherte Zusammenstellung. Sie stehen hinter „Alle Vorlagen“; solange es wenig Verlauf gibt, stehen sie auch als Chips. Eine Vorlage lässt sich ändern und duplizieren; bereits absolvierte Trainings bleiben davon unberührt.']
                 ] }
             ]

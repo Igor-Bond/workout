@@ -217,21 +217,35 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
     const forgotten = due.map((d) => names.get(d.exerciseId)).filter(Boolean);
 
     /*
-     * Забытых бывает много, а места — на одно. Поэтому листалка: стрелка
-     * перебирает их по одному, не занимая ряда. Список целиком здесь и не
-     * нужен — нужно узнать, что выпало из виду, а собирает тренировку одно
-     * нажатие на саму плашку.
+     * Забытых бывает много, а показывается одно. Поэтому листалка: стрелки
+     * перебирают их по кругу, не занимая рядов. Список целиком здесь не
+     * нужен — нужно узнать, что выпало из виду.
+     *
+     * Плашка во всю ширину, в отличие от очереди: там плашки сравнивают друг
+     * с другом и потому ставят рядом, а здесь показана одна, и жаться ей не
+     * к кому. Заодно широкая цель попадает под палец, не глядя.
+     *
+     * Счётчик — не «сколько дней», а «которое из скольких»: у листалки надо
+     * понимать, есть ли дальше что-то ещё, а сколько дней прошло, для
+     * забытого не так важно — оно забыто, и этим всё сказано.
      */
+    const место = forgotten.length ? ((показано % forgotten.length) + forgotten.length) % forgotten.length : 0;
+
+    const стрелка = (шаг, знак, подпись) => ui.html`
+        <button class="chip-arrow" data-action="home-forgotten-${шаг}"
+                aria-label="${подпись}">${ui.raw(знак)}</button>
+    `;
+
     const forgottenChip = forgotten.length ? ui.html`
-        <span class="chip is-draft">
+        <span class="chip is-draft is-wide">
+            ${forgotten.length > 1 ? стрелка('prev', '&lsaquo;', t('Предыдущее')) : ''}
             <button class="chip-main" data-action="nav-plan-due">
-                ${forgotten[показано % forgotten.length]}
-                <span class="chip-count">${t('забыто')}</span>
+                ${forgotten[место]}
+                ${forgotten.length > 1 ? ui.html`
+                    <span class="chip-count">${место + 1}/${String(forgotten.length)}</span>
+                ` : ''}
             </button>
-            ${forgotten.length > 1 ? ui.html`
-                <button class="chip-next" data-action="home-forgotten-next"
-                        aria-label="${t('Следующее')}">›</button>
-            ` : ''}
+            ${forgotten.length > 1 ? стрелка('next', '&rsaquo;', t('Следующее')) : ''}
         </span>
     ` : '';
 
@@ -259,8 +273,21 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 </p>
             ` : ''}
 
-            ${chips.length || forgotten.length ? ui.html`
-                <div class="chips">${chips}${forgottenChip}</div>
+            <!--
+                Два подзаголовка вместо одной сплошной россыпи плашек.
+                Внешне они похожи, а отвечают на разные вопросы: очередь — «к
+                чему вернуться из того, что делаешь», забытое — «что вообще
+                выпало из виду». Без границы это читалось как один список с
+                непонятно почему разным оформлением (§29.1)
+            -->
+            ${chips.length ? ui.html`
+                <div class="sub-title">${t('Пора вернуться')}</div>
+                <div class="chips">${chips}</div>
+            ` : ''}
+
+            ${forgotten.length ? ui.html`
+                <div class="sub-title">${t('Забытое')}</div>
+                <div class="chips">${forgottenChip}</div>
             ` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
@@ -443,6 +470,7 @@ actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
 actions.on('home-like', (el) => app.go('plan', 'repeat', el.dataset.id));
 
 actions.on('home-forgotten-next', () => { показано += 1; app.render(); });
+actions.on('home-forgotten-prev', () => { показано -= 1; app.render(); });
 
 actions.on('home-finish', async (el) => {
     const ok = await dialog.confirm({

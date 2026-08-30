@@ -222,6 +222,21 @@ p:last-child { margin-bottom: 0; }
     margin-bottom: 10px;
 }
 
+/*
+    Подзаголовок внутри раздела (§29.1).
+
+    Приглушён, в отличие от «НАЧАТЬ»: тот называет раздел целиком, а этот
+    лишь разграничивает внутри него. Цветом спорить с ним нечего — иначе на
+    экране три равных заголовка вместо одного с уточнениями.
+*/
+.sub-title {
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 2px 0 8px;
+}
+
 /* ================== КАРТОЧКИ ================== */
 
 .card {
@@ -1333,23 +1348,41 @@ svg.heatmap { display: block; }
 }
 
 .chip.is-draft .chip-main,
-.chip.is-draft .chip-next {
+.chip.is-draft .chip-arrow {
     background: none;
     border: 0;
     color: inherit;
     font-family: inherit;
     font-size: inherit;
     cursor: pointer;
-    padding: 8px 14px;
+    padding: 10px 14px;
+    min-height: 40px;
 }
 
-/* Листалка отделена чертой: это другое действие, а не часть названия */
-.chip.is-draft .chip-next {
-    border-left: 1px dashed var(--accent);
-    padding: 8px 12px;
-    font-size: 16px;
+/*
+    Забытое показывается по одному, и плашка занимает всю ширину: сравнивать
+    её не с чем — соседей в ряду нет, — а широкая цель попадает под палец не
+    глядя. Название посередине, стрелки по краям, где им и место.
+*/
+.chip.is-wide {
+    display: flex;
+    width: 100%;
+}
+
+.chip.is-wide .chip-main {
+    flex: 1;
+    text-align: center;
+}
+
+/* Стрелки отделены чертой: это другое действие, а не часть названия */
+.chip.is-draft .chip-arrow {
+    padding: 10px 14px;
+    font-size: 18px;
     line-height: 1;
 }
+
+.chip.is-wide .chip-arrow:first-child { border-right: 1px dashed var(--accent); }
+.chip.is-wide .chip-arrow:last-child { border-left: 1px dashed var(--accent); }
 
 /*
     Сколько дней прошло с прошлого раза (§29.1).

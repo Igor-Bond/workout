@@ -63,6 +63,9 @@ export const EN = {
         'More than 12 hours have passed. Continuing is a bad idea — a workout is timed from its start.',
     'Начать': 'Start',
     'Повторить прошлую': 'Repeat last',
+    'Предыдущее': 'Previous',
+    'Пора вернуться': 'Time to come back',
+    'Забытое': 'Forgotten',
     'Следующее': 'Next',
     'Все шаблоны': 'All templates',
     'Создать шаблон': 'Create a template',
@@ -86,7 +89,6 @@ export const EN = {
     '{done} из {planned} подходов': '{done} of {planned} sets',
     'и ещё {n}': 'and {n} more',
     '{n} дн': '{n} d',
-    'забыто': 'forgotten',
 
     // ================== ПЛАН ==================
 
