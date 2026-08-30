@@ -20,6 +20,7 @@ import { stats } from '../../js/modules/stats.js';
 import { recordsScreen } from '../../js/modules/records.js';
 import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
+import { plan } from '../../js/modules/plan.js';
 import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
@@ -28,6 +29,7 @@ import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { survey } from '../../js/core/survey.js';
+import { dialog } from '../../js/core/dialog.js';
 
 import { beeper } from '../../js/core/beeper.js';
 import { dbService } from '../../js/services/db.js';
@@ -1105,5 +1107,79 @@ describe('Экран: отзыв о приложении', () => {
         const текст = survey.asText({ answers: {}, about: {} });
 
         equal(текст, 'Отзыв о приложении «Трекер»');
+    });
+});
+
+/**
+ * Создание упражнения из плана (§5, §10).
+ *
+ * Раньше отсюда бралось одно название, и получался полуфабрикат: вид всегда
+ * «вес», группа пуста. Вид решает, какие поля человек увидит на выполнении;
+ * группа участвует в расчёте отдыха мышц (§29.1).
+ */
+describe('Экран: план, новое упражнение', () => {
+
+    /** Подменить окна: выбор возвращает «создать», форма — заполненные поля. */
+    async function создать(values, { existing = null } = {}) {
+        const было = { pick: dialog.pick, form: dialog.form, confirm: dialog.confirm };
+        const спрошено = { form: null, confirm: null };
+
+        dialog.pick = async () => ({ create: existing || values.name });
+        dialog.form = async (options) => { спрошено.form = options; return values; };
+        dialog.confirm = async (options) => { спрошено.confirm = options; return true; };
+
+        try {
+            await press('plan-add');
+        } finally {
+            Object.assign(dialog, было);
+        }
+
+        return спрошено;
+    }
+
+    /*
+     * Черновик плана живёт в модуле и переживает смену экрана. Заведённые
+     * здесь упражнения остались бы в нём и всплыли в проверке перевода —
+     * поэтому маршрут в конце меняется, и черновик пересобирается пустым.
+     */
+    async function очистить() {
+        await screen(plan, ['template', 'нет-такого']);
+    }
+
+    it('спрашивает вид и группу, а не только название', async () => {
+        await seed();
+        await screen(plan);
+
+        const спрошено = await создать({ name: 'Тяга резинки', kind: 'reps', group: 'Спина' });
+
+        const поля = (спрошено.form?.fields || []).map((f) => f.name);
+
+        equal(поля, ['name', 'kind', 'group'], 'те же поля, что в справочнике');
+
+        const заведено = await dbService.findExerciseByName('Тяга резинки');
+
+        equal(заведено.kind, 'reps', 'вид берётся из формы, а не «вес» по умолчанию');
+        equal(заведено.group, 'Спина', 'без группы упражнение невидимо для отдыха мышц');
+
+        await очистить();
+    });
+
+    /*
+     * Прежний ensureExercise молча возвращал найденное, и человек не понимал,
+     * что упражнение не создалось, а подобралось. С архивным выходило
+     * страннее всего: в план вставало то, от чего он сам отказался.
+     */
+    it('о совпадении говорит вслух и отдельно про архив', async () => {
+        const ex = await seed({ name: 'Жим лёжа' });
+        await dbService.setExerciseArchived(ex.id, true);
+        await screen(plan);
+
+        const спрошено = await создать({}, { existing: 'Жим лёжа' });
+
+        assert(спрошено.confirm, 'совпадение обязано быть названо');
+        assert(String(спрошено.confirm.text).includes('архив'), 'про архив сказано отдельно');
+        assert(!спрошено.form, 'второе упражнение с тем же именем не заводится');
+
+        await очистить();
     });
 });

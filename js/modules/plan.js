@@ -21,7 +21,7 @@ import { records } from '../core/records.js';
 import { rhythm } from '../core/rhythm.js';
 import { estimate } from '../core/estimate.js';
 import { interval } from '../core/interval.js';
-import { kindHint } from '../core/kinds.js';
+import { kindHint, KINDS } from '../core/kinds.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
@@ -472,6 +472,57 @@ actions.onChange('plan-field', (el) => {
 
 // ================== СОСТАВ ==================
 
+/**
+ * Завести упражнение, не уходя из плана (§5, §10).
+ *
+ * Спрашивается то же, что в справочнике: название, вид, группа. Раньше
+ * бралось одно название, и получался полуфабрикат — вид всегда «вес», группа
+ * пуста. Вид решает, какие поля человек увидит на выполнении: заведённая
+ * отсюда планка просила бы вес и повторения вместо секунд. Группа
+ * участвует в расчёте отдыха мышц (§29.1) — без неё упражнение в нём
+ * невидимо. Доделывать это пришлось бы посреди тренировки.
+ *
+ * «Как делать» не спрашивается: оно дописывается позже и тренировке не
+ * мешает, а форма из четырёх полей посреди сборки плана — уже анкета.
+ */
+async function createFromPlan(name) {
+    const existing = await dbService.findExerciseByName(name);
+
+    /*
+     * Совпадение называется вслух, а не разрешается молча.
+     *
+     * Прежний ensureExercise просто возвращал найденное, и человек не
+     * понимал, что упражнение не создалось, а подобралось. С архивным
+     * выходило страннее всего: в план вставало то, от чего он сам отказался.
+     */
+    if (existing) {
+        const ok = await dialog.confirm({
+            title: t('Такое упражнение уже есть'),
+            text: existing.archived
+                ? t('«{имя}» лежит в архиве. Добавить его в тренировку?', { имя: existing.name })
+                : t('«{имя}» уже в справочнике. Добавить его в тренировку?', { имя: existing.name }),
+            confirmText: t('Добавить')
+        });
+
+        return ok ? existing : null;
+    }
+
+    const values = await dialog.form({
+        title: t('Новое упражнение'),
+        fields: [
+            { name: 'name', label: t('Название'), required: true, value: name },
+            { name: 'kind', label: t('Вид'), type: 'select', value: 'weight',
+              options: KINDS.map((k) => ({ value: k.value, label: `${t(k.label)} — ${t(k.hint)}` })) },
+            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') }
+        ],
+        confirmText: t('Добавить')
+    });
+
+    if (!values) return null;
+
+    return dbService.createExercise(values);
+}
+
 actions.on('plan-add', async () => {
     const all = await dbService.listExercises();
 
@@ -491,7 +542,7 @@ actions.on('plan-add', async () => {
     if (!chosen) return;
 
     const exercise = chosen.create
-        ? await dbService.ensureExercise({ name: chosen.create })
+        ? await createFromPlan(chosen.create)
         : all.find((e) => e.id === chosen);
 
     if (!exercise) return;

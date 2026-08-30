@@ -288,6 +288,8 @@ export const DE = {
     'Группа мышц': 'Muskelgruppe',
     'Грудь': 'Brust',
     'Добавить': 'Hinzufügen',
+    '«{имя}» лежит в архиве. Добавить его в тренировку?': '„{имя}“ liegt im Archiv. Zum Training hinzufügen?',
+    '«{имя}» уже в справочнике. Добавить его в тренировку?': '„{имя}“ ist schon im Katalog. Zum Training hinzufügen?',
     'Такое упражнение уже есть': 'Diese Übung gibt es schon',
     '«{имя}» уже в справочнике{архив}.': '„{имя}“ ist bereits im Katalog{архив}.',
     ', сейчас в архиве': ', derzeit archiviert',
