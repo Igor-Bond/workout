@@ -295,6 +295,17 @@ export const summary = {
                 ? ui.html`<button class="btn btn-accent btn-lg" data-action="nav" data-screen="home">${t('Готово')}</button>`
                 : ui.html`<button class="btn btn-accent" data-action="nav" data-screen="history">${t('← В историю')}</button>`}
 
+            <!--
+                Повтор живёт здесь, а не на главной (§29.1). Там его место
+                заняла очередь: она предлагает то, к чему пора вернуться, а
+                повтор звал сделать ровно то, что делали вчера. Но иногда
+                нужен именно он — не доделал, хочешь тот же состав, — и
+                тогда за ним идут в историю, к нужной тренировке.
+            -->
+            ${fresh ? '' : ui.html`
+                <button class="btn btn-ghost" data-action="summary-repeat" data-id="${workout.id}">${t('Повторить эту тренировку')}</button>
+            `}
+
             <button class="btn btn-ghost" data-action="summary-as-template" data-id="${workout.id}">${t('Сохранить как шаблон')}</button>
             ${fresh ? ui.html`<button class="btn btn-ghost" data-action="nav" data-screen="history">${t('В историю')}</button>` : ''}
             <button class="btn btn-danger" data-action="summary-delete" data-id="${workout.id}">${t('Удалить тренировку')}</button>
@@ -429,6 +440,8 @@ actions.on('summary-note-exercise', async (el) => {
     await dbService.updateWorkout(workout.id, { plan });
     app.render();
 });
+
+actions.on('summary-repeat', (el) => app.go('plan', 'repeat', el.dataset.id));
 
 actions.on('summary-as-template', async (el) => {
     const workout = await dbService.getWorkout(el.dataset.id);
