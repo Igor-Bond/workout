@@ -16,7 +16,6 @@ import { dbService } from '../services/db.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { format } from '../core/format.js';
-import { restTimer } from '../core/timer.js';
 import { KINDS, kindLabel } from '../core/kinds.js';
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
@@ -37,7 +36,6 @@ function row(exercise, usage) {
                 <div class="ex-meta">
                     ${kindLabel(exercise.kind)}
                     ${exercise.group ? ui.raw(` · ${ui.esc(exercise.group)}`) : ''}
-                    ${exercise.restSeconds ? ui.raw(` · ${ui.esc(t('отдых {время}', { время: format.seconds(exercise.restSeconds) }))}`) : ''}
                     ${used > 0 ? ui.raw(` · ${ui.esc(format.count(used, format.WORDS.set))}`) : ''}
                 </div>
             </div>
@@ -207,13 +205,6 @@ async function editExercise(exercise) {
                 label: t('Как выполнять (необязательно)'),
                 type: 'textarea',
                 value: exercise.howTo || ''
-            },
-
-            {
-                name: 'restSeconds',
-                label: t('Свой отдых, секунд (пусто — общий)'),
-                type: 'number',
-                value: exercise.restSeconds ?? ''
             }
         ]
     });
@@ -246,13 +237,7 @@ async function editExercise(exercise) {
         }
     }
 
-    // Пустое поле означает «как у всех», а не «ноль секунд»; границы общие
-    const rest = restTimer.clamp(values.restSeconds);
-
-    await dbService.updateExercise(exercise.id, {
-        ...values,
-        restSeconds: rest ?? undefined
-    });
+    await dbService.updateExercise(exercise.id, values);
 
     app.render();
 }

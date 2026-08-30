@@ -9,6 +9,11 @@
 import { describe, it, equal, assert } from '../runner.js';
 import { restTimer } from '../../js/core/timer.js';
 import { config } from '../../js/config.js';
+import { press } from '../helpers/dom.js';
+
+// Действия отдыха живут на экране выполнения: без импорта их некому
+// зарегистрировать, и нажатие ушло бы в пустоту
+import '../../js/modules/session.js';
 
 /** Таймер молча не запускается, если отдых выключен в настройках. */
 function запустить(seconds) {
@@ -73,9 +78,9 @@ describe('Сдвиг отдыха', () => {
 /**
  * Границы длительности отдыха (§16).
  *
- * Длительность задаётся в трёх местах — общая настройка, своя у упражнения
- * и правка на выполнении, — и границы у них обязаны быть одни. Разъехавшись,
- * они дали бы упражнение с отдыхом, которого настройка не позволяет.
+ * Длительность задаётся из двух мест — из профиля и с выполнения, — и
+ * границы у них обязаны быть одни. Разъехавшись, они дали бы отдых, который
+ * с одной стороны задать можно, а с другой нельзя.
  */
 describe('Границы отдыха', () => {
 
@@ -124,4 +129,62 @@ describe('Границы отдыха', () => {
             config.set('restEnabled', было);
         }
     });
+});
+
+/**
+ * Длительность отдыха одна на всё приложение (§16).
+ *
+ * Своя длительность у каждого упражнения была и оказалась ловушкой: человек
+ * менял отдых посреди тренировки, следующее упражнение брало своё значение,
+ * и выглядело это как «поменял, а оно не поменялось». Теперь значение одно, и
+ * правка на выполнении — это правка настройки.
+ */
+describe('Отдых правится с выполнения', () => {
+
+    /** Своё значение на время проверки: настоящее трогать незачем. */
+    async function своё(seconds, body) {
+        const былоОтдых = localStorage.getItem('wt_restSeconds');
+        const былоВключено = localStorage.getItem('wt_restEnabled');
+
+        config.set('restSeconds', seconds);
+        config.set('restEnabled', true);
+
+        try {
+            return await body();
+        } finally {
+            restTimer.stop();
+
+            for (const [key, value] of [['wt_restSeconds', былоОтдых], ['wt_restEnabled', былоВключено]]) {
+                if (value === null) localStorage.removeItem(key);
+                else localStorage.setItem(key, value);
+            }
+        }
+    }
+
+    it('«+30 с» двигает и отсчёт, и настройку', () => своё(90, async () => {
+        restTimer.start();
+        await press('rest-extend');
+
+        equal(config.get('restSeconds'), 120, 'иначе на каждой паузе пришлось бы нажимать заново');
+        assert(restTimer.remaining > 110, `текущий отдых тоже должен вырасти, вышло ${restTimer.remaining}`);
+    }));
+
+    it('«−30 с» тоже', () => своё(90, async () => {
+        restTimer.start();
+        await press('rest-shorten');
+
+        equal(config.get('restSeconds'), 60);
+    }));
+
+    /*
+     * Настройка не уходит за границы даже частым нажатием: полторы секунды
+     * отдыха — это не отдых, а оборванный отсчёт.
+     */
+    it('настройка не выходит за границы', () => своё(20, async () => {
+        restTimer.start();
+
+        for (let i = 0; i < 5; i++) await press('rest-shorten');
+
+        equal(config.get('restSeconds'), restTimer.SHORTEST);
+    }));
 });

@@ -288,8 +288,7 @@ function currentCard({ workout, sets, exercises, rows }) {
                     ${planItem?.note ? `${t('Заметка к упражнению')} ✎` : t('Заметка к упражнению')}
                 </button>
                 <button class="btn btn-ghost btn-sm" data-action="sess-rest">
-                    ${t('Отдых: {время}', { время: format.seconds(exercise.restSeconds || config.get('restSeconds')) })}
-                    ${exercise.restSeconds ? '' : ` ${t('(общий)')}`}
+                    ${t('Отдых: {время}', { время: format.seconds(config.get('restSeconds')) })}
                 </button>
             </div>
 
@@ -544,9 +543,9 @@ actions.on('sess-done', async () => {
     // Отдых запускается от нажатия, а не от отрисовки: пользователь уже
     // взаимодействовал со страницей, и браузер разрешит звук в конце.
     //
-    // Длительность — своя у упражнения, если задана: между подходами
-    // приседа и планки отдыхают по-разному (§16)
-    restTimer.start(exercises[currentId]?.restSeconds || config.get('restSeconds'), currentId);
+    // Длительность одна на всё приложение (§16): поменянная посреди
+    // тренировки, она действует и на следующие упражнения
+    restTimer.start(config.get('restSeconds'), currentId);
 
     /*
      * Что изменилось этим подходом. Записанное в базу читать заново незачем:
@@ -653,8 +652,30 @@ actions.on('rest-skip', () => {
     app.render();
 });
 
-actions.on('rest-extend', () => restTimer.extend(30));
-actions.on('rest-shorten', () => restTimer.extend(-30));
+/**
+ * Кнопки отдыха двигают и текущий отсчёт, и саму настройку.
+ *
+ * Правка «на один раз» здесь бесполезна: если минуты мало сейчас, её мало и
+ * между следующими подходами. Раньше сдвиг жил ровно до конца этого отдыха,
+ * и на каждой паузе приходилось нажимать заново — а настройка так и
+ * оставалась прежней.
+ */
+function shiftRest(step) {
+    const было = config.get('restSeconds');
+
+    // Ниже нуля шаг уводит легко, и clamp() посчитал бы это за «не задано»,
+    // то есть молча ничего не сделал бы. Здесь ноль означает не «убрать
+    // отдых», а «короче некуда»
+    const стало = restTimer.clamp(Math.max(restTimer.SHORTEST, было + step));
+
+    if (стало !== null && стало !== было) config.set('restSeconds', стало);
+
+    restTimer.extend(step);
+    app.render();
+}
+
+actions.on('rest-extend', () => shiftRest(30));
+actions.on('rest-shorten', () => shiftRest(-30));
 
 // ================== ЗАМЕТКИ (§20) ==================
 
@@ -687,30 +708,33 @@ actions.on('sess-note-toggle', (el) => {
  * Значение хранится у упражнения, а не в тренировке: оно про упражнение и
  * должно сохраняться на следующий раз.
  */
+/**
+ * Длительность отдыха правится прямо с выполнения (§16).
+ *
+ * Это та же самая настройка, что в профиле, а не отдельная величина у
+ * упражнения. Своя длительность у каждого упражнения была и оказалась
+ * ловушкой: человек менял отдых посреди тренировки, следующее упражнение
+ * брало своё значение, и выглядело это как «поменял, а оно не поменялось».
+ * Одно значение на всё, и править его можно с обеих сторон.
+ */
 actions.on('sess-rest', async () => {
-    if (!view || !currentId) return;
-
-    const exercise = view.exercises[currentId];
-
     const values = await dialog.form({
-        title: t('Отдых: {время}', { время: exercise.name }),
-        text: t('Общая настройка — {время}. Пустое поле вернёт её.', { время: format.seconds(config.get('restSeconds')) }),
+        title: t('Длительность отдыха'),
+        text: t('От {мин} до {макс} секунд.', { мин: restTimer.SHORTEST, макс: restTimer.LONGEST }),
         fields: [{
             name: 'rest',
             label: t('Секунд'),
             type: 'number',
-            value: exercise.restSeconds ?? '',
-            placeholder: String(config.get('restSeconds'))
+            value: config.get('restSeconds')
         }]
     });
 
     if (!values) return;
 
     const seconds = restTimer.clamp(values.rest);
-    await dbService.updateExercise(currentId, {
-        restSeconds: seconds ?? undefined
-    });
+    if (seconds === null) return;
 
+    config.set('restSeconds', seconds);
     app.render();
 });
 

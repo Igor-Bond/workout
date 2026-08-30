@@ -71,7 +71,7 @@ const RU = {
                 { rows: [
                     ['Запись подхода', 'Поля уже заполнены прошлым результатом. Меняешь то, что отличается, и жмёшь «Выполнено». Рядом видно прошлый раз, рекорд и насколько этот подход отличается от такого же в прошлый раз.'],
                     ['Порядок упражнений', 'По умолчанию по кругу: подход первого, подход второго, снова первого. В настройках можно выбрать «по одному» — закрывать план упражнения целиком — или свободный порядок. Переключается и на ходу, на самом выполнении.'],
-                    ['Отдых', 'Запускается сам после записи. Время можно и прибавить, и убавить кнопками. По окончании — сигнал и вибрация, если они включены.'],
+                    ['Отдых', 'Запускается сам после записи. Время можно и прибавить, и убавить кнопками — и оно сразу становится общим: следующие паузы и настройка в профиле меняются вместе с ним. По окончании — сигнал и вибрация, если они включены.'],
                     ['«Ещё…»', 'Под этой кнопкой редкое: добавить упражнение вне плана, пропустить, вернуться к уже выполненному, заметка.'],
                     ['Заметки', 'Три уровня: к подходу, к упражнению в этой тренировке и ко всей тренировке. Видны потом в истории.'],
                     ['Незавершённая', 'Если закрыть приложение посреди тренировки, она останется на главной и её можно продолжить. Через 12 часов продолжать уже не предложат — только завершить прошедшей датой: иначе к длительности приписалась бы вся ночь.']
@@ -123,7 +123,7 @@ const RU = {
                     ['Порядок упражнений', 'По кругу, по одному или свободно. Влияет только на то, что приложение предлагает следующим, — записать можно что угодно и когда угодно.'],
                     ['Не гасить экран', 'На время тренировки. Без этого телефон гаснет посреди подхода.'],
                     ['Полноэкранный режим', 'Убирает системные полосы. На телефоне включён сразу, на компьютере — нет: там прятать нечего. Рядом с выключателем есть кнопка выхода, она же выключает и настройку.'],
-                    ['Таймер отдыха', 'Включение и длительность по умолчанию: её можно вписать числом или подобрать ползунком. У отдельного упражнения может быть своя — задаётся в справочнике.'],
+                    ['Таймер отдыха', 'Включение и длительность: её можно вписать числом или подобрать ползунком. Длительность одна на всё, и менять её можно как здесь, так и прямо во время тренировки — кнопками «+30 с» или из меню «Ещё…».'],
                     ['Звук и вибрация', 'По окончании отдыха. Этот же выключатель звука управляет сигналами табаты.'],
                     ['Проговаривать упражнения', 'Название следующего упражнения вслух в интервальной программе. Появляется, если на устройстве есть голос нужного языка.']
                 ] }
@@ -206,7 +206,7 @@ const EN = {
                 { rows: [
                     ['Recording a set', 'The fields already hold your last result. Change what differs and tap Done. Next to it you see last time, your record, and how this set compares with the same set last time.'],
                     ['Exercise order', 'Round robin by default: a set of the first, a set of the second, the first again. In settings you can choose one at a time — finish an exercise’s planned sets — or free order. It also switches mid-workout.'],
-                    ['Rest', 'Starts by itself after a set. You can add or take away time with the buttons. When it ends: a sound and vibration, if they are on.'],
+                    ['Rest', 'Starts by itself after a set. You can add or take away time with the buttons — and it becomes the shared length right away: the next pauses and the setting in the profile change with it. When it ends: a sound and vibration, if they are on.'],
                     ['“More…”', 'The rare things live there: add an exercise outside the plan, skip one, go back to a finished one, write a note.'],
                     ['Notes', 'Three levels: for a set, for an exercise in this workout, and for the whole workout. They show up later in history.'],
                     ['Unfinished', 'If you close the app mid-workout it stays on the main screen and can be continued. After 12 hours continuing is no longer offered — only finishing with its own date: otherwise the whole night would be added to its length.']
@@ -258,7 +258,7 @@ const EN = {
                     ['Exercise order', 'Round robin, one at a time, or free. It only affects what the app offers next — you can record anything at any time.'],
                     ['Keep the screen on', 'For the duration of a workout. Without it the phone goes dark mid-set.'],
                     ['Full screen', 'Hides the system bars. On a phone it is on from the start; on a computer it is not — there is nothing to hide there. Next to the switch there is an exit button, which also turns the setting off.'],
-                    ['Rest timer', 'Whether it runs and its default length: type the number or find it with the slider. An individual exercise can have its own — set in the catalogue.'],
+                    ['Rest timer', 'Whether it runs and how long it is: type the number or find it with the slider. There is one length for everything, and you can change it here or right during a workout — with the “+30 s” buttons or from the “More…” menu.'],
                     ['Sound and vibration', 'When rest ends. That same sound switch also controls the Tabata signals.'],
                     ['Announce exercises', 'The next exercise said out loud in an interval program. It appears if your device has a voice for your language.']
                 ] }
@@ -341,7 +341,7 @@ const DE = {
                 { rows: [
                     ['Einen Satz erfassen', 'In den Feldern steht bereits dein letztes Ergebnis. Ändere, was abweicht, und tippe auf Erledigt. Daneben siehst du das letzte Mal, deinen Rekord und wie dieser Satz im Vergleich zum gleichen Satz beim letzten Mal ausfällt.'],
                     ['Reihenfolge der Übungen', 'Standardmäßig im Kreis: ein Satz der ersten, ein Satz der zweiten, wieder die erste. In den Einstellungen kannst du „nacheinander“ wählen — eine Übung ganz abschließen — oder freie Reihenfolge. Das lässt sich auch mitten im Training umstellen.'],
-                    ['Pause', 'Startet nach dem Erfassen von selbst. Die Zeit lässt sich mit den Knöpfen verlängern und verkürzen. Am Ende: Ton und Vibration, sofern eingeschaltet.'],
+                    ['Pause', 'Startet nach dem Erfassen von selbst. Die Zeit lässt sich mit den Knöpfen verlängern und verkürzen — und sie wird sofort zur allgemeinen: Die nächsten Pausen und die Einstellung im Profil ändern sich mit. Am Ende: Ton und Vibration, sofern eingeschaltet.'],
                     ['„Mehr…“', 'Dahinter liegt das Seltene: eine Übung außerhalb des Plans, überspringen, zu einer erledigten zurück, eine Notiz.'],
                     ['Notizen', 'Drei Ebenen: zum Satz, zur Übung in diesem Training und zum ganzen Training. Sie tauchen später im Verlauf auf.'],
                     ['Nicht beendet', 'Schließt du die App mitten im Training, bleibt es auf der Startseite und lässt sich fortsetzen. Nach 12 Stunden wird Fortsetzen nicht mehr angeboten — nur noch Beenden mit eigenem Datum: sonst käme die ganze Nacht zur Dauer dazu.']
@@ -393,7 +393,7 @@ const DE = {
                     ['Reihenfolge der Übungen', 'Im Kreis, nacheinander oder frei. Es beeinflusst nur, was die App als Nächstes vorschlägt — erfassen kannst du jederzeit alles.'],
                     ['Bildschirm anlassen', 'Für die Dauer des Trainings. Ohne das geht das Handy mitten im Satz aus.'],
                     ['Vollbild', 'Blendet die Systemleisten aus. Auf dem Handy ist es von Anfang an an, auf dem Computer nicht — dort gibt es nichts zu verbergen. Neben dem Schalter steht eine Schaltfläche zum Beenden, die auch die Einstellung ausschaltet.'],
-                    ['Pausentimer', 'Ob er läuft und wie lang er standardmäßig ist: Zahl eintippen oder mit dem Regler einstellen. Eine einzelne Übung kann eine eigene Länge haben — im Katalog einstellbar.'],
+                    ['Pausentimer', 'Ob er läuft und wie lang er ist: Zahl eintippen oder mit dem Regler einstellen. Es gibt eine Länge für alles, und ändern kannst du sie hier oder direkt im Training — mit den Knöpfen „+30 s“ oder aus dem Menü „Mehr …“.'],
                     ['Ton und Vibration', 'Am Ende der Pause. Derselbe Tonschalter steuert auch die Tabata-Signale.'],
                     ['Übungen ansagen', 'Die nächste Übung wird im Intervallprogramm laut angesagt. Erscheint, wenn dein Gerät eine Stimme für deine Sprache hat.']
                 ] }

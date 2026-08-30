@@ -490,7 +490,7 @@ describe('Сквозной путь: два устройства с одинак
 
 describe('Сквозной путь: упражнение, заведённое на другом устройстве', () => {
 
-    it('доезжает целиком, со своим видом, группой и отдыхом', async () => {
+    it('доезжает целиком, со своим видом, группой и описанием', async () => {
         await clean();
         const cloud = fakeCloud();
         const restore = connect(cloud);
@@ -499,7 +499,7 @@ describe('Сквозной путь: упражнение, заведённое 
             const свой = await dbService.createExercise({
                 name: 'Тяга верхнего блока', kind: 'weight', group: 'Спина'
             });
-            await dbService.updateExercise(свой.id, { restSeconds: 120 });
+            await dbService.updateExercise(свой.id, { howTo: 'Тянуть к груди, лопатки вниз.' });
 
             await sync.run({ silent: true });
 
@@ -514,7 +514,7 @@ describe('Сквозной путь: упражнение, заведённое 
             equal(приехало.id, свой.id);
             equal(приехало.kind, 'weight');
             equal(приехало.group, 'Спина');
-            equal(приехало.restSeconds, 120, 'свой отдых — часть упражнения, а не настройка устройства');
+            equal(приехало.howTo, 'Тянуть к груди, лопатки вниз.', 'описание — часть упражнения, а не настройка устройства');
         } finally {
             restore();
         }
