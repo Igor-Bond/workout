@@ -326,13 +326,32 @@ export const rhythm = {
      * заброшенным считалось бы всё, чем человек занимался. Вернувшись, он
      * увидел бы пустое место вместо своих же тренировок.
      */
-    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3 } = {}) {
+    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3, groupOf = null, background = null } = {}) {
         const since = startOfDay(now) - weeks * 7 * DAY;
         const today = startOfDay(now);
 
+        /*
+         * Фон в очереди не участвует (§29.1).
+         *
+         * Зарядка делается каждое утро и решения не требует: человек делает
+         * её не потому, что приложение предложило. Место в очереди ей ни к
+         * чему.
+         *
+         * Но главное не это. Зарядка нагружает те же мышцы, что и целевые
+         * тренировки: в ней и отжимания, и бицепс. Считая её наравне, мы
+         * получаем группы с промежутком в один день — а такая группа никогда
+         * не проходит порог отдыха, и все составы с этими мышцами навсегда
+         * уезжают в конец очереди. Круг из четырёх позиций разваливается на
+         * две не из-за ритма человека, а из-за утренней разминки.
+         *
+         * Признак фона задаёт вызывающий: тип тренировки хранится подписью,
+         * а подпись переводится, и ядру про «Зарядку» знать неоткуда.
+         */
+        const рабочие = background ? entries.filter((e) => !background(e.workout)) : entries;
+
         const groups = new Map();
 
-        for (const entry of entries) {
+        for (const entry of рабочие) {
             if (entry.workout.startedAt < since) continue;
 
             const ids = [...new Set(entry.exerciseIds || [])].sort();
@@ -355,6 +374,19 @@ export const rhythm = {
         // просрочены сразу все составы, и в счёт заброшенности она не идёт
         const последняя = Math.max(0, ...[...groups.values()].map((g) => g.lastAt));
         const простой = последняя ? Math.round((today - startOfDay(последняя)) / DAY) : 0;
+
+        // Отдых групп мышц: состав со свежей нагрузкой уходит вниз, каким бы
+        // просроченным он ни был. Без карты групп правило молчит
+        const отдых = groupOf ? rhythm.groupRest(рабочие, groupOf, now) : null;
+
+        const отдохнул = (ids) => {
+            if (!отдых) return true;
+
+            return ids.every((id) => {
+                const group = groupOf.get(id);
+                return !group || (отдых.get(group)?.rested ?? true);
+            });
+        };
 
         return [...groups.values()]
             .map((group) => {
@@ -390,12 +422,95 @@ export const rhythm = {
                     late: interval ? daysSince - interval : 0,
 
                     // Пропущено, пока человек был в строю, — мера заброшенности
-                    skipped: interval ? Math.max(0, daysSince - простой) / interval : 0
+                    skipped: interval ? Math.max(0, daysSince - простой) / interval : 0,
+
+                    // Отдохнули ли мышцы, которые этот состав нагружает
+                    rested: отдохнул(group.exerciseIds)
                 };
             })
             .filter((g) => g.interval && g.daysSince >= 1 && g.skipped <= cap)
-            .sort((a, b) => (b.enough - a.enough) || (b.late - a.late) || (b.overdue - a.overdue))
+            /*
+             * Отдых мышц — первый ключ, и он сильнее любой просрочки.
+             * «Отжимания Тайсона» просрочены на восемнадцать дней, но трицепс
+             * работал вчера: звать к нему сегодня незачем — просрочка никуда
+             * не денется, а мышца за день не восстановится.
+             */
+            .sort((a, b) => (b.rested - a.rested)
+                || (b.enough - a.enough)
+                || (b.late - a.late)
+                || (b.overdue - a.overdue))
             .slice(0, limit);
+    },
+
+    /**
+     * Отдохнули ли группы мышц (§29.1).
+     *
+     * Периодичность состава говорит, когда к нему пора вернуться. Но она
+     * ничего не знает про то, что вчера уже поработали теми же мышцами:
+     * «Отжимания» и «Отжимания Тайсона» — разные составы и одна группа, и
+     * очередь звала ко второму на следующий день после первого.
+     *
+     * Считается так же, как периодичность состава, только по группам: дни,
+     * когда группа была нагружена, медиана промежутков между ними, и
+     * сравнение с тем, сколько прошло. Никакой физиологии — те же сорок
+     * восемь часов из учебника приложению взять неоткуда, да и у каждого
+     * они свои. Мера одна: как человек сам обычно распределяет нагрузку.
+     *
+     * groupOf — Map «упражнение → группа». Упражнение без группы в счёт не
+     * идёт: молчание не повод объявлять мышцы уставшими.
+     */
+    groupRest(entries = [], groupOf = new Map(), now = Date.now()) {
+        const days = new Map();
+
+        for (const entry of entries) {
+            const day = startOfDay(entry.workout.startedAt);
+
+            for (const id of entry.exerciseIds || []) {
+                const group = groupOf.get(id);
+                if (!group) continue;
+
+                if (!days.has(group)) days.set(group, new Set());
+                days.get(group).add(day);
+            }
+        }
+
+        const today = startOfDay(now);
+        const result = new Map();
+
+        for (const [group, set] of days) {
+            const list = [...set].sort((a, b) => a - b).slice(-WINDOW);
+            const gaps = rhythm.intervals(list);
+
+            const medianInterval = gaps.length >= 1
+                ? Math.max(1, Math.round(rhythm.median(gaps)))
+                : null;
+
+            const daysSince = Math.round((today - list[list.length - 1]) / DAY);
+
+            result.set(group, {
+                group,
+                daysSince,
+                medianInterval,
+
+                /*
+                 * Половина обычного промежутка, а не весь.
+                 *
+                 * Весь промежуток — это «пора грузить», а вопрос здесь
+                 * другой: успела ли мышца восстановиться. Порог в целый
+                 * промежуток объявлял уставшими сразу все группы, и правило
+                 * не отличало ничего от ничего.
+                 *
+                 * Половина берётся из его же ритма и потому масштабируется:
+                 * группе, которую грузят через день, хватает суток, а той,
+                 * до которой доходят раз в десять дней, нужно пять.
+                 *
+                 * Без промежутка судить не о чем — считаем, что отдохнула.
+                 */
+                rested: medianInterval === null || daysSince * 2 >= medianInterval
+            });
+        }
+
+        return result;
     },
 
     /** Сколько упражнений обычно бывает в тренировке. */
@@ -421,7 +536,7 @@ export const rhythm = {
      * нему те, с которыми оно чаще всего делалось вместе. Иначе в один день
      * попали бы спина, ноги и пресс только потому, что все трое залежались.
      */
-    dueExercises(entries = [], now = Date.now(), { limit = null, skip = null } = {}) {
+    dueExercises(entries = [], now = Date.now(), { limit = null, skip = null, weeks = RECENT_WEEKS } = {}) {
         /*
          * skip — то, что предлагать нельзя: архив.
          *
@@ -432,9 +547,27 @@ export const rhythm = {
          */
         const убрано = skip instanceof Set ? skip : new Set(skip || []);
 
+        /*
+         * Дальше расчётного окна — уже не забытое (§29.1).
+         *
+         * Забыть можно то, что ещё помнишь: упражнение, которого не было
+         * дольше двенадцати недель, из жизни ушло, а не выпало из виду. За
+         * этой границей приложение звало бы обратно к прошлогоднему
+         * увлечению — и звало бы тем настойчивее, чем дольше человек к нему
+         * не возвращался.
+         */
+        const предел = weeks * 7;
+
+        /*
+         * Порядок — по дням с прошлого раза, от большего к меньшему.
+         *
+         * Не по просрочке в разах: здесь, в отличие от очереди составов,
+         * сравнивать нечего — плашка показывает по одному, и подпись
+         * называет дни. Дни и должны решать, кто первым.
+         */
         const overdue = rhythm.exerciseRhythm(entries, now)
-            .filter((e) => e.enough && e.overdue >= 1 && !убрано.has(e.exerciseId))
-            .sort((a, b) => b.overdue - a.overdue);
+            .filter((e) => e.enough && e.overdue >= 1 && e.daysSince <= предел && !убрано.has(e.exerciseId))
+            .sort((a, b) => b.daysSince - a.daysSince);
 
         if (overdue.length === 0) return [];
 

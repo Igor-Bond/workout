@@ -57,6 +57,22 @@ const NAMES_SHOWN = 3;
 const NAMES_ON_CHIP = 2;
 
 /**
+ * Фоновая тренировка — та, что делается каждый день сама собой (§29.1).
+ *
+ * Пока такой тип один: «Зарядка». Её делают не потому, что приложение
+ * предложило, и место в очереди ей ни к чему. Важнее другое: она нагружает
+ * те же мышцы, что и целевые тренировки, и, посчитанная наравне, превращала
+ * их группы в ежедневные — а ежедневная группа никогда не отдыхает, и весь
+ * круг разваливался из-за утренней разминки.
+ *
+ * Сравнивается и с ключом, и с подписью: тип хранится переведённым, как и
+ * у интервального (§50), и «Morgengymnastik» — та же зарядка.
+ */
+const ФОН = 'Зарядка';
+
+const фон = (workout) => workout.type === ФОН || workout.type === t(ФОН);
+
+/**
  * Которое из забытых упражнений показано сейчас (§29.1).
  *
  * Живёт в модуле, а не в хранилище: это положение листалки, а не решение
@@ -266,7 +282,9 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
      * такая же плашка, только пунктиром: пунктир и говорит, что тренировку
      * ещё предстоит собрать, а не повторить готовую.
      */
-    const forgotten = due.map((d) => names.get(d.exerciseId)).filter(Boolean);
+    const forgotten = due
+        .filter((d) => names.get(d.exerciseId))
+        .map((d) => ({ name: names.get(d.exerciseId), daysSince: d.daysSince }));
 
     /*
      * Забытых бывает много, а показывается одно. Поэтому листалка: стрелки
@@ -277,9 +295,11 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
      * с другом и потому ставят рядом, а здесь показана одна, и жаться ей не
      * к кому. Заодно широкая цель попадает под палец, не глядя.
      *
-     * Счётчик — не «сколько дней», а «которое из скольких»: у листалки надо
-     * понимать, есть ли дальше что-то ещё, а сколько дней прошло, для
-     * забытого не так важно — оно забыто, и этим всё сказано.
+     * Подпись — дни с прошлого раза, и по ним же порядок: от большего к
+     * меньшему. Не опоздание, как в очереди: там плашки стоят рядом и
+     * сравниваются друг с другом, а здесь показана одна, и вопрос к ней
+     * простой — сколько её не было. Следом счётчик «которое из скольких»:
+     * у листалки надо понимать, есть ли дальше что-то ещё.
      */
     const место = forgotten.length ? ((показано % forgotten.length) + forgotten.length) % forgotten.length : 0;
 
@@ -292,10 +312,12 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
         <span class="chip is-draft is-wide">
             ${forgotten.length > 1 ? стрелка('prev', '&lsaquo;', t('Предыдущее')) : ''}
             <button class="chip-main" data-action="nav-plan-due">
-                ${forgotten[место]}
-                ${forgotten.length > 1 ? ui.html`
-                    <span class="chip-count">${место + 1}/${String(forgotten.length)}</span>
-                ` : ''}
+                ${forgotten[место].name}
+                <span class="chip-count">
+                    ${t('{n} дн', { n: forgotten[место].daysSince })}${forgotten.length > 1
+                        ? ` · ${место + 1}/${forgotten.length}`
+                        : ''}
+                </span>
             </button>
             ${forgotten.length > 1 ? стрелка('next', '&rsaquo;', t('Следующее')) : ''}
         </span>
@@ -478,7 +500,11 @@ export const home = {
         // а просрочено оно сильнее всего (§26.2.3)
         const архив = new Set(exercises.filter((e) => e.archived).map((e) => e.id));
 
-        const очередь = rhythm.dueWorkouts(entries);
+        // Группы мышц: состав со свежей нагрузкой уходит вниз очереди, каким
+        // бы просроченным он ни был (§29.1)
+        const группы = new Map(exercises.filter((e) => e.group).map((e) => [e.id, e.group]));
+
+        const очередь = rhythm.dueWorkouts(entries, Date.now(), { groupOf: группы, background: фон });
 
         // Карточке нужны итоги той самой тренировки — тип и число подходов
         const записи = new Map(entries.map((e) => [e.workout.id, e]));
