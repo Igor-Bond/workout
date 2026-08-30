@@ -46,9 +46,9 @@ const RU = {
             name: 'Четыре раздела: где что искать',
             blocks: [
                 { rows: [
-                    ['Тренировка', 'Начать новую или продолжить незавершённую. Здесь же ритм — когда была прошлая и когда ждать следующую, — последние семь дней и вес тела.'],
-                    ['История', 'Все проведённые тренировки. Поиск, отбор по типу и по упражнению, отдельная плашка «Табата». Карточку можно открыть и поправить: числа подхода, заметки, удаление.'],
-                    ['Статистика', 'Общие итоги за период, разбор по упражнениям, личные рекорды, динамика результата, дни недели и серии, карта года по дням.'],
+                    ['Тренировка', 'Начать новую или продолжить незавершённую. Здесь же очередь составов, забытые упражнения, последние семь дней и вес тела.'],
+                    ['История', 'Все проведённые тренировки. Поиск, отбор по типу и по упражнению, отдельная плашка «Табата». Карточку можно открыть и поправить: числа подхода, заметки, удаление. Оттуда же тренировка повторяется.'],
+                    ['Статистика', 'Общие итоги за период, разбор по упражнениям, личные рекорды, динамика результата, дни недели и серии, прогноз следующей тренировки, карта года по дням.'],
                     ['Профиль', 'Настройки, справочник упражнений, синхронизация, резервная копия и эта справка.']
                 ] },
                 { hint: 'Внизу (на компьютере — слева) четыре раздела, между ними и переключается приложение. Кнопка «назад» в браузере работает как обычно.' }
@@ -60,10 +60,11 @@ const RU = {
                 { p: 'Собирать план с нуля каждый раз не нужно — есть пять коротких дорог.' },
                 { rows: [
                     ['На очереди', 'Верхняя карточка на главной. Состав, который вы повторяете и до которого дольше всего не доходили. Берёт не план той тренировки, а то, что в ней было фактически сделано.'],
-                    ['Следом', 'Плашки под карточкой — остальная очередь. Впереди тот, кто дольше опаздывает; подпись говорит, сколько дней прошло с прошлого раза.'],
-                    ['Повторить эту тренировку', 'В итогах любой тренировки из истории. На главной такой кнопки нет: повтор вчерашнего нужен изредка, а место там занято очередью.'],
+                    ['Следом', 'Плашки под карточкой — остальная очередь. Подпись говорит, насколько состав опаздывает: «+3 дн» — на столько просрочен, «через 4 дн» — срок ещё не вышел, «пора» — ровно сегодня. По ней и выстроен ряд. Промежуток берётся из вашей же истории за последние 12 недель и пересчитывается сам: станете делать реже — порог поднимется.'],
                     ['Забытое', 'Плашка пунктиром во всю ширину, своим разделом. Упражнение, которое не делалось дольше обычного для него срока и не входит ни в один повторяющийся состав. Стрелки по краям листают такие упражнения, счётчик говорит, сколько их всего, а нажатие на название собирает из них тренировку.'],
-                    ['Шаблоны', 'Сохранённый состав. Открываются кнопкой «Все шаблоны»; пока истории мало, они же стоят плашками. Шаблон можно менять и дублировать; на уже проведённые тренировки правка не влияет.']
+                    ['Шаблоны', 'Сохранённый состав. Открываются кнопкой «Все шаблоны»; пока истории мало, они же стоят плашками. Шаблон можно менять и дублировать; на уже проведённые тренировки правка не влияет.'],
+                    ['Повторить эту тренировку', 'В итогах любой тренировки из истории. На главной такой кнопки нет: повтор вчерашнего нужен изредка, а место там занято очередью.'],
+
                 ] }
             ]
         },
@@ -183,9 +184,9 @@ const EN = {
             name: 'Four sections: where to find things',
             blocks: [
                 { rows: [
-                    ['Workout', 'Start a new one or continue an unfinished one. Also here: your rhythm — when the last one was and when to expect the next — the last seven days, and body weight.'],
-                    ['History', 'Every finished workout. Search, filter by type and by exercise, a separate Tabata chip. Open a card to fix it: set numbers, notes, deletion.'],
-                    ['Stats', 'Totals for a period, a breakdown per exercise, personal records, how results move, weekdays and streaks, a year-long map by day.'],
+                    ['Workout', 'Start a new one or continue an unfinished one. Also here: the queue of line-ups, forgotten exercises, the last seven days, and body weight.'],
+                    ['History', 'Every finished workout. Search, filter by type and by exercise, a separate Tabata chip. Open a card to fix it: set numbers, notes, deletion. A workout is repeated from there too.'],
+                    ['Stats', 'Totals for a period, a breakdown per exercise, personal records, how results move, weekdays and streaks, a forecast for the next workout, a year-long map by day.'],
                     ['Profile', 'Settings, the exercise catalogue, sync, backup, and this guide.']
                 ] },
                 { hint: 'Four sections at the bottom (on a desktop, on the left) are what the app switches between. The browser’s back button works as usual.' }
@@ -197,10 +198,11 @@ const EN = {
                 { p: 'You do not have to build a plan from scratch every time — there are five short routes.' },
                 { rows: [
                     ['Up next', 'The top card on the main screen. The line-up you keep coming back to that you have gone longest without. It takes not the plan of that workout but what you actually did in it.'],
-                    ['Then', 'The chips under the card are the rest of the queue. First is the one running latest; the label says how many days have passed since last time.'],
-                    ['Repeat this workout', 'In the summary of any workout from history. There is no such button on the main screen: repeating yesterday is needed rarely, and the place there is taken by the queue.'],
+                    ['Then', 'The chips under the card are the rest of the queue. The label says how late a line-up is running: “+3 d” means overdue by that much, “in 4 d” means not due yet, “due” means exactly today. The row is ordered by it. The gap comes from your own history over the last 12 weeks and recomputes itself: do something less often and the threshold rises.'],
                     ['Forgotten', 'A dashed full-width chip in a section of its own. An exercise that has gone longer than its usual gap and belongs to no repeating line-up. The arrows on either side flip through them, the counter says how many there are, and a tap on the name builds a workout out of them.'],
-                    ['Templates', 'A saved line-up. Open them with “All templates”; while there is little history they also stand as chips. A template can be edited and duplicated; editing does not touch workouts already done.']
+                    ['Templates', 'A saved line-up. Open them with “All templates”; while there is little history they also stand as chips. A template can be edited and duplicated; editing does not touch workouts already done.'],
+                    ['Repeat this workout', 'In the summary of any workout from history. There is no such button on the main screen: repeating yesterday is needed rarely, and the place there is taken by the queue.'],
+
                 ] }
             ]
         },
@@ -320,9 +322,9 @@ const DE = {
             name: 'Vier Bereiche: wo was zu finden ist',
             blocks: [
                 { rows: [
-                    ['Training', 'Ein neues starten oder ein offenes fortsetzen. Hier steht auch dein Rhythmus — wann das letzte war und wann das nächste ansteht —, die letzten sieben Tage und dein Körpergewicht.'],
-                    ['Verlauf', 'Alle abgeschlossenen Trainings. Suche, Filter nach Art und Übung, ein eigener Tabata-Chip. Eine Karte lässt sich öffnen und korrigieren: Zahlen eines Satzes, Notizen, Löschen.'],
-                    ['Statistik', 'Summen für einen Zeitraum, Auswertung je Übung, persönliche Rekorde, Verlauf der Ergebnisse, Wochentage und Serien, eine Jahreskarte nach Tagen.'],
+                    ['Training', 'Ein neues starten oder ein offenes fortsetzen. Hier stehen auch die Warteschlange der Zusammenstellungen, vergessene Übungen, die letzten sieben Tage und dein Körpergewicht.'],
+                    ['Verlauf', 'Alle abgeschlossenen Trainings. Suche, Filter nach Art und Übung, ein eigener Tabata-Chip. Eine Karte lässt sich öffnen und korrigieren: Zahlen eines Satzes, Notizen, Löschen. Von dort wird ein Training auch wiederholt.'],
+                    ['Statistik', 'Summen für einen Zeitraum, Auswertung je Übung, persönliche Rekorde, Verlauf der Ergebnisse, Wochentage und Serien, eine Vorhersage für das nächste Training, eine Jahreskarte nach Tagen.'],
                     ['Profil', 'Einstellungen, Übungskatalog, Synchronisierung, Sicherungskopie und diese Anleitung.']
                 ] },
                 { hint: 'Unten (am Rechner links) stehen vier Bereiche, zwischen denen die App wechselt. Der Zurück-Knopf des Browsers funktioniert wie gewohnt.' }
@@ -334,10 +336,11 @@ const DE = {
                 { p: 'Du musst nicht jedes Mal einen Plan von Null bauen — es gibt fünf kurze Wege.' },
                 { rows: [
                     ['An der Reihe', 'Die oberste Karte auf der Startseite. Die Zusammenstellung, zu der du zurückkehrst und die am längsten nicht dran war. Sie nimmt nicht den Plan jenes Trainings, sondern das, was du tatsächlich gemacht hast.'],
-                    ['Danach', 'Die Chips unter der Karte sind der Rest der Warteschlange. Vorn steht, wer am längsten überfällig ist; die Beschriftung sagt, wie viele Tage seit dem letzten Mal vergangen sind.'],
-                    ['Dieses Training wiederholen', 'In der Zusammenfassung jedes Trainings aus dem Verlauf. Auf der Startseite gibt es diesen Knopf nicht: Das Wiederholen von gestern braucht man selten, und der Platz dort gehört der Warteschlange.'],
+                    ['Danach', 'Die Chips unter der Karte sind der Rest der Warteschlange. Die Beschriftung sagt, wie sehr eine Zusammenstellung überfällig ist: „+3 T“ heißt so viel überfällig, „in 4 T“ heißt noch nicht dran, „fällig“ heißt genau heute. Danach ist die Reihe geordnet. Der Abstand stammt aus deinem eigenen Verlauf der letzten 12 Wochen und rechnet sich selbst neu: Machst du etwas seltener, steigt die Schwelle.'],
                     ['Vergessen', 'Ein gestrichelter Chip über die ganze Breite, in einem eigenen Abschnitt. Eine Übung, die länger als sonst nicht dran war und zu keiner wiederkehrenden Zusammenstellung gehört. Die Pfeile an den Seiten blättern durch sie, der Zähler sagt, wie viele es sind, und ein Tippen auf den Namen baut daraus ein Training.'],
-                    ['Vorlagen', 'Eine gespeicherte Zusammenstellung. Sie stehen hinter „Alle Vorlagen“; solange es wenig Verlauf gibt, stehen sie auch als Chips. Eine Vorlage lässt sich ändern und duplizieren; bereits absolvierte Trainings bleiben davon unberührt.']
+                    ['Vorlagen', 'Eine gespeicherte Zusammenstellung. Sie stehen hinter „Alle Vorlagen“; solange es wenig Verlauf gibt, stehen sie auch als Chips. Eine Vorlage lässt sich ändern und duplizieren; bereits absolvierte Trainings bleiben davon unberührt.'],
+                    ['Dieses Training wiederholen', 'In der Zusammenfassung jedes Trainings aus dem Verlauf. Auf der Startseite gibt es diesen Knopf nicht: Das Wiederholen von gestern braucht man selten, und der Platz dort gehört der Warteschlange.'],
+
                 ] }
             ]
         },
