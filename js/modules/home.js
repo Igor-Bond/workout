@@ -42,6 +42,15 @@ const STALE_MS = 12 * 60 * 60 * 1000;
 /** Сколько упражнений перечислять, прежде чем свернуть остаток в «и ещё N». */
 const NAMES_SHOWN = 3;
 
+/**
+ * Сколько названий влезает в плашку быстрого старта.
+ *
+ * Меньше, чем на карточке повтора: плашки стоят в ряд, и длинная занимает
+ * строку целиком. Две строки — потолок, дальше они съедают то место, ради
+ * которого всё и затевалось (§29.1).
+ */
+const NAMES_ON_CHIP = 2;
+
 async function activeBlock() {
     const workout = await dbService.getActiveWorkout();
     if (!workout) return null;
@@ -92,13 +101,13 @@ async function activeBlock() {
 }
 
 /** Названия упражнений тренировки: три и «ещё N», чтобы строка не разъезжалась. */
-function exerciseLine(entry, names) {
+function exerciseLine(entry, names, limit = NAMES_SHOWN) {
     const list = (entry.exerciseIds || []).map((id) => names.get(id)).filter(Boolean);
 
     if (list.length === 0) return entry.workout.type;
 
-    const shown = list.slice(0, NAMES_SHOWN).join(' · ');
-    return list.length > NAMES_SHOWN ? `${shown} ${t('и ещё {n}', { n: list.length - NAMES_SHOWN })}` : shown;
+    const shown = list.slice(0, limit).join(' · ');
+    return list.length > limit ? `${shown} ${t('и ещё {n}', { n: list.length - limit })}` : shown;
 }
 
 /**
@@ -116,7 +125,9 @@ function compositionName(group, names, templates) {
 
     if (template) return template.name;
 
-    return exerciseLine({ exerciseIds: group.exerciseIds, workout: { type: t('Тренировка') } }, names);
+    // Два названия, а не три: плашка стоит в ряд с другими, и длинная
+    // занимает строку целиком. Строк здесь позволено две (§29.1)
+    return exerciseLine({ exerciseIds: group.exerciseIds, workout: { type: t('Тренировка') } }, names, NAMES_ON_CHIP);
 }
 
 /**
@@ -138,12 +149,16 @@ function startBlock(last, templates, suggestion, names, due, frequent) {
     const suggests = (t) => differs && (t.type === suggestion.type || t.name === suggestion.type);
 
     /*
-     * Быстрый старт: то, что человек делает чаще всего (§29.1).
+     * Быстрый старт: составы, которые человек повторяет (§29.1).
      *
      * Раньше здесь стояли шаблоны — но шаблон надо сначала завести, а
      * повторяющийся состав виден и без этого, прямо из истории. У того, кто
      * шаблонов не создавал, строка была пуста, хотя одну и ту же тренировку
      * он проводил семь раз подряд.
+     *
+     * Порядок — от редкого к частому: самое частое и так стоит выше
+     * отдельной кнопкой повтора, а место в плашках дороже отдать тому, что
+     * делаешь через раз и потому забываешь.
      *
      * Шаблоны остаются запасным вариантом: пока истории мало, показывать
      * нечего, а строка пустой быть не должна.
