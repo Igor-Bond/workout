@@ -18,6 +18,14 @@ const MIN_WORKOUTS = 5;
 /** Сколько последних тренировок учитывать: ритм полугодовой давности не про сейчас. */
 const WINDOW = 20;
 
+/**
+ * Что считается «сейчас» для частых составов.
+ *
+ * Восемь недель: достаточно, чтобы повтор стал виден, и достаточно мало,
+ * чтобы прошлогодняя привычка не лезла в быстрый старт.
+ */
+const RECENT_WEEKS = 8;
+
 const startOfDay = (ts) => {
     const d = new Date(ts);
     d.setHours(0, 0, 0, 0);
@@ -28,6 +36,7 @@ export const rhythm = {
 
     MIN_WORKOUTS,
     WINDOW,
+    RECENT_WEEKS,
 
     median(values) {
         if (values.length === 0) return 0;
@@ -221,6 +230,48 @@ export const rhythm = {
                 overdue: enough ? daysSince / medianInterval : 0
             };
         });
+    },
+
+    /**
+     * Составы, которые повторяются чаще всего (§29.1).
+     *
+     * Состав — это набор упражнений, без оглядки на порядок и на тип
+     * тренировки: «пресс, приседания, отжимания» остаются той же
+     * тренировкой, в каком бы порядке их ни делали и как бы ни назвали.
+     *
+     * Считается по последним неделям, а не по всей истории: то, что человек
+     * делал прошлой зимой, к сегодняшнему быстрому старту отношения не
+     * имеет. Одного раза мало — это ещё не «часто», а просто был такой день.
+     */
+    frequentWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, min = 2, limit = 3 } = {}) {
+        const since = startOfDay(now) - weeks * 7 * DAY;
+        const groups = new Map();
+
+        for (const entry of entries) {
+            if (entry.workout.startedAt < since) continue;
+
+            const ids = [...new Set(entry.exerciseIds || [])].sort();
+            if (ids.length === 0) continue;
+
+            const key = ids.join('|');
+            const group = groups.get(key) || { key, exerciseIds: ids, count: 0, lastAt: 0, workoutId: null };
+
+            group.count += 1;
+
+            // Запоминается самая свежая: по ней и собирается план, а веса в
+            // ней ближе к нынешним, чем в первой такой тренировке
+            if (entry.workout.startedAt > group.lastAt) {
+                group.lastAt = entry.workout.startedAt;
+                group.workoutId = entry.workout.id;
+            }
+
+            groups.set(key, group);
+        }
+
+        return [...groups.values()]
+            .filter((g) => g.count >= min)
+            .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
+            .slice(0, limit);
     },
 
     /** Сколько упражнений обычно бывает в тренировке. */

@@ -7,9 +7,10 @@
  * с нуля. Ярким выделен только последний пункт этой лестницы: он завершает
  * её и потому стоит внизу, где палец и так оказывается.
  *
- * Ритм (§26.2) — справка, а не действие. Он стоит строкой под заголовком:
- * карточкой он раздвигал кнопку продолжения и быстрый старт, то есть
- * отодвигал частое ради редкого.
+ * Прогноза ритма здесь нет: он справка, а не действие, и на экране, с
+ * которого начинают тренировку, занимал место, ничего не предлагая. Его
+ * место — в «Постоянстве» на статистике, куда и ходят за такими числами
+ * (§26.2).
  *
  * При незавершённой тренировке способы начать новую не показываются вовсе:
  * одновременно идёт только одна (§18), и вторая всё равно упёрлась бы в
@@ -90,45 +91,6 @@ async function activeBlock() {
     `;
 }
 
-/**
- * Ритм и прогноз следующей тренировки (§26.2), двумя строками.
- *
- * Прогноз показывается только когда данных достаточно. При рваном ритме
- * рядом стоит оговорка: обещать день с уверенностью, которой нет, хуже,
- * чем не обещать вовсе.
- */
-function rhythmStrip(workouts) {
-    const r = rhythm.analyze(workouts);
-
-    if (r.count === 0) return null;
-
-    if (!r.enough) {
-        return ui.html`
-            <div class="rhythm-strip">
-                <span class="rhythm-state">${t('Проведено {n}', { n: format.count(r.count, format.WORDS.workout) })}</span>
-                <span class="rhythm-detail">
-                    ${t('Ещё {n} — и появится прогноз ритма', { n: format.count(r.need, format.WORDS.workout) })}
-                </span>
-            </div>
-        `;
-    }
-
-    const headline = r.state === 'overdue'
-        ? t('{n} без тренировки', { n: format.count(r.daysSince, format.WORDS.day) })
-        : r.state === 'due'
-            ? t('Пора тренироваться')
-            : t('Следующая — {день}', { день: dates.formatDayLabel(r.nextAt, Date.now(), { lower: true }) });
-
-    return ui.html`
-        <div class="rhythm-strip is-${r.state}">
-            <span class="rhythm-state">${headline}</span>
-            <span class="rhythm-detail">
-                ${t('Обычно раз в {n}', { n: format.count(r.medianInterval, format.WORDS.day) })}${r.confidence === 'low' ? t(', ритм рваный — день примерный') : ''}
-            </span>
-        </div>
-    `;
-}
-
 /** Названия упражнений тренировки: три и «ещё N», чтобы строка не разъезжалась. */
 function exerciseLine(entry, names) {
     const list = (entry.exerciseIds || []).map((id) => names.get(id)).filter(Boolean);
@@ -140,6 +102,24 @@ function exerciseLine(entry, names) {
 }
 
 /**
+ * Как назвать состав на плашке.
+ *
+ * Если такой набор упражнений уже сохранён шаблоном — его именем: человек
+ * сам придумал ему название, и оно короче и понятнее любого перечисления.
+ * Иначе перечислением, тем же, что на карточке повтора.
+ */
+function compositionName(group, names, templates) {
+    const key = [...new Set(group.exerciseIds)].sort().join('|');
+
+    const template = templates.find((tpl) =>
+        [...new Set((tpl.items || []).map((i) => i.exerciseId))].sort().join('|') === key);
+
+    if (template) return template.name;
+
+    return exerciseLine({ exerciseIds: group.exerciseIds, workout: { type: t('Тренировка') } }, names);
+}
+
+/**
  * Способы начать: повтор прошлой, шаблоны, тренировка с нуля.
  *
  * Лестница от частого к редкому. Повтор стоит первым, но оформлен спокойно:
@@ -147,7 +127,7 @@ function exerciseLine(entry, names) {
  * завершает перебор. На самом повторе крупно — упражнения: по ним узнают
  * тренировку, а тип и дата это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names, due) {
+function startBlock(last, templates, suggestion, names, due, frequent) {
 
     // Подсказка чередования полезна, только если предлагает не то же самое,
     // что кнопка повтора: иначе она повторяет её же словами
@@ -157,10 +137,28 @@ function startBlock(last, templates, suggestion, names, due) {
     // («Силовая») при говорящем названии («Ноги») — поэтому сверяем и с ним
     const suggests = (t) => differs && (t.type === suggestion.type || t.name === suggestion.type);
 
-    const chips = templates.slice(0, 4).map((t) => ui.html`
-        <button class="chip ${suggests(t) ? 'is-active' : ''}"
-                data-action="home-template" data-id="${t.id}">${t.name}</button>
-    `);
+    /*
+     * Быстрый старт: то, что человек делает чаще всего (§29.1).
+     *
+     * Раньше здесь стояли шаблоны — но шаблон надо сначала завести, а
+     * повторяющийся состав виден и без этого, прямо из истории. У того, кто
+     * шаблонов не создавал, строка была пуста, хотя одну и ту же тренировку
+     * он проводил семь раз подряд.
+     *
+     * Шаблоны остаются запасным вариантом: пока истории мало, показывать
+     * нечего, а строка пустой быть не должна.
+     */
+    const chips = frequent.length
+        ? frequent.map((f) => ui.html`
+            <button class="chip" data-action="home-like" data-id="${f.workoutId}">
+                ${compositionName(f, names, templates)}
+                <span class="chip-count">×${String(f.count)}</span>
+            </button>
+        `)
+        : templates.slice(0, 4).map((t) => ui.html`
+            <button class="chip ${suggests(t) ? 'is-active' : ''}"
+                    data-action="home-template" data-id="${t.id}">${t.name}</button>
+        `);
 
     /*
      * Чему пора по периодичности каждого упражнения (§26.2.3).
@@ -332,14 +330,15 @@ export const home = {
         return ui.html`
             ${ui.raw(ui.title(t('Тренировка')))}
 
-            ${rhythmStrip(workouts) || ''}
+
 
             ${active || startBlock(
                 entries[0],
                 templates,
                 rhythm.suggestType(workouts),
                 names,
-                rhythm.dueExercises(entries, Date.now(), { skip: архив })
+                rhythm.dueExercises(entries, Date.now(), { skip: архив }),
+                rhythm.frequentWorkouts(entries)
             )}
 
             ${entries.length ? weekBlock(entries) : ''}
@@ -355,6 +354,14 @@ actions.on('nav-summary', (el) => app.go('summary', el.dataset.id));
 actions.on('nav-plan-repeat', () => app.go('plan', 'repeat'));
 actions.on('nav-plan-due', () => app.go('plan', 'due'));
 actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
+
+/**
+ * Начать такую же тренировку, как выбранная (§29.1).
+ *
+ * Ведёт туда же, куда повтор прошлой, только повторяется не последняя, а
+ * названная плашкой: состав и веса берутся из неё.
+ */
+actions.on('home-like', (el) => app.go('plan', 'repeat', el.dataset.id));
 
 actions.on('home-finish', async (el) => {
     const ok = await dialog.confirm({

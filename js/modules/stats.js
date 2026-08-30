@@ -11,6 +11,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { stats as calc, NO_GROUP } from '../core/stats.js';
+import { rhythm } from '../core/rhythm.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
@@ -174,6 +175,9 @@ export const stats = {
         const muscles = calc.muscleVolume(sets, exercises, current);
         const heat = calc.heatmap(entries);
 
+        // Прогноз ритма (§26.2): справка к «Постоянству», а не действие
+        const ритм = rhythm.analyze(entries.map((e) => e.workout));
+
         const periodChips = calc.PERIODS.map((p) => ui.html`
             <button class="chip ${period === p.key ? 'is-active' : ''}"
                     data-action="stats-period" data-period="${p.key}">${t(p.label)}</button>
@@ -257,6 +261,26 @@ export const stats = {
                     dates.WEEKDAYS_SHORT.map((label, i) => ({ label, value: weekdays[i] })),
                     { height: 120, maxLabel: 3 }
                 )}
+
+                <!--
+                    Прогноз ритма стоит здесь, а не на главном (§26.2).
+
+                    Это справка, а не действие: нажать на неё нельзя, и на
+                    экране, с которого начинают тренировку, она занимала
+                    место, ничего не предлагая. Здесь она среди своих —
+                    рядом с сериями и днями недели, за которыми сюда и
+                    приходят.
+                -->
+                ${ритм.enough ? ui.html`
+                    <p class="hint">
+                        ${ритм.state === 'overdue'
+                            ? t('{n} без тренировки.', { n: format.count(ритм.daysSince, format.WORDS.day) })
+                            : ритм.state === 'due'
+                                ? t('Привычный промежуток вышел.')
+                                : t('Следующая ожидается {день}.', { день: dates.formatDayLabel(ритм.nextAt, Date.now(), { lower: true }) })}
+                        ${t('Обычно раз в {n}', { n: format.count(ритм.medianInterval, format.WORDS.day) })}${ритм.confidence === 'low' ? t(', ритм рваный — день примерный') : ''}
+                    </p>
+                ` : ''}
             </div>
 
             <div class="card">
