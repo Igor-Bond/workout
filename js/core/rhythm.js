@@ -301,10 +301,10 @@ export const rhythm = {
      * что человек их вовремя делал. Поэтому показываем ближайших к своему
      * сроку, а насколько срок близок — говорит подпись.
      *
-     * Три условия, и каждое отсекает свою беду.
-     *
-     * Меньше трёх раз — промежутка не знаем. Два раза дают один промежуток,
-     * а один промежуток это ещё не периодичность, а совпадение.
+     * Один промежуток — это ещё не периодичность, а совпадение, и место
+     * такому составу в хвосте очереди: сначала те, чей срок известен точно.
+     * Совсем выбрасывать его нельзя — редкую тренировку человек делает по
+     * два раза, и она никогда бы сюда не попала, хотя именно её и забывают.
      *
      * Сделанное сегодня не показывается никогда: только что закрытое обязано
      * уйти с глаз, а не стоять в очереди до завтра.
@@ -319,7 +319,7 @@ export const rhythm = {
      * заброшенным считалось бы всё, чем человек занимался. Вернувшись, он
      * увидел бы пустое место вместо своих же тренировок.
      */
-    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 3, cap = 3 } = {}) {
+    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3 } = {}) {
         const since = startOfDay(now) - weeks * 7 * DAY;
         const today = startOfDay(now);
 
@@ -354,7 +354,7 @@ export const rhythm = {
                 const days = [...group.days].sort((a, b) => a - b);
                 const gaps = rhythm.intervals(days);
 
-                const interval = gaps.length >= 2
+                const interval = gaps.length >= 1
                     ? Math.max(1, Math.round(rhythm.median(gaps)))
                     : null;
 
@@ -369,6 +369,9 @@ export const rhythm = {
                     daysSince,
                     interval,
 
+                    // Один промежуток — совпадение, два — уже периодичность
+                    enough: gaps.length >= 2,
+
                     // Насколько близок срок: 1 — ровно пора, 2 — вдвое дольше
                     // обычного. Меньше единицы тоже показываем: это очередь
                     overdue: interval ? daysSince / interval : 0,
@@ -378,7 +381,7 @@ export const rhythm = {
                 };
             })
             .filter((g) => g.interval && g.daysSince >= 1 && g.skipped <= cap)
-            .sort((a, b) => b.overdue - a.overdue)
+            .sort((a, b) => (b.enough - a.enough) || (b.overdue - a.overdue))
             .slice(0, limit);
     },
 
