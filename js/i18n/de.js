@@ -63,7 +63,7 @@ export const DE = {
     'Начать': 'Starten',
     'Повторить прошлую': 'Letztes wiederholen',
     'Пора по периодичности': 'Nach eigenem Rhythmus fällig',
-    'собрать тренировку из них': 'daraus ein Training bauen',
+    'собрать тренировку': 'ein Training bauen',
     'Все шаблоны': 'Alle Vorlagen',
     'Создать шаблон': 'Vorlage erstellen',
     'Новая тренировка': 'Neues Training',

@@ -77,8 +77,8 @@ export const rhythm = {
         const counts = new Array(7).fill(0);
         for (const day of days) counts[(new Date(day).getDay() + 6) % 7] += 1;
 
-        // Порог в треть: при трёх тренировках в неделю каждый рабочий день
-        // набирает около трети, а случайные выходные отсеиваются
+        // Порог — две седьмых: при трёх тренировках в неделю привычный день
+        // набирает больше, а случайные выходные отсеиваются
         const threshold = days.length / 7 * 2;
 
         return counts
@@ -122,7 +122,7 @@ export const rhythm = {
         // к ближайшему такому дню: «раз в 2,5 дня» на календаре не бывает
         const weekdays = rhythm.typicalWeekdays(days);
         if (weekdays.length >= 2 && weekdays.length <= 5) {
-            nextAt = rhythm.snapToWeekday(nextAt, weekdays);
+            nextAt = rhythm.snapToWeekday(nextAt, weekdays, now);
         }
 
         return {
@@ -141,13 +141,24 @@ export const rhythm = {
         };
     },
 
-    /** Ближайший день (в пределах ±3 суток), попадающий на привычный день недели. */
-    snapToWeekday(ts, weekdays) {
+    /**
+     * Ближайший день (в пределах ±3 суток), попадающий на привычный день
+     * недели.
+     *
+     * Назад — только пока не вышли за сегодня. Подтягивать разрешено в обе
+     * стороны: привычный день может оказаться и раньше расчётного. Но
+     * притянутый в прошлое прогноз — это уже не прогноз: на экране
+     * появлялось «Следующая — 2 июля», когда на дворе третье.
+     */
+    snapToWeekday(ts, weekdays, now = Date.now()) {
         const target = new Set(weekdays);
+        const floor = startOfDay(now);
 
         for (let shift = 0; shift <= 3; shift++) {
             for (const direction of shift === 0 ? [0] : [1, -1]) {
                 const candidate = ts + direction * shift * DAY;
+
+                if (candidate < floor) continue;
                 if (target.has((new Date(candidate).getDay() + 6) % 7)) return candidate;
             }
         }
@@ -235,9 +246,19 @@ export const rhythm = {
      * нему те, с которыми оно чаще всего делалось вместе. Иначе в один день
      * попали бы спина, ноги и пресс только потому, что все трое залежались.
      */
-    dueExercises(entries = [], now = Date.now(), { limit = null } = {}) {
+    dueExercises(entries = [], now = Date.now(), { limit = null, skip = null } = {}) {
+        /*
+         * skip — то, что предлагать нельзя: архив.
+         *
+         * Архив и есть способ сказать «я это больше не делаю», а
+         * заброшенное упражнение просрочено сильнее всего и лезло в
+         * предложение первым. Приложение звало обратно ровно к тому, от
+         * чего человек только что отказался.
+         */
+        const убрано = skip instanceof Set ? skip : new Set(skip || []);
+
         const overdue = rhythm.exerciseRhythm(entries, now)
-            .filter((e) => e.enough && e.overdue >= 1)
+            .filter((e) => e.enough && e.overdue >= 1 && !убрано.has(e.exerciseId))
             .sort((a, b) => b.overdue - a.overdue);
 
         if (overdue.length === 0) return [];

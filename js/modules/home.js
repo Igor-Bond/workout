@@ -191,7 +191,7 @@ function startBlock(last, templates, suggestion, names, due) {
                 <button class="due-card" data-action="nav-plan-due">
                     <span class="rep-label">${t('Пора по периодичности')}</span>
                     <span class="rep-names">${dueNames.join(' · ')}</span>
-                    <span class="rep-meta">${t('собрать тренировку из них')}</span>
+                    <span class="rep-meta">${t('собрать тренировку')}</span>
                 </button>
             ` : differs ? ui.html`
                 <p class="hint">
@@ -325,6 +325,10 @@ export const home = {
         const workouts = entries.map((e) => e.workout);
         const names = new Map(exercises.map((e) => [e.id, e.name]));
 
+        // Архив — это «я это больше не делаю». Предлагать оттуда нельзя,
+        // а просрочено оно сильнее всего (§26.2.3)
+        const архив = new Set(exercises.filter((e) => e.archived).map((e) => e.id));
+
         return ui.html`
             ${ui.raw(ui.title(t('Тренировка')))}
 
@@ -335,7 +339,7 @@ export const home = {
                 templates,
                 rhythm.suggestType(workouts),
                 names,
-                rhythm.dueExercises(entries)
+                rhythm.dueExercises(entries, Date.now(), { skip: архив })
             )}
 
             ${entries.length ? weekBlock(entries) : ''}

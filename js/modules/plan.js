@@ -176,7 +176,13 @@ async function build(params) {
      */
     if (what === 'due') {
         const entries = await dbService.listWorkoutSummaries();
-        const due = rhythm.dueExercises(entries);
+
+        // Архивное не предлагается: архив и есть отказ от упражнения,
+        // а просрочено оно сильнее всего (§26.2.3)
+        const все = await dbService.listExercises({ includeArchived: true });
+        const архив = new Set(все.filter((e) => e.archived).map((e) => e.id));
+
+        const due = rhythm.dueExercises(entries, Date.now(), { skip: архив });
 
         const items = [];
 

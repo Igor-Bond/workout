@@ -64,7 +64,7 @@ export const EN = {
     'Начать': 'Start',
     'Повторить прошлую': 'Repeat last',
     'Пора по периодичности': 'Due by their own schedule',
-    'собрать тренировку из них': 'build a workout from these',
+    'собрать тренировку': 'build a workout',
     'Все шаблоны': 'All templates',
     'Создать шаблон': 'Create a template',
     'Новая тренировка': 'New workout',
