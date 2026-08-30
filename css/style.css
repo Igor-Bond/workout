@@ -1355,6 +1355,9 @@ svg.heatmap { display: block; }
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+
+    /* Вспышка подсветки на каждый повтор читается как мигание экрана */
+    -webkit-tap-highlight-color: transparent;
 }
 
 /*

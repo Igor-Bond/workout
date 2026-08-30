@@ -740,14 +740,20 @@ async function shiftRest(step) {
  * подпись — когда у упражнения впервые появилась своя величина, — и строка
  * «Отдых: …» в меню «Ещё…».
  */
+// Пишем, только если текст правда изменился: лишняя запись — это мутация
+// узла, а их при удержании набирается восемь в секунду
+const setText = (el, text) => {
+    if (el && el.textContent !== text) el.textContent = text;
+};
+
 function refreshRest() {
     const своё = знакомые[restTimer.exerciseId]?.restSeconds;
 
-    const label = document.querySelector('.rest-label');
-    if (label) label.textContent = своё ? t('Отдых для этого упражнения') : t('Отдых');
+    setText(document.querySelector('.rest-label'),
+        своё ? t('Отдых для этого упражнения') : t('Отдых'));
 
-    const menu = document.querySelector('[data-action="sess-rest"]');
-    if (menu) menu.textContent = t('Отдых: {время}', { время: format.seconds(restOf(currentId)) });
+    setText(document.querySelector('[data-action="sess-rest"]'),
+        t('Отдых: {время}', { время: format.seconds(restOf(currentId)) }));
 }
 
 actions.on('rest-extend', () => shiftRest(REST_STEP));
