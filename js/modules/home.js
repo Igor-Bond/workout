@@ -385,7 +385,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 -->
                 <div class="chips">
                     ${ежедневное.map((f) => ui.html`
-                        <button class="chip ${f.daysSince === 0 ? 'is-done' : 'is-todo'}"
+                        <button class="chip is-full ${f.daysSince === 0 ? 'is-done' : 'is-todo'}"
                                 data-action="home-like" data-id="${f.workoutId}">
                             ${compositionName(f, names, templates)}
                             <span class="chip-count">
