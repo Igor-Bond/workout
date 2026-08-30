@@ -286,6 +286,80 @@ export const rhythm = {
             .slice(0, limit);
     },
 
+    /**
+     * Составы, до которых пора вернуться (§29.1).
+     *
+     * То же, что периодичность упражнения, но для целой тренировки: у
+     * каждого повторяющегося состава свой промежуток, и если с прошлого раза
+     * прошло больше обычного — это дефицит, который закрывается одним
+     * нажатием.
+     *
+     * Три условия, и каждое отсекает свою беду.
+     *
+     * Меньше трёх раз — промежутка не знаем. Два раза дают один промежуток,
+     * а один промежуток это ещё не периодичность, а совпадение.
+     *
+     * Сделанное сегодня не показывается никогда, какая бы арифметика ни
+     * получилась: закрытый дефицит обязан уйти с глаз сразу, а не висеть
+     * первым до завтра.
+     *
+     * Заброшенное — тоже не дефицит. Состав, до которого не доходили втрое
+     * дольше обычного, человек не «задолжал», а перестал делать: упражнения
+     * уходят за ненадобностью, и вечно держать их первыми значит звать
+     * обратно туда, откуда ушли. Верхняя граница и отделяет одно от другого.
+     */
+    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 3, cap = 3 } = {}) {
+        const since = startOfDay(now) - weeks * 7 * DAY;
+        const today = startOfDay(now);
+
+        const groups = new Map();
+
+        for (const entry of entries) {
+            if (entry.workout.startedAt < since) continue;
+
+            const ids = [...new Set(entry.exerciseIds || [])].sort();
+            if (ids.length === 0) continue;
+
+            const key = ids.join('|');
+            const group = groups.get(key) || { key, exerciseIds: ids, days: new Set(), lastAt: 0, workoutId: null };
+
+            group.days.add(startOfDay(entry.workout.startedAt));
+
+            if (entry.workout.startedAt > group.lastAt) {
+                group.lastAt = entry.workout.startedAt;
+                group.workoutId = entry.workout.id;
+            }
+
+            groups.set(key, group);
+        }
+
+        return [...groups.values()]
+            .map((group) => {
+                const days = [...group.days].sort((a, b) => a - b);
+                const gaps = rhythm.intervals(days);
+
+                const interval = gaps.length >= 2
+                    ? Math.max(1, Math.round(rhythm.median(gaps)))
+                    : null;
+
+                const daysSince = Math.round((today - startOfDay(group.lastAt)) / DAY);
+
+                return {
+                    key: group.key,
+                    exerciseIds: group.exerciseIds,
+                    workoutId: group.workoutId,
+                    sessions: days.length,
+                    lastAt: group.lastAt,
+                    daysSince,
+                    interval,
+                    overdue: interval ? daysSince / interval : 0
+                };
+            })
+            .filter((g) => g.interval && g.daysSince >= 1 && g.overdue >= 1 && g.overdue <= cap)
+            .sort((a, b) => b.overdue - a.overdue)
+            .slice(0, limit);
+    },
+
     /** Сколько упражнений обычно бывает в тренировке. */
     typicalSize(entries = []) {
         const sizes = entries.slice(0, WINDOW)

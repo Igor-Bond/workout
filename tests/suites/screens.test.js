@@ -92,11 +92,10 @@ describe('Экран: главная', () => {
     });
 
     /*
-     * Подсказка по периодичности упражнений (§26.2.3). Она точнее подсказки
-     * по типу тренировки: тип у всех может быть один — «Силовая», — и цикла
-     * в одинаковых значениях нет.
+     * Плашка быстрого старта — это долг состава (§29.1): прошло больше
+     * обычного, и одно нажатие его закрывает.
      */
-    it('предлагает упражнения, которым пора', async () => {
+    it('предлагает вернуться к просроченному составу', async () => {
         const жим = await seed({ name: 'Жим лёжа' });
         const пресс = await dbService.createExercise({ name: 'Пресс', kind: 'reps' });
 
@@ -108,6 +107,57 @@ describe('Экран: главная', () => {
         // Пресс раз в два дня и делали вчера — он в графике
         for (const daysAgo of [1, 3, 5]) {
             await workout(пресс, [[20, 0]], { at: Date.now() - daysAgo * DAY });
+        }
+
+        const view = await screen(home);
+
+        assert(has(view, 'Жим лёжа'), 'просроченное предлагается');
+        assert(has(view, '9 дней'), 'подпись — дни, а не множитель');
+        // Пресс делали вчера, он в графике — а значит, показана ветка долгов,
+        // а не запасная частотная с множителем
+        assert(!has(view, '×'), 'при долгах множитель частоты не показывается');
+        assert(hasAction(view, 'home-like'), 'нажатие повторяет ту самую тренировку');
+
+        // Плашка уже предлагает жим одним нажатием — карточке нечего добавить
+        assert(!has(view, 'Пора по периодичности'), 'одни и те же названия дважды на экране не стоят');
+    });
+
+    /*
+     * Подсказка по периодичности упражнений (§26.2.3). Она точнее подсказки
+     * по типу тренировки: тип у всех может быть один — «Силовая», — и цикла
+     * в одинаковых значениях нет.
+     *
+     * Плашки её не заменяют: они знают только целые составы, а упражнение
+     * может расходиться по разным тренировкам и не повторить ни одной. Тогда
+     * состав неизвестен, а долг упражнения — известен, и собирается он
+     * карточкой.
+     */
+    it('предлагает упражнения, которым пора, когда состав не повторялся', async () => {
+        const жим = await seed({ name: 'Жим лёжа' });
+
+        const пары = [
+            await dbService.createExercise({ name: 'Пресс', kind: 'reps' }),
+            await dbService.createExercise({ name: 'Планка', kind: 'time' }),
+            await dbService.createExercise({ name: 'Приседания', kind: 'reps' })
+        ];
+
+        // Жим раз в три дня, а не было девять — но каждый раз с новым соседом,
+        // и потому ни один состав не повторился
+        for (let i = 0; i < 3; i++) {
+            const at = Date.now() - (9 + i * 3) * DAY;
+            const пара = пары[i];
+
+            const w = await dbService.createWorkout({ type: 'Силовая', plan: [
+                { exerciseId: жим.id, plannedSets: 1, targetReps: 10, weight: 60, skipped: false },
+                { exerciseId: пара.id, plannedSets: 1, targetReps: 20, weight: 0, skipped: false }
+            ]});
+
+            for (const ex of [жим, пара]) {
+                await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10, performedAt: at });
+            }
+
+            await dbService.updateWorkout(w.id, { startedAt: at });
+            await dbService.finishWorkout(w.id, at + 1800000);
         }
 
         const view = await screen(home);

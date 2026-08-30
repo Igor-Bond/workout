@@ -138,7 +138,7 @@ function compositionName(group, names, templates) {
  * завершает перебор. На самом повторе крупно — упражнения: по ним узнают
  * тренировку, а тип и дата это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names, due, frequent) {
+function startBlock(last, templates, suggestion, names, due, frequent, overdue) {
 
     // Подсказка чередования полезна, только если предлагает не то же самое,
     // что кнопка повтора: иначе она повторяет её же словами
@@ -149,21 +149,35 @@ function startBlock(last, templates, suggestion, names, due, frequent) {
     const suggests = (t) => differs && (t.type === suggestion.type || t.name === suggestion.type);
 
     /*
-     * Быстрый старт: составы, которые человек повторяет (§29.1).
+     * Быстрый старт: составы, до которых пора вернуться (§29.1).
      *
      * Раньше здесь стояли шаблоны — но шаблон надо сначала завести, а
      * повторяющийся состав виден и без этого, прямо из истории. У того, кто
      * шаблонов не создавал, строка была пуста, хотя одну и ту же тренировку
      * он проводил семь раз подряд.
      *
-     * Порядок — от редкого к частому: самое частое и так стоит выше
-     * отдельной кнопкой повтора, а место в плашках дороже отдать тому, что
-     * делаешь через раз и потому забываешь.
+     * Потом здесь стояла частота — и это было измерение не того. Частота
+     * говорит, что человек делает много, а помощь нужна с тем, что он начал
+     * пропускать. Теперь плашка — это долг: состав, до которого не доходили
+     * дольше обычного. Сделал — долг закрыт, плашка ушла, на её место встала
+     * следующая по задолженности.
      *
-     * Шаблоны остаются запасным вариантом: пока истории мало, показывать
-     * нечего, а строка пустой быть не должна.
+     * Подпись — дни, а не множитель: «9 дней» человек примеряет на себя
+     * сразу, «×2,4» нужно сначала расшифровать.
+     *
+     * Когда долгов нет, показываем просто повторяющееся, от редкого к
+     * частому: строка не должна пустовать, а самое частое и так предложено
+     * выше кнопкой повтора. Шаблоны — последний запасной вариант, пока
+     * истории совсем мало.
      */
-    const chips = frequent.length
+    const chips = overdue.length
+        ? overdue.map((f) => ui.html`
+            <button class="chip" data-action="home-like" data-id="${f.workoutId}">
+                ${compositionName(f, names, templates)}
+                <span class="chip-count">${format.count(f.daysSince, format.WORDS.day)}</span>
+            </button>
+        `)
+        : frequent.length
         ? frequent.map((f) => ui.html`
             <button class="chip" data-action="home-like" data-id="${f.workoutId}">
                 ${compositionName(f, names, templates)}
@@ -214,7 +228,7 @@ function startBlock(last, templates, suggestion, names, due, frequent) {
                 </p>
             ` : ''}
 
-            ${templates.length ? ui.html`<div class="chips">${chips}</div>` : ''}
+            ${chips.length ? ui.html`<div class="chips">${chips}</div>` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="templates">
                 ${templates.length ? t('Все шаблоны') : t('Создать шаблон')}
@@ -342,6 +356,14 @@ export const home = {
         // а просрочено оно сильнее всего (§26.2.3)
         const архив = new Set(exercises.filter((e) => e.archived).map((e) => e.id));
 
+        const просрочено = rhythm.dueWorkouts(entries);
+
+        // Карточка «Пора по периодичности» и плашки говорят об одном и том же
+        // долге. Что плашки уже предлагают одним нажатием, из карточки убираем:
+        // иначе те же названия стоят на экране дважды, а карточке остаётся
+        // только то, чего плашки не закрывают — за этим она и нужна
+        const покрыто = new Set([...архив, ...просрочено.flatMap((f) => f.exerciseIds)]);
+
         return ui.html`
             ${ui.raw(ui.title(t('Тренировка')))}
 
@@ -352,8 +374,9 @@ export const home = {
                 templates,
                 rhythm.suggestType(workouts),
                 names,
-                rhythm.dueExercises(entries, Date.now(), { skip: архив }),
-                rhythm.frequentWorkouts(entries)
+                rhythm.dueExercises(entries, Date.now(), { skip: покрыто }),
+                rhythm.frequentWorkouts(entries),
+                просрочено
             )}
 
             ${entries.length ? weekBlock(entries) : ''}
