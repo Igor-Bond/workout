@@ -14,6 +14,7 @@ import { viewport } from './core/viewport.js';
 import { install } from './core/install.js';
 import { updater } from './core/updater.js';
 import { wakeLock } from './core/wakelock.js';
+import { restTimer } from './core/timer.js';
 import { fullscreen } from './core/fullscreen.js';
 import { journal } from './core/journal.js';
 import { ui } from './core/ui.js';
@@ -276,7 +277,12 @@ boot();
  * только при следующем запуске.
  */
 document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') return;
+    if (document.visibilityState === 'visible') {
+        // Пока приложение было свёрнуто, звуковой контекст мог уснуть вместе
+        // с ним, и выложенный сигнал отдыха отстал бы от часов (§16)
+        return restTimer.resync();
+    }
+
     if (!sync.available || sync.inProgress) return;
 
     sync.run({ silent: true }).catch(() => {});

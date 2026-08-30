@@ -24,14 +24,6 @@ function emit(event) {
 }
 
 /**
- * Сигнал окончания.
- *
- * Звук синтезируется, а не берётся файлом: один короткий тон не стоит
- * лишнего запроса и места в кэше. AudioContext создаётся в момент сигнала —
- * к этому времени пользователь уже нажимал кнопку, и браузер не считает
- * звук самовольным.
- */
-/**
  * Три восходящих тона, около секунды.
  *
  * Один короткий сигнал в зале терялся: полсекунды на фоне музыки и лязга —
@@ -42,25 +34,78 @@ const TONES = [880, 1100, 1320];
 const TONE_LENGTH = 0.28;
 const TONE_GAP = 0.14;
 
-function signal() {
-    if (config.get('restVibration') && navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 400]);
+/*
+ * Звук выкладывается заранее, а не играется в момент срабатывания (§16).
+ *
+ * Так пришлось из-за двух бед сразу, и обе прятались за одной строкой
+ * `new AudioContext()` в конце отсчёта.
+ *
+ * На iPhone контекст, созданный не в ответ на нажатие, стартует спящим —
+ * и сигнал не звучит вовсе. Тестировщик так и написал: «добавить звуковое
+ * сопровождение в обычный режим», хотя оно было и было включено. Здесь
+ * контекст создаётся при запуске отдыха, то есть сразу после нажатия
+ * «Выполнено», и права на звук у него уже есть.
+ *
+ * Вторая беда общая для всех телефонов: сигнал висел на том же интервале,
+ * что и цифры на экране, а свёрнутому приложению браузер придерживает
+ * интервалы до одного срабатывания в минуту. Звуковой поток идёт своим
+ * чередом и отыгрывает выложенное вовремя.
+ *
+ * Чего это не чинит: на iPhone с погашенным экраном засыпает и сам
+ * контекст. Телефон рядом — звучит, в кармане — нет, и обещать обратное
+ * нельзя (§28).
+ */
+let ctx = null;
+let planned = [];
+
+function audio() {
+    if (ctx && ctx.state !== 'closed') return ctx;
+
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+
+    ctx = new Ctx();
+    return ctx;
+}
+
+/** Снять выложенное: отдых продлили, укоротили или прервали. */
+function cancelSignal() {
+    for (const node of planned) {
+        try { node.stop(); } catch (e) { /* уже отыграл */ }
     }
 
-    if (!config.get('restSound')) return;
+    planned = [];
+}
+
+/**
+ * Выложить сигнал на момент окончания.
+ *
+ * Считается от разницы с часами, а не от прошлого расчёта: между вызовами
+ * отдых могли продлить, а контекст — усыпить вместе с приложением, и его
+ * собственное время отстанет от настоящего.
+ */
+function scheduleSignal() {
+    cancelSignal();
+
+    if (!config.get('restSound') || !endsAt) return;
+
+    const seconds = (endsAt - Date.now()) / 1000;
+    if (seconds <= 0) return;
 
     try {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!Ctx) return;
+        const a = audio();
+        if (!a) return;
 
-        const ctx = new Ctx();
-        const start = ctx.currentTime;
+        // Контекст мог уснуть, пока приложение было свёрнуто
+        if (a.state === 'suspended') a.resume().catch(() => {});
+
+        const start = a.currentTime + seconds;
 
         TONES.forEach((frequency, i) => {
             const at = start + i * (TONE_LENGTH + TONE_GAP);
 
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
+            const osc = a.createOscillator();
+            const gain = a.createGain();
 
             osc.type = 'sine';
             osc.frequency.value = frequency;
@@ -70,15 +115,25 @@ function signal() {
             gain.gain.exponentialRampToValueAtTime(0.3, at + 0.02);
             gain.gain.exponentialRampToValueAtTime(0.0001, at + TONE_LENGTH);
 
-            osc.connect(gain).connect(ctx.destination);
+            osc.connect(gain).connect(a.destination);
             osc.start(at);
             osc.stop(at + TONE_LENGTH + 0.02);
 
-            // Контекст закрывается один раз — после последнего тона
-            if (i === TONES.length - 1) osc.onended = () => ctx.close();
+            planned.push(osc);
         });
     } catch (e) {
         console.warn('[Отдых] Звук недоступен:', e);
+    }
+}
+
+/*
+ * Вибрация остаётся на месте срабатывания: выложить её заранее нельзя, а
+ * в свёрнутом приложении она всё равно не сработает — как и на iPhone, где
+ * navigator.vibrate не поддерживается вовсе.
+ */
+function buzz() {
+    if (config.get('restVibration') && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 400]);
     }
 }
 
@@ -113,12 +168,14 @@ export const restTimer = {
 
         stopInterval();
 
+        scheduleSignal();
+
         handle = setInterval(() => {
             if (restTimer.running) return emit('tick');
 
             stopInterval();
             endsAt = 0;
-            signal();
+            buzz();
             emit('finish');
         }, 250);
 
@@ -139,6 +196,9 @@ export const restTimer = {
 
         const floor = Date.now() + restTimer.SHORTEST * 1000;
         endsAt = Math.max(floor, endsAt + seconds * 1000);
+
+        // Сигнал был выложен на прежний срок — переложить на новый
+        scheduleSignal();
 
         emit('tick');
     },
@@ -173,9 +233,21 @@ export const restTimer = {
     /** Пропустить: сигнала не будет, отдых просто закончен. */
     stop() {
         stopInterval();
+        cancelSignal();
         endsAt = 0;
         exerciseId = null;
         emit('tick');
+    },
+
+    /**
+     * Перевыложить сигнал — приложение вернулось из фона.
+     *
+     * Пока оно было свёрнуто, звуковой контекст мог уснуть вместе с ним, и
+     * его собственные часы отстали от настоящих. Выложенное по старым часам
+     * прозвучало бы позже срока, а то и вовсе после конца отдыха.
+     */
+    resync() {
+        if (restTimer.running) scheduleSignal();
     },
 
     /** Подписка. Возвращает функцию отписки. */

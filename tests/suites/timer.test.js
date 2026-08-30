@@ -188,3 +188,72 @@ describe('Отдых правится с выполнения', () => {
         equal(config.get('restSeconds'), restTimer.SHORTEST);
     }));
 });
+
+/**
+ * Сигнал окончания выкладывается заранее (§16).
+ *
+ * Раньше звук играли в момент срабатывания, и это не работало дважды: на
+ * iPhone контекст, созданный не по нажатию, стартует спящим, а свёрнутому
+ * приложению браузер придерживает интервалы, к которым сигнал был привязан.
+ */
+describe('Сигнал отдыха', () => {
+
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+
+    /** На какие моменты вперёд выложены тоны при таком-то действии. */
+    function записать(действие) {
+        const было = Ctx.prototype.createOscillator;
+        const моменты = [];
+
+        Ctx.prototype.createOscillator = function () {
+            const osc = было.call(this);
+            const start = osc.start.bind(osc);
+
+            osc.start = (at) => {
+                моменты.push(at - this.currentTime);
+                return start(at);
+            };
+
+            return osc;
+        };
+
+        try { действие(); } finally { Ctx.prototype.createOscillator = было; }
+
+        return моменты;
+    }
+
+    it('выкладывается на момент окончания, а не играется в конце', () => {
+        config.set('restSound', true);
+
+        const моменты = записать(() => запустить(30));
+        restTimer.stop();
+
+        assert(моменты.length > 0, 'при запуске отдыха звук должен быть уже выложен');
+        assert(Math.abs(моменты[0] - 30) < 1, `первый тон ожидался около 30 с, вышло ${моменты[0]}`);
+    });
+
+    /*
+     * Выложенное держится на своём сроке и не знает, что отдых продлили.
+     * Без переклада сигнал прозвучал бы посреди паузы.
+     */
+    it('перекладывается при продлении', () => {
+        config.set('restSound', true);
+        запустить(30);
+
+        const моменты = записать(() => restTimer.extend(60));
+        restTimer.stop();
+
+        assert(моменты.length > 0, 'продление обязано переложить сигнал');
+        assert(моменты[0] > 80, `после +60 с первый тон ожидался около 90 с, вышло ${моменты[0]}`);
+    });
+
+    it('без звука в настройках ничего не выкладывается', () => {
+        config.set('restSound', false);
+
+        const моменты = записать(() => запустить(30));
+        restTimer.stop();
+        config.set('restSound', true);
+
+        equal(моменты.length, 0);
+    });
+});

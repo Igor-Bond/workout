@@ -7,7 +7,7 @@
  */
 
 import { ui } from '../core/ui.js';
-import { config, MODES } from '../config.js';
+import { config, MODES, appleMobile } from '../config.js';
 import { install } from '../core/install.js';
 import { updater } from '../core/updater.js';
 import { fullscreen } from '../core/fullscreen.js';
@@ -315,7 +315,12 @@ export const profile = {
                 </div>
 
                 ${ui.raw(toggle('restSound', t('Звук по окончании'), t('Он же управляет сигналами интервальной программы')))}
-                ${ui.raw(toggle('restVibration', t('Вибрация по окончании')))}
+                <!--
+                    Вибрация показывается только там, где она бывает: в
+                    Safari на iPhone navigator.vibrate не поддерживается
+                    вовсе, и выключатель там обещал бы несуществующее (§16)
+                -->
+                ${appleMobile() ? '' : ui.raw(toggle('restVibration', t('Вибрация по окончании')))}
 
                 <!--
                     Выключатель показывается только там, где есть чем
