@@ -74,7 +74,27 @@ const EN = {
         'Велосипед': 'Bicycle crunches',
         'Складка': 'V-ups',
         'Медвежья походка': 'Bear crawl',
-        'Приседания «сумо»': 'Sumo squats'
+        'Приседания «сумо»': 'Sumo squats',
+
+        // Домашний набор: резинка, турник, брусья
+        'Тяга резинки к поясу': 'Band row',
+        'Тяга резинки сверху': 'Band lat pulldown',
+        'Разведение резинки': 'Band pull-apart',
+        'Жим резинки от груди': 'Band chest press',
+        'Сведение рук с резинкой': 'Band chest fly',
+        'Жим резинки вверх': 'Band overhead press',
+        'Махи с резинкой в стороны': 'Band lateral raise',
+        'Подъём резинки перед собой': 'Band front raise',
+        'Сгибание рук с резинкой': 'Band biceps curl',
+        'Разгибание рук с резинкой': 'Band triceps extension',
+        'Приседания с резинкой': 'Band squats',
+        'Отведение ноги с резинкой': 'Band leg abduction',
+        'Австралийские подтягивания': 'Inverted rows',
+        'Подтягивания обратным хватом': 'Chin-ups',
+        'Отжимания узким хватом': 'Diamond push-ups',
+        'Обратные отжимания': 'Bench dips',
+        'Отжимания в наклоне': 'Pike push-ups',
+        'Вис на турнике': 'Dead hang'
     },
 
     howTo: {
@@ -122,7 +142,26 @@ const EN = {
         'Велосипед': 'Elbow to the opposite knee, the other leg extended. Slowly — speed here replaces the abs with momentum.',
         'Складка': 'Lift the arms and legs at the same time, meeting above the stomach. Lower without touching the floor.',
         'Медвежья походка': 'On hands and toes, knees just off the floor. Move opposite hand and foot together.',
-        'Приседания «сумо»': 'Feet wider than the shoulders, toes turned out. Knees track the toes, back straight.'
+        'Приседания «сумо»': 'Feet wider than the shoulders, toes turned out. Knees track the toes, back straight.',
+
+        'Тяга резинки к поясу': 'Band anchored in front at waist height. Pull with the elbows back, squeeze the shoulder blades, keep the torso still.',
+        'Тяга резинки сверху': 'Band anchored overhead. Pull down to the hips with straight arms, shoulder blades going down and in.',
+        'Разведение резинки': 'Band held in front on straight arms. Open the arms out to shoulder line, squeezing the shoulder blades.',
+        'Жим резинки от груди': 'Band behind the back, hands at the chest. Press forward to straight arms, keep the elbows in.',
+        'Сведение рук с резинкой': 'Band behind the back, arms out to the sides. Bring straight arms together in front of the chest without shrugging.',
+        'Жим резинки вверх': 'Stand on the band, hands at the shoulders. Press overhead to straight arms without arching the lower back.',
+        'Махи с резинкой в стороны': 'Stand on the band, arms by the sides. Raise straight arms to shoulder line, elbows slightly bent.',
+        'Подъём резинки перед собой': 'Stand on the band, arms in front of the hips. Raise straight arms to shoulder line, torso still.',
+        'Сгибание рук с резинкой': 'Stand on the band, elbows pinned to the sides. Curl up to the shoulders without letting the elbows drift forward.',
+        'Разгибание рук с резинкой': 'Band anchored overhead, elbows pinned to the sides. Extend all the way down, upper arm stays put.',
+        'Приседания с резинкой': 'Band above the knees or under the feet. Drive the knees out, never letting them collapse inward.',
+        'Отведение ноги с резинкой': 'Band around the ankles. Take a straight leg out to the side or back without leaning the torso.',
+        'Австралийские подтягивания': 'Body straight, heels on the floor, bar at waist height. Pull the chest to the bar, squeezing the shoulder blades.',
+        'Подтягивания обратным хватом': 'Palms facing you, grip narrower than the shoulders. Chin above the bar, lower under control.',
+        'Отжимания узким хватом': 'Hands under the chest, thumbs and index fingers forming a triangle. Elbows stay close to the body.',
+        'Обратные отжимания': 'Hands on a bench behind you, feet in front. Lower to a right angle at the elbow, keep the shoulders down.',
+        'Отжимания в наклоне': 'Hips high, body in an inverted V. Lower the crown of the head between the hands, elbows along the body.',
+        'Вис на турнике': 'Grip at shoulder width, body relaxed. Do not let the shoulders sag — keep the blades slightly drawn together.'
     }
 };
 
@@ -183,7 +222,27 @@ const DE = {
         'Велосипед': 'Fahrrad-Crunches',
         'Складка': 'Klappmesser',
         'Медвежья походка': 'Bärengang',
-        'Приседания «сумо»': 'Sumo-Kniebeugen'
+        'Приседания «сумо»': 'Sumo-Kniebeugen',
+
+        // Heimtraining: Band, Klimmzugstange, Barren
+        'Тяга резинки к поясу': 'Rudern mit Band',
+        'Тяга резинки сверху': 'Latzug mit Band',
+        'Разведение резинки': 'Band auseinanderziehen',
+        'Жим резинки от груди': 'Brustdrücken mit Band',
+        'Сведение рук с резинкой': 'Butterfly mit Band',
+        'Жим резинки вверх': 'Schulterdrücken mit Band',
+        'Махи с резинкой в стороны': 'Seitheben mit Band',
+        'Подъём резинки перед собой': 'Frontheben mit Band',
+        'Сгибание рук с резинкой': 'Bizepscurls mit Band',
+        'Разгибание рук с резинкой': 'Trizepsdrücken mit Band',
+        'Приседания с резинкой': 'Kniebeugen mit Band',
+        'Отведение ноги с резинкой': 'Beinabduktion mit Band',
+        'Австралийские подтягивания': 'Australische Klimmzüge',
+        'Подтягивания обратным хватом': 'Klimmzüge im Untergriff',
+        'Отжимания узким хватом': 'Diamant-Liegestütze',
+        'Обратные отжимания': 'Trizepsdips an der Bank',
+        'Отжимания в наклоне': 'Pike-Liegestütze',
+        'Вис на турнике': 'Hängen an der Stange'
     },
 
     howTo: {
@@ -231,7 +290,26 @@ const DE = {
         'Велосипед': 'Ellbogen zum gegenüberliegenden Knie, das andere Bein gestreckt. Langsam — Tempo ersetzt hier den Bauch durch Schwung.',
         'Складка': 'Arme und Beine gleichzeitig heben und über dem Bauch treffen lassen. Ablassen, ohne den Boden zu berühren.',
         'Медвежья походка': 'Auf Händen und Zehen, die Knie knapp über dem Boden. Gegenüberliegende Hand und Fuß bewegen sich zusammen.',
-        'Приседания «сумо»': 'Füße breiter als die Schultern, Zehen nach außen. Die Knie folgen den Zehen, der Rücken bleibt gerade.'
+        'Приседания «сумо»': 'Füße breiter als die Schultern, Zehen nach außen. Die Knie folgen den Zehen, der Rücken bleibt gerade.',
+
+        'Тяга резинки к поясу': 'Band vor dir auf Hüfthöhe befestigt. Mit den Ellbogen nach hinten ziehen, Schulterblätter zusammen, Oberkörper ruhig.',
+        'Тяга резинки сверху': 'Band über dem Kopf befestigt. Mit gestreckten Armen zu den Hüften ziehen, Schulterblätter nach unten und innen.',
+        'Разведение резинки': 'Band vor dir auf gestreckten Armen. Die Arme bis auf Schulterhöhe öffnen, Schulterblätter zusammenziehen.',
+        'Жим резинки от груди': 'Band hinter dem Rücken, Hände an der Brust. Nach vorn bis zu gestreckten Armen drücken, Ellbogen nicht abspreizen.',
+        'Сведение рук с резинкой': 'Band hinter dem Rücken, Arme zur Seite. Gestreckte Arme vor der Brust zusammenführen, Schultern unten lassen.',
+        'Жим резинки вверх': 'Auf das Band stellen, Hände an den Schultern. Nach oben bis zu gestreckten Armen drücken, kein Hohlkreuz.',
+        'Махи с резинкой в стороны': 'Auf das Band stellen, Arme seitlich am Körper. Gestreckte Arme bis auf Schulterhöhe heben, Ellbogen leicht gebeugt.',
+        'Подъём резинки перед собой': 'Auf das Band stellen, Arme vor den Hüften. Gestreckte Arme bis auf Schulterhöhe heben, Oberkörper ruhig.',
+        'Сгибание рук с резинкой': 'Auf das Band stellen, Ellbogen am Körper. Bis zu den Schultern beugen, die Ellbogen wandern nicht nach vorn.',
+        'Разгибание рук с резинкой': 'Band oben befestigt, Ellbogen am Körper. Ganz nach unten strecken, der Oberarm bleibt still.',
+        'Приседания с резинкой': 'Band über den Knien oder unter den Füßen. Die Knie nach außen drücken, sie dürfen nicht nach innen fallen.',
+        'Отведение ноги с резинкой': 'Band um die Fesseln. Das gestreckte Bein zur Seite oder nach hinten führen, ohne den Oberkörper zu kippen.',
+        'Австралийские подтягивания': 'Körper gerade, Fersen am Boden, Stange auf Hüfthöhe. Die Brust zur Stange ziehen, Schulterblätter zusammen.',
+        'Подтягивания обратным хватом': 'Handflächen zu dir, Griff enger als die Schultern. Kinn über die Stange, kontrolliert ablassen.',
+        'Отжимания узким хватом': 'Hände unter der Brust, Daumen und Zeigefinger bilden ein Dreieck. Die Ellbogen bleiben am Körper.',
+        'Обратные отжимания': 'Hände hinter dir auf der Bank, Beine vorn. Bis zum rechten Winkel im Ellbogen absenken, Schultern unten lassen.',
+        'Отжимания в наклоне': 'Hüfte hoch, Körper im umgekehrten V. Den Scheitel zwischen den Händen absenken, Ellbogen am Körper.',
+        'Вис на турнике': 'Griff schulterbreit, Körper locker. Die Schultern nicht durchhängen lassen — Schulterblätter leicht zusammen.'
     }
 };
 
