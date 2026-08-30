@@ -139,21 +139,32 @@ function holdRepeat() {
         step = HOLD_DELAY;
     };
 
-    const tick = (el) => {
-        if (!el.isConnected) return stop();
+    /*
+     * Кнопка ищется заново на каждом повторе, а не запоминается узлом.
+     *
+     * Разметка собирается строками и перерисовывается целиком после каждого
+     * действия: нажатие на «+5 с» правит длительность и перерисовывает
+     * полосу отдыха, а прежняя кнопка выбрасывается. Ссылка на неё после
+     * первого же повтора указывала бы в никуда — удержание срабатывало один
+     * раз и глохло.
+     */
+    const tick = (action) => {
+        const el = document.querySelector(`[data-action="${action}"][data-hold]`);
+        if (!el) return stop();
 
         el.click();
 
         step = Math.max(HOLD_FASTEST, step * 0.75);
-        timer = setTimeout(() => tick(el), step);
+        timer = setTimeout(() => tick(action), step);
     };
 
     document.addEventListener('pointerdown', (e) => {
         const el = e.target.closest('[data-hold]');
-        if (!el) return;
+        const action = el?.dataset.action;
+        if (!action) return;
 
         stop();
-        timer = setTimeout(() => tick(el), HOLD_DELAY);
+        timer = setTimeout(() => tick(action), HOLD_DELAY);
     });
 
     for (const event of ['pointerup', 'pointercancel', 'pointerleave']) {

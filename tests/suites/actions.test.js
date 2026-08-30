@@ -88,3 +88,74 @@ describe('Упавшее действие', () => {
         equal(звали, false);
     });
 });
+
+/**
+ * Удержание кнопки повторяет нажатие (§16).
+ *
+ * Главная ловушка здесь — перерисовка. Разметка собирается строками и
+ * пересобирается целиком после каждого действия, так что кнопка, за которую
+ * держатся, заменяется новым узлом. Ссылка на прежний узел после первого же
+ * повтора указывала бы в никуда, и удержание срабатывало один раз.
+ */
+describe('Удержание кнопки', () => {
+
+    /** Кнопка, которая при каждом нажатии пересоздаёт саму себя. */
+    function рисовать(counter) {
+        const host = document.createElement('div');
+        document.body.appendChild(host);
+
+        const draw = () => {
+            host.innerHTML = '<button data-action="проба-удержания" data-hold>+</button>';
+        };
+
+        actions.on('проба-удержания', () => {
+            counter.count += 1;
+            draw();
+        });
+
+        draw();
+        return host;
+    }
+
+    it('повторяется, даже когда кнопка перерисовывается', async () => {
+        actions.init();
+
+        const counter = { count: 0 };
+        const host = рисовать(counter);
+
+        host.querySelector('button').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 1200));
+
+        const заВремя = counter.count;
+
+        document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 500));
+
+        const после = counter.count;
+        host.remove();
+
+        assert(заВремя >= 3, `за секунду с небольшим ожидалось несколько повторов, вышло ${заВремя}`);
+        equal(после, заВремя, 'отпустили — повтор прекратился');
+    });
+
+    /*
+     * Первое повторение отложено: без задержки обычное нажатие срабатывало бы
+     * дважды — и подход записался бы дважды.
+     */
+    it('короткое нажатие повтора не запускает', async () => {
+        actions.init();
+
+        const counter = { count: 0 };
+        const host = рисовать(counter);
+        const button = host.querySelector('button');
+
+        button.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 100));
+        document.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+
+        await new Promise((r) => setTimeout(r, 600));
+        host.remove();
+
+        equal(counter.count, 0, 'сам pointerdown нажатием не считается — его даёт click');
+    });
+});
