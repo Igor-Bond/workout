@@ -319,6 +319,7 @@ export const EN = {
     'Таймер отдыха': 'Rest timer',
     'Запускается после записи подхода': 'Starts after a set is recorded',
     'Длительность отдыха': 'Rest length',
+    'От {мин} до {макс} секунд.': 'From {мин} to {макс} seconds.',
     'Звук по окончании': 'Sound when it ends',
     'Он же управляет сигналами интервальной программы': 'It also controls the interval program sounds',
     'Вибрация по окончании': 'Vibration when it ends',

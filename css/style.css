@@ -393,34 +393,30 @@ input[type=range] {
 }
 
 /*
-    Длительность отдыха: поле, единица и та же величина словами.
+    Длительность отдыха: подпись слева, время справа.
 
-    Поле узкое намеренно — в него вводят две-три цифры, а растянутое на всю
-    строку оно обещает длинный ответ. Рядом с ним минуты и секунды: 480 в
-    поле и «08:00» рядом избавляют от счёта в уме.
+    Время — кнопка, а не надпись, и выглядеть должно нажимаемым: пунктир под
+    ним и цвет. Иначе о том, что его можно тронуть, никто не догадается — а
+    ползунком одним до восьми минут не добраться.
 */
 .rest-set {
     display: flex;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 4px;
 }
 
-.rest-set .rest-exact {
-    width: 5.5em;
-    flex: none;
-    text-align: right;
-}
-
-.rest-set .rest-unit {
-    font-size: 12px;
-    color: var(--text-dim);
-}
-
-.rest-set strong {
-    margin-left: auto;
+.rest-exact {
+    background: none;
+    border: none;
+    padding: 0;
+    font: inherit;
+    font-size: 18px;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
+    border-bottom: 1px dashed var(--accent-dim);
+    cursor: pointer;
 }
 
 input[type=checkbox] {
@@ -568,12 +564,30 @@ input[type=checkbox] {
 
 .session-card { text-align: center; }
 
+/*
+ * Название упражнения — самое заметное на карточке.
+ *
+ * Оно было подписью: тринадцать пикселей, приглушённый цвет, разрядка. Так
+ * набирают заголовок раздела, а не то, что ищут глазами, подняв голову от
+ * штанги: карточка заполнена числами, полями и кнопками, и название в ней
+ * терялось. Рамка нужна по той же причине — отделить его от всего
+ * остального, а не только сделать крупнее.
+ *
+ * Перенос по словам обязателен: «Тяга горизонтального блока» в одну строку
+ * не встаёт даже на широком телефоне, а вылезшее за рамку название хуже
+ * мелкого.
+ */
 .sess-name {
-    font-size: 13px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
+    font-size: 22px;
+    font-weight: bold;
+    line-height: 1.2;
+    color: var(--text);
+    background: rgba(255, 122, 51, 0.08);
+    border: 1px solid var(--accent-dim);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    overflow-wrap: anywhere;
 }
 
 .sess-set { font-size: 14px; color: var(--accent); margin-bottom: 16px; }

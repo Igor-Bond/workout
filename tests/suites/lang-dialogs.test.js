@@ -28,6 +28,7 @@ import { session } from '../../js/modules/session.js';
 import { summary } from '../../js/modules/summary.js';
 import { recordsScreen } from '../../js/modules/records.js';
 import { plan } from '../../js/modules/plan.js';
+import { profile } from '../../js/modules/profile.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 
 /**
@@ -38,6 +39,7 @@ import { exercise as exerciseCard } from '../../js/modules/exercise.js';
  */
 const ДЕЙСТВИЯ = [
     ['вес тела', 'body-add', {}],
+    ['длительность отдыха', 'rest-exact', {}],
     ['новое упражнение', 'ex-add', {}],
     ['новый шаблон', 'tpl-new', {}],
     ['отбор по упражнению', 'hist-exercise', {}]
@@ -59,6 +61,7 @@ describe('Перевод диалогов', () => {
                 await screen(stats);
                 await screen(exercises);
                 await screen(templates);
+                await screen(profile);
                 await screen(history);
 
                 for (const [название, действие, данные] of ДЕЙСТВИЯ) {

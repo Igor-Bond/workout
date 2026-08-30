@@ -54,16 +54,13 @@ function restCeiling(seconds) {
 /**
  * Показать длительность отдыха, не перерисовывая экран.
  *
- * Значение видно в трёх местах сразу — в поле, в подписи и положением
- * ползунка, — и разойтись им нельзя. Перерисовка же посреди набора отняла бы
- * фокус из поля на каждой цифре.
+ * Значение видно в двух местах сразу — минутами в строке и положением
+ * ползунка, — и разойтись им нельзя. Перерисовывать же весь экран ради
+ * одной цифры, пока ползунок под пальцем, незачем.
  */
 function showRest(seconds) {
     const label = document.getElementById('rest-value');
     if (label) label.textContent = format.seconds(seconds);
-
-    const field = document.getElementById('set-rest-exact');
-    if (field && Number(field.value) !== seconds) field.value = String(seconds);
 
     const slider = document.getElementById('set-rest');
     if (slider && Number(slider.value) !== seconds) slider.value = String(seconds);
@@ -295,24 +292,22 @@ export const profile = {
                 ${ui.raw(toggle('restEnabled', t('Таймер отдыха'), t('Запускается после записи подхода')))}
 
                 <!--
-                    Поле рядом с ползунком, а не вместо него.
+                    Время стоит в строке с подписью и открывает ввод нажатием.
 
-                    Ползунком удобно подбирать на слух — подвинул и слышишь,
-                    сколько получилось; полем удобно задать то, что уже
-                    знаешь. Ползунок один этого не давал: он кончался на пяти
-                    минутах, а тем, кто тянет тяжёлое, нужно больше, и
-                    добирать пришлось бы кнопкой «+30 с» посреди отдыха.
+                    Ползунком удобно подбирать на глаз, числом — задать то,
+                    что уже знаешь; нужно и то и другое (Р-2). Но поле,
+                    стоявшее рядом постоянно, спорило с ползунком за
+                    внимание и показывало одно и то же значение дважды: в
+                    секундах и минутами. Теперь на виду одни минуты — их и
+                    читают, — а секунды спрашиваются, только когда их
+                    собрались менять.
                 -->
                 <div class="field">
-                    <label for="set-rest-exact">${t('Длительность отдыха')}</label>
-
-                    <div class="rest-set">
-                        <input type="number" id="set-rest-exact" class="rest-exact"
-                               min="${String(restTimer.SHORTEST)}" max="${String(restTimer.LONGEST)}" step="5"
-                               inputmode="numeric" value="${String(rest)}" data-change="rest-exact">
-                        <span class="rest-unit">${t('с')}</span>
-                        <strong id="rest-value">${format.seconds(rest)}</strong>
-                    </div>
+                    <label class="rest-set">
+                        <span>${t('Длительность отдыха')}</span>
+                        <button class="rest-exact" data-action="rest-exact"
+                                id="rest-value">${format.seconds(rest)}</button>
+                    </label>
 
                     <input type="range" id="set-rest"
                            min="${String(Math.min(SLIDER_MIN, rest))}" max="${String(restCeiling(rest))}" step="15"
@@ -645,21 +640,32 @@ actions.on('fs-now', async () => {
 });
 
 /**
- * Отдых, вписанный руками.
+ * Отдых, заданный числом.
  *
- * Экран перерисовывается, потому что от значения зависит длина ползунка:
- * вписанное больше десяти минут он должен доставать. Перерисовка здесь
- * безопасна — событие change приходит по уходу из поля, а не на каждой цифре.
+ * Спрашивается в секундах, а показывается минутами: вводить «480» быстрее,
+ * чем «08:00», а читать наоборот. Границы стоят в самом поле и повторены
+ * пояснением: браузер молча обрежет вписанное сверх допустимого, и без
+ * подписи это выглядит как «оно меня не слушает».
  */
-actions.onChange('rest-exact', (el) => {
-    const seconds = restTimer.clamp(el.value);
+actions.on('rest-exact', async () => {
+    const values = await dialog.form({
+        title: t('Длительность отдыха'),
+        text: t('От {мин} до {макс} секунд.', { мин: restTimer.SHORTEST, макс: restTimer.LONGEST }),
+        fields: [{
+            name: 'rest',
+            label: t('Секунд'),
+            type: 'number',
+            value: config.get('restSeconds')
+        }]
+    });
 
-    // Пустое поле и мусор возвращают то, что было: молча поставить ноль
+    if (!values) return;
+
+    const seconds = restTimer.clamp(values.rest);
+
+    // Пустое поле и мусор оставляют то, что было: молча поставить ноль
     // значит выключить отдых, о чём никто не просил
-    if (seconds === null) {
-        showRest(config.get('restSeconds'));
-        return;
-    }
+    if (seconds === null) return;
 
     config.set('restSeconds', seconds);
     app.render();

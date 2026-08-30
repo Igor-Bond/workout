@@ -317,6 +317,7 @@ export const DE = {
     'Таймер отдыха': 'Pausentimer',
     'Запускается после записи подхода': 'Startet, sobald ein Satz erfasst ist',
     'Длительность отдыха': 'Pausenlänge',
+    'От {мин} до {макс} секунд.': 'Von {мин} bis {макс} Sekunden.',
     'Звук по окончании': 'Ton am Ende',
     'Он же управляет сигналами интервальной программы': 'Er steuert auch die Signale des Intervallprogramms',
     'Вибрация по окончании': 'Vibration am Ende',
