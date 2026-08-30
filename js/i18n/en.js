@@ -66,6 +66,7 @@ export const EN = {
     'Предыдущее': 'Previous',
     'На очереди': 'Up next',
     'Следом': 'Then',
+    'Каждый день': 'Every day',
     'Пора вернуться': 'Time to come back',
     'Забытое': 'Forgotten',
     'Следующее': 'Next',

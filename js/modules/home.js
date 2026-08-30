@@ -180,7 +180,7 @@ function compositionName(group, names, templates) {
  * кнопке внизу, которая завершает перебор. На карточке крупно — упражнения:
  * по ним узнают тренировку, а тип и дни это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи) {
+function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи, ежедневное) {
 
     /*
      * Первый из очереди поднят в карточку — на самое видное место (§29.1).
@@ -363,6 +363,23 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 <div class="chips">${chips}</div>
             ` : ''}
 
+            <!--
+                Фон стоит между очередью и забытым: делают его чаще всего
+                остального, но выбора он не требует, и потому не спорит за
+                место с тем, что требует (§29.1)
+            -->
+            ${ежедневное.length ? ui.html`
+                <div class="sub-title">${t('Каждый день')}</div>
+                <div class="chips">
+                    ${ежедневное.map((f) => ui.html`
+                        <button class="chip" data-action="home-like" data-id="${f.workoutId}">
+                            ${compositionName(f, names, templates)}
+                            <span class="chip-count">${давность(f)}</span>
+                        </button>
+                    `)}
+                </div>
+            ` : ''}
+
             ${forgotten.length ? ui.html`
                 <div class="sub-title">${t('Забытое')}</div>
                 <div class="chips">${forgottenChip}</div>
@@ -500,6 +517,23 @@ export const home = {
 
         const очередь = rhythm.dueWorkouts(entries, Date.now(), { groupOf: группы, background: фон });
 
+        /*
+         * Фон отдельной строкой (§29.1).
+         *
+         * Убрав зарядку из очереди, мы оставили её вовсе без быстрого пути:
+         * начать её стало можно только через шаблоны. А делают её чаще всего
+         * остального — она и должна быть под рукой, просто не соревнуясь с
+         * тем, что требует выбора.
+         *
+         * Тот же расчёт, вывернутый наизнанку: «фоном» здесь объявляется всё
+         * нефоновое, и в разбор попадает только зарядка. Мышцы ей ни к чему —
+         * очерёдности внутри одного состава не бывает.
+         */
+        const ежедневное = rhythm.dueWorkouts(entries, Date.now(), {
+            background: (w) => !фон(w),
+            limit: 2
+        });
+
         // Карточке нужны итоги той самой тренировки — тип и число подходов
         const записи = new Map(entries.map((e) => [e.workout.id, e]));
 
@@ -514,7 +548,12 @@ export const home = {
         // по себе, в других тренировках
         const покрыто = new Set([
             ...архив,
-            ...очередь.filter((f) => f.overdue >= 1).flatMap((f) => f.exerciseIds)
+            ...очередь.filter((f) => f.overdue >= 1).flatMap((f) => f.exerciseIds),
+
+            // Упражнения зарядки стоят разделом выше — и просрочены они
+            // всегда: делают их ежедневно, значит промежуток равен дню, и
+            // назавтра каждое уже «пора». В забытом им делать нечего
+            ...ежедневное.flatMap((f) => f.exerciseIds)
         ]);
 
         return ui.html`
@@ -528,9 +567,10 @@ export const home = {
                 rhythm.suggestType(workouts),
                 names,
                 rhythm.dueExercises(entries, Date.now(), { skip: покрыто }),
-                rhythm.frequentWorkouts(entries),
+                rhythm.frequentWorkouts(entries.filter((e) => !фон(e.workout))),
                 очередь,
-                записи
+                записи,
+                ежедневное
             )}
 
             ${entries.length ? weekBlock(entries) : ''}
