@@ -257,3 +257,63 @@ describe('Сигнал отдыха', () => {
         equal(моменты.length, 0);
     });
 });
+
+/**
+ * Громкость сигнала отдыха (§16).
+ *
+ * Он звучит в тех же условиях, что сигналы интервальной программы, и должен
+ * быть слышен так же. Раньше был втрое тише: средний уровень 0,028 против
+ * 0,088 у «начали». Ухо слышит средний уровень, а не пик, — и разницу
+ * слышало именно такой.
+ */
+describe('Громкость отдыха', () => {
+
+    it('слышен наравне с сигналами программы и не срезается', async () => {
+        const было = window.AudioContext;
+        const contexts = [];
+
+        class Offline extends OfflineAudioContext {
+            constructor() {
+                super(2, 44100 * 3, 44100);
+                contexts.push(this);
+            }
+        }
+
+        window.AudioContext = Offline;
+
+        try {
+            config.set('restEnabled', true);
+            config.set('restSound', true);
+
+            // Свежий модуль: звуковой контекст он заводит один раз и держит,
+            // а нам нужен подменённый
+            const { restTimer: fresh } = await import('../../js/core/timer.js?volume');
+
+            fresh.start(1);
+
+            const buffer = await contexts[contexts.length - 1].startRendering();
+
+            let peak = 0;
+            let square = 0;
+            let count = 0;
+
+            for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+                const data = buffer.getChannelData(channel);
+
+                for (let i = 0; i < data.length; i++) {
+                    const value = Math.abs(data[i]);
+                    if (value > peak) peak = value;
+                    square += value * value;
+                    count += 1;
+                }
+            }
+
+            const rms = Math.sqrt(square / count);
+
+            assert(peak <= 0.95, `пик ${peak.toFixed(2)} — дорожка срежет верхушку`);
+            assert(rms >= 0.05, `средний уровень ${rms.toFixed(3)} — тише сигналов программы`);
+        } finally {
+            window.AudioContext = было;
+        }
+    });
+});
