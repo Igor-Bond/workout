@@ -1156,7 +1156,7 @@ describe('Экран: план, новое упражнение', () => {
 
         const поля = (спрошено.form?.fields || []).map((f) => f.name);
 
-        equal(поля, ['name', 'kind', 'group'], 'те же поля, что в справочнике');
+        equal(поля, ['name', 'kind', 'group', 'howTo'], 'те же поля, что в справочнике');
 
         const заведено = await dbService.findExerciseByName('Тяга резинки');
 

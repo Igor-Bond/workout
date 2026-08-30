@@ -130,7 +130,11 @@ actions.on('ex-add', async () => {
         fields: [
             { name: 'name', label: t('Название'), required: true, placeholder: t('Жим лёжа') },
             { name: 'kind', label: t('Вид'), type: 'select', value: 'weight', options: kindOptions() },
-            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') }
+            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') },
+
+            // Те же поля, что при правке: заводить упражнение и тут же идти
+            // дописывать к нему описание — лишний путь на ровном месте
+            { name: 'howTo', label: t('Как выполнять (необязательно)'), type: 'textarea' }
         ],
         confirmText: t('Добавить')
     });

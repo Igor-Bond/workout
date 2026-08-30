@@ -513,7 +513,8 @@ async function createFromPlan(name) {
             { name: 'name', label: t('Название'), required: true, value: name },
             { name: 'kind', label: t('Вид'), type: 'select', value: 'weight',
               options: KINDS.map((k) => ({ value: k.value, label: `${t(k.label)} — ${t(k.hint)}` })) },
-            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') }
+            { name: 'group', label: t('Группа мышц (необязательно)'), placeholder: t('Грудь') },
+            { name: 'howTo', label: t('Как выполнять (необязательно)'), type: 'textarea' }
         ],
         confirmText: t('Добавить')
     });

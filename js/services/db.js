@@ -234,7 +234,7 @@ export const dbService = {
         return found || null;
     },
 
-    async createExercise({ name, kind = 'weight', group = '' }) {
+    async createExercise({ name, kind = 'weight', group = '', howTo = '' }) {
         const clean = String(name || '').trim();
         if (!clean) throw new Error(t('У упражнения должно быть название'));
 
@@ -245,6 +245,11 @@ export const dbService = {
             nameKey: migrations.normalizeName(clean),
             kind,
             group,
+
+            // Описание задаётся при создании наравне с прочим: форма спрашивает
+            // те же поля, что при правке, и молча терять ответ нельзя (§5.2)
+            howTo: String(howTo || '').trim(),
+
             archived: false,
             createdAt: now,
             updatedAt: now
