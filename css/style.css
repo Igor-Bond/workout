@@ -958,6 +958,17 @@ table.log tr:last-child td { border-bottom: none; }
 
 .repeat-card:active { border-color: var(--accent); }
 
+/*
+    Первый из очереди — единственное предложение экрана, у которого есть
+    основание в цифрах, и оно обведено цветом внимания (§29.1). Рамка, а не
+    заливка: залитое пятно на экране одно, и оно отдано кнопке внизу.
+*/
+.repeat-card.is-queue {
+    border-color: var(--accent);
+}
+
+.repeat-card.is-queue .rep-label { color: var(--accent); }
+
 .repeat-card .rep-label {
     display: block;
     font-size: 10px;

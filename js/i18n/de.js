@@ -90,8 +90,8 @@ export const DE = {
     '{done} из {planned} подходов': '{done} von {planned} Sätzen',
     'и ещё {n}': 'und {n} weitere',
     '+{n} дн': '+{n} T',
-    'через {n} дн': 'in {n} T',
-    'пора': 'fällig',
+    '−{n} дн': '−{n} T',
+    '{n} дн': '{n} T',
 
     // ================== ПЛАН ==================
 

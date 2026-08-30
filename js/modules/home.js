@@ -126,15 +126,20 @@ function exerciseLine(entry, names, limit = NAMES_SHOWN) {
 /**
  * Насколько состав опаздывает — подпись на плашке и в карточке (§29.1).
  *
- * Ровно та величина, по которой выстроена очередь. Знак важнее числа:
- * «+3 дн» и «через 4 дн» это два разных положения дел, а «3 дн» и «4 дн»
- * выглядели бы одинаково, хотя означали бы противоположное.
+ * Ровно та величина, по которой выстроена очередь, и всегда числом со
+ * знаком: «+18 дн», «0 дн», «−5 дн». Словесные «пора» и «через 5 дн» были
+ * понятнее поодиночке, но ряд из них читался хуже — глаз сравнивает числа,
+ * а не разбирает предлоги. Одна шкала, и знак говорит, по какую сторону
+ * срока стоит состав.
+ *
+ * Минус здесь настоящий, типографский, а не дефис: он одной ширины с
+ * плюсом, и столбик подписей не разъезжается.
  */
 function опоздание(place) {
     if (place.late > 0) return t('+{n} дн', { n: place.late });
-    if (place.late < 0) return t('через {n} дн', { n: -place.late });
+    if (place.late < 0) return t('−{n} дн', { n: -place.late });
 
-    return t('пора');
+    return t('{n} дн', { n: 0 });
 }
 
 /**
@@ -301,7 +306,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
             <div class="section-title">${t('Начать')}</div>
 
             ${первое ? ui.html`
-                <button class="repeat-card" data-action="home-like" data-id="${первое.workoutId}">
+                <button class="repeat-card is-queue" data-action="home-like" data-id="${первое.workoutId}">
                     <span class="rep-label">${t('На очереди')}</span>
                     <span class="rep-names">${compositionName(первое, names, templates)}</span>
                     <span class="rep-meta">
