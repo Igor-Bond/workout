@@ -965,3 +965,69 @@ describe('Доставка новых базовых упражнений', () =
             'вес между отрезками вводить некогда — только повторения и время');
     });
 });
+
+/**
+ * Свойства при сведении двойников (§5.1).
+ *
+ * Победителя выбирает идентификатор, и раньше он же приносил группу и вид, а
+ * чужие пропадали. У базовых упражнений идентификатор начинается с `base-`,
+ * у самодельных это UUID — то есть выбор делала монетка. С появлением отдыха
+ * мышц (§29.1) группа стала двигать то, что приложение предлагает делать.
+ */
+describe('Свойства при сведении', () => {
+
+    it('непустое побеждает пустое', async () => {
+        await reset();
+
+        const пустой = await dbService.createExercise({ name: 'Тяга', kind: 'weight', group: '' });
+
+        await dbService.applyRemote('exercises', [{
+            ...пустой, id: 'aaa-с-группой', group: 'Спина', updatedAt: Date.now()
+        }]);
+
+        await dbService.dedupeExercises();
+
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.group, 'Спина', 'группа не должна пропадать из-за того, чей id меньше');
+    });
+
+    /*
+     * Человек, проставивший группу руками, знает про своё упражнение больше,
+     * чем список из коробки: базовые «Отжимания» лежат в «Груди», а тот, кто
+     * считает их трицепсом, имеет на это основания.
+     */
+    it('при двух непустых побеждает пользовательское', async () => {
+        await reset();
+
+        const свой = await dbService.createExercise({ name: 'Отжимания', kind: 'reps', group: 'Трицепс' });
+
+        // Базовое: идентификатор выведен из названия, значит меньше UUID,
+        // начинающихся с c–f, и больше начинающихся с 0–b
+        await dbService.applyRemote('exercises', [{
+            ...свой, id: 'base-отжимания', group: 'Грудь', updatedAt: Date.now()
+        }]);
+
+        await dbService.dedupeExercises();
+
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.group, 'Трицепс', 'своё описание важнее списка из коробки');
+    });
+
+    it('базовое не перебивает пользовательское своим видом', async () => {
+        await reset();
+
+        const свой = await dbService.createExercise({ name: 'Планка', kind: 'time' });
+
+        await dbService.applyRemote('exercises', [{
+            ...свой, id: 'base-планка', kind: 'reps', updatedAt: Date.now()
+        }]);
+
+        await dbService.dedupeExercises();
+
+        const [остался] = await dbService.listExercises({ includeArchived: true });
+
+        equal(остался.kind, 'time');
+    });
+});
