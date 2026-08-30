@@ -721,11 +721,33 @@ async function shiftRest(step) {
     const стало = restTimer.clamp(Math.max(restTimer.SHORTEST, было + step));
 
     if (стало !== null && стало !== было && currentId) {
+        // Свой снимок правится сразу: подпись и меню читают его, а ждать
+        // ответа базы нечего — на экране число должно измениться от нажатия
+        знакомые[currentId] = { ...знакомые[currentId], restSeconds: стало };
         await dbService.updateExercise(currentId, { restSeconds: стало });
     }
 
     restTimer.extend(step);
-    app.render();
+    refreshRest();
+}
+
+/*
+ * Полоса и меню правятся на месте, без перерисовки экрана (§16).
+ *
+ * При удержании кнопка повторяется до восьми раз в секунду, и полная
+ * перерисовка на каждый шаг заставляла экран мигать. Само число отдыха
+ * обновляется подпиской на тик, а меняться при сдвиге могут ещё две вещи:
+ * подпись — когда у упражнения впервые появилась своя величина, — и строка
+ * «Отдых: …» в меню «Ещё…».
+ */
+function refreshRest() {
+    const своё = знакомые[restTimer.exerciseId]?.restSeconds;
+
+    const label = document.querySelector('.rest-label');
+    if (label) label.textContent = своё ? t('Отдых для этого упражнения') : t('Отдых');
+
+    const menu = document.querySelector('[data-action="sess-rest"]');
+    if (menu) menu.textContent = t('Отдых: {время}', { время: format.seconds(restOf(currentId)) });
 }
 
 actions.on('rest-extend', () => shiftRest(REST_STEP));
