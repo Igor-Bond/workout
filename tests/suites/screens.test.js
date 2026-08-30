@@ -631,7 +631,7 @@ describe('Экран: выполнение', () => {
         const view = await screen(session);
 
         assert(has(view, 'Последний раз'));
-        assert(has(view, '60 кг × 10, 60 × 9'));
+        assert(has(view, '60 кг × 10, 9'), 'вес не повторяется, пока не изменился');
     });
 });
 

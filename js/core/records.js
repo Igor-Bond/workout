@@ -229,26 +229,67 @@ export const records = {
             : `${reps} ${t('повт.')}`;
     },
 
-    /** Строка вида «60 кг × 10, 60 × 9, 55 × 8» для подходов одного раза. */
+    /**
+     * Строка подходов одного раза: «60 кг × 10, 9, 8» или «30 кг × 40 — 6».
+     *
+     * Подряд идущие одинаковые сворачиваются в кратность (§15). Без этого
+     * зарядка из шести одинаковых подходов давала «30 кг × 40, 30 × 40,
+     * 30 × 40, 30 × 40, 30 × 40, 30 × 40» — строку, в которой глаз ищет
+     * отличия там, где их нет, вместо того чтобы дать ориентир перед
+     * подходом.
+     *
+     * Сворачиваются именно подряд идущие, а не все одинаковые скопом:
+     * «12, 10, 8» — это работа до отказа, видно, что силы кончались, и
+     * общее «3 подхода» стёрло бы как раз то, ради чего на строку смотрят.
+     */
     describeSession(sets = [], kind = 'weight') {
         if (sets.length === 0) return '—';
 
         const measure = records.measure(sets, kind);
 
-        if (measure !== 'weight') {
-            return sets.map((s) => records.describe(s, measure)).join(', ');
+        const parts = [];
+        let run = null;
+
+        // Вес не повторяется, пока не изменился: «30 кг × 12, 10, 8» вместо
+        // «30 кг × 12, 30 × 10, 30 × 8». Единица — только при первом весе,
+        // дальше она уже названа
+        let shownWeight = null;
+
+        for (const set of sets) {
+            const key = measure === 'weight'
+                ? `${set.weight || 0}|${set.reps ?? 0}`
+                : records.describe(set, measure);
+
+            if (run && run.key === key) {
+                run.count += 1;
+                continue;
+            }
+
+            let text;
+
+            if (measure !== 'weight') {
+                text = records.describe(set, measure);
+            } else if (!set.weight) {
+                text = String(set.reps ?? 0);
+                shownWeight = null;
+            } else if (set.weight === shownWeight) {
+                text = String(set.reps ?? 0);
+            } else {
+                const вес = format.weight(set.weight);
+                text = shownWeight === null
+                    ? `${вес} ${t('кг')} × ${set.reps ?? 0}`
+                    : `${вес} × ${set.reps ?? 0}`;
+                shownWeight = set.weight;
+            }
+
+            run = { key, count: 1, text };
+            parts.push(run);
         }
 
-        // Вес повторяется у большинства подходов — во втором и далее его
-        // единица измерения только мешает читать
-        return sets
-            .map((s, i) => {
-                const reps = s.reps ?? 0;
-                if (!s.weight) return `${reps}`;
-                return i === 0
-                    ? `${format.weight(s.weight)} ${t('кг')} × ${reps}`
-                    : `${format.weight(s.weight)} × ${reps}`;
-            })
+        return parts
+            .map((part) => (part.count > 1
+                ? `${part.text} — ${format.count(part.count, format.WORDS.set)}`
+                : part.text))
             .join(', ');
     }
 };
