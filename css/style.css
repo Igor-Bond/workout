@@ -1340,6 +1340,25 @@ svg.heatmap { display: block; }
 .chip.is-active { border-color: var(--accent); color: var(--accent); }
 
 /*
+    Ежедневное: сделано сегодня или ещё нет (§29.1).
+
+    Цвет отвечает на единственный вопрос к фоновой тренировке, и потому
+    заменяет собой чтение подписи. Приглушённо, полупрозрачной рамкой: это
+    отметка о состоянии, а не призыв — призыв на экране один, и он внизу.
+*/
+.chip.is-done {
+    border-color: color-mix(in srgb, var(--good) 55%, transparent);
+}
+
+.chip.is-done .chip-count { color: var(--good); opacity: 0.85; }
+
+.chip.is-todo {
+    border-color: color-mix(in srgb, var(--accent-dim) 65%, transparent);
+}
+
+.chip.is-todo .chip-count { color: var(--accent-dim); opacity: 0.9; }
+
+/*
     Забытое упражнение (§29.1): такая же плашка, но пунктиром.
 
     Пунктир и говорит, что за ней не готовая тренировка, а сбор новой —

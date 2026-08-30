@@ -376,11 +376,21 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
             -->
             ${ежедневное.length ? ui.html`
                 <div class="sub-title">${t('Чаще всего')}</div>
+                <!--
+                    Цветом здесь отвечают на единственный вопрос к
+                    ежедневному: сегодня уже или ещё нет. Зелёная рамка —
+                    сделано, тёплая — нет. Приглушённо: это отметка о
+                    состоянии, а не призыв, и спорить с кнопкой внизу ей
+                    незачем (§29.1)
+                -->
                 <div class="chips">
                     ${ежедневное.map((f) => ui.html`
-                        <button class="chip" data-action="home-like" data-id="${f.workoutId}">
+                        <button class="chip ${f.daysSince === 0 ? 'is-done' : 'is-todo'}"
+                                data-action="home-like" data-id="${f.workoutId}">
                             ${compositionName(f, names, templates)}
-                            <span class="chip-count">${давность(f)}</span>
+                            <span class="chip-count">
+                                ${f.daysSince === 0 ? t('сегодня') : давность(f)}
+                            </span>
                         </button>
                     `)}
                 </div>
@@ -537,7 +547,13 @@ export const home = {
          */
         const ежедневное = rhythm.dueWorkouts(entries, Date.now(), {
             background: (w) => !фон(w),
-            limit: 2
+            limit: 2,
+
+            // Сделанное сегодня здесь остаётся, в отличие от очереди: у
+            // ежедневного вопрос не «когда вернуться», а «сегодня уже или
+            // ещё нет», и исчезнувшая плашка на него не отвечает — она
+            // выглядит так же, как если бы зарядки не было вовсе
+            includeToday: true
         });
 
         // Карточке нужны итоги той самой тренировки — тип и число подходов

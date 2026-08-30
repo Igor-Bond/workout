@@ -332,7 +332,7 @@ export const rhythm = {
      * заброшенным считалось бы всё, чем человек занимался. Вернувшись, он
      * увидел бы пустое место вместо своих же тренировок.
      */
-    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3, groupOf = null, background = null } = {}) {
+    dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3, groupOf = null, background = null, includeToday = false } = {}) {
         const since = startOfDay(now) - weeks * 7 * DAY;
         const today = startOfDay(now);
 
@@ -434,7 +434,7 @@ export const rhythm = {
                     rested: отдохнул(group.exerciseIds)
                 };
             })
-            .filter((g) => g.interval && g.daysSince >= 1 && g.skipped <= cap)
+            .filter((g) => g.interval && (includeToday || g.daysSince >= 1) && g.skipped <= cap)
             /*
              * Отдых мышц — первый ключ, и он сильнее всего остального.
              * «Отжимания Тайсона» просрочены на восемнадцать дней, но трицепс
