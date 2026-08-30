@@ -161,19 +161,19 @@ describe('Отдых правится с выполнения', () => {
         }
     }
 
-    it('«+30 с» двигает и отсчёт, и настройку', () => своё(90, async () => {
+    it('«плюс» двигает и отсчёт, и настройку', () => своё(90, async () => {
         restTimer.start();
         await press('rest-extend');
 
-        equal(config.get('restSeconds'), 120, 'иначе на каждой паузе пришлось бы нажимать заново');
-        assert(restTimer.remaining > 110, `текущий отдых тоже должен вырасти, вышло ${restTimer.remaining}`);
+        equal(config.get('restSeconds'), 95, 'иначе на каждой паузе пришлось бы нажимать заново');
+        assert(restTimer.remaining > 90, `текущий отдых тоже должен вырасти, вышло ${restTimer.remaining}`);
     }));
 
-    it('«−30 с» тоже', () => своё(90, async () => {
+    it('«минус» тоже', () => своё(90, async () => {
         restTimer.start();
         await press('rest-shorten');
 
-        equal(config.get('restSeconds'), 60);
+        equal(config.get('restSeconds'), 85);
     }));
 
     /*

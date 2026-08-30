@@ -13,6 +13,8 @@
  * onclick при этом не нужны, и модули не приходится выкладывать в window.
  */
 
+let started = false;
+
 const clickHandlers = new Map();
 const changeHandlers = new Map();
 
@@ -77,6 +79,12 @@ export const actions = {
     },
 
     init() {
+        // Повторный вызов навесил бы вторые слушатели, и каждое нажатие
+        // сработало бы дважды: подход записался бы дважды, отдых прыгнул бы
+        // на два шага
+        if (started) return;
+        started = true;
+
         document.addEventListener('click', (e) => dispatch(clickHandlers, e, 'data-action'));
         document.addEventListener('change', (e) => dispatch(changeHandlers, e, 'data-change'));
 
@@ -92,5 +100,69 @@ export const actions = {
             const target = document.querySelector(`[data-action="${field.dataset.enter}"]`);
             if (target) target.click();
         });
+
+        holdRepeat();
     }
 };
+
+/*
+ * Удержание кнопки повторяет её нажатие (data-hold).
+ *
+ * Нужно там, где шаг мелкий, а пройти надо далеко: длительность отдыха
+ * шагом в пять секунд от минуты до трёх — это восемнадцать тычков, а
+ * удержанием одно движение (§16).
+ *
+ * Первое повторение отложено на полсекунды: без задержки обычное нажатие
+ * успевало бы сработать дважды. Дальше шаг ускоряется до восьми раз в
+ * секунду и на этом останавливается — без потолка палец за секунду уводит
+ * отдых с минуты на полчаса, а он ещё и запоминается в настройке (Р-26).
+ *
+ * Восемь в секунду выбраны под шаг в пять секунд: две секунды удержания
+ * дают около минуты. Медленнее — и до трёх минут пришлось бы держать
+ * полдесятка секунд, быстрее — цифра мелькает и её не поймать.
+ *
+ * Слушается pointer, а не touch с mouse по отдельности: один набор событий
+ * на палец, мышь и перо. Уход пальца с кнопки и отмена жеста системой
+ * останавливают повтор — иначе он продолжался бы при прокрутке, а промах
+ * по соседней кнопке в тесном ряду отдыха отменил бы паузу.
+ */
+const HOLD_DELAY = 500;
+const HOLD_FASTEST = 120;
+
+function holdRepeat() {
+    let timer = 0;
+    let step = HOLD_DELAY;
+
+    const stop = () => {
+        clearTimeout(timer);
+        timer = 0;
+        step = HOLD_DELAY;
+    };
+
+    const tick = (el) => {
+        if (!el.isConnected) return stop();
+
+        el.click();
+
+        step = Math.max(HOLD_FASTEST, step * 0.75);
+        timer = setTimeout(() => tick(el), step);
+    };
+
+    document.addEventListener('pointerdown', (e) => {
+        const el = e.target.closest('[data-hold]');
+        if (!el) return;
+
+        stop();
+        timer = setTimeout(() => tick(el), HOLD_DELAY);
+    });
+
+    for (const event of ['pointerup', 'pointercancel', 'pointerleave']) {
+        document.addEventListener(event, stop);
+    }
+
+    // Долгое нажатие на телефоне вызывает выделение и системное меню —
+    // на кнопке с повтором это мешает и выглядит поломкой
+    document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('[data-hold]')) e.preventDefault();
+    });
+}

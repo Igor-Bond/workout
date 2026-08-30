@@ -24,6 +24,20 @@ import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
+/**
+ * На сколько кнопки двигают отдых (§16).
+ *
+ * Было тридцать секунд, и половина разумных значений оказывалась
+ * недостижимой: между минутой и полутора нет ничего, 45 и 75 не набрать
+ * вовсе. Грубость к тому же не разовая — кнопка меняет и настройку по
+ * умолчанию (Р-26), то есть закрепляет её на все следующие паузы.
+ *
+ * Пять секунд — мелко настолько, что подойдёт любому; дальность добирается
+ * удержанием: кнопка помечена data-hold и при удержании повторяется всё
+ * быстрее.
+ */
+const REST_STEP = 5;
+
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
 let currentId = null;
 let mode = null;
@@ -179,8 +193,8 @@ function restBar() {
         <div class="rest-bar">
             <span class="rest-label">${t('Отдых')}</span>
             <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
-            <button class="chip" data-action="rest-shorten">${t('−30 с')}</button>
-            <button class="chip" data-action="rest-extend">${t('+30 с')}</button>
+            <button class="chip" data-action="rest-shorten" data-hold>${t('−{n} с', { n: REST_STEP })}</button>
+            <button class="chip" data-action="rest-extend" data-hold>${t('+{n} с', { n: REST_STEP })}</button>
             <button class="chip" data-action="rest-skip">${t('Пропустить')}</button>
         </div>
     `;
@@ -674,8 +688,8 @@ function shiftRest(step) {
     app.render();
 }
 
-actions.on('rest-extend', () => shiftRest(30));
-actions.on('rest-shorten', () => shiftRest(-30));
+actions.on('rest-extend', () => shiftRest(REST_STEP));
+actions.on('rest-shorten', () => shiftRest(-REST_STEP));
 
 // ================== ЗАМЕТКИ (§20) ==================
 
