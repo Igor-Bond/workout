@@ -161,6 +161,7 @@ export const DE = {
     'Заметка к упражнению': 'Notiz zur Übung',
     'Добавить заметку': 'Notiz hinzufügen',
     'Не заполнена.': 'Nicht ausgefüllt.',
+    'Отдых для этого упражнения': 'Pause für diese Übung',
     'Отдых': 'Pause',
     'Рекорд': 'Rekord',
     'Новый рекорд': 'Neuer Rekord',

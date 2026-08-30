@@ -30,6 +30,8 @@ import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
+import { restTimer } from '../../js/core/timer.js';
+import { config } from '../../js/config.js';
 
 import { beeper } from '../../js/core/beeper.js';
 import { dbService } from '../../js/services/db.js';
@@ -1181,5 +1183,81 @@ describe('Экран: план, новое упражнение', () => {
         assert(!спрошено.form, 'второе упражнение с тем же именем не заводится');
 
         await очистить();
+    });
+});
+
+/**
+ * Память длительности отдыха (§16).
+ *
+ * После тяжёлого приседа нужно три минуты, после планки тридцать секунд.
+ * Одна величина на всё приложение (Р-26) заставляла править её каждый раз
+ * заново — теперь она запоминается за упражнением.
+ */
+describe('Экран: выполнение, память паузы', () => {
+
+    /** Начать тренировку из одного упражнения и открыть выполнение. */
+    async function начать(exercise) {
+        await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: exercise.id, plannedSets: 3, targetReps: 10, weight: 50, skipped: false }]
+        });
+
+        await screen(session);
+    }
+
+    it('кнопки правят величину упражнения, а не общую настройку', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        await начать(ex);
+        restTimer.start(90, ex.id);
+
+        await press('rest-extend');
+
+        const заведено = await dbService.getExercise(ex.id);
+
+        equal(заведено.restSeconds, 95, 'своя величина упражнения выросла на шаг');
+        equal(config.get('restSeconds'), 90, 'общая настройка — начало отсчёта для незнакомых, её не трогаем');
+
+        restTimer.stop();
+    });
+
+    /*
+     * Без подписи переход к следующему упражнению менял бы число «сам собой» —
+     * то самое удивление, из-за которого своя длительность когда-то была
+     * убрана (Р-26). Теперь она вернулась, но названа вслух.
+     */
+    it('своя величина названа на полосе отдыха', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        await начать(ex);
+        restTimer.start(90, ex.id);
+
+        const общий = await screen(session);
+        assert(!has(общий, 'Отдых для этого упражнения'), 'пока величина общая, говорить не о чем');
+
+        await dbService.updateExercise(ex.id, { restSeconds: 150 });
+
+        const свой = await screen(session);
+        assert(has(свой, 'Отдых для этого упражнения'), 'своя величина обязана быть названа');
+
+        restTimer.stop();
+    });
+
+    it('незнакомое упражнение берёт общую настройку', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 75);
+
+        await начать(ex);
+        const view = await screen(session);
+
+        assert(has(view, '1:15'), 'в меню отдыха стоит общая величина');
     });
 });

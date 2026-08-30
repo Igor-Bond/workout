@@ -131,63 +131,6 @@ describe('Границы отдыха', () => {
     });
 });
 
-/**
- * Длительность отдыха одна на всё приложение (§16).
- *
- * Своя длительность у каждого упражнения была и оказалась ловушкой: человек
- * менял отдых посреди тренировки, следующее упражнение брало своё значение,
- * и выглядело это как «поменял, а оно не поменялось». Теперь значение одно, и
- * правка на выполнении — это правка настройки.
- */
-describe('Отдых правится с выполнения', () => {
-
-    /** Своё значение на время проверки: настоящее трогать незачем. */
-    async function своё(seconds, body) {
-        const былоОтдых = localStorage.getItem('wt_restSeconds');
-        const былоВключено = localStorage.getItem('wt_restEnabled');
-
-        config.set('restSeconds', seconds);
-        config.set('restEnabled', true);
-
-        try {
-            return await body();
-        } finally {
-            restTimer.stop();
-
-            for (const [key, value] of [['wt_restSeconds', былоОтдых], ['wt_restEnabled', былоВключено]]) {
-                if (value === null) localStorage.removeItem(key);
-                else localStorage.setItem(key, value);
-            }
-        }
-    }
-
-    it('«плюс» двигает и отсчёт, и настройку', () => своё(90, async () => {
-        restTimer.start();
-        await press('rest-extend');
-
-        equal(config.get('restSeconds'), 95, 'иначе на каждой паузе пришлось бы нажимать заново');
-        assert(restTimer.remaining > 90, `текущий отдых тоже должен вырасти, вышло ${restTimer.remaining}`);
-    }));
-
-    it('«минус» тоже', () => своё(90, async () => {
-        restTimer.start();
-        await press('rest-shorten');
-
-        equal(config.get('restSeconds'), 85);
-    }));
-
-    /*
-     * Настройка не уходит за границы даже частым нажатием: полторы секунды
-     * отдыха — это не отдых, а оборванный отсчёт.
-     */
-    it('настройка не выходит за границы', () => своё(20, async () => {
-        restTimer.start();
-
-        for (let i = 0; i < 5; i++) await press('rest-shorten');
-
-        equal(config.get('restSeconds'), restTimer.SHORTEST);
-    }));
-});
 
 /**
  * Сигнал окончания выкладывается заранее (§16).

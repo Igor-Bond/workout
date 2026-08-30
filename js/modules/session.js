@@ -38,6 +38,24 @@ import { app } from '../app.js';
  */
 const REST_STEP = 5;
 
+/**
+ * Сколько отдыхать после этого упражнения (§16).
+ *
+ * Своя величина, если она у упражнения есть, иначе общая настройка. Общая
+ * остаётся началом отсчёта для незнакомого: пока человек ничего не сказал
+ * про конкретное упражнение, ему нечего и помнить.
+ *
+ * Живёт свободным полем у упражнения, а не отдельной таблицей: схему
+ * хранилища трогать нельзя, откат на прошлую версию должен оставаться
+ * возможным (§35).
+ */
+let знакомые = {};
+
+function restOf(exerciseId) {
+    const своё = знакомые[exerciseId]?.restSeconds;
+    return restTimer.clamp(своё) || config.get('restSeconds');
+}
+
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
 let currentId = null;
 let mode = null;
@@ -66,6 +84,10 @@ async function load() {
     ]);
 
     const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
+
+    // Отсюда берётся своя длительность отдыха: полоса и запуск таймера
+    // читают её по идентификатору упражнения (§16)
+    знакомые = exercises;
     const rows = engine.progress(workout.plan, sets);
 
     // Выбранное упражнение могло закончиться или быть пропущенным — тогда
@@ -189,9 +211,18 @@ function deltaLine({ last, kind }, own) {
 function restBar() {
     if (!restTimer.running) return '';
 
+    /*
+     * Чья это величина — общая или своя у упражнения (§16).
+     *
+     * Без подписи переход к следующему упражнению менял бы число «сам собой»:
+     * то самое удивление, из-за которого своя длительность когда-то и была
+     * убрана (Р-26). Теперь она вернулась, но названа вслух.
+     */
+    const своё = знакомые[restTimer.exerciseId]?.restSeconds;
+
     return ui.html`
         <div class="rest-bar">
-            <span class="rest-label">${t('Отдых')}</span>
+            <span class="rest-label">${своё ? t('Отдых для этого упражнения') : t('Отдых')}</span>
             <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
             <button class="chip" data-action="rest-shorten" data-hold>${t('−{n} с', { n: REST_STEP })}</button>
             <button class="chip" data-action="rest-extend" data-hold>${t('+{n} с', { n: REST_STEP })}</button>
@@ -302,7 +333,7 @@ function currentCard({ workout, sets, exercises, rows }) {
                     ${planItem?.note ? `${t('Заметка к упражнению')} ✎` : t('Заметка к упражнению')}
                 </button>
                 <button class="btn btn-ghost btn-sm" data-action="sess-rest">
-                    ${t('Отдых: {время}', { время: format.seconds(config.get('restSeconds')) })}
+                    ${t('Отдых: {время}', { время: format.seconds(restOf(currentId)) })}
                 </button>
             </div>
 
@@ -559,7 +590,7 @@ actions.on('sess-done', async () => {
     //
     // Длительность одна на всё приложение (§16): поменянная посреди
     // тренировки, она действует и на следующие упражнения
-    restTimer.start(config.get('restSeconds'), currentId);
+    restTimer.start(restOf(currentId), currentId);
 
     /*
      * Что изменилось этим подходом. Записанное в базу читать заново незачем:
@@ -667,22 +698,31 @@ actions.on('rest-skip', () => {
 });
 
 /**
- * Кнопки отдыха двигают и текущий отсчёт, и саму настройку.
+ * Кнопки отдыха двигают и текущий отсчёт, и то, с чем упражнение придёт
+ * в следующий раз.
  *
  * Правка «на один раз» здесь бесполезна: если минуты мало сейчас, её мало и
  * между следующими подходами. Раньше сдвиг жил ровно до конца этого отдыха,
- * и на каждой паузе приходилось нажимать заново — а настройка так и
- * оставалась прежней.
+ * и на каждой паузе приходилось нажимать заново.
+ *
+ * Запоминается за упражнением, а не в общей настройке (Р-46). После
+ * тяжёлого приседа нужно три минуты, после планки тридцать секунд, и одна
+ * величина на всё заставляла править её каждый раз заново.
+ *
+ * Сразу, а не по завершении тренировки: брошенная на середине потеряла бы
+ * правку, а человек был бы уверен, что сказал приложению своё слово.
  */
-function shiftRest(step) {
-    const было = config.get('restSeconds');
+async function shiftRest(step) {
+    const было = restOf(currentId);
 
     // Ниже нуля шаг уводит легко, и clamp() посчитал бы это за «не задано»,
     // то есть молча ничего не сделал бы. Здесь ноль означает не «убрать
     // отдых», а «короче некуда»
     const стало = restTimer.clamp(Math.max(restTimer.SHORTEST, было + step));
 
-    if (стало !== null && стало !== было) config.set('restSeconds', стало);
+    if (стало !== null && стало !== было && currentId) {
+        await dbService.updateExercise(currentId, { restSeconds: стало });
+    }
 
     restTimer.extend(step);
     app.render();
@@ -715,21 +755,11 @@ actions.on('sess-note-toggle', (el) => {
 });
 
 /**
- * Своя длительность отдыха для упражнения (§16).
- *
- * Между подходами приседа и планки отдыхают по-разному, и заставлять
- * менять общую настройку туда-сюда посреди тренировки — не дело.
- * Значение хранится у упражнения, а не в тренировке: оно про упражнение и
- * должно сохраняться на следующий раз.
- */
-/**
  * Длительность отдыха правится прямо с выполнения (§16).
  *
- * Это та же самая настройка, что в профиле, а не отдельная величина у
- * упражнения. Своя длительность у каждого упражнения была и оказалась
- * ловушкой: человек менял отдых посреди тренировки, следующее упражнение
- * брало своё значение, и выглядело это как «поменял, а оно не поменялось».
- * Одно значение на всё, и править его можно с обеих сторон.
+ * Правится величина этого упражнения — та же, что двигают кнопки «±5 с», —
+ * а не общая настройка из профиля. Общая остаётся началом отсчёта для
+ * незнакомых упражнений (Р-46).
  */
 actions.on('sess-rest', async () => {
     const values = await dialog.form({
@@ -739,7 +769,7 @@ actions.on('sess-rest', async () => {
             name: 'rest',
             label: t('Секунд'),
             type: 'number',
-            value: config.get('restSeconds')
+            value: restOf(currentId)
         }]
     });
 
@@ -748,7 +778,8 @@ actions.on('sess-rest', async () => {
     const seconds = restTimer.clamp(values.rest);
     if (seconds === null) return;
 
-    config.set('restSeconds', seconds);
+    if (currentId) await dbService.updateExercise(currentId, { restSeconds: seconds });
+
     app.render();
 });
 

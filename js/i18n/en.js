@@ -163,6 +163,7 @@ export const EN = {
     'Заметка к упражнению': 'Exercise note',
     'Добавить заметку': 'Add a note',
     'Не заполнена.': 'Not filled in.',
+    'Отдых для этого упражнения': 'Rest for this exercise',
     'Отдых': 'Rest',
     'Рекорд': 'Record',
     'Новый рекорд': 'New record',
