@@ -290,8 +290,14 @@ export const rhythm = {
             groups.set(key, group);
         }
 
+        const today = startOfDay(now);
+
         return [...groups.values()]
             .filter((g) => g.count >= min)
+
+            // Дни с прошлого раза нужны экрану: подпись на плашке всюду одна
+            // и та же, каким бы списком плашка ни была заполнена (§29.1)
+            .map((g) => ({ ...g, daysSince: Math.round((today - startOfDay(g.lastAt)) / DAY) }))
 
             // Реже — вперёд; при равной редкости вперёд то, что делали
             // недавно: оно ещё в голове, и вернуться к нему проще

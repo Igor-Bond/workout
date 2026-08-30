@@ -65,6 +65,7 @@ export const DE = {
     'Предыдущее': 'Zurück',
     'На очереди': 'An der Reihe',
     'Следом': 'Danach',
+    'Что повторяете': 'Was du wiederholst',
     'Чаще всего': 'Am häufigsten',
     'Пора вернуться': 'Zeit zurückzukehren',
     'Забытое': 'Vergessen',

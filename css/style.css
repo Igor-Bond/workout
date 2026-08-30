@@ -1346,12 +1346,18 @@ svg.heatmap { display: block; }
     сравнивать не с чем: раздел показывает одно, и прижатая к левому краю
     плашка выглядит обрезком строки, а не разделом.
 */
-.chip.is-full {
+.chip.is-full,
+.chip.is-wide {
     display: flex;
     width: 100%;
     align-items: center;
-    justify-content: center;
+
+    /* Высота у широких плашек общая: стоят они друг под другом, и разница
+       в шесть пикселей читается как случайность, а не как замысел */
+    min-height: 42px;
 }
+
+.chip.is-full { justify-content: center; }
 
 /*
     Ежедневное: сделано сегодня или ещё нет (§29.1).
@@ -1408,11 +1414,6 @@ svg.heatmap { display: block; }
     её не с чем — соседей в ряду нет, — а широкая цель попадает под палец не
     глядя. Название посередине, стрелки по краям, где им и место.
 */
-.chip.is-wide {
-    display: flex;
-    width: 100%;
-}
-
 .chip.is-wide .chip-main {
     flex: 1;
     text-align: center;

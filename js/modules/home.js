@@ -249,6 +249,8 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
      * Частота осталась запасным вариантом: пока состав не повторился трижды,
      * промежутка не знаем, и очереди из чего строить нет.
      */
+    const запас = frequent.length ? 'frequent' : templates.length ? 'templates' : null;
+
     const chips = хвост.length
         ? хвост.map((f) => ui.html`
             <button class="chip" data-action="home-like" data-id="${f.workoutId}">
@@ -256,17 +258,32 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 <span class="chip-count">${давность(f)}</span>
             </button>
         `)
-        : frequent.length
+        : запас === 'frequent'
         ? frequent.map((f) => ui.html`
             <button class="chip" data-action="home-like" data-id="${f.workoutId}">
                 ${compositionName(f, names, templates)}
-                <span class="chip-count">×${String(f.count)}</span>
+                <span class="chip-count">${давность(f)}</span>
             </button>
         `)
-        : templates.slice(0, 4).map((t) => ui.html`
+        : запас === 'templates'
+        ? templates.slice(0, 4).map((t) => ui.html`
             <button class="chip ${suggests(t) ? 'is-active' : ''}"
                     data-action="home-template" data-id="${t.id}">${t.name}</button>
-        `);
+        `)
+        : [];
+
+    /*
+     * У каждой ветки свой заголовок (§29.1).
+     *
+     * Раньше он был один на все три, и над шаблонами у человека без единой
+     * тренировки стояло «Пора вернуться» — возвращаться было некуда.
+     * Заголовок обязан описывать то, что под ним, а не то место, где он
+     * стоит.
+     */
+    const заголовок = хвост.length
+        ? (первое ? t('Следом') : t('Пора вернуться'))
+        : запас === 'frequent' ? t('Что повторяете')
+        : t('Шаблоны');
 
     /*
      * Забытые упражнения (§26.2.3).
@@ -365,7 +382,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 непонятно почему разным оформлением (§29.1)
             -->
             ${chips.length ? ui.html`
-                <div class="sub-title">${первое ? t('Следом') : t('Пора вернуться')}</div>
+                <div class="sub-title">${заголовок}</div>
                 <div class="chips">${chips}</div>
             ` : ''}
 
