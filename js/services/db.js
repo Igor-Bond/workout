@@ -160,6 +160,21 @@ function newId() {
 const alive = (record) => !!record && !record.deletedAt;
 
 /**
+ * Кто хочет знать, что тренировка завершена.
+ *
+ * База про облако не знает и знать не должна — она только объявляет о
+ * событии, а связывает одно с другим точка входа. Обратный порядок невозможен
+ * технически: обмен уже импортирует хранилище, и хранилище не может
+ * импортировать обмен.
+ *
+ * Объявление живёт здесь, а не в местах вызова, потому что завершают
+ * тренировку из пяти разных мест — экран выполнения, интервальный экран, две
+ * кнопки на главной и закрытие брошенной при начале новой, — и шестое
+ * непременно забыли бы.
+ */
+const finished = new Set();
+
+/**
  * Сводка по тренировке (§34.1).
  *
  * Считается один раз — при завершении тренировки и при любом позднейшем
@@ -570,11 +585,26 @@ export const dbService = {
     async finishWorkout(id, finishedAt = Date.now()) {
         const sets = await db.sets.where('workoutId').equals(id).toArray();
 
-        return dbService.updateWorkout(id, {
+        const workout = await dbService.updateWorkout(id, {
             status: 'done',
             finishedAt,
             summary: summarize(sets)
         });
+
+        // После объявления, а не до: слушатель отправляет тренировку в
+        // облако, и отправлять ему надо уже завершённую — активная не
+        // синхронизируется вовсе (§39)
+        finished.forEach((cb) => {
+            try { cb(id); } catch (e) { console.error('[База] Ошибка слушателя завершения:', e); }
+        });
+
+        return workout;
+    },
+
+    /** Подписка на завершение тренировки. Возвращает функцию отписки. */
+    onWorkoutFinished(callback) {
+        finished.add(callback);
+        return () => finished.delete(callback);
     },
 
     async getWorkout(id) {

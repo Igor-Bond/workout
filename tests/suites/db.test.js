@@ -454,6 +454,59 @@ describe('Тренировки и подходы', () => {
     });
 
     /*
+     * Объявление о завершении (§39). На нём висит отправка в облако, и
+     * висит оно здесь, а не в пяти местах, откуда тренировку завершают.
+     */
+    it('о завершении объявляется, и к этому мгновению тренировка уже закрыта', async () => {
+        await reset();
+
+        // Слушателя зовут, но не ждут — обмен не должен задерживать переход к
+        // итогам. Поэтому чтение начинается в момент вызова, а сверяется потом
+        const позвали = [];
+        const отписаться = dbService.onWorkoutFinished((id) => {
+            позвали.push(dbService.getWorkout(id).then((w) => ({ id, status: w.status })));
+        });
+
+        try {
+            const workout = await dbService.createWorkout({ type: 'Силовая' });
+            await dbService.finishWorkout(workout.id);
+
+            equal(позвали.length, 1);
+
+            const [первый] = await Promise.all(позвали);
+
+            equal(первый.id, workout.id);
+            equal(первый.status, 'done', 'слушатель отправляет её в облако — активная туда не поедет');
+        } finally {
+            отписаться();
+        }
+
+        const вторая = await dbService.createWorkout({ type: 'Кардио' });
+        await dbService.finishWorkout(вторая.id);
+
+        equal(позвали.length, 1, 'после отписки не зовут');
+    });
+
+    /*
+     * Упавший слушатель не должен ронять завершение: тренировка человека
+     * важнее любого, кто на неё подписался.
+     */
+    it('ошибка слушателя не мешает завершить тренировку', async () => {
+        await reset();
+
+        const отписаться = dbService.onWorkoutFinished(() => { throw new Error('нарочно'); });
+
+        try {
+            const workout = await dbService.createWorkout({ type: 'Силовая' });
+            await dbService.finishWorkout(workout.id);
+
+            equal((await dbService.getWorkout(workout.id)).status, 'done');
+        } finally {
+            отписаться();
+        }
+    });
+
+    /*
      * Удаление мягкое (§21) и статус не трогает, поэтому брошенная
      * тренировка остаётся «активной» в индексе. Пока удалённые не
      * отсеивались до выбора первой, одна такая закрывала собой все

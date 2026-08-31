@@ -158,6 +158,24 @@ async function threeExercises() {
 const записать = (workout, exercise, order, setNumber, values) =>
     dbService.addSet({ workoutId: workout.id, exerciseId: exercise.id, order, setNumber, ...values });
 
+/**
+ * Ожидание фонового обмена: он запускается без ожидания, и подловить его
+ * можно только по следу в подставном облаке.
+ *
+ * Возвращает управление сразу, как условие сошлось, — а не по истечении
+ * срока: иначе каждая такая проверка стоила бы секунды.
+ */
+async function дождаться(условие, предел = 2000) {
+    const срок = Date.now() + предел;
+
+    while (Date.now() < срок) {
+        if (условие()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    return false;
+}
+
 // ================== СЦЕНАРИИ ==================
 
 describe('Сквозной путь: тренировка в свободном порядке', () => {
@@ -290,6 +308,75 @@ describe('Сквозной путь: обмен с облаком', () => {
             equal(cloud.all('sets').length, 0);
 
             equal(cloud.all('exercises').length, 3);
+        } finally {
+            restore();
+        }
+    });
+
+    /*
+     * Отправка по завершении тренировки (§39).
+     *
+     * Раньше единственным поводом отправить был уход со страницы, и на
+     * компьютере тренировка не уезжала никуда: браузер обрывает запросы
+     * вместе со страницей. Здесь проверяется, что явного обмена не нужно
+     * вовсе — достаточно нажать «Готово».
+     */
+    it('законченная тренировка уезжает сама, без ухода со страницы', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        // Ровно та связка, что заведена в main.js
+        const отписаться = dbService.onWorkoutFinished(() => sync.now());
+
+        try {
+            const { biceps } = await threeExercises();
+
+            const workout = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+            await записать(workout, biceps, 1, 1, { reps: 12, weight: 14 });
+
+            equal(cloud.get('workouts', workout.id), undefined, 'пока идёт — дома');
+
+            await dbService.finishWorkout(workout.id);
+            await дождаться(() => cloud.get('workouts', workout.id));
+
+            const уехала = cloud.get('workouts', workout.id);
+
+            assert(уехала, 'после «Готово» тренировка должна быть в облаке без всякого ухода');
+            equal(уехала.status, 'done');
+            equal(уехала.sets.length, 1, 'подходы уехали внутри неё');
+        } finally {
+            отписаться();
+            restore();
+        }
+    });
+
+    /*
+     * Придержка частых поводов. Возвращение в приложение случается при
+     * каждом снятии блокировки — за тренировку это два десятка раз, и
+     * обмениваться столько же незачем.
+     */
+    it('частые поводы придерживаются, важный проходит всегда', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            await dbService.createExercise({ name: 'Бицепс', kind: 'weight' });
+
+            await sync.run({ silent: true });
+            const было = cloud.state.reads;
+
+            sync.now({ notSooner: 60000 });
+            await дождаться(() => cloud.state.reads > было, 200);
+
+            equal(cloud.state.reads, было, 'только что обменивались — второй раз незачем');
+
+            // Без придержки повод проходит: так уезжает завершённая тренировка
+            sync.now();
+            await дождаться(() => cloud.state.reads > было);
+
+            assert(cloud.state.reads > было, 'важный повод придержкой не гасится');
         } finally {
             restore();
         }
