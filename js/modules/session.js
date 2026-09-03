@@ -133,18 +133,43 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
         </div>
 
         <!--
-            Вторая строка появляется, только когда есть что складывать. Этим
-            поле «довес» и объясняет себя: пусто — приложение считает само,
-            вписал — видно, во что это превратилось.
+            Вторая строка стоит в разметке всегда, но показывается, только
+            когда есть что складывать. Так она успевает ответить на ввод:
+            цифру вписывают до записи подхода, и увидеть, во что она
+            превратилась, нужно тогда же, а не после (Р-53).
         -->
-        ${довес > 0 ? ui.html`
-            <div class="rec-line">
-                <span class="rec-label">${t('С дополнительным весом')}</span>
-                <span class="rec-value">≈ ${format.weight(свой + довес)} ${t('кг')}</span>
-                <span class="rec-when">${когда}</span>
-            </div>
-        ` : ''}
+        <div class="rec-line" id="rec-extra" ${ui.raw(довес > 0 ? '' : 'hidden')}>
+            <span class="rec-label">${t('С дополнительным весом')}</span>
+            <span class="rec-value" id="rec-extra-value">≈ ${format.weight(свой + довес)} ${t('кг')}</span>
+            <span class="rec-when">${когда}</span>
+        </div>
     `;
+}
+
+/**
+ * Пересчёт строки «с дополнительным весом» на месте (Р-53).
+ *
+ * Без перерисовки: она вырвала бы фокус из поля, в котором прямо сейчас
+ * набирают цифру, — тем же правилом живёт полоса отдыха.
+ */
+function refreshExtraLine() {
+    const row = document.getElementById('rec-extra');
+    if (!row || !view) return;
+
+    const свой = estimate.bodyLoad({
+        exercise: { ...(view.exercises[currentId] || {}), kind: view.kind },
+        bodyWeight: view.bodyWeight
+    });
+
+    if (!свой) return;
+
+    const довес = Number(document.getElementById('f-weight')?.value) || 0;
+    row.hidden = довес <= 0;
+
+    const value = document.getElementById('rec-extra-value');
+    const текст = `≈ ${format.weight(свой + довес)} ${t('кг')}`;
+
+    if (value && value.textContent !== текст) value.textContent = текст;
 }
 
 /**
@@ -284,14 +309,24 @@ function fields(kind, prefill) {
         -->
         ${kind === 'reps' ? ui.html`
             <div class="note-row">
-                <button class="link-btn" data-action="sess-weight-toggle" ${ui.raw(prefill.weight ? 'hidden' : '')}>
-                    ${t('＋ дополнительный вес')}
+                <!--
+                    Ссылка остаётся на месте и переключает знак — свернуть
+                    надо тем же движением, каким открыли (Р-53). Спрятанная,
+                    она оставляла поле открытым до конца тренировки.
+                -->
+                <button class="link-btn" data-action="sess-weight-toggle">
+                    ${prefill.weight ? t('− дополнительный вес') : t('＋ дополнительный вес')}
                 </button>
             </div>
         ` : ''}
 
+        <!--
+            У своего веса подписи здесь нет: её роль играет ссылка над полем
+            (Р-53). Со своей подписью выходило два одинаковых слова подряд —
+            «− дополнительный вес» и «дополнительный вес:» строкой ниже.
+        -->
         <div class="inline-field" id="f-weight-row" ${ui.raw(kind === 'reps' && !prefill.weight ? 'hidden' : '')}>
-            <span>${kind === 'reps' ? t('дополнительный вес:') : t('вес:')}</span>
+            ${kind === 'reps' ? '' : ui.html`<span>${t('вес:')}</span>`}
             <input type="number" id="f-weight" min="0" step="0.5" inputmode="decimal"
                    placeholder="—" value="${value(prefill.weight)}">
             <span>${t('кг')}</span>
@@ -484,6 +519,21 @@ export const session = {
 
         // А вот исчезновение полосы — уже смена состава экрана
         unsubscribe.push(restTimer.on('finish', () => app.render()));
+
+        /*
+         * Строка нагрузки отвечает на ввод довеса сразу (Р-53).
+         *
+         * Событие input, а не change: change приходит по потере фокуса, то
+         * есть уже после того, как человек нажал «Выполнено», — и ответ
+         * опаздывал бы ровно на тот подход, ради которого его и смотрят.
+         */
+        const weightField = document.getElementById('f-weight');
+
+        if (weightField) {
+            const слушатель = () => refreshExtraLine();
+            weightField.addEventListener('input', слушатель);
+            unsubscribe.push(() => weightField.removeEventListener('input', слушатель));
+        }
 
         keyboard.attach();
 
@@ -801,13 +851,27 @@ actions.on('sess-more', (el) => {
 
 actions.on('sess-weight-toggle', (el) => {
     const row = document.getElementById('f-weight-row');
+    const input = document.getElementById('f-weight');
     if (!row) return;
 
     // Без перерисовки, как и заметка: введённые повторения должны уцелеть
-    row.hidden = false;
-    el.hidden = true;
+    row.hidden = !row.hidden;
+    el.textContent = row.hidden ? t('＋ дополнительный вес') : t('− дополнительный вес');
 
-    document.getElementById('f-weight')?.focus();
+    /*
+     * Свернули — значит довеса нет, и поле очищается (Р-53).
+     *
+     * Спрятанное, но заполненное записалось бы молча: человек убрал строку
+     * с глаз, а килограммы уехали бы в подход. Такое невидимое, но
+     * действующее число мы уже вычищали из планов (Р-49).
+     */
+    if (row.hidden) {
+        if (input) input.value = '';
+    } else {
+        input?.focus();
+    }
+
+    refreshExtraLine();
 });
 
 actions.on('sess-note-toggle', (el) => {
@@ -817,7 +881,10 @@ actions.on('sess-note-toggle', (el) => {
     // Без перерисовки: поле открывается рядом с уже введёнными значениями,
     // и терять их ради показа одной строки незачем
     input.hidden = !input.hidden;
-    el.textContent = input.hidden ? '＋ заметка к подходу' : '− заметка к подходу';
+
+    // Через t(): подпись переключалась голой русской строкой, и на английском
+    // экране заметка после первого же нажатия становилась русской
+    el.textContent = input.hidden ? t('＋ заметка к подходу') : t('− заметка к подходу');
 
     if (!input.hidden) input.focus();
 });

@@ -656,6 +656,47 @@ describe('Экран: выполнение', () => {
         }
     });
 
+    /*
+     * Дополнительный вес спрятан за ссылкой, а строка нагрузки стоит в
+     * разметке всегда (Р-53): она обязана ответить на ввод до записи
+     * подхода, а появиться в разметке по перерисовке — значит опоздать.
+     */
+    it('дополнительный вес спрятан, а строка нагрузки ждёт наготове', async () => {
+        const отжимания = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+        await dbService.setBodyWeight({ weight: 80 });
+
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: отжимания.id, plannedSets: 3, targetReps: 20, weight: 0, skipped: false }
+        ]});
+
+        const пусто = await screen(session);
+
+        equal(пусто.querySelector('#f-weight-row').hidden, true, 'поле довеса закрыто');
+        equal(пусто.querySelector('[data-action="sess-weight-toggle"]').textContent.trim(),
+            '＋ дополнительный вес', 'ссылка на месте и зовёт открыть');
+        assert(пусто.querySelector('#rec-extra'), 'строка нагрузки должна быть в разметке заранее');
+        equal(пусто.querySelector('#rec-extra').hidden, true, 'но молчит, пока складывать нечего');
+        assert(has(пусто, 'Своим весом'), '80 × 0,64 — эта строка есть всегда');
+
+        // Записан подход с поясом: следующий подход подставит его же
+        await dbService.addSet({
+            workoutId: w.id, exerciseId: отжимания.id, order: 1, setNumber: 1, reps: 20, weight: 10
+        });
+
+        const с_поясом = await screen(session);
+
+        equal(с_поясом.querySelector('#f-weight-row').hidden, false, 'записанный довес прятать нельзя');
+        equal(с_поясом.querySelector('[data-action="sess-weight-toggle"]').textContent.trim(),
+            '− дополнительный вес', 'ссылка предлагает свернуть тем же движением');
+        equal(с_поясом.querySelector('#rec-extra').hidden, false);
+        assert(has(с_поясом, 'С дополнительным весом'), 'и называет, во что это сложилось');
+
+        // Своей подписи у поля нет: её роль играет ссылка над ним, и со
+        // своей выходило два одинаковых слова подряд
+        equal(text(с_поясом.querySelector('#f-weight-row')), 'кг',
+            'подпись поля повторяла бы ссылку слово в слово');
+    });
+
     it('поля соответствуют виду упражнения', async () => {
         const plank = await seed({ name: 'Планка', kind: 'time', group: 'Пресс' });
         await dbService.createWorkout({ type: 'Силовая', plan: [
