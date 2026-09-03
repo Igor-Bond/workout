@@ -144,12 +144,28 @@ export const stats = {
     },
 
     async render() {
-        const [entries, sets, exerciseList, weights] = await Promise.all([
+        const [сводки, sets, exerciseList, weights] = await Promise.all([
             dbService.listWorkoutSummaries(),
             dbService.allSets(),
             dbService.listExercises({ includeArchived: true }),
             dbService.listBodyWeight()
         ]);
+
+        const shareOf = (exercise) => estimate.shareOf(exercise);
+
+        /*
+         * Тоннаж — вся нагрузка на мышцы, вместе с собственным весом (Р-52).
+         *
+         * Сводки пересчитываются здесь, до всего остального: на них держатся и
+         * свод за период, и лучший месяц, и сравнение с прошлым периодом.
+         * Пересчитай позже — и «лучший месяц по тоннажу» остался бы месяцем,
+         * когда человек больше брался за железо, а не когда больше работал.
+         */
+        const entries = calc.withBodyLoad(
+            сводки, sets,
+            Object.fromEntries(exerciseList.map((e) => [e.id, e])),
+            weights, shareOf
+        );
 
         if (entries.length === 0) {
             return ui.html`
@@ -174,9 +190,8 @@ export const stats = {
         const streaks = calc.streaks(calc.days(entries, null));
         const weekdays = calc.weekdays(entries, current);
 
-        // Нагрузка собственным весом: считается по подходам, а не по сводке
-        // тренировки — сводка знает только поднятое железо (§15.2)
-        const shareOf = (exercise) => estimate.shareOf(exercise);
+        // Сколько в тоннаже пришлось на собственный вес: сам тоннаж уже полный,
+        // а эта величина показывает, из чего он сложился (§15.2)
         const bodyVolume = calc.bodyVolume(sets, exercises, weights, current, shareOf);
         const wasBody = previous ? calc.bodyVolume(sets, exercises, weights, previous, shareOf) : 0;
 
@@ -218,12 +233,16 @@ export const stats = {
                     ${tile(t('Подходов'), String(now.sets), change.sets)}
                     ${tile(t('Повторений'), String(now.reps), change.reps)}
                     ${tile(t('Тоннаж, кг'), format.decimal(now.volume, 0), change.volume)}
-                    ${bodyVolume ? tile(t('Со своим весом, кг'), format.decimal(bodyVolume, 0), bodyChange) : ''}
+                    ${bodyVolume ? tile(t('Из них своим весом'), format.decimal(bodyVolume, 0), bodyChange) : ''}
                     ${tile(t('Общее время'), format.duration(now.durationMs), change.durationMs)}
                     ${tile(t('Подх. / трен.'), format.decimal(now.avgSets), change.avgSets)}
                     ${tile(t('Повт. / подх.'), format.decimal(now.avgReps), change.avgReps)}
                     ${tile(t('Средняя длит.'), format.duration(now.avgDuration), change.avgDuration)}
                 </div>
+
+                ${bodyVolume ? ui.html`
+                    <p class="hint">${t('Тоннаж — вся нагрузка: и отягощение, и собственный вес.')}</p>
+                ` : ''}
 
                 ${was ? ui.html`
                     <p class="hint">${t('Изменение — к предыдущему такому же периоду.')}</p>

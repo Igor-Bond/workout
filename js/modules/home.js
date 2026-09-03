@@ -29,6 +29,7 @@ import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
 import { rhythm } from '../core/rhythm.js';
 import { stats } from '../core/stats.js';
+import { estimate } from '../core/estimate.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
@@ -529,13 +530,24 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, entries, templates, exercises, body] = await Promise.all([
+        const [active, сводки, templates, exercises, body, подходы] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
             dbService.listTemplates(),
             dbService.listExercises({ includeArchived: true }),
-            dbService.listBodyWeight()
+            dbService.listBodyWeight(),
+            dbService.allSets()
         ]);
+
+        // Тоннаж — вся нагрузка, вместе с собственным весом (Р-52). Считается
+        // здесь, а не в сводке: доля упражнения и вес тела в подходы не
+        // пишутся, и правка любого из них обязана пересчитать историю
+        const entries = stats.withBodyLoad(
+            сводки, подходы,
+            Object.fromEntries(exercises.map((e) => [e.id, e])),
+            body,
+            (exercise) => estimate.shareOf(exercise)
+        );
 
         const workouts = entries.map((e) => e.workout);
         const names = new Map(exercises.map((e) => [e.id, e.name]));

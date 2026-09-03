@@ -280,8 +280,16 @@ export const summary = {
                     ${tile(t('Подходов'), String(totals.sets))}
                     ${tile(t('Повторений'), String(totals.reps))}
                     ${tile(t('Время'), format.duration(totals.durationMs))}
-                    ${totals.hasWeight ? tile(t('Тоннаж, кг'), format.weight(totals.volume)) : ''}
-                    ${bodyVolume ? tile(t('Со своим весом, кг'), format.decimal(bodyVolume, 0)) : ''}
+                    <!--
+                        Тоннаж — вся нагрузка вместе с собственным весом
+                        (Р-52). Разбивка здесь не нужна: у отдельного
+                        упражнения она тривиальна — со снарядом железо, со
+                        своим весом тело, — а смешанная тренировка тем и
+                        интересна, что складывает одно с другим.
+                    -->
+                    ${totals.volume + bodyVolume > 0
+                        ? tile(t('Тоннаж, кг'), format.decimal(totals.volume + bodyVolume, 0))
+                        : ''}
                     ${tile(t('Повт. на подход'), totals.avgReps ? format.decimal(totals.avgReps) : '—')}
                 </div>
             </div>

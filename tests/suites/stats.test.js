@@ -508,3 +508,82 @@ describe('Объём собственным весом', () => {
         equal(с[0].volume, 520);
     });
 });
+
+/*
+ * Тоннаж — вся нагрузка, вместе с собственным весом (Р-52).
+ *
+ * Сводка тренировки знает только поднятое железо, поэтому полная нагрузка
+ * досчитывается при показе — и по весу тела на дату подхода, а не нынешнему.
+ */
+describe('Полная нагрузка в сводках', () => {
+
+    const NOW = Date.parse('2026-09-04T12:00:00');
+    const DAY = 86400000;
+
+    const упражнения = {
+        отжимания: { id: 'отжимания', kind: 'reps' },
+        жим: { id: 'жим', kind: 'weight' }
+    };
+
+    const сводка = (id, at, volume, sets) => ({
+        workout: { id, startedAt: at, finishedAt: at + 3600000, type: 'Силовая' },
+        sets: sets.length, reps: sets.reduce((s, x) => s + x.reps, 0), volume,
+        exerciseIds: [...new Set(sets.map((s) => s.exerciseId))]
+    });
+
+    const подход = (exerciseId, at, over = {}) => ({ exerciseId, workoutId: 'w', reps: 10, performedAt: at, ...over });
+
+    const доля = () => 0.65;
+
+    it('свой вес прибавляется к железу', async () => {
+        const at = NOW - DAY;
+        const sets = [подход('отжимания', at), подход('жим', at, { weight: 60 })];
+
+        const [entry] = stats.withBodyLoad(
+            [сводка('w', at, 600, sets)], sets, упражнения, [{ at: NOW - 30 * DAY, weight: 80 }], доля
+        );
+
+        equal(entry.volume, 600 + 520, 'железо и собственный вес — одна нагрузка');
+        equal(entry.bodyVolume, 520, 'разбивка остаётся доступной');
+    });
+
+    it('тренировка без своего веса не трогается', () => {
+        const at = NOW - DAY;
+        const sets = [подход('жим', at, { weight: 60 })];
+        const исходная = сводка('w', at, 600, sets);
+
+        const [entry] = stats.withBodyLoad([исходная], sets, упражнения, [{ at: NOW - 30 * DAY, weight: 80 }], доля);
+
+        equal(entry, исходная, 'лишний объект на каждую строку истории незачем');
+    });
+
+    /*
+     * Прямой ответ на вопрос владельца: новое взвешивание не переписывает
+     * историю. Вес берётся на дату подхода — так у прошлой тренировки
+     * остаётся та нагрузка, с которой она и делалась.
+     */
+    it('новое взвешивание не меняет прошлые тренировки', () => {
+        const давно = NOW - 20 * DAY;
+        const sets = [подход('отжимания', давно)];
+
+        const весы = [
+            { at: NOW - 30 * DAY, weight: 80 },
+            { at: NOW - DAY, weight: 90 }      // взвесились вчера, потяжелев
+        ];
+
+        const [entry] = stats.withBodyLoad([сводка('w', давно, 0, sets)], sets, упражнения, весы, доля);
+
+        equal(entry.volume, 520, '10 × 0,65 × 80 — вес тела на тот день, а не нынешний');
+    });
+
+    it('до первого взвешивания берётся самое раннее известное', () => {
+        const давно = NOW - 60 * DAY;
+        const sets = [подход('отжимания', давно)];
+
+        const [entry] = stats.withBodyLoad(
+            [сводка('w', давно, 0, sets)], sets, упражнения, [{ at: NOW - 30 * DAY, weight: 80 }], доля
+        );
+
+        equal(entry.volume, 520, 'иначе всё до первых весов считалось бы нулевым');
+    });
+});

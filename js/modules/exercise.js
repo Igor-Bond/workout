@@ -99,8 +99,6 @@ export const exercise = {
         const lastAt = Math.max(...sets.map((s) => s.performedAt));
         const daysAgo = Math.round((dates.startOfDay(Date.now()) - dates.startOfDay(lastAt)) / 86400000);
 
-        // Ряд строится по возрастанию времени, база отдаёт свежие первыми
-        const series = calc.exerciseSeries([...sets].reverse(), record.kind);
         const oneRep = record.kind === 'weight' && best?.weight
             ? records.epley(best.weight, best.reps)
             : 0;
@@ -131,6 +129,18 @@ export const exercise = {
             ? best.weight / currentBody
             : 0;
 
+        /*
+         * Ряд строится по возрастанию времени, база отдаёт свежие первыми.
+         *
+         * Мера объёма — та же, что в плитке «Тоннаж» (Р-52): вес тела берётся
+         * на дату подхода, поэтому линия не переписывается при новом
+         * взвешивании — оно действует со своего дня и дальше.
+         */
+        const series = calc.exerciseSeries([...sets].reverse(), record.kind,
+            record.kind === 'reps'
+                ? (set) => calc.load(set, 'reps', bodyAt(set.performedAt), bodyShare) + (set.reps || 0) * (set.weight || 0)
+                : null);
+
         const byWorkout = new Map();
         for (const set of sets) {
             byWorkout.set(set.workoutId, [...(byWorkout.get(set.workoutId) || []), set]);
@@ -159,8 +169,7 @@ export const exercise = {
                     ${tile(t('Тренировок'), String(workoutIds.size))}
                     ${tile(t('Подходов'), String(sets.length))}
                     ${reps ? tile(t('Повторений'), String(reps)) : ''}
-                    ${volume ? tile(t('Тоннаж, кг'), format.decimal(volume, 0)) : ''}
-                    ${bodyLoad ? tile(t('Со своим весом, кг'), format.decimal(bodyLoad, 0)) : ''}
+                    ${volume + bodyLoad > 0 ? tile(t('Тоннаж, кг'), format.decimal(volume + bodyLoad, 0)) : ''}
                     ${relative ? tile(t('К своему весу'), `×${format.decimal(relative, 2)}`) : ''}
                     ${tile(t('Последний раз'), daysAgo === 0 ? t('сегодня') : format.count(daysAgo, format.WORDS.day))}
                 </div>

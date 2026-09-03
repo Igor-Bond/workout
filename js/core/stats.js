@@ -275,7 +275,7 @@ export const stats = {
      * Вес может стоять, а объём расти, и это разные новости, поэтому обе
      * величины считаются отдельно.
      */
-    exerciseSeries(sets = [], kind = 'weight') {
+    exerciseSeries(sets = [], kind = 'weight', load = null) {
         const byWorkout = new Map();
 
         for (const set of sets) {
@@ -300,7 +300,17 @@ export const stats = {
                 workoutId,
                 at: Math.min(...own.map((s) => s.performedAt)),
                 top: Math.max(...own.map(value)),
-                volume: own.reduce((sum, s) => sum + (s.weight ? (s.reps || 0) * s.weight : (s.reps || 0)), 0),
+                /*
+                 * Объём точки — та же величина, что в плитке «Тоннаж» (Р-52).
+                 *
+                 * Своя мера нужна упражнению со своим весом: без неё объём
+                 * считался повторениями, и график говорил в одних единицах, а
+                 * плитка над ним — в других. Без меры остаётся прежний запасной
+                 * счёт: килограммы, если они записаны, иначе повторения.
+                 */
+                volume: own.reduce((sum, s) => sum + (load
+                    ? load(s)
+                    : (s.weight ? (s.reps || 0) * s.weight : (s.reps || 0))), 0),
                 sets: own.length
             }))
             .sort((a, b) => a.at - b.at);
@@ -411,6 +421,51 @@ export const stats = {
      * shareOf передаётся снаружи, чтобы этот модуль не знал про справочник
      * и оставался проверяемым на голых числах.
      */
+    /**
+     * Нагрузка собственным весом по тренировкам: идентификатор → килограммы.
+     *
+     * Один проход по всем подходам вместо запроса на каждую тренировку:
+     * история показывает тридцать строк за раз, и тридцать обращений к базе
+     * ради одной колонки — плохая цена.
+     */
+    bodyVolumeByWorkout(sets = [], exercises = {}, weights = [], shareOf = () => 1) {
+        const bodyAt = stats.bodyWeightLookup(weights);
+        const result = new Map();
+
+        for (const set of sets) {
+            if (set.deletedAt) continue;
+
+            const exercise = exercises[set.exerciseId];
+            if (exercise?.kind !== 'reps') continue;
+
+            const load = stats.load(set, 'reps', bodyAt(set.performedAt), shareOf(exercise));
+            if (load) result.set(set.workoutId, (result.get(set.workoutId) || 0) + load);
+        }
+
+        return result;
+    },
+
+    /**
+     * Сводки с полной нагрузкой вместо одного железа (§15.2, Р-52).
+     *
+     * Тоннаж — это вся нагрузка на мышцы: и отягощение, и собственный вес.
+     * Разделять их в показателе незачем — человеку важно, сколько он поднял,
+     * а не чем это было нагружено; разбивка остаётся отдельной величиной там,
+     * где на неё есть место.
+     *
+     * Считается здесь, а не в сводке тренировки: доля упражнения и вес тела
+     * не пишутся в подходы, и правка любого из них обязана пересчитать
+     * историю целиком (Р-49).
+     */
+    withBodyLoad(entries = [], sets = [], exercises = {}, weights = [], shareOf = () => 1) {
+        const byWorkout = stats.bodyVolumeByWorkout(sets, exercises, weights, shareOf);
+
+        return entries.map((entry) => {
+            const own = byWorkout.get(entry.workout.id) || 0;
+            return own ? { ...entry, volume: (entry.volume || 0) + own, bodyVolume: own } : entry;
+        });
+    },
+
     bodyVolume(sets = [], exercises = {}, weights = [], range = null, shareOf = () => 1) {
         const bodyAt = stats.bodyWeightLookup(weights);
         let total = 0;

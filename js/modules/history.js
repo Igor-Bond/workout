@@ -12,6 +12,8 @@ import { dbService } from '../services/db.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
+import { stats as calc } from '../core/stats.js';
+import { estimate } from '../core/estimate.js';
 import { WORKOUT_TYPES } from './plan.js';
 import { app } from '../app.js';
 
@@ -103,10 +105,22 @@ export const history = {
     nav: 'history',
 
     async render() {
-        const [entries, exercises] = await Promise.all([
+        const [сводки, exercises, подходы, вес] = await Promise.all([
             dbService.listWorkoutSummaries(),
-            dbService.listExercises({ includeArchived: true })
+            dbService.listExercises({ includeArchived: true }),
+            dbService.allSets(),
+            dbService.listBodyWeight()
         ]);
+
+        // Тоннаж в строке — вся нагрузка, вместе с собственным весом (Р-52).
+        // Без этого тренировка на своём весе не показывала в истории ни
+        // одного килограмма, как будто в ней ничего не поднимали
+        const entries = calc.withBodyLoad(
+            сводки, подходы,
+            Object.fromEntries(exercises.map((e) => [e.id, e])),
+            вес,
+            (exercise) => estimate.shareOf(exercise)
+        );
 
         const names = Object.fromEntries(exercises.map((e) => [e.id, e.name]));
         const types = [...new Set(entries.map((e) => e.workout.type))];
