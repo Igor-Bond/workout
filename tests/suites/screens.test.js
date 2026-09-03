@@ -697,6 +697,54 @@ describe('Экран: выполнение', () => {
             'подпись поля повторяла бы ссылку слово в слово');
     });
 
+    /*
+     * Ориентир берётся из сравнимой тренировки (Р-54).
+     *
+     * Случай владельца: отжимания входят и в зарядку одним подходом, и в
+     * дневную тренировку на двенадцать. Стоя на двенадцати, он видел вместо
+     * ориентира утреннюю зарядку — один подход без всякого счёта.
+     */
+    it('прошлый раз берётся из тренировки того же типа, а не из зарядки', async () => {
+        const отжимания = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+
+        // Позавчера — дневная тренировка на шесть подходов
+        await workout(отжимания, Array.from({ length: 6 }, () => [20, 0]),
+            { at: Date.now() - 2 * DAY, type: 'Дома без инвентаря' });
+
+        // А сегодня утром зарядка, одним подходом
+        await workout(отжимания, [[65, 0]], { at: Date.now() - 3600000, type: 'Зарядка' });
+
+        await dbService.createWorkout({ type: 'Дома без инвентаря', plan: [
+            { exerciseId: отжимания.id, plannedSets: 12, targetReps: 20, weight: 0, skipped: false }
+        ]});
+
+        const view = await screen(session);
+        const строка = text(view.querySelector('.rec-line'));
+
+        assert(строка.includes('6 подходов'), `ориентир должен быть дневной, а не зарядкой: «${строка}»`);
+        assert(!строка.includes('65'), 'утренняя зарядка дневной работе не ориентир');
+    });
+
+    /*
+     * Зарядке ориентир — прошлая зарядка: правило работает в обе стороны, а
+     * не выкидывает фон отовсюду.
+     */
+    it('в самой зарядке ориентир — прошлая зарядка', async () => {
+        const отжимания = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+
+        await workout(отжимания, Array.from({ length: 6 }, () => [20, 0]),
+            { at: Date.now() - 2 * DAY, type: 'Дома без инвентаря' });
+        await workout(отжимания, [[65, 0]], { at: Date.now() - DAY, type: 'Зарядка' });
+
+        await dbService.createWorkout({ type: 'Зарядка', plan: [
+            { exerciseId: отжимания.id, plannedSets: 1, targetReps: 65, weight: 0, skipped: false }
+        ]});
+
+        const строка = text((await screen(session)).querySelector('.rec-line'));
+
+        assert(строка.includes('65'), `в зарядке сравнивают с зарядкой: «${строка}»`);
+    });
+
     it('поля соответствуют виду упражнения', async () => {
         const plank = await seed({ name: 'Планка', kind: 'time', group: 'Пресс' });
         await dbService.createWorkout({ type: 'Силовая', plan: [

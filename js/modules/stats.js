@@ -190,16 +190,18 @@ export const stats = {
         const streaks = calc.streaks(calc.days(entries, null));
         const weekdays = calc.weekdays(entries, current);
 
-        // Сколько в тоннаже пришлось на собственный вес: сам тоннаж уже полный,
-        // а эта величина показывает, из чего он сложился (§15.2)
+        /*
+         * Собственный вес отдельной плиткой не показывается (Р-52).
+         *
+         * Показывался — и рядом с полным тоннажем это выглядело как один и
+         * тот же вес, названный дважды. Разбирать тоннаж на слагаемые здесь
+         * незачем: у отдельного упражнения разбивка тривиальна, а на экране
+         * периода она отвечает на вопрос, которого никто не задаёт.
+         *
+         * Величина считается только ради приписки: она объясняет, что в
+         * тоннаж входит, и появляется, лишь когда собственный вес в нём есть.
+         */
         const bodyVolume = calc.bodyVolume(sets, exercises, weights, current, shareOf);
-        const wasBody = previous ? calc.bodyVolume(sets, exercises, weights, previous, shareOf) : 0;
-
-        // Правило то же, что у остальных показателей: без предыдущего периода
-        // изменение не считается — «+100 %» от пустоты хуже, чем ничего
-        const bodyChange = wasBody > 0
-            ? { delta: bodyVolume - wasBody, percent: ((bodyVolume - wasBody) / wasBody) * 100 }
-            : null;
 
         const muscles = calc.muscleVolume(sets, exercises, current, { weights, shareOf });
         const heat = calc.heatmap(entries);
@@ -233,7 +235,6 @@ export const stats = {
                     ${tile(t('Подходов'), String(now.sets), change.sets)}
                     ${tile(t('Повторений'), String(now.reps), change.reps)}
                     ${tile(t('Тоннаж, кг'), format.decimal(now.volume, 0), change.volume)}
-                    ${bodyVolume ? tile(t('Из них своим весом'), format.decimal(bodyVolume, 0), bodyChange) : ''}
                     ${tile(t('Общее время'), format.duration(now.durationMs), change.durationMs)}
                     ${tile(t('Подх. / трен.'), format.decimal(now.avgSets), change.avgSets)}
                     ${tile(t('Повт. / подх.'), format.decimal(now.avgReps), change.avgReps)}

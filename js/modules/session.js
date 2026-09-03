@@ -16,6 +16,7 @@ import { dbService } from '../services/db.js';
 import { engine, STATE } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { estimate } from '../core/estimate.js';
+import { isBackground } from '../core/rhythm.js';
 import { restTimer } from '../core/timer.js';
 import { wakeLock } from '../core/wakelock.js';
 import { config, MODES } from '../config.js';
@@ -77,10 +78,11 @@ async function load() {
     const workout = await dbService.getActiveWorkout();
     if (!workout) return null;
 
-    const [sets, list, body] = await Promise.all([
+    const [sets, list, body, проведённые] = await Promise.all([
         dbService.listSets(workout.id),
         dbService.listExercises({ includeArchived: true }),
-        dbService.lastBodyWeight()
+        dbService.lastBodyWeight(),
+        dbService.listWorkouts()
     ]);
 
     const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
@@ -103,9 +105,42 @@ async function load() {
     return {
         workout, sets, exercises, rows, kind,
         bodyWeight: body?.weight || 0,
-        last: records.lastSession(history, workout.id),
+        last: сравнимый(history, workout, проведённые),
         best: records.best(history, kind, workout.id)
     };
+}
+
+/**
+ * Прошлый раз, с которым есть смысл сравнивать (Р-54).
+ *
+ * Брали просто последний, и для упражнения из двух разных тренировок это
+ * давало не тот ориентир: отжимания входят и в зарядку одним подходом, и в
+ * дневную тренировку на двенадцать. Стоя на двенадцати, человек видел вместо
+ * ориентира утреннюю зарядку — «65 повт.» без всякого счёта подходов.
+ *
+ * Порядок предпочтений:
+ *
+ *   1. тренировка того же типа — «как я делал это в такой же раз»;
+ *   2. любая, кроме фоновой, — зарядка ориентиром для дневной работы не
+ *      служит, она делается сама собой (§29.1);
+ *   3. вообще любая — иначе первый раз в новом типе остался бы без ориентира,
+ *      хотя история есть.
+ *
+ * Рекорд по этому правилу не отбирается: рекорд один на упражнение, и делить
+ * его по типам тренировок значило бы завести несколько лучших результатов.
+ */
+function сравнимый(history, workout, проведённые) {
+    const типы = new Map(проведённые.map((w) => [w.id, w.type]));
+
+    const тот_же = history.filter((s) => типы.get(s.workoutId) === workout.type);
+    const не_фон = history.filter((s) => {
+        const тип = типы.get(s.workoutId);
+        return тип !== undefined && !isBackground({ type: тип });
+    });
+
+    return records.lastSession(тот_же, workout.id)
+        || records.lastSession(не_фон, workout.id)
+        || records.lastSession(history, workout.id);
 }
 
 /**
