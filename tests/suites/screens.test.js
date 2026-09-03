@@ -371,6 +371,26 @@ describe('Экран: история', () => {
         assert(has(view, '18 повторений'));
     });
 
+    /*
+     * Тип правится прямо из списка (Р-50). Значок стоит внутри кнопки
+     * строки, и это работает только потому, что обработчик берёт ближайший
+     * data-action: разъедься эти два действия — нажатие на тип открывало бы
+     * карточку, а тип остался бы неправимым, как и был.
+     */
+    it('тип тренировки нажимается отдельно от строки', async () => {
+        const ex = await seed();
+        const w = await workout(ex, [[10, 60]]);
+
+        const view = await screen(history);
+        const badge = view.querySelector('.h-badge');
+        const row = badge.closest('.history-item');
+
+        equal(badge.dataset.action, 'hist-retype');
+        equal(badge.dataset.id, w.id, 'значок обязан знать, какую тренировку правит');
+        equal(row.dataset.action, 'nav-summary', 'сама строка по-прежнему открывает карточку');
+        equal(badge.closest('[data-action]'), badge, 'ближайшее действие — своё, а не строки');
+    });
+
     it('длинная история показывается по частям', async () => {
         const ex = await seed();
         for (let i = 0; i < 35; i++) await workout(ex, [[10, 60]], { at: Date.now() - i * DAY });
@@ -601,6 +621,39 @@ describe('Экран: выполнение', () => {
         assert(has(view, 'Подход 1 из 3'));
         assert(view.querySelector('#f-reps'), 'силовое упражнение спрашивает повторения');
         assert(view.querySelector('#f-weight'));
+    });
+
+    /*
+     * Смена режима не двигает выбранное упражнение (Р-51). Двигала: при
+     * переключении подставлялось следующее по кругу, и переключатель работал
+     * как листалка по списку упражнений.
+     */
+    it('переключение режима оставляет текущее упражнение', async () => {
+        const первое = await seed();
+        const второе = await dbService.createExercise({ name: 'Тяга', kind: 'weight', group: 'Спина' });
+        const третье = await dbService.createExercise({ name: 'Присед', kind: 'weight', group: 'Ноги' });
+
+        await dbService.createWorkout({ type: 'Силовая', plan: [первое, второе, третье].map((e) => ({
+            exerciseId: e.id, plannedSets: 3, targetReps: 10, weight: 60, skipped: false
+        }))});
+
+        await screen(session);
+
+        // Смотреть надо на карточку, а не на весь экран: названия всех
+        // упражнений стоят внизу списком, и проверка «есть ли на экране
+        // слово» проходила бы при любом поведении
+        const текущее = (view) => view.querySelector('.sess-name')?.textContent.trim();
+
+        // Встали на второе руками — так же, как нажатием на него в списке
+        await press('sess-select', { id: второе.id });
+        equal(текущее(await screen(session)), 'Тяга', 'выбрали второе');
+
+        for (const режим of ['circuit', 'linear', 'free']) {
+            await press('sess-mode', { mode: режим });
+
+            equal(текущее(await screen(session)), 'Тяга',
+                `режим «${режим}» не должен уводить с выбранного упражнения`);
+        }
     });
 
     it('поля соответствуют виду упражнения', async () => {

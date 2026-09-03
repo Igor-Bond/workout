@@ -12,6 +12,7 @@ import { dbService } from '../services/db.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
+import { WORKOUT_TYPES } from './plan.js';
 import { app } from '../app.js';
 
 /** Фильтры переживают уход на карточку тренировки и возврат назад. */
@@ -45,7 +46,16 @@ function item(entry, names) {
         <button class="history-item" data-action="nav-summary" data-id="${workout.id}">
             <span class="h-date">
                 <span>${dates.formatDayLabel(workout.startedAt)}, ${dates.formatTime(workout.startedAt)}</span>
-                <span class="h-badge">${workout.type}</span>
+                <!--
+                    Тип нажимается и правится прямо здесь (Р-50). Он решает
+                    не только подпись: «Зарядку» приложение считает фоном и в
+                    очередь не ставит, — а поправить ошибку было негде.
+
+                    Значок стоит внутри кнопки строки, и это не ошибка:
+                    обработчик берёт ближайший data-action, поэтому нажатие на
+                    него не открывает карточку.
+                -->
+                <span class="h-badge" data-action="hist-retype" data-id="${workout.id}">${workout.type}</span>
             </span>
             <span class="h-name">${exercises || t('Без упражнений')}</span>
             <!--
@@ -165,6 +175,57 @@ export const history = {
         field.setSelectionRange(field.value.length, field.value.length);
     }
 };
+
+/**
+ * Правка типа проведённой тренировки (Р-50).
+ *
+ * Тип решает не только подпись: «Зарядка» считается фоном и в очередь
+ * составов не попадает (§29.1), а по типу же идёт отбор в истории. Ошибиться
+ * им легко — он выбирается первым делом, до того как станет ясно, чем
+ * тренировка окажется, — а поправить его было негде вовсе.
+ *
+ * Хранится подпись на языке того, кто проводил тренировку (§53), поэтому
+ * выбранный ключ переводится перед записью, а нынешний тип узнаётся
+ * сравнением с переводом.
+ */
+actions.on('hist-retype', async (el) => {
+    const workout = await dbService.getWorkout(el.dataset.id);
+    if (!workout) return;
+
+    const свой = !WORKOUT_TYPES.some((key) => t(key) === workout.type);
+
+    const choice = await dialog.choose({
+        title: t('Тип тренировки'),
+        text: t('От типа зависит очередь: «Зарядку» приложение считает фоном и в ряд не ставит.'),
+        options: [
+            ...WORKOUT_TYPES.map((key) => ({
+                value: key,
+                label: t(key),
+                hint: t(key) === workout.type ? t('сейчас') : ''
+            })),
+            { value: 'Своё', label: t('Своё'), hint: свой ? workout.type : t('вписать своё название') }
+        ]
+    });
+
+    if (!choice) return;
+
+    let type = t(choice);
+
+    if (choice === 'Своё') {
+        const values = await dialog.form({
+            title: t('Тип тренировки'),
+            fields: [{ name: 'type', label: t('Название'), required: true, value: свой ? workout.type : '' }]
+        });
+
+        if (!values) return;
+        type = values.type.trim();
+    }
+
+    if (!type || type === workout.type) return;
+
+    await dbService.updateWorkout(workout.id, { type });
+    app.render();
+});
 
 // ================== ФИЛЬТРЫ ==================
 

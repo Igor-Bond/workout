@@ -99,6 +99,9 @@ export const DE = {
     'Порядок можно будет нарушить: приложение считает подходы, а не командует':
         'Die Reihenfolge darfst du ändern: die App zählt Sätze, sie befiehlt nicht',
     'Тип тренировки': 'Trainingsart',
+    'От типа зависит очередь: «Зарядку» приложение считает фоном и в ряд не ставит.': 'Von der Art hängt die Reihenfolge ab: Morgengymnastik gilt als Hintergrund und steht nicht in der Reihe.',
+    'сейчас': 'aktuell',
+    'вписать своё название': 'eigenen Namen eintragen',
     'Силовая': 'Kraft',
     'Зарядка': 'Morgengymnastik',
     'Табата': 'Tabata',

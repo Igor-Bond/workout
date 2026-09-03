@@ -100,6 +100,9 @@ export const EN = {
     'Порядок можно будет нарушить: приложение считает подходы, а не командует':
         'You can break the order: the app counts sets, it does not give orders',
     'Тип тренировки': 'Workout type',
+    'От типа зависит очередь: «Зарядку» приложение считает фоном и в ряд не ставит.': 'The type drives the queue: the app treats a warm-up as background and keeps it out of the rotation.',
+    'сейчас': 'current',
+    'вписать своё название': 'write your own name',
     'Силовая': 'Strength',
     'Зарядка': 'Morning routine',
     'Табата': 'Tabata',

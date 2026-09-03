@@ -906,7 +906,24 @@ table.log tr:last-child td { border-bottom: none; }
     margin-bottom: 4px;
 }
 
-.history-item .h-badge { color: var(--accent); }
+/*
+ * Тип — не подпись, а кнопка (Р-50): им правится очередь, и заметив в
+ * истории неверный тип, поправить его было негде.
+ *
+ * Подложка и поля не для красоты. Строка целиком нажимается и открывает
+ * карточку, поэтому у значка должна быть своя различимая площадь — иначе
+ * каждое второе нажатие уводило бы не туда. Отрицательные поля возвращают
+ * строку к прежней высоте: значок стал крупнее, дата рядом с ним — нет.
+ */
+.history-item .h-badge {
+    color: var(--accent);
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 3px 8px;
+    margin: -3px 0;
+    flex: none;
+}
 .history-item .h-stats { display: block; font-size: 13px; }
 
 /* ================== РИТМ (§26.2) ================== */
