@@ -1084,3 +1084,81 @@ describe('Свойства при сведении', () => {
         equal(остался.kind, 'time');
     });
 });
+
+/*
+ * Чистка дополнительного веса (§15.2, Р-49).
+ *
+ * Нужна тем, кто вписывал в это поле общую прикидку нагрузки, пока оно
+ * называлось «вес»: теперь такое число считается железом, которого не было.
+ */
+describe('Уборка дополнительного веса из подходов', () => {
+
+    it('убирается из всех подходов, и сводка тренировки пересчитывается', async () => {
+        await reset();
+
+        const ex = await dbService.createExercise({ name: 'Отжимания Тайсона', kind: 'reps' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        for (let i = 1; i <= 3; i++) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: i, setNumber: i, reps: 25, weight: 45 });
+        }
+
+        await dbService.finishWorkout(w.id);
+
+        equal(await dbService.countWeightedSets(ex.id), 3);
+        equal((await dbService.getWorkout(w.id)).summary.volume, 3375, '25 × 45 × 3 — железа, которого не было');
+
+        const итог = await dbService.clearSetWeights(ex.id);
+
+        equal(итог, { sets: 3, workouts: 1 });
+        equal(await dbService.countWeightedSets(ex.id), 0);
+        equal((await dbService.getWorkout(w.id)).summary.volume, 0, 'сводка обязана сойтись с фактом');
+
+        const [подход] = await dbService.listSets(w.id);
+        equal(подход.reps, 25, 'повторения не тронуты — убирается только вес');
+    });
+
+    it('чужие упражнения не трогаются', async () => {
+        await reset();
+
+        const свой = await dbService.createExercise({ name: 'Отжимания', kind: 'reps' });
+        const чужой = await dbService.createExercise({ name: 'Подтягивания', kind: 'reps' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: свой.id, order: 1, setNumber: 1, reps: 20, weight: 40 });
+        await dbService.addSet({ workoutId: w.id, exerciseId: чужой.id, order: 2, setNumber: 1, reps: 10, weight: 20 });
+
+        await dbService.clearSetWeights(свой.id);
+
+        equal(await dbService.countWeightedSets(свой.id), 0);
+        equal(await dbService.countWeightedSets(чужой.id), 1, 'пояс на подтягиваниях — настоящий');
+    });
+
+    it('без записанного веса ничего не делает', async () => {
+        await reset();
+
+        const ex = await dbService.createExercise({ name: 'Пресс', kind: 'reps' });
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [] });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 30 });
+
+        equal(await dbService.clearSetWeights(ex.id), { sets: 0, workouts: 0 });
+    });
+
+    /*
+     * Своя доля живёт свободным полем: схему хранилища трогать нельзя (§35).
+     * Сброс пишет ноль, а не пустоту, — иначе он не доехал бы до второго
+     * устройства, обмен выкидывает пустые поля перед отправкой.
+     */
+    it('своя доля хранится у упражнения и сбрасывается нулём', async () => {
+        await reset();
+
+        const ex = await dbService.createExercise({ name: 'Отжимания Тайсона', kind: 'reps' });
+
+        await dbService.updateExercise(ex.id, { bodyShare: 0.75 });
+        equal((await dbService.getExercise(ex.id)).bodyShare, 0.75);
+
+        await dbService.updateExercise(ex.id, { bodyShare: 0 });
+        equal((await dbService.getExercise(ex.id)).bodyShare, 0);
+    });
+});

@@ -19,7 +19,7 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v120';
+const APP_VERSION = 'v121';
 const CACHE_NAME = `workout-${APP_VERSION}`;
 
 const NETWORK_TIMEOUT = 3000;
@@ -92,6 +92,7 @@ const PRECACHE_URLS = [
     'js/modules/profile.js',
     'js/modules/records.js',
     'js/modules/session.js',
+    'js/modules/shares.js',
     'js/modules/stats.js',
     'js/modules/survey.js',
     'js/modules/summary.js',

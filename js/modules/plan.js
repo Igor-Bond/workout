@@ -104,11 +104,21 @@ async function decorate(items) {
 
         const guess = item.weight ? null : await guessWeight(exercise, last);
 
+        const kind = exercise?.kind || 'weight';
+
         return {
             ...item,
             name: exercise?.name || t('Упражнение'),
-            kind: exercise?.kind || 'weight',
-            weight: item.weight || guess || 0,
+            kind,
+
+            /*
+             * У упражнения со своим весом плановый вес не берётся ниоткуда
+             * (Р-49). В старых шаблонах он может лежать — там его вписывали,
+             * пока поле называлось «вес», — а поля в плане больше нет. Оставь
+             * его, и он подставился бы на выполнении как дополнительный вес:
+             * невидимое, но действующее число, ровно то, от чего уходим.
+             */
+            weight: kind === 'reps' ? 0 : (item.weight || guess || 0),
             estimated: !!guess,
             lastLine: last ? records.describeSession(last.sets, exercise?.kind) : null
         };
@@ -319,7 +329,14 @@ function itemRow(item, index, total, timed = false) {
                     </div>
                 `}
 
-                ${item.kind === 'weight' || item.kind === 'reps' ? ui.html`
+                <!--
+                    У упражнения со своим весом поля здесь нет (Р-49).
+                    Оно значит дополнительный вес — пояс, гантель между стоп, —
+                    а это редкость, и при сборе плана оно только звало вписать
+                    в него общую прикидку нагрузки. Кому пояс нужен, тот
+                    добавит его на выполнении, когда наденет.
+                -->
+                ${item.kind === 'weight' ? ui.html`
                     <div class="field">
                         <label for="p-weight-${index}">${t('Вес, кг')}</label>
                         <input id="p-weight-${index}" type="number" min="0" step="0.5" inputmode="decimal"

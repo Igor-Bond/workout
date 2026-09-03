@@ -305,6 +305,40 @@ export const dbService = {
         return db.sets.where('exerciseId').equals(exerciseId).count();
     },
 
+    /** В скольких подходах упражнения записан довес. */
+    async countWeightedSets(exerciseId) {
+        const sets = await db.sets.where('exerciseId').equals(exerciseId).toArray();
+        return sets.filter((s) => !s.deletedAt && s.weight).length;
+    },
+
+    /**
+     * Убрать довес из всех подходов упражнения (§15.2).
+     *
+     * Нужно тем, кто вписывал в это поле общую прикидку нагрузки, пока оно
+     * называлось «вес»: теперь такое число считается железом, которого не
+     * было, и завышает тоннаж. Поправить это по подходу нельзя — их сотни.
+     *
+     * Сводки тренировок пересчитываются здесь же: тоннаж лежит внутри них
+     * (§34.1), и без пересчёта история показывала бы прежние килограммы.
+     */
+    async clearSetWeights(exerciseId) {
+        const sets = await db.sets.where('exerciseId').equals(exerciseId).toArray();
+        const doomed = sets.filter((s) => !s.deletedAt && s.weight);
+
+        if (doomed.length === 0) return { sets: 0, workouts: 0 };
+
+        const now = Date.now();
+
+        await db.sets.bulkPut(doomed.map((s) => ({ ...s, weight: undefined, updatedAt: now })));
+
+        const workouts = new Set(doomed.map((s) => s.workoutId));
+        for (const workoutId of workouts) {
+            await dbService.recomputeSummary(workoutId);
+        }
+
+        return { sets: doomed.length, workouts: workouts.size };
+    },
+
     /**
      * Удаление разрешено только для упражнения без единого подхода (§5):
      * иначе история, рекорды и статистика начали бы ссылаться в пустоту.

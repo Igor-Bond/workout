@@ -236,18 +236,27 @@ export const stats = {
      * Считается по подходам, а не по тренировкам: одна тренировка задевает
      * несколько групп, и делить её пополам было бы враньём.
      */
-    muscleVolume(sets = [], exercises = {}, range = null) {
+    muscleVolume(sets = [], exercises = {}, range = null, { weights = null, shareOf = null } = {}) {
         const groups = new Map();
+        const bodyAt = weights ? stats.bodyWeightLookup(weights) : null;
 
         for (const set of sets) {
             if (!stats.inRange(set.performedAt, range)) continue;
 
-            const group = exercises[set.exerciseId]?.group || NO_GROUP;
+            const exercise = exercises[set.exerciseId];
+            const group = exercise?.group || NO_GROUP;
             const entry = groups.get(group) || { group, sets: 0, volume: 0, reps: 0 };
 
             entry.sets += 1;
             entry.reps += set.reps || 0;
             if (set.weight) entry.volume += (set.reps || 0) * set.weight;
+
+            // Свой вес — тоже нагрузка на группу, и без него грудь от
+            // отжиманий выглядела ненагруженной вовсе, а объём по группам
+            // показывал только то, где человек брался за железо
+            if (bodyAt && exercise?.kind === 'reps') {
+                entry.volume += stats.load(set, 'reps', bodyAt(set.performedAt), shareOf ? shareOf(exercise) : 1);
+            }
 
             groups.set(group, entry);
         }
@@ -363,11 +372,16 @@ export const stats = {
     },
 
     /**
-     * Нагрузка подхода с учётом веса тела.
+     * Нагрузка подхода собственным весом.
      *
      * Для подтягиваний и отжиманий поднимается собственный вес, и без него
      * такие подходы в объёме считаются нулевыми — то есть как будто их не
-     * было. Доп. отягощение прибавляется к весу тела.
+     * было.
+     *
+     * Дополнительный вес сюда не входит (Р-49): он записан в подходе числом
+     * и считается тоннажем. Пока он прибавлялся и здесь, пояс на
+     * подтягиваниях попадал в счёт дважды — в «Тоннаж» и внутрь «Со своим
+     * весом», в двух соседних плитках одной карточки.
      */
     load(set, kind, bodyWeight, share = 1) {
         const reps = set.reps || 0;
@@ -379,10 +393,39 @@ export const stats = {
             // поднимают не всё тело, а около двух третей. Без неё карточка
             // упражнения показывала бы тоннаж в полтора раза больше того,
             // что говорит экран выполнения о том же самом подходе
-            return reps * (share * bodyWeight + (set.weight || 0));
+            return reps * share * bodyWeight;
         }
 
         return set.weight ? reps * set.weight : 0;
+    },
+
+    /**
+     * Нагрузка собственным весом за период — та же величина, что в карточке
+     * упражнения, но по всей истории (§15.2, §23.1).
+     *
+     * Считается по подходам и весу тела на их дату, а не по сводке
+     * тренировки: сводка знает только поднятое железо, и тренировка целиком
+     * на своём весе выглядела в статистике нулевой. Ради этого ноля люди и
+     * вписывали вес руками в поле, которое значит совсем другое.
+     *
+     * shareOf передаётся снаружи, чтобы этот модуль не знал про справочник
+     * и оставался проверяемым на голых числах.
+     */
+    bodyVolume(sets = [], exercises = {}, weights = [], range = null, shareOf = () => 1) {
+        const bodyAt = stats.bodyWeightLookup(weights);
+        let total = 0;
+
+        for (const set of sets) {
+            if (set.deletedAt) continue;
+            if (!stats.inRange(set.performedAt, range)) continue;
+
+            const exercise = exercises[set.exerciseId];
+            if (exercise?.kind !== 'reps') continue;
+
+            total += stats.load(set, 'reps', bodyAt(set.performedAt), shareOf(exercise));
+        }
+
+        return total;
     },
 
     /** Точки графика веса тела: {at, weight}. */

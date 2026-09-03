@@ -155,6 +155,7 @@ export const DE = {
     'Ещё…': 'Mehr…',
     'Свернуть': 'Einklappen',
     '＋ заметка к подходу': '＋ Notiz zum Satz',
+    '＋ дополнительный вес': '＋ Zusatzgewicht',
     '− заметка к подходу': '− Notiz zum Satz',
     'Пропустить упражнение': 'Übung überspringen',
     'Заметка к тренировке': 'Notiz zum Training',
@@ -255,7 +256,7 @@ export const DE = {
     'Динамика': 'Verlauf',
     'Лучший результат': 'Bestes Ergebnis',
     'Тренировок': 'Trainings',
-    'С весом тела, кг': 'Mit Körpergewicht, kg',
+    'Со своим весом, кг': 'Mit eigenem Gewicht, kg',
     'К своему весу': 'Im Verhältnis zum Körpergewicht',
     'Последний раз': 'Zuletzt',
     'Отметить в статистике': 'In der Statistik eintragen',
@@ -632,6 +633,31 @@ export const DE = {
 
     // ================== СПРАВОЧНИК ==================
 
+    // ---------- Доли своего веса (§15.2) ----------
+
+    'Доли своего веса': 'Anteile des Eigengewichts',
+    'Сколько собственного веса приходится на упражнение. По этой доле считается нагрузка и весь объём таких упражнений': 'Wie viel des eigenen Gewichts auf eine Übung entfällt. Aus diesem Anteil ergeben sich Last und Volumen solcher Übungen',
+    'Вес тела не отмечен, поэтому нагрузка не считается ни по какой доле.': 'Das Körpergewicht ist nicht eingetragen, deshalb ergibt kein Anteil eine Last.',
+    'Нет ни одного упражнения со своим весом.': 'Es gibt noch keine Übung mit Eigengewicht.',
+    'Отжимания — около двух третей веса, подтягивания — вес целиком, скручивания — треть. Правка пересчитывает всю историю: доля не записывается в подходы, а считается при показе.': 'Liegestütze sind etwa zwei Drittel des Gewichts, Klimmzüge das ganze, Crunches ein Drittel. Eine Änderung rechnet die gesamte Historie neu: Der Anteil steht nicht im Satz, er wird beim Anzeigen berechnet.',
+    '← В справочник': '← Zum Katalog',
+    '{доля} %': '{доля} %',
+    'своя': 'eigener',
+    'из справочника': 'aus dem Katalog',
+    'дополнительный вес записан в {сколько} подходах': 'Zusatzgewicht in {сколько} Sätzen eingetragen',
+    'убрать': 'entfernen',
+    'Изменить долю': 'Anteil ändern',
+    'Вернуть как в справочнике': 'Zurück zum Katalogwert',
+    'Какая часть собственного веса приходится на это упражнение, в процентах.': 'Welcher Teil des eigenen Gewichts auf diese Übung entfällt, in Prozent.',
+    'Доля, %': 'Anteil, %',
+    'Не похоже на долю': 'Das ist kein Anteil',
+    'Ожидается от {от} до {до} процентов.': 'Erwartet werden {от} bis {до} Prozent.',
+    'Доля своего веса — {доля} %.': 'Anteil des Eigengewichts — {доля} %.',
+    'Убрать дополнительный вес?': 'Zusatzgewicht entfernen?',
+    'В {сколько} подходах упражнения «{упражнение}» записан дополнительный вес. Он считается тоннажем — как поднятое железо. Убрать его из всех подходов?': 'In {сколько} Sätzen der Übung „{упражнение}“ ist Zusatzgewicht eingetragen. Es zählt als Tonnage — wie tatsächlich gehobenes Eisen. Aus allen Sätzen entfernen?',
+    'Убрать': 'Entfernen',
+    'Дополнительный вес убран из {подходы} подходов, пересчитано тренировок: {тренировки}.': 'Zusatzgewicht aus {подходы} Sätzen entfernt; neu berechnete Trainings: {тренировки}.',
+
     'Описания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.': 'Es gibt keine Beschreibung. Du kannst sie in eigenen Worten eintragen — sie wird auch im Intervallprogramm angezeigt.',
     'Найти видео': 'Video suchen',
     'Откроется поиск в новой вкладке': 'Öffnet die Suche in einem neuen Tab',
@@ -742,7 +768,9 @@ export const DE = {
     // ================== ВЫПОЛНЕНИЕ ==================
 
     'Выполнение': 'Einheit',
-    'Примерная нагрузка': 'Ungefähre Last',
+    'Своим весом': 'Eigengewicht',
+    'С дополнительным весом': 'Mit Zusatzgewicht',
+    'дополнительный вес:': 'Zusatz:',
     'на удержании': 'pro Halten',
     'за повторение': 'pro Wiederholung',
     'как в прошлый раз': 'wie beim letzten Mal',

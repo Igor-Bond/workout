@@ -119,21 +119,31 @@ async function load() {
 function loadLine({ exercises, kind, bodyWeight }, prefill) {
     const exercise = exercises[currentId] || {};
 
-    const value = estimate.bodyLoad({
-        nameKey: exercise.nameKey,
-        kind,
-        bodyWeight,
-        weight: Number(prefill?.weight) || 0
-    });
+    const свой = estimate.bodyLoad({ exercise: { ...exercise, kind }, bodyWeight });
+    if (!свой) return '';
 
-    if (!value) return '';
+    const довес = Number(prefill?.weight) || 0;
+    const когда = kind === 'time' ? t('на удержании') : t('за повторение');
 
     return ui.html`
         <div class="rec-line">
-            <span class="rec-label">${t('Примерная нагрузка')}</span>
-            <span class="rec-value">≈ ${format.weight(value)} ${t('кг')}</span>
-            <span class="rec-when">${kind === 'time' ? t('на удержании') : t('за повторение')}</span>
+            <span class="rec-label">${t('Своим весом')}</span>
+            <span class="rec-value">≈ ${format.weight(свой)} ${t('кг')}</span>
+            <span class="rec-when">${когда}</span>
         </div>
+
+        <!--
+            Вторая строка появляется, только когда есть что складывать. Этим
+            поле «довес» и объясняет себя: пусто — приложение считает само,
+            вписал — видно, во что это превратилось.
+        -->
+        ${довес > 0 ? ui.html`
+            <div class="rec-line">
+                <span class="rec-label">${t('С дополнительным весом')}</span>
+                <span class="rec-value">≈ ${format.weight(свой + довес)} ${t('кг')}</span>
+                <span class="rec-when">${когда}</span>
+            </div>
+        ` : ''}
     `;
 }
 
@@ -261,8 +271,27 @@ function fields(kind, prefill) {
         <input type="number" class="big-input" id="f-reps" min="0" inputmode="numeric"
                placeholder="0" value="${value(prefill.reps)}" data-enter="sess-done">
         <div class="big-label">${t('повторений')}</div>
-        <div class="inline-field">
-            <span>${t('вес:')}</span>
+
+        <!--
+            У упражнения со своим весом поле значит дополнительный вес — пояс,
+            гантель между стоп, — а не всю нагрузку (Р-49). Оно спрятано за
+            ссылкой, как заметка: надевают пояс редко, а открытое поле с
+            прочерком звало вписать в него общую прикидку. Именно так в него и
+            попадали числа, которые потом считались железом.
+
+            Открыто сразу, если вес уже записан: иначе спрятанным оказалось бы
+            то, что человек только что ввёл.
+        -->
+        ${kind === 'reps' ? ui.html`
+            <div class="note-row">
+                <button class="link-btn" data-action="sess-weight-toggle" ${ui.raw(prefill.weight ? 'hidden' : '')}>
+                    ${t('＋ дополнительный вес')}
+                </button>
+            </div>
+        ` : ''}
+
+        <div class="inline-field" id="f-weight-row" ${ui.raw(kind === 'reps' && !prefill.weight ? 'hidden' : '')}>
+            <span>${kind === 'reps' ? t('дополнительный вес:') : t('вес:')}</span>
             <input type="number" id="f-weight" min="0" step="0.5" inputmode="decimal"
                    placeholder="—" value="${value(prefill.weight)}">
             <span>${t('кг')}</span>
@@ -768,6 +797,17 @@ actions.on('sess-more', (el) => {
     // Без перерисовки: она сбросила бы уже введённые в поля значения
     tools.hidden = !tools.hidden;
     el.textContent = tools.hidden ? 'Ещё…' : 'Свернуть';
+});
+
+actions.on('sess-weight-toggle', (el) => {
+    const row = document.getElementById('f-weight-row');
+    if (!row) return;
+
+    // Без перерисовки, как и заметка: введённые повторения должны уцелеть
+    row.hidden = false;
+    el.hidden = true;
+
+    document.getElementById('f-weight')?.focus();
 });
 
 actions.on('sess-note-toggle', (el) => {

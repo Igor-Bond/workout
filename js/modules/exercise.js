@@ -10,7 +10,6 @@ import { ui } from '../core/ui.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
 import { estimate } from '../core/estimate.js';
-import { canonicalKey } from '../i18n/exercises.js';
 import { stats as calc } from '../core/stats.js';
 import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
@@ -122,7 +121,7 @@ export const exercise = {
 
         // Доля своего веса у этого упражнения — та же, что показывает экран
         // выполнения: два экрана об одном подходе обязаны говорить одно
-        const bodyShare = estimate.BODY_SHARE[canonicalKey(record.nameKey)] ?? estimate.SHARE_BY_KIND.reps;
+        const bodyShare = estimate.shareOf(record);
 
         const bodyLoad = record.kind === 'reps'
             ? sets.reduce((sum, s) => sum + calc.load(s, 'reps', bodyAt(s.performedAt), bodyShare), 0)
@@ -161,7 +160,7 @@ export const exercise = {
                     ${tile(t('Подходов'), String(sets.length))}
                     ${reps ? tile(t('Повторений'), String(reps)) : ''}
                     ${volume ? tile(t('Тоннаж, кг'), format.decimal(volume, 0)) : ''}
-                    ${bodyLoad ? tile(t('С весом тела, кг'), format.decimal(bodyLoad, 0)) : ''}
+                    ${bodyLoad ? tile(t('Со своим весом, кг'), format.decimal(bodyLoad, 0)) : ''}
                     ${relative ? tile(t('К своему весу'), `×${format.decimal(relative, 2)}`) : ''}
                     ${tile(t('Последний раз'), daysAgo === 0 ? t('сегодня') : format.count(daysAgo, format.WORDS.day))}
                 </div>
@@ -170,6 +169,18 @@ export const exercise = {
                     <p class="hint">
                         ${t('Объём не считается: не отмечен вес тела.')}
                         <button class="link-btn" data-action="nav" data-screen="stats">${t('Отметить в статистике')}</button>
+                    </p>
+                ` : ''}
+
+                <!--
+                    Доля показывается там же, где посчитанный по ней объём:
+                    иначе число «со своим весом» выглядит взятым с потолка, а
+                    поправить его негде (§15.2).
+                -->
+                ${record.kind === 'reps' ? ui.html`
+                    <p class="hint">
+                        ${t('Доля своего веса — {доля} %.', { доля: Math.round(bodyShare * 100) })}
+                        <button class="link-btn" data-action="nav" data-screen="shares">${t('Изменить')}</button>
                     </p>
                 ` : ''}
             </div>
@@ -190,6 +201,18 @@ export const exercise = {
                 <div class="card-title">${t('История — {n}', { n: format.count(workoutIds.size, format.WORDS.workout) })}</div>
                 ${history}
             </div>
+
+            <!--
+                Правка отсюда, а не только из справочника (Р-49). Вид
+                упражнения виден именно здесь — по тому, что показано в
+                истории и в плитках, — и заметив, что «Отжимания» заведены
+                силовыми, человек оказывался в тупике: экран, где ошибка
+                видна, поправить её не давал. Действие то же самое, что в
+                справочнике, и обработчик у него общий.
+            -->
+            <button class="btn btn-ghost" data-action="ex-edit" data-id="${record.id}">
+                ${t('Изменить упражнение')}
+            </button>
 
             <button class="btn btn-ghost" data-action="nav" data-screen="records">${t('← К рекордам')}</button>
             <button class="btn btn-ghost" data-action="nav" data-screen="stats">${t('К статистике')}</button>

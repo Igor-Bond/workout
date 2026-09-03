@@ -15,6 +15,8 @@ import { kindFields } from '../core/kinds.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
+import { stats as calc } from '../core/stats.js';
+import { estimate } from '../core/estimate.js';
 import { app } from '../app.js';
 
 /** Как называются правимые величины подхода — для вопроса об остальных. */
@@ -35,14 +37,6 @@ const FIELD_INPUT = {
 
 const FIELD_ORDER = ['reps', 'weight', 'distance', 'duration'];
 
-/**
- * Какие величины у вида упражнения основные.
- *
- * У собственного веса вес тоже есть — это довес: пояс на подтягиваниях,
- * блин на брусьях. Нагрузка от него и считается: повторения × (вес тела +
- * довес), см. stats.load. Без колонки его негде ни увидеть, ни исправить —
- * при том, что ввести его на экране выполнения приложение позволяет.
- */
 /**
  * Какие поля показывать при правке подхода (§21.1).
  *
@@ -151,7 +145,15 @@ function block(b, note) {
     return ui.html`
         <div class="ex-block">
             <div class="ex-block-title">
-                <span>${b.name}</span>
+                <!--
+                    Название открывает карточку упражнения (Р-49). Из истории
+                    к упражнению не вело ничего: увидев в записи не тот вид
+                    или не ту нагрузку, человек не мог отсюда ни посмотреть на
+                    упражнение целиком, ни поправить его.
+                -->
+                <button class="ex-name" data-action="summary-open-exercise" data-id="${b.exerciseId}">
+                    ${b.name}
+                </button>
                 <span class="sub">${line}</span>
             </div>
 
@@ -216,12 +218,18 @@ export const summary = {
             `;
         }
 
-        const [sets, list] = await Promise.all([
+        const [sets, list, weights] = await Promise.all([
             dbService.listSets(workout.id),
-            dbService.listExercises({ includeArchived: true })
+            dbService.listExercises({ includeArchived: true }),
+            dbService.listBodyWeight()
         ]);
 
         const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
+
+        // Нагрузка собственным весом (§15.2): без неё тренировка целиком на
+        // своём весе показывала на итогах пустоту вместо счёта
+        const bodyVolume = calc.bodyVolume(sets, exercises, weights, null,
+            (exercise) => estimate.shareOf(exercise));
 
         const durationMs = workout.finishedAt
             ? workout.finishedAt - workout.startedAt
@@ -273,6 +281,7 @@ export const summary = {
                     ${tile(t('Повторений'), String(totals.reps))}
                     ${tile(t('Время'), format.duration(totals.durationMs))}
                     ${totals.hasWeight ? tile(t('Тоннаж, кг'), format.weight(totals.volume)) : ''}
+                    ${bodyVolume ? tile(t('Со своим весом, кг'), format.decimal(bodyVolume, 0)) : ''}
                     ${tile(t('Повт. на подход'), totals.avgReps ? format.decimal(totals.avgReps) : '—')}
                 </div>
             </div>
@@ -416,6 +425,8 @@ actions.on('summary-edit-set', async (el) => {
 
     app.render();
 });
+
+actions.on('summary-open-exercise', (el) => app.go('exercise', el.dataset.id));
 
 actions.on('summary-note-exercise', async (el) => {
     const id = app.route.params[0];

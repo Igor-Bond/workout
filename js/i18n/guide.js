@@ -34,7 +34,7 @@ const RU = {
                 { steps: [
                     'На главной — *Новая тренировка*.',
                     'Выбери тип (*Силовая*, *Зарядка*, *Табата*…) и нажми *Добавить упражнение*. В окне выбора есть поиск и плашки групп — «Грудь», «Ноги», «Пресс»: по группе искать быстрее, чем вспоминать название. Нужного нет — заводится прямо отсюда, кнопкой *Создать*: спросят название, вид и группу мышц.',
-                    'У каждой строки задай подходы, повторы и вес. Если ты делал это упражнение раньше, подставится прошлый результат. Если нет, а вес тела отмечен — вес будет прикинут, и подпись об этом скажет: поправь под себя.',
+                    'У каждой строки задай подходы и повторы, а у силовых — вес. У упражнений со своим весом поля веса здесь нет: нагрузку приложение считает само. Если ты делал упражнение раньше, подставится прошлый результат; если нет, а вес тела отмечен — вес будет прикинут, и подпись об этом скажет.',
                     '*Начать тренировку* — откроется экран выполнения.',
                     'Сделал подход — *Выполнено*. Числа уже подставлены, обычно менять нечего. После записи пойдёт отдых.',
                     'Когда всё — *Завершить*. Появятся итоги, а из них можно сохранить состав шаблоном, чтобы в следующий раз не собирать заново.'
@@ -74,6 +74,7 @@ const RU = {
             blocks: [
                 { rows: [
                     ['Запись подхода', 'Поля уже заполнены прошлым результатом. Меняешь то, что отличается, и жмёшь «Выполнено». Рядом видно прошлый раз, рекорд и насколько этот подход отличается от такого же в прошлый раз.'],
+                    ['Упражнения со своим весом', 'У отжиманий и подтягиваний нагрузку приложение считает само: строка «Своим весом» — это доля твоего веса, приходящаяся на упражнение, и она же уходит в статистику. Вписывать туда ничего не надо. Ссылка «＋ дополнительный вес» нужна, только если ты правда надел пояс или зажал гантель: это отдельное число, оно идёт в тоннаж и показывается второй строкой. Долю можно поправить под себя — «Профиль → Справочник → Доли своего веса»; правка пересчитает всю историю сразу.'],
                     ['Порядок упражнений', 'По умолчанию по кругу: подход первого, подход второго, снова первого. В настройках можно выбрать «по одному» — закрывать план упражнения целиком — или свободный порядок. Переключается и на ходу, на самом выполнении.'],
                     ['Отдых', 'Запускается сам после записи. Кнопками «±5 с» время прибавляют и убавляют, а если кнопку задержать — шаг разгоняется, и до трёх минут доходишь одним движением. Изменённое запоминается за этим упражнением: после приседа своё время, после планки своё. Настройка в профиле остаётся началом отсчёта для тех упражнений, про которые вы ещё ничего не сказали. Когда у упражнения своё время, полоса так и подписана. По окончании — сигнал и вибрация, если они включены.'],
                     ['«Ещё…»', 'Под этой кнопкой редкое: добавить упражнение вне плана, пропустить, вернуться к уже выполненному, заметка.'],
@@ -173,7 +174,7 @@ const EN = {
                 { steps: [
                     'On the main screen, tap *New workout*.',
                     'Pick a type (*Strength*, *Morning routine*, *Tabata*…) and tap *Add exercise*. The picker has a search box and group chips — Chest, Legs, Abs: picking a group is faster than recalling a name. Not there? Create it right here with *Create*: you will be asked for the name, the kind and the muscle group.',
-                    'For each row set the sets, reps and weight. If you have done the exercise before, your last result appears. If not, and your body weight is recorded, a weight is estimated — the caption says so, adjust it.',
+                    'For each row set the sets and reps, and for barbell work the weight. Body-weight exercises have no weight field here: the app works the load out itself. If you have done the exercise before, your last result appears; if not, and your body weight is recorded, a weight is estimated — the caption says so.',
                     '*Start workout* opens the workout screen.',
                     'Finished a set? Tap *Done*. The numbers are already filled in, usually nothing to change. Rest starts right after.',
                     'When you are finished, tap *Finish*. The summary appears, and from it you can save the line-up as a template so you do not build it again.'
@@ -213,6 +214,7 @@ const EN = {
             blocks: [
                 { rows: [
                     ['Recording a set', 'The fields already hold your last result. Change what differs and tap Done. Next to it you see last time, your record, and how this set compares with the same set last time.'],
+                    ['Body-weight exercises', 'For push-ups and pull-ups the app works out the load itself: the “Own weight” line is the share of your body weight this exercise lifts, and that is what goes into the stats. Nothing to type in. The “＋ added weight” link is only for when you really put on a belt or hold a dumbbell: that is a separate number, it counts as tonnage and shows on a second line. The share can be tuned — Profile → Catalogue → Body-weight shares; editing it recalculates the whole history at once.'],
                     ['Exercise order', 'Round robin by default: a set of the first, a set of the second, the first again. In settings you can choose one at a time — finish an exercise’s planned sets — or free order. It also switches mid-workout.'],
                     ['Rest', 'Starts by itself after a set. The “±5 s” buttons add and take away time; hold one down and the step speeds up, so three minutes are one movement away. What you change is remembered for that exercise: one length after squats, another after a plank. The setting in the profile stays the starting point for exercises you have not said anything about yet. When an exercise has its own length, the bar says so. When it ends: a sound and vibration, if they are on.'],
                     ['“More…”', 'The rare things live there: add an exercise outside the plan, skip one, go back to a finished one, write a note.'],
@@ -312,7 +314,7 @@ const DE = {
                 { steps: [
                     'Auf der Startseite auf *Neues Training* tippen.',
                     'Wähle eine Art (*Kraft*, *Morgengymnastik*, *Tabata*…) und tippe auf *Übung hinzufügen*. Im Auswahlfenster gibt es eine Suche und Gruppen-Chips — Brust, Beine, Bauch: nach Gruppe zu suchen geht schneller, als sich den Namen zu merken. Nicht dabei? Leg sie gleich hier mit *Erstellen* an: gefragt werden Name, Art und Muskelgruppe.',
-                    'Trage für jede Zeile Sätze, Wiederholungen und Gewicht ein. Hast du die Übung schon gemacht, erscheint dein letztes Ergebnis. Wenn nicht und dein Körpergewicht ist erfasst, wird das Gewicht geschätzt — die Zeile sagt es dir, pass es an.',
+                    'Trage für jede Zeile Sätze und Wiederholungen ein, bei Hantelübungen auch das Gewicht. Übungen mit Eigengewicht haben hier kein Gewichtsfeld: Die App berechnet die Last selbst. Hast du die Übung schon gemacht, erscheint dein letztes Ergebnis; wenn nicht und dein Körpergewicht ist erfasst, wird das Gewicht geschätzt — die Zeile sagt es dir.',
                     '*Training starten* öffnet den Trainingsbildschirm.',
                     'Satz fertig? Tippe auf *Erledigt*. Die Zahlen stehen schon da, meist gibt es nichts zu ändern. Danach läuft die Pause.',
                     'Wenn du fertig bist, tippe auf *Beenden*. Das Ergebnis erscheint, und daraus kannst du die Zusammenstellung als Vorlage speichern, damit du sie nicht neu bauen musst.'
@@ -352,6 +354,7 @@ const DE = {
             blocks: [
                 { rows: [
                     ['Einen Satz erfassen', 'In den Feldern steht bereits dein letztes Ergebnis. Ändere, was abweicht, und tippe auf Erledigt. Daneben siehst du das letzte Mal, deinen Rekord und wie dieser Satz im Vergleich zum gleichen Satz beim letzten Mal ausfällt.'],
+                    ['Übungen mit Eigengewicht', 'Bei Liegestützen und Klimmzügen berechnet die App die Last selbst: Die Zeile „Eigengewicht“ ist der Anteil deines Körpergewichts, der auf die Übung entfällt, und genau der geht in die Statistik. Dort ist nichts einzutragen. Der Link „＋ Zusatzgewicht“ ist nur dafür da, wenn du wirklich einen Gürtel angelegt oder eine Hantel eingeklemmt hast: Das ist eine eigene Zahl, sie zählt als Tonnage und erscheint in einer zweiten Zeile. Den Anteil kannst du anpassen — Profil → Katalog → Anteile des Eigengewichts; eine Änderung rechnet die gesamte Historie sofort neu.'],
                     ['Reihenfolge der Übungen', 'Standardmäßig im Kreis: ein Satz der ersten, ein Satz der zweiten, wieder die erste. In den Einstellungen kannst du „nacheinander“ wählen — eine Übung ganz abschließen — oder freie Reihenfolge. Das lässt sich auch mitten im Training umstellen.'],
                     ['Pause', 'Startet nach dem Erfassen von selbst. Mit den Knöpfen „±5 s“ wird die Zeit verlängert und verkürzt; hältst du einen gedrückt, beschleunigt sich der Schritt, und drei Minuten sind eine Bewegung entfernt. Das Geänderte merkt sich die Übung: nach Kniebeugen die eine Zeit, nach der Planke die andere. Die Einstellung im Profil bleibt der Ausgangspunkt für Übungen, zu denen du noch nichts gesagt hast. Hat eine Übung ihre eigene Zeit, steht das auf der Leiste. Am Ende: Ton und Vibration, sofern eingeschaltet.'],
                     ['„Mehr…“', 'Dahinter liegt das Seltene: eine Übung außerhalb des Plans, überspringen, zu einer erledigten zurück, eine Notiz.'],

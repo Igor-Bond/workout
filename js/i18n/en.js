@@ -157,6 +157,7 @@ export const EN = {
     'Ещё…': 'More…',
     'Свернуть': 'Collapse',
     '＋ заметка к подходу': '＋ note for this set',
+    '＋ дополнительный вес': '＋ added weight',
     '− заметка к подходу': '− note for this set',
     'Пропустить упражнение': 'Skip exercise',
     'Заметка к тренировке': 'Workout note',
@@ -257,7 +258,7 @@ export const EN = {
     'Динамика': 'Progress',
     'Лучший результат': 'Best result',
     'Тренировок': 'Workouts',
-    'С весом тела, кг': 'With body weight, kg',
+    'Со своим весом, кг': 'With own weight, kg',
     'К своему весу': 'Relative to body weight',
     'Последний раз': 'Last time',
     'Отметить в статистике': 'Record it in stats',
@@ -635,6 +636,31 @@ export const EN = {
 
     // ================== СПРАВОЧНИК ==================
 
+    // ---------- Доли своего веса (§15.2) ----------
+
+    'Доли своего веса': 'Body-weight shares',
+    'Сколько собственного веса приходится на упражнение. По этой доле считается нагрузка и весь объём таких упражнений': 'How much of your own weight an exercise lifts. This share drives the load and the whole volume of such exercises',
+    'Вес тела не отмечен, поэтому нагрузка не считается ни по какой доле.': 'Body weight is not recorded, so no share can produce a load.',
+    'Нет ни одного упражнения со своим весом.': 'There is no body-weight exercise yet.',
+    'Отжимания — около двух третей веса, подтягивания — вес целиком, скручивания — треть. Правка пересчитывает всю историю: доля не записывается в подходы, а считается при показе.': 'Push-ups are about two thirds of your weight, pull-ups the whole of it, crunches a third. Editing recalculates the entire history: the share is not stored in sets, it is computed when shown.',
+    '← В справочник': '← To the catalogue',
+    '{доля} %': '{доля}%',
+    'своя': 'your own',
+    'из справочника': 'from the catalogue',
+    'дополнительный вес записан в {сколько} подходах': 'added weight recorded in {сколько} sets',
+    'убрать': 'remove',
+    'Изменить долю': 'Change the share',
+    'Вернуть как в справочнике': 'Back to the catalogue value',
+    'Какая часть собственного веса приходится на это упражнение, в процентах.': 'What part of your own weight this exercise lifts, as a percentage.',
+    'Доля, %': 'Share, %',
+    'Не похоже на долю': 'That is not a share',
+    'Ожидается от {от} до {до} процентов.': 'Expected between {от} and {до} percent.',
+    'Доля своего веса — {доля} %.': 'Body-weight share — {доля}%.',
+    'Убрать дополнительный вес?': 'Remove the added weight?',
+    'В {сколько} подходах упражнения «{упражнение}» записан дополнительный вес. Он считается тоннажем — как поднятое железо. Убрать его из всех подходов?': 'Added weight is recorded in {сколько} sets of “{упражнение}”. It counts as tonnage — as iron actually lifted. Remove it from every set?',
+    'Убрать': 'Remove',
+    'Дополнительный вес убран из {подходы} подходов, пересчитано тренировок: {тренировки}.': 'Added weight removed from {подходы} sets; workouts recalculated: {тренировки}.',
+
     'Описания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.': 'There is no description. You can write one in your own words — it also shows during an interval program.',
     'Найти видео': 'Find a video',
     'Откроется поиск в новой вкладке': 'Opens a search in a new tab',
@@ -745,7 +771,9 @@ export const EN = {
     // ================== ВЫПОЛНЕНИЕ ==================
 
     'Выполнение': 'Session',
-    'Примерная нагрузка': 'Approximate load',
+    'Своим весом': 'Own weight',
+    'С дополнительным весом': 'With added weight',
+    'дополнительный вес:': 'added:',
     'на удержании': 'per hold',
     'за повторение': 'per rep',
     'как в прошлый раз': 'same as last time',
