@@ -820,6 +820,7 @@ export const EN = {
     'Сейчас, кг': 'Now, kg',
     'За период, кг': 'For the period, kg',
     'Взвешиваний': 'Weigh-ins',
+    'За период — от первого взвешивания к последнему: {от} → {до} кг за {дни}.': 'Over the period — from the first weigh-in to the last: {от} → {до} kg over {дни}.',
     'Последнее взвешивание — {день}.': 'Last weigh-in — {день}.',
     'Нет данных — сначала проведи тренировку.': 'No data — do a workout first.',
     'Сравнивать не с чем: за всё время предыдущего периода нет.': 'Nothing to compare with: your whole history holds no previous period.',

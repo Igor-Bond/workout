@@ -817,6 +817,7 @@ export const DE = {
     'Сейчас, кг': 'Jetzt, kg',
     'За период, кг': 'Im Zeitraum, kg',
     'Взвешиваний': 'Wiegungen',
+    'За период — от первого взвешивания к последнему: {от} → {до} кг за {дни}.': 'Im Zeitraum — von der ersten Wiegung zur letzten: {от} → {до} kg in {дни}.',
     'Последнее взвешивание — {день}.': 'Letzte Wiegung — {день}.',
     'Нет данных — сначала проведи тренировку.': 'Keine Daten — mach zuerst ein Training.',
     'Сравнивать не с чем: за всё время предыдущего периода нет.': 'Es gibt nichts zum Vergleichen: In der gesamten Historie liegt kein vorheriger Zeitraum.',
