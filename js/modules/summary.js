@@ -35,6 +35,19 @@ const FIELD_INPUT = {
     distance: 'Дистанция, м'
 };
 
+/**
+ * Как называется вес у этого вида упражнения (Р-57).
+ *
+ * У собственного веса в подходе записан не вес упражнения, а довес — пояс,
+ * гантель между стоп. На выполнении он так и подписан, а в итогах столбец и
+ * поле правки называли его просто весом: одно и то же число под двумя
+ * именами, причём второе неверное.
+ *
+ * Слово короткое намеренно: это заголовок узкого столбца в таблице, и
+ * «дополнительный вес» занял бы её целиком.
+ */
+const weightLabel = (kind, labels) => (kind === 'reps' ? labels.довес : labels.вес);
+
 const FIELD_ORDER = ['reps', 'weight', 'distance', 'duration'];
 
 /**
@@ -166,7 +179,9 @@ function block(b, note) {
                     <thead>
                         <tr>
                             <th>${t('Подход')}</th>
-                            ${columns.map((field) => ui.html`<th>${t(COLUMN_HEAD[field])}</th>`)}
+                            ${columns.map((field) => ui.html`<th>${field === 'weight'
+                                ? weightLabel(b.kind, { вес: t('Вес, кг'), довес: t('Довес, кг') })
+                                : t(COLUMN_HEAD[field])}</th>`)}
                             <th></th>
                         </tr>
                     </thead>
@@ -360,9 +375,13 @@ actions.on('summary-edit-set', async (el) => {
     const set = await dbService.getSet(el.dataset.id);
     if (!set) return;
 
-    const fields = editableFields(set, el.dataset.kind).map((name) => ({
+    const kind = el.dataset.kind;
+
+    const fields = editableFields(set, kind).map((name) => ({
         name,
-        label: t(FIELD_INPUT[name]),
+        label: name === 'weight'
+            ? weightLabel(kind, { вес: t('Вес, кг'), довес: t('Дополнительный вес, кг') })
+            : t(FIELD_INPUT[name]),
         type: 'number',
         value: set[name] ?? ''
     }));
@@ -393,7 +412,14 @@ actions.on('summary-edit-set', async (el) => {
         const after = values[field] === '' || values[field] === null ? undefined : Number(values[field]);
 
         if (before === after) continue;
-        changed[field] = { label: t(label), before, after };
+
+        changed[field] = {
+            label: field === 'weight'
+                ? weightLabel(kind, { вес: t('вес'), довес: t('дополнительный вес') })
+                : t(label),
+            before,
+            after
+        };
     }
 
     const keys = Object.keys(changed);
