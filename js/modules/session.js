@@ -163,7 +163,7 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
     return ui.html`
         <div class="rec-line">
             <span class="rec-label">${t('Своим весом')}</span>
-            <span class="rec-value">≈ ${format.weight(свой)} ${t('кг')}</span>
+            <span class="rec-value">≈ ${format.load(свой)} ${t('кг')}</span>
             <span class="rec-when">${когда}</span>
         </div>
 
@@ -175,7 +175,7 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
         -->
         <div class="rec-line" id="rec-extra" ${ui.raw(довес > 0 ? '' : 'hidden')}>
             <span class="rec-label">${t('С дополнительным весом')}</span>
-            <span class="rec-value" id="rec-extra-value">≈ ${format.weight(свой + довес)} ${t('кг')}</span>
+            <span class="rec-value" id="rec-extra-value">≈ ${format.load(свой + довес)} ${t('кг')}</span>
             <span class="rec-when">${когда}</span>
         </div>
     `;
@@ -202,7 +202,7 @@ function refreshExtraLine() {
     row.hidden = довес <= 0;
 
     const value = document.getElementById('rec-extra-value');
-    const текст = `≈ ${format.weight(свой + довес)} ${t('кг')}`;
+    const текст = `≈ ${format.load(свой + довес)} ${t('кг')}`;
 
     if (value && value.textContent !== текст) value.textContent = текст;
 }

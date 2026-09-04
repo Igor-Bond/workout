@@ -42,7 +42,7 @@ const процент = (доля) => Math.round(доля * 100);
 function row(exercise, { bodyWeight, weighted, подходов }) {
     const доля = estimate.shareOf(exercise);
     const своя = Number(exercise.bodyShare) > 0;
-    const нагрузка = bodyWeight ? Math.round(доля * bodyWeight * 2) / 2 : 0;
+    const нагрузка = bodyWeight ? доля * bodyWeight : 0;
 
     return ui.html`
         <div class="ex-row" data-id="${exercise.id}">
@@ -53,7 +53,7 @@ function row(exercise, { bodyWeight, weighted, подходов }) {
                 <div class="ex-meta">
                     ${t('{доля} %', { доля: процент(доля) })}
                     ${своя ? ui.raw(` · ${ui.esc(t('своя'))}`) : ui.raw(` · ${ui.esc(t('из справочника'))}`)}
-                    ${нагрузка ? ui.raw(` · ≈ ${ui.esc(format.weight(нагрузка))} ${ui.esc(t('кг'))}`) : ''}
+                    ${нагрузка ? ui.raw(` · ≈ ${ui.esc(format.load(нагрузка))} ${ui.esc(t('кг'))}`) : ''}
                     ${подходов ? ui.raw(` · ${ui.esc(format.count(подходов, format.WORDS.set))}`) : ''}
                     ${exercise.archived ? ui.raw(` · ${ui.esc(t('в архиве'))}`) : ''}
                 </div>

@@ -137,7 +137,7 @@ function block(b, note) {
     const line = [
         format.count(b.sets.length, format.WORDS.set),
         b.reps ? format.count(b.reps, format.WORDS.rep) : null,
-        b.volume ? `${format.weight(b.volume)} ${t('кг')}` : null,
+        b.volume ? `${format.load(b.volume)} ${t('кг')}` : null,
         !b.reps && b.duration ? format.seconds(b.duration) : null,
         b.distance ? format.distance(b.distance) : null
     ].filter(Boolean).join(' · ');

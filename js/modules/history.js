@@ -70,7 +70,7 @@ function item(entry, names) {
                 ${[
                     format.count(entry.sets, format.WORDS.set),
                     entry.reps ? format.count(entry.reps, format.WORDS.rep) : null,
-                    entry.volume ? `${format.weight(entry.volume)} ${t('кг')}` : null,
+                    entry.volume ? `${format.load(entry.volume)} ${t('кг')}` : null,
                     duration >= 1000 ? format.duration(duration) : null
                 ].filter(Boolean).join(' · ')}
             </span>

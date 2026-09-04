@@ -156,9 +156,9 @@ export const estimate = {
 
         if (!bodyWeight || bodyWeight <= 0) return null;
 
-        // До половины килограмма: точность выше этой — выдумка, а «51,2 кг»
-        // читается как измерение
-        return Math.round(share * bodyWeight * 2) / 2;
+        // До целых (Р-56): доля — усреднение по популяции, и «51,2 кг» обещает
+        // точность до сотни граммов там, где её неоткуда взять
+        return Math.round(share * bodyWeight);
     },
 
     /**
