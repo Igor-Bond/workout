@@ -79,8 +79,31 @@ const RU = {
                     ['Отдых', 'Запускается сам после записи. Кнопками «±5 с» время прибавляют и убавляют, а если кнопку задержать — шаг разгоняется, и до трёх минут доходишь одним движением. Изменённое запоминается за этим упражнением: после приседа своё время, после планки своё. Настройка в профиле остаётся началом отсчёта для тех упражнений, про которые вы ещё ничего не сказали. Когда у упражнения своё время, полоса так и подписана. По окончании — сигнал и вибрация, если они включены.'],
                     ['«Ещё…»', 'Под этой кнопкой редкое: добавить упражнение вне плана, пропустить, вернуться к уже выполненному, заметка.'],
                     ['Заметки', 'Три уровня: к подходу, к упражнению в этой тренировке и ко всей тренировке. Видны потом в истории.'],
+                    ['Упражнение на время', 'Под полем секунд — кнопка *Отсчёт*. Пять секунд на приготовиться, дальше приложение считает вслух теми же сигналами, что в табате, и само записывает подход, когда время вышло. Остановишь раньше — запишется то, что правда прошло, а не обещанное. Оставишь поле пустым — пойдёт секундомер: для планки «до отказа» цели и не бывает.'],
                     ['Незавершённая', 'Если закрыть приложение посреди тренировки, она останется на главной и её можно продолжить. Через 12 часов продолжать уже не предложат — только завершить прошедшей датой: иначе к длительности приписалась бы вся ночь.']
                 ] }
+            ]
+        },
+        {
+            name: 'План тренировок',
+            blocks: [
+                { p: 'Очередь на главной отвечает на вопрос «до чего дольше всего не доходили» и расписанием не является: у плавающего круга промежутки неравные, и порядок неизбежно расходится с задуманным. План — объявленная недельная сетка: какой день недели чему отдан. Пока плана нет, всё работает как прежде.' },
+                { sub: 'Как завести' },
+                { steps: [
+                    '*Тренировка* → *План тренировок*.',
+                    'Попроси план у тренера или у языковой модели: в *Сводке для тренера* уже лежит готовый запрос с образцом ответа.',
+                    'Вставь ответ в поле и нажми *Разобрать*. Появится развёртка на две недели и список «Не понято» — он должен остаться пустым.',
+                    '*Утвердить план*. На главном встанет карточка «Сегодня по плану», и она отменяет очередь.'
+                ] },
+                { rows: [
+                    ['Как пишется день', '«Пн Бицепс резинка 6 × 50». Несколько упражнений в одном дне соединяются знаком «+». День без тренировки — «Вс отдых». У упражнения на время второе число значит секунды: «Планка 2 × 45».'],
+                    ['Пропуск', 'Пропущенный день пропущен: он не переносится и долгом не копится, а вернётся через неделю на своём месте. Сетка держится — баскетбол остаётся в среду, а воскресенье отдыхом. Гнаться не за чем.'],
+                    ['Правка', 'Тот же экран: в поле уже лежит действующий план. Поправь строку, нажми *Разобрать*, посмотри, что изменилось в развёртке, и утверди заново.'],
+                    ['Границы', 'Пока план не начался, на главном стоит дата начала и первое занятие. За неделю до конца приложение предупредит и предложит попросить следующий. Кончился — скажет об этом и вернётся к подсказкам по истории.'],
+                    ['Незнакомое упражнение', 'План составляет не приложение, и названия в нём свои. Чего нет в справочнике, оно предложит завести прямо с карточки — по каждому имени отдельно.'],
+                    ['Прогноз', 'Пока план объявлен, «Постоянство» на статистике не гадает по истории, а называет день из сетки: гадать там, где сказано, незачем.']
+                ] },
+                { hint: 'План хранит одну недельную сетку и срок. Если недели различаются — скажем, объём чередуется через неделю, — попроси их отдельными блоками, каждый со своей датой начала, и утверждай по понедельникам. План уезжает в облако вместе с историей: объявленный на компьютере, он появится на телефоне.' }
             ]
         },
         {
@@ -219,8 +242,31 @@ const EN = {
                     ['Rest', 'Starts by itself after a set. The “±5 s” buttons add and take away time; hold one down and the step speeds up, so three minutes are one movement away. What you change is remembered for that exercise: one length after squats, another after a plank. The setting in the profile stays the starting point for exercises you have not said anything about yet. When an exercise has its own length, the bar says so. When it ends: a sound and vibration, if they are on.'],
                     ['“More…”', 'The rare things live there: add an exercise outside the plan, skip one, go back to a finished one, write a note.'],
                     ['Notes', 'Three levels: for a set, for an exercise in this workout, and for the whole workout. They show up later in history.'],
+                    ['Timed exercise', 'Under the seconds field there is a *Countdown* button. Five seconds to get ready, then the app counts aloud with the same signals as tabata and records the set itself when the time is up. Stop earlier and it records what actually passed, not what was promised. Leave the field empty and it runs as a stopwatch: a plank to failure has no target at all.'],
                     ['Unfinished', 'If you close the app mid-workout it stays on the main screen and can be continued. After 12 hours continuing is no longer offered — only finishing with its own date: otherwise the whole night would be added to its length.']
                 ] }
+            ]
+        },
+        {
+            name: 'Training plan',
+            blocks: [
+                { p: 'The queue on the main screen answers “what have I gone longest without” and is not a schedule: a floating circle has uneven gaps, and the order inevitably drifts from what you intended. A plan is a declared weekly grid: which weekday is given to what. With no plan everything works as before.' },
+                { sub: 'How to set one up' },
+                { steps: [
+                    '*Workout* → *Training plan*.',
+                    'Ask a coach or a language model for a plan: the *Coach summary* already holds a ready request with a response template.',
+                    'Paste the answer into the field and press *Parse*. You get a two-week expansion and a “Not understood” list — it should stay empty.',
+                    '*Approve the plan*. The main screen gets a “Today by the plan” card, and it overrides the queue.'
+                ] },
+                { rows: [
+                    ['How a day is written', '“Mon Biceps band 6 × 50”. Several exercises in one day are joined with a “+”. A day off is “Sun rest”. For a timed exercise the second number means seconds: “Plank 2 × 45”.'],
+                    ['A missed day', 'A missed day is simply missed: it is not carried over and does not pile up as debt — it comes back a week later in its own place. The grid holds: basketball stays on Wednesday and Sunday stays a rest day. Nothing to chase.'],
+                    ['Editing', 'Same screen: the field already holds the plan in force. Fix a line, press *Parse*, look at what changed in the expansion, and approve it again.'],
+                    ['Boundaries', 'Before the plan starts, the main screen shows its start date and first session. A week before the end the app warns you and offers to ask for the next one. Once it is over the app says so and goes back to history-based suggestions.'],
+                    ['An unknown exercise', 'The plan is not written by the app, and the names in it are its own. Anything missing from the catalogue can be added right from the card — one name at a time.'],
+                    ['Forecast', 'While a plan is declared, “Consistency” in statistics stops guessing from history and names the day from the grid: guessing where it has been stated is pointless.']
+                ] },
+                { hint: 'A plan holds one weekly grid and a length. If the weeks differ — say the volume alternates every other week — ask for them as separate blocks, each with its own start date, and approve one every Monday. The plan syncs to the cloud along with your history: declared on the computer, it shows up on the phone.' }
             ]
         },
         {
@@ -359,8 +405,31 @@ const DE = {
                     ['Pause', 'Startet nach dem Erfassen von selbst. Mit den Knöpfen „±5 s“ wird die Zeit verlängert und verkürzt; hältst du einen gedrückt, beschleunigt sich der Schritt, und drei Minuten sind eine Bewegung entfernt. Das Geänderte merkt sich die Übung: nach Kniebeugen die eine Zeit, nach der Planke die andere. Die Einstellung im Profil bleibt der Ausgangspunkt für Übungen, zu denen du noch nichts gesagt hast. Hat eine Übung ihre eigene Zeit, steht das auf der Leiste. Am Ende: Ton und Vibration, sofern eingeschaltet.'],
                     ['„Mehr…“', 'Dahinter liegt das Seltene: eine Übung außerhalb des Plans, überspringen, zu einer erledigten zurück, eine Notiz.'],
                     ['Notizen', 'Drei Ebenen: zum Satz, zur Übung in diesem Training und zum ganzen Training. Sie tauchen später im Verlauf auf.'],
+                    ['Übung auf Zeit', 'Unter dem Sekundenfeld steht die Taste *Countdown*. Fünf Sekunden zum Bereitmachen, dann zählt die App laut mit denselben Signalen wie bei Tabata und trägt den Satz selbst ein, wenn die Zeit um ist. Hörst du früher auf, wird eingetragen, was wirklich vergangen ist, nicht das Versprochene. Lässt du das Feld leer, läuft eine Stoppuhr: Für eine Planke bis zum Versagen gibt es gar kein Ziel.'],
                     ['Nicht beendet', 'Schließt du die App mitten im Training, bleibt es auf der Startseite und lässt sich fortsetzen. Nach 12 Stunden wird Fortsetzen nicht mehr angeboten — nur noch Beenden mit eigenem Datum: sonst käme die ganze Nacht zur Dauer dazu.']
                 ] }
+            ]
+        },
+        {
+            name: 'Trainingsplan',
+            blocks: [
+                { p: 'Die Warteschlange auf der Startseite beantwortet die Frage „wozu bin ich am längsten nicht gekommen“ und ist kein Stundenplan: Ein wandernder Zirkel hat ungleiche Abstände, und die Reihenfolge weicht zwangsläufig vom Gedachten ab. Ein Plan ist ein erklärtes Wochenraster: welcher Wochentag wem gehört. Ohne Plan bleibt alles wie zuvor.' },
+                { sub: 'So legst du ihn an' },
+                { steps: [
+                    '*Training* → *Trainingsplan*.',
+                    'Frag einen Trainer oder ein Sprachmodell nach einem Plan: In der *Trainer-Zusammenfassung* liegt bereits eine fertige Anfrage samt Antwortvorlage.',
+                    'Füge die Antwort ins Feld ein und drücke *Auswerten*. Du bekommst eine Zwei-Wochen-Ansicht und eine Liste „Nicht verstanden“ — die sollte leer bleiben.',
+                    '*Plan bestätigen*. Auf der Startseite erscheint die Karte „Heute laut Plan“, und sie ersetzt die Warteschlange.'
+                ] },
+                { rows: [
+                    ['Wie ein Tag geschrieben wird', '„Mo Bizeps Band 6 × 50“. Mehrere Übungen an einem Tag werden mit „+“ verbunden. Ein freier Tag ist „So Ruhe“. Bei einer Übung auf Zeit bedeutet die zweite Zahl Sekunden: „Planke 2 × 45“.'],
+                    ['Verpasster Tag', 'Ein verpasster Tag ist einfach verpasst: Er wird nicht nachgeholt und sammelt sich nicht als Schuld an — er kommt eine Woche später an seinem Platz zurück. Das Raster bleibt: Basketball bleibt am Mittwoch, Sonntag bleibt Ruhetag. Da ist nichts aufzuholen.'],
+                    ['Ändern', 'Derselbe Bildschirm: Im Feld liegt bereits der geltende Plan. Ändere eine Zeile, drücke *Auswerten*, sieh dir an, was sich in der Ansicht ändert, und bestätige erneut.'],
+                    ['Ränder', 'Bevor der Plan beginnt, zeigt die Startseite sein Startdatum und die erste Einheit. Eine Woche vor Ende warnt die App und bietet an, den nächsten anzufragen. Ist er vorbei, sagt sie es und kehrt zu Vorschlägen nach Verlauf zurück.'],
+                    ['Unbekannte Übung', 'Den Plan schreibt nicht die App, und die Namen darin sind seine eigenen. Was im Katalog fehlt, lässt sich direkt von der Karte anlegen — jeder Name einzeln.'],
+                    ['Prognose', 'Solange ein Plan erklärt ist, rät „Beständigkeit“ in der Statistik nicht mehr nach Verlauf, sondern nennt den Tag aus dem Raster: Raten, wo es gesagt wurde, ist sinnlos.']
+                ] },
+                { hint: 'Ein Plan hält ein Wochenraster und eine Dauer. Unterscheiden sich die Wochen — etwa wenn der Umfang jede zweite Woche wechselt —, frag sie als eigene Blöcke an, jeden mit eigenem Startdatum, und bestätige montags einen. Der Plan geht mit dem Verlauf in die Cloud: am Computer erklärt, erscheint er auf dem Telefon.' }
             ]
         },
         {
