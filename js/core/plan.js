@@ -261,6 +261,29 @@ export const plan = {
         return сделано ? null : { ...занятие };
     },
 
+    /**
+     * Ближайший тренировочный день начиная с завтра (§26.2).
+     *
+     * Нужен прогнозу: при объявленной сетке гадать нечего — день недели уже
+     * всё сказал. Дальше недели не смотрим: сетка повторяется, и восьмой день
+     * это тот же первый.
+     */
+    next(план, { now = Date.now() } = {}) {
+        if (!план?.from) return null;
+
+        const конец = plan.until(план);
+        let at = Math.max(startOfDay(now) + DAY, план.from);
+
+        for (let i = 0; i < 7; i++, at += DAY) {
+            if (at > конец) return null;
+
+            const занятие = план.days[new Date(at).getDay()];
+            if (занятие) return { at, session: занятие };
+        }
+
+        return null;
+    },
+
     /** Одно ли это занятие: сравнение по названию, без придирок к регистру. */
     same(a = '', b = '') {
         const ключ = (s) => String(s).toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();

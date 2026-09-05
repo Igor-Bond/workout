@@ -17,6 +17,8 @@ import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t, i18n } from '../core/i18n.js';
 import { estimate } from '../core/estimate.js';
+import { plan as planCore } from '../core/plan.js';
+import { currentPlan } from './planner.js';
 import { app } from '../app.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
@@ -159,11 +161,12 @@ export const stats = {
     },
 
     async render() {
-        const [сводки, sets, exerciseList, weights] = await Promise.all([
+        const [сводки, sets, exerciseList, weights, объявленный] = await Promise.all([
             dbService.listWorkoutSummaries(),
             dbService.allSets(),
             dbService.listExercises({ includeArchived: true }),
-            dbService.listBodyWeight()
+            dbService.listBodyWeight(),
+            currentPlan()
         ]);
 
         const shareOf = (exercise) => estimate.shareOf(exercise);
@@ -223,6 +226,18 @@ export const stats = {
 
         // Прогноз ритма (§26.2): справка к «Постоянству», а не действие
         const ритм = rhythm.analyze(entries.map((e) => e.workout));
+
+        /*
+         * При объявленном плане прогноз берётся из него (§56).
+         *
+         * Сделанное сегодня здесь не вычитается, в отличие от главного
+         * экрана: там кнопка, и закрытый день с неё обязан исчезнуть, а
+         * здесь справка — «сегодня по плану» остаётся верным и после того,
+         * как день сделан.
+         */
+        const поПлану = planCore.active(объявленный)
+            ? { today: planCore.today(объявленный), next: planCore.next(объявленный) }
+            : null;
 
         const periodChips = calc.PERIODS.map((p) => ui.html`
             <button class="chip ${period === p.key ? 'is-active' : ''}"
@@ -320,8 +335,29 @@ export const stats = {
                     место, ничего не предлагая. Здесь она среди своих —
                     рядом с сериями и днями недели, за которыми сюда и
                     приходят.
+
+                    Когда план объявлен, прогноз не гадает (§56). Сетка уже
+                    назвала день недели, и выводить тот же день из медианы
+                    промежутков значит подменять знание догадкой — да ещё и
+                    расходиться с ней при первом же пропуске.
+
+                    «Обычно раз в N» остаётся при обоих: это не прогноз, а
+                    факт о прошлом, и рядом с планом он как раз показывает,
+                    насколько человек в него попадает.
                 -->
-                ${ритм.enough ? ui.html`
+                ${поПлану ? ui.html`
+                    <p class="hint">
+                        ${поПлану.today
+                            ? t('Сегодня по плану — {занятие}.', { занятие: planCore.describe(поПлану.today) })
+                            : поПлану.next
+                                ? t('Следующая по плану {день} — {занятие}.', {
+                                    день: dates.formatDayLabel(поПлану.next.at, Date.now(), { lower: true }),
+                                    занятие: planCore.describe(поПлану.next.session)
+                                })
+                                : t('До конца плана тренировок не запланировано.')}
+                        ${ритм.enough ? t('Обычно раз в {n}', { n: format.count(ритм.medianInterval, format.WORDS.day) }) : ''}
+                    </p>
+                ` : ритм.enough ? ui.html`
                     <p class="hint">
                         ${ритм.state === 'overdue'
                             ? t('{n} без тренировки.', { n: format.count(ритм.daysSince, format.WORDS.day) })

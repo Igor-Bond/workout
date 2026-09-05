@@ -163,6 +163,40 @@ function compositionName(group, names, templates) {
 }
 
 /**
+ * Как назвать день плана на карточке (§56).
+ *
+ * День ног — это пять упражнений подряд, и выписать их все значит занять
+ * карточку одним названием в четыре строки. Поэтому от четырёх и больше
+ * перечисление сворачивается тем же приёмом, что и состав в очереди.
+ */
+function планНазвания(день) {
+    const список = (день.items || [день]).map((у) => у.name);
+
+    return список.length > NAMES_SHOWN
+        ? `${список.slice(0, NAMES_SHOWN).join(' · ')} ${t('и ещё {n}', { n: список.length - NAMES_SHOWN })}`
+        : список.join(' + ');
+}
+
+/**
+ * Объём дня плана: «6 × 50 + 6 × 25» или «12 подходов».
+ *
+ * Пока упражнений немного, объём стоит по каждому: за ним и смотрят. Когда
+ * их пять, ряд из пяти пар нечитаем, и полезнее одно число — сколько всего
+ * подходов, потому что по нему день и выравнивали.
+ */
+function планОбъём(день) {
+    const список = день.items || [день];
+
+    if (!день.sets) return t('без объёма');
+
+    if (список.length > NAMES_SHOWN) {
+        return format.count(список.reduce((s, у) => s + (у.sets || 0), 0), format.WORDS.set);
+    }
+
+    return список.map((у) => (у.reps ? `${у.sets} × ${у.reps}` : `${у.sets}`)).join(' + ');
+}
+
+/**
  * Способы начать: очередь, забытое, шаблоны, тренировка с нуля.
  *
  * Лестница от частого к редкому. Первый из очереди стоит карточкой, но
@@ -344,12 +378,8 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 <button class="repeat-card is-queue" data-action="today-start"
                         data-day="${JSON.stringify(поПлану.items || [поПлану])}">
                     <span class="rep-label">${t('Сегодня по плану')}</span>
-                    <span class="rep-names">${(поПлану.items || [поПлану]).map((у) => у.name).join(' + ')}</span>
-                    <span class="rep-meta">
-                        ${поПлану.sets
-                            ? (поПлану.items || [поПлану]).map((у) => (у.reps ? `${у.sets} × ${у.reps}` : `${у.sets}`)).join(' + ')
-                            : t('без объёма')}
-                    </span>
+                    <span class="rep-names">${планНазвания(поПлану)}</span>
+                    <span class="rep-meta">${планОбъём(поПлану)}</span>
                 </button>
             ` : первое ? ui.html`
                 <button class="repeat-card is-queue" data-action="home-like" data-id="${первое.workoutId}">
