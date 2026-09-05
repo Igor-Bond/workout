@@ -30,6 +30,7 @@ await import('./suites/estimate.test.js');
 await import('./suites/stats.test.js');
 await import('./suites/report.test.js');
 await import('./suites/plan.test.js');
+await import('./suites/hold.test.js');
 await import('./suites/merge.test.js');
 await import('./suites/migrations.test.js');
 await import('./suites/db.test.js');

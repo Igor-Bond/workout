@@ -654,6 +654,29 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
     margin-bottom: 10px;
 }
 
+/*
+ * Отсчёт подхода на время (§57).
+ *
+ * Число крупнее поля ввода вдвое: на него смотрят из планки одним глазом и
+ * с метра, а не с тридцати сантиметров, как на клавиатуру. Рамки нет —
+ * рамка обещает, что сюда можно вписать, а вписывать во время подхода
+ * нечего.
+ */
+.hold { text-align: center; }
+
+.hold .hold-number {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 88px;
+    line-height: 1;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+/* Подготовка гасится: считается ещё не подход, а время на то, чтобы лечь */
+.hold.is-lead .hold-number { color: var(--text-dim); }
+
 .inline-field {
     display: flex;
     align-items: center;

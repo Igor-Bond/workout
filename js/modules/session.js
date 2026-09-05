@@ -18,6 +18,8 @@ import { records } from '../core/records.js';
 import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
 import { restTimer } from '../core/timer.js';
+import { hold } from '../core/hold.js';
+import { beeper } from '../core/beeper.js';
 import { wakeLock } from '../core/wakelock.js';
 import { config, MODES } from '../config.js';
 import { format } from '../core/format.js';
@@ -65,6 +67,20 @@ let unsubscribe = [];
 
 /** Данные последней отрисовки — чтобы обработчики не ходили в базу заново. */
 let view = null;
+
+/**
+ * Идущий отсчёт подхода на время (§57): { exerciseId, target, startedAt }.
+ *
+ * Живёт в модуле, как и таймер отдыха, и перезагрузку страницы не переживает.
+ * Хранить его в базе значило бы завести запись, которая почти всегда мусор:
+ * подход на время длится минуту, а перезагрузка посреди планки — случай,
+ * которого за тренировку не бывает. Сворачивание приложения он переживает:
+ * состояние считается от часов, а не копится тиками.
+ */
+let отсчёт = null;
+
+/** Сколько раз перевыкладывали сигналы: ключ очереди обязан меняться. */
+let выкладка = 0;
 
 const STATE_LABEL = {
     [STATE.PENDING]: 'не начато',
@@ -301,15 +317,65 @@ function restBar() {
     `;
 }
 
+/**
+ * Экран идущего отсчёта (§57).
+ *
+ * Крупное число — оставшиеся секунды, если цель задана, и прошедшие, если
+ * это секундомер. На него смотрят из планки одним глазом, и всё остальное на
+ * этом месте лишнее.
+ *
+ * «Готово» записывает то, что правда прошло, а не цель: остановиться на
+ * тридцатой секунде из сорока пяти — обычное дело, и записать за это сорок
+ * пять значило бы соврать ровно там, ради чего отсчёт и заводился.
+ */
+function holdBlock() {
+    const состояние = hold.at(отсчёт.target, (Date.now() - отсчёт.startedAt) / 1000);
+
+    const подготовка = состояние.phase === 'lead';
+
+    const число = подготовка ? состояние.left
+        : отсчёт.target ? состояние.left
+        : состояние.worked;
+
+    return ui.html`
+        <div class="hold ${подготовка ? 'is-lead' : ''}">
+            <div class="big-input hold-number" id="hold-number">${число}</div>
+            <div class="big-label" id="hold-label">
+                ${подготовка ? t('приготовься') : отсчёт.target ? t('секунд осталось') : t('секунд идёт')}
+            </div>
+        </div>
+
+        <button class="btn btn-done btn-lg" data-action="sess-hold-stop">
+            ${подготовка ? t('Отмена') : t('Готово')}
+        </button>
+    `;
+}
+
 /** Поля ввода зависят от вида упражнения (§6). */
 function fields(kind, prefill) {
     const value = (v) => (v === null || v === undefined ? '' : v);
 
     if (kind === 'time') {
+        /*
+         * Пока идёт отсчёт, поля ввода нет вовсе (§57).
+         *
+         * Держать планку и печатать одновременно нельзя, и поле на этом
+         * месте только предлагало бы соврать. Вместо него — то самое число,
+         * ради которого всё и затевалось, крупно.
+         */
+        if (отсчёт?.exerciseId === currentId) return holdBlock();
+
         return ui.html`
             <input type="number" class="big-input" id="f-duration" min="0" inputmode="numeric"
                    placeholder="0" value="${value(prefill.duration)}" data-enter="sess-done">
             <div class="big-label">${t('секунд')}</div>
+
+            <!--
+                Отсчёт предлагается, но не навязывается: поле остаётся, и
+                вписать число руками можно по-прежнему. Секундомер без цели
+                тоже нужен — планку «до отказа» никакой целью не описать.
+            -->
+            <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
         `;
     }
 
@@ -395,13 +461,20 @@ function currentCard({ workout, sets, exercises, rows }) {
 
             ${fields(exercise.kind || 'weight', prefill)}
 
-            <div class="note-row">
-                <button class="link-btn" data-action="sess-note-toggle">${t('＋ заметка к подходу')}</button>
-                <input type="text" id="f-note" class="note-input" hidden
-                       placeholder="${t('техника, самочувствие, особенности')}" autocomplete="off">
-            </div>
+            <!--
+                Во время отсчёта заметки и «Выполнено» убраны (§57): свою
+                кнопку отсчёт показывает сам, а вторая рядом означала бы два
+                разных способа закончить один подход.
+            -->
+            ${отсчёт?.exerciseId === currentId ? '' : ui.html`
+                <div class="note-row">
+                    <button class="link-btn" data-action="sess-note-toggle">${t('＋ заметка к подходу')}</button>
+                    <input type="text" id="f-note" class="note-input" hidden
+                           placeholder="${t('техника, самочувствие, особенности')}" autocomplete="off">
+                </div>
 
-            <button class="btn btn-done btn-lg" data-action="sess-done">${t('Выполнено')}</button>
+                <button class="btn btn-done btn-lg" data-action="sess-done">${t('Выполнено')}</button>
+            `}
 
             ${restBar()}
 
@@ -543,7 +616,27 @@ export const session = {
             if (!live) return clearInterval(ticker);
 
             live.textContent = format.duration(Date.now() - view.workout.startedAt);
+
+            // Отсчёт подхода идёт тем же тиком (§57): второй интервал рядом
+            // с этим считал бы то же самое время по своим часам
+            тикОтсчёта();
         }, 1000);
+
+        /*
+         * Возвращение из фона перекладывает сигналы отсчёта (§50.1).
+         *
+         * Пока приложение было свёрнуто, звуковой контекст мог уснуть, и его
+         * часы отстали от настоящих: выложенное по старым прозвучало бы
+         * позже срока, а то и после конца подхода. Тик при этом досчитает
+         * сам — он смотрит на часы, а не на пропущенные срабатывания.
+         */
+        const вернулись = () => {
+            if (document.visibilityState !== 'visible' || !отсчёт) return;
+            выложитьСигналы((Date.now() - отсчёт.startedAt) / 1000);
+        };
+
+        document.addEventListener('visibilitychange', вернулись);
+        unsubscribe.push(() => document.removeEventListener('visibilitychange', вернулись));
 
         // Полоса отдыха обновляется на месте: перерисовывать экран раз в
         // секунду означало бы вырывать фокус из поля ввода
@@ -584,6 +677,18 @@ export const session = {
 
         keyboard.detach();
         wakeLock.disable();
+    },
+
+    /**
+     * Уход с экрана: отсчёт снимается вместе со звуком (§57).
+     *
+     * Не в unmount: тот вызывается перед каждой отрисовкой, и снятый там
+     * отсчёт кончался бы, не начавшись. Уход же настоящий — ушёл с экрана
+     * выполнения, значит подход прерван, и досчитывать его вслепую, пока
+     * человек смотрит историю, приложению незачем.
+     */
+    leave() {
+        if (отсчёт) снятьОтсчёт();
     }
 };
 
@@ -682,11 +787,24 @@ function readFields(kind) {
 actions.on('sess-done', async () => {
     if (!view || !currentId) return;
 
-    const { workout, sets, exercises } = view;
-    const kind = exercises[currentId]?.kind || 'weight';
+    const kind = view.exercises[currentId]?.kind || 'weight';
 
     const values = readFields(kind);
     if (!values) return;
+
+    await записатьПодход(values);
+});
+
+/**
+ * Записать подход и увести взгляд дальше (§11, §12.1).
+ *
+ * Вынесено из обработчика кнопки, потому что путей записи стало два: руками
+ * по «Выполнено» и сам собой по концу отсчёта (§57). Оставь это в
+ * обработчике — и подход из отсчёта не запускал бы отдых, не закрывал бы
+ * упражнение и не задавал бы вопроса о судьбе плана.
+ */
+async function записатьПодход(values) {
+    const { workout, sets } = view;
 
     const note = document.getElementById('f-note')?.value.trim();
 
@@ -745,7 +863,102 @@ actions.on('sess-done', async () => {
     await app.render();
 
     if (ask) await askAfterPlan(ask, workout);
+}
+
+// ================== ОТСЧЁТ ПОДХОДА НА ВРЕМЯ (§57) ==================
+
+/**
+ * Выложить сигналы отсчёта.
+ *
+ * Ключ меняется каждый раз намеренно: beeper пропускает повторную выкладку
+ * с тем же ключом, чтобы не обрывать звучащий сигнал, а здесь перевыкладка
+ * бывает только по делу — при пуске и при возвращении из фона, где очередь
+ * как раз и надо переложить по настоящим часам.
+ */
+function выложитьСигналы(elapsed = 0) {
+    выкладка += 1;
+    beeper.schedule(hold.cues(отсчёт.target), elapsed, { key: `hold-${отсчёт.startedAt}-${выкладка}` });
+}
+
+/** Снять отсчёт: и состояние, и всё, что он выложил в звук. */
+function снятьОтсчёт() {
+    отсчёт = null;
+    beeper.stop();
+}
+
+/**
+ * Пуск отсчёта (§57).
+ *
+ * Цель берётся из поля, а не из плана: перед подходом её могли поправить, и
+ * отсчитывать плановые сорок пять там, где человек только что вписал
+ * шестьдесят, значило бы спорить с ним молча. Пустое поле — секундомер.
+ */
+actions.on('sess-hold-start', () => {
+    if (!view || !currentId) return;
+
+    const target = hold.clamp(document.getElementById('f-duration')?.value);
+
+    отсчёт = { exerciseId: currentId, target, startedAt: Date.now() };
+
+    // Выкладывается из обработчика нажатия: без нажатия браузер звук не
+    // разрешит, и вся очередь окажется беззвучной (§50.1)
+    выложитьСигналы(0);
+
+    app.render();
 });
+
+/**
+ * Остановка (§57).
+ *
+ * В подготовке это отмена: работа ещё не началась, и записывать нечего.
+ * Дальше — запись того, что правда прошло.
+ */
+actions.on('sess-hold-stop', async () => {
+    if (!отсчёт) return;
+
+    const состояние = hold.at(отсчёт.target, (Date.now() - отсчёт.startedAt) / 1000);
+
+    снятьОтсчёт();
+
+    if (состояние.phase === 'lead' || состояние.worked < 1) return app.render();
+
+    await записатьПодход({ duration: состояние.worked });
+});
+
+/**
+ * Тик отсчёта: обновляет число на месте и сам записывает подход в конце.
+ *
+ * На месте, а не перерисовкой экрана: перерисовка раз в секунду выдирала бы
+ * фокус и мигала бы всей карточкой. Перерисовка нужна ровно дважды — когда
+ * подготовка сменяется работой и когда отсчёт кончился.
+ */
+async function тикОтсчёта() {
+    if (!отсчёт) return;
+
+    const состояние = hold.at(отсчёт.target, (Date.now() - отсчёт.startedAt) / 1000);
+
+    if (состояние.phase === 'done') {
+        снятьОтсчёт();
+        await записатьПодход({ duration: состояние.worked });
+        return;
+    }
+
+    const число = document.getElementById('hold-number');
+    if (!число) return;
+
+    const было = число.textContent.trim();
+    const стало = String(состояние.phase === 'lead' ? состояние.left
+        : отсчёт.target ? состояние.left
+        : состояние.worked);
+
+    if (было !== стало) число.textContent = стало;
+
+    // Смена подготовки на работу меняет и подпись, и кнопку — это уже состав
+    // экрана, а не одно число
+    if (состояние.phase === 'work' && число.parentElement?.classList.contains('is-lead')) {
+        await app.render();
+    }
+}
 
 /** Завершение с переходом к итогам — общее для кнопки и разговора о плане. */
 async function finishWorkout(workout) {
