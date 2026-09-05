@@ -101,6 +101,41 @@ async function guessWeight(exercise, last) {
 }
 
 /**
+ * Подходы и повторения по чередованию, а не «как в прошлый раз» (Р-58).
+ *
+ * Приложение подставляло последнее выполнение, и для чередующегося объёма
+ * это неверно ровно через раз: сделал бицепс на 6 подходов — предлагалось
+ * снова 6, хотя по кругу идёт 12, и человек правил руками каждый второй
+ * повтор.
+ *
+ * Правило включается, только когда цикл виден в самой истории (§10.2).
+ * Не виден — остаётся прежнее поведение: подставляется прошлый раз.
+ *
+ * Подходы и повторения проверяются порознь: чередовать можно и то, и
+ * другое, и по отдельности. Вес не трогаем — он ходит за самочувствием, а
+ * не по кругу, и подставить его «через раз» значило бы гадать.
+ */
+async function поЧередованию(exerciseId, прошлое, подходы = null) {
+    const own = подходы || await dbService.listSetsByExercise(exerciseId);
+    const занятия = records.sessions(own);
+
+    if (занятия.length < 2) return { ...прошлое, byCycle: false };
+
+    const наборы = rhythm.nextInCycle(занятия.map((з) => з.sets.length));
+    const повторы = rhythm.nextInCycle(занятия.map((з) => з.sets[0]?.reps));
+
+    return {
+        plannedSets: наборы ?? прошлое.plannedSets,
+        targetReps: повторы ?? прошлое.targetReps,
+
+        // Отмечаем только то, что правда предсказано и отличается от прошлого
+        // раза: совпало — и говорить не о чем
+        byCycle: (наборы !== null && наборы !== прошлое.plannedSets)
+            || (повторы !== null && повторы !== прошлое.targetReps)
+    };
+}
+
+/**
  * Дополнение упражнения тем, что лежит в базе: название, вид и прошлый
  * результат. В шаблоне хранится только идентификатор — остальное могло
  * измениться с прошлого раза.
@@ -176,12 +211,14 @@ async function build(params) {
                 byExercise.set(set.exerciseId, own);
             }
 
-            const items = [...byExercise.entries()].map(([exerciseId, own]) => ({
+            const items = await Promise.all([...byExercise.entries()].map(async ([exerciseId, own]) => ({
                 exerciseId,
-                plannedSets: own.length,
-                targetReps: own[0].reps ?? null,
+                ...await поЧередованию(exerciseId, {
+                    plannedSets: own.length,
+                    targetReps: own[0].reps ?? null
+                }),
                 weight: own[0].weight || 0
-            }));
+            })));
 
             return {
                 mode: 'workout',
@@ -221,8 +258,10 @@ async function build(params) {
 
             items.push({
                 exerciseId,
-                plannedSets: last.sets.length,
-                targetReps: last.sets[0].reps ?? null,
+                ...await поЧередованию(exerciseId, {
+                    plannedSets: last.sets.length,
+                    targetReps: last.sets[0].reps ?? null
+                }, own),
                 weight: last.sets[0].weight || 0
             });
         }
@@ -304,6 +343,15 @@ function itemRow(item, index, total, timed = false) {
                         : item.estimated
                             ? ui.html`<div class="plan-row-last is-guess">${t('Вес прикинут от веса тела — поправь под себя')}</div>`
                             : ''}
+
+                    <!--
+                        Подставленное по чередованию отличается от прошлого
+                        раза, и без пометки это выглядит ошибкой: «в прошлый
+                        раз было 6, откуда 12?» (Р-58).
+                    -->
+                    ${item.byCycle
+                        ? ui.html`<div class="plan-row-last is-guess">${t('Подставлено по чередованию — в прошлый раз было иначе')}</div>`
+                        : ''}
                 </div>
                 <div class="plan-row-tools">
                     <button class="icon-btn" data-action="plan-up" data-index="${index}"

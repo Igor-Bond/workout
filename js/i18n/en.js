@@ -129,6 +129,8 @@ export const EN = {
     'Последний раз: {что}': 'Last time: {что}',
     'Вес прикинут от веса тела — поправь под себя':
         'Weight estimated from your body weight — adjust it',
+    'Подставлено по чередованию — в прошлый раз было иначе':
+        'Filled in from your alternation — last time it was different',
     'Отрезки': 'Intervals',
     'Работа, с': 'Work, s',
     'Отдых, с': 'Rest, s',

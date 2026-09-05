@@ -123,6 +123,37 @@ export const records = {
     },
 
     /**
+     * Все выполнения упражнения по занятиям, от старых к свежим (Р-58).
+     *
+     * Нужны, чтобы увидеть чередование объёма: «6, 12, 6, 12» — это ряд по
+     * занятиям, и по одному последнему разу его не разглядеть.
+     *
+     * Ожидает подходы от свежих к старым, как их отдаёт база, а возвращает
+     * наоборот: у ряда, в котором ищут повтор, естественный порядок — по
+     * времени вперёд.
+     */
+    sessions(setsNewestFirst = []) {
+        const по = new Map();
+
+        for (const set of setsNewestFirst) {
+            if (!по.has(set.workoutId)) по.set(set.workoutId, []);
+            по.get(set.workoutId).push(set);
+        }
+
+        return [...по.entries()]
+            .map(([workoutId, own]) => {
+                const ordered = [...own].sort((a, b) => a.order - b.order);
+
+                return {
+                    workoutId,
+                    performedAt: Math.min(...ordered.map((s) => s.performedAt)),
+                    sets: ordered
+                };
+            })
+            .sort((a, b) => a.performedAt - b.performedAt);
+    },
+
+    /**
      * Ориентировочный разовый максимум по формуле Эпли.
      *
      * Величина справочная: выше десяти повторений формула заметно завышает,

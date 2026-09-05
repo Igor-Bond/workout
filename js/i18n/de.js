@@ -128,6 +128,8 @@ export const DE = {
     'Последний раз: {что}': 'Letztes Mal: {что}',
     'Вес прикинут от веса тела — поправь под себя':
         'Gewicht aus deinem Körpergewicht geschätzt — passe es an',
+    'Подставлено по чередованию — в прошлый раз было иначе':
+        'Nach deinem Wechsel eingesetzt — beim letzten Mal war es anders',
     'Отрезки': 'Intervalle',
     'Работа, с': 'Arbeit, s',
     'Отдых, с': 'Pause, s',
