@@ -351,6 +351,15 @@ export const profile = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="exercises">
                     ${t('Справочник упражнений')}
                 </button>
+
+                <!--
+                    Сводка стоит рядом со справочником и копией, а не в
+                    статистике: это выгрузка для человека со стороны, а не
+                    экран для чтения о себе (§55).
+                -->
+                <button class="btn btn-ghost" data-action="nav" data-screen="report">
+                    ${t('Сводка для тренера')}
+                </button>
             </div>
 
             <div class="card">

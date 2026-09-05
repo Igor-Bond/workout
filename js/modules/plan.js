@@ -121,17 +121,31 @@ async function поЧередованию(exerciseId, прошлое, подхо
 
     if (занятия.length < 2) return { ...прошлое, byCycle: false };
 
-    const наборы = rhythm.nextInCycle(занятия.map((з) => з.sets.length));
-    const повторы = rhythm.nextInCycle(занятия.map((з) => з.sets[0]?.reps));
+    /*
+     * Цикл ищется по паре целиком, а не по двум рядам порознь (Р-60).
+     *
+     * Лёгкий и тяжёлый день у человека различаются сразу обоими числами:
+     * 6 подходов по 50 повторений против 12 по 35. Порознь ряды дают тот же
+     * ответ, пока пара меняется в такт, — но стоит одному разу выпасть из
+     * ритма, и подставится небывалая смесь: 6 подходов по 35.
+     */
+    const ряд = занятия.map((з) => `${з.sets.length}|${з.sets[0]?.reps ?? ''}`);
+    const цикл = rhythm.cycle(ряд);
+
+    if (!цикл) return { ...прошлое, byCycle: false };
+
+    const [наборы, повторы] = цикл.next.split('|');
+
+    const plannedSets = Number(наборы) || прошлое.plannedSets;
+    const targetReps = повторы === '' ? прошлое.targetReps : Number(повторы);
 
     return {
-        plannedSets: наборы ?? прошлое.plannedSets,
-        targetReps: повторы ?? прошлое.targetReps,
+        plannedSets,
+        targetReps,
 
         // Отмечаем только то, что правда предсказано и отличается от прошлого
         // раза: совпало — и говорить не о чем
-        byCycle: (наборы !== null && наборы !== прошлое.plannedSets)
-            || (повторы !== null && повторы !== прошлое.targetReps)
+        byCycle: plannedSets !== прошлое.plannedSets || targetReps !== прошлое.targetReps
     };
 }
 

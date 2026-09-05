@@ -151,8 +151,26 @@ export const rhythm = {
      * значение, как и раньше. Молчать здесь важнее, чем угадывать: неверная
      * подсказка хуже отсутствия подсказки — её правят руками каждый раз.
      */
-    nextInCycle(values = [], { maxCycle = MAX_CYCLE, window = CYCLE_WINDOW } = {}) {
-        const ряд = values.filter((v) => Number.isFinite(v)).slice(-window);
+    nextInCycle(values = [], options = {}) {
+        const найден = rhythm.cycle(values, options);
+        return найден ? найден.next : null;
+    },
+
+    /**
+     * Сам цикл, а не только следующее значение (Р-58, Р-60).
+     *
+     * Отдельно от nextInCycle потому, что цикл нужен и целиком: сводка для
+     * тренера должна назвать оба состояния — «6 × 50 и 12 × 35 через раз», —
+     * а не медиану между ними. Медиана там врёт вдвойне: «9 × 43» не бывает
+     * ни в один из дней.
+     *
+     * Работает с чем угодно сравнимым через !==, не только с числами: ряд
+     * может состоять из пар «подходы × повторения», свёрнутых в строку.
+     *
+     * Возвращает { length, values, next } или null, если цикла не видно.
+     */
+    cycle(values = [], { maxCycle = MAX_CYCLE, window = CYCLE_WINDOW } = {}) {
+        const ряд = values.filter((v) => v !== null && v !== undefined && v !== '').slice(-window);
 
         for (let length = 1; length <= maxCycle; length++) {
             if (ряд.length < length * 2) continue;
@@ -162,7 +180,13 @@ export const rhythm = {
                 if (ряд[i] !== ряд[i - length]) { сходится = false; break; }
             }
 
-            if (сходится) return ряд[ряд.length - length];
+            if (!сходится) continue;
+
+            return {
+                length,
+                values: ряд.slice(-length),
+                next: ряд[ряд.length - length]
+            };
         }
 
         return null;

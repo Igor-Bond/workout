@@ -401,6 +401,21 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--accent-dim);
 }
 
+/*
+ * Поле сводки (§55): текст в нём читают, а не пишут.
+ *
+ * Строки не переносятся по словам, а идут как есть, с прокруткой вбок —
+ * сводка выстроена строками «упражнение: столько-то», и мягкий перенос
+ * разбил бы их пополам, отчего список перестал бы читаться списком.
+ */
+.report-text {
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre;
+    overflow-x: auto;
+    margin-bottom: 12px;
+}
+
 input[type=range] {
     width: 100%;
     accent-color: var(--accent);
