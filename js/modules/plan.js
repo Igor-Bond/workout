@@ -231,6 +231,10 @@ async function build(params) {
                     plannedSets: own.length,
                     targetReps: own[0].reps ?? null
                 }),
+
+                // Планка в повторе — это те же секунды, что были: без них
+                // повтор упражнения на время приходит пустым
+                targetDuration: own[0].duration ?? null,
                 weight: own[0].weight || 0
             })));
 
@@ -276,6 +280,7 @@ async function build(params) {
                     plannedSets: last.sets.length,
                     targetReps: last.sets[0].reps ?? null
                 }, own),
+                targetDuration: last.sets[0].duration ?? null,
                 weight: last.sets[0].weight || 0
             });
         }
@@ -391,7 +396,21 @@ function itemRow(item, index, total, timed = false) {
                            data-change="plan-field" data-index="${index}" data-key="plannedSets">
                 </div>
 
-                ${item.kind === 'time' || item.kind === 'distance' ? '' : ui.html`
+                <!--
+                    У упражнения на время цель тоже есть — только в секундах.
+                    Раньше поля не было вовсе, и планка входила в план одними
+                    подходами: «сколько держать» приходилось помнить самому.
+                    У кардио поля по-прежнему нет: там две величины сразу,
+                    время и дистанция, и задавать одну без другой бессмысленно.
+                -->
+                ${item.kind === 'time' ? ui.html`
+                    <div class="field">
+                        <label for="p-secs-${index}">${t('Секунд')}</label>
+                        <input id="p-secs-${index}" type="number" min="0" inputmode="numeric"
+                               placeholder="—" value="${item.targetDuration ?? ''}"
+                               data-change="plan-field" data-index="${index}" data-key="targetDuration">
+                    </div>
+                ` : item.kind === 'distance' ? '' : ui.html`
                     <div class="field">
                         <label for="p-reps-${index}">${t('Повторения')}</label>
                         <input id="p-reps-${index}" type="number" min="0" inputmode="numeric"
@@ -512,6 +531,7 @@ const toItems = () => draft.items.map((item) => ({
     exerciseId: item.exerciseId,
     plannedSets: item.plannedSets,
     targetReps: item.targetReps,
+    targetDuration: item.targetDuration ?? null,
     weight: item.weight || 0
 }));
 
@@ -656,6 +676,7 @@ actions.on('plan-add', async () => {
         kind: exercise.kind,
         plannedSets: last?.sets.length || defaultSets,
         targetReps: previous?.reps ?? null,
+        targetDuration: previous?.duration ?? null,
         weight: previous?.weight || (await guessWeight(exercise, last)) || 0,
         estimated: !last && !!(await guessWeight(exercise, last)),
         lastLine: last ? records.describeSession(last.sets, exercise.kind) : null

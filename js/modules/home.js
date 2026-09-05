@@ -759,10 +759,21 @@ actions.on('today-start', async (el) => {
             exercise = await dbService.createExercise({ name: упражнение.name });
         }
 
+        /*
+         * Второе число задания читается по виду упражнения.
+         *
+         * В тексте плана «Планка 2 × 45» и «Пресс 2 × 45» выглядят
+         * одинаково, но у планки это секунды, а у пресса повторения. Текст
+         * этого различить не может — он не знает справочника, — а здесь
+         * упражнение уже найдено, и вид известен.
+         */
+        const время = exercise.kind === 'time';
+
         состав.push({
             exerciseId: exercise.id,
             plannedSets: упражнение.sets || 1,
-            targetReps: упражнение.reps ?? null,
+            targetReps: время ? null : (упражнение.reps ?? null),
+            targetDuration: время ? (упражнение.reps ?? null) : null,
             weight: 0,
             skipped: false
         });

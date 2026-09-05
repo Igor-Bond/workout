@@ -185,6 +185,13 @@ describe('Предзаполнение полей', () => {
     it('для упражнения вне плана значений нет', () => {
         equal(engine.prefill(PLAN, [], 'икры'), { reps: null, weight: null, duration: null, distance: null });
     });
+
+    it('цель по времени подставляется так же, как повторения', () => {
+        const план = [{ exerciseId: 'планка', plannedSets: 2, targetDuration: 45 }];
+
+        equal(engine.prefill(план, [], 'планка').duration, 45,
+            'план говорит «Планка 2 × 45» — сорок пять секунд должны стоять в поле');
+    });
 });
 
 describe('Итоги тренировки', () => {

@@ -200,7 +200,11 @@ export const engine = {
         return {
             reps: item?.targetReps ?? null,
             weight: item?.weight || null,
-            duration: null,
+
+            // Цель по времени такая же часть задания, как повторения: план
+            // говорит «Планка 2 × 45», и сорок пять секунд обязаны стоять в
+            // поле, а не вспоминаться (§56)
+            duration: item?.targetDuration ?? null,
             distance: null
         };
     },
