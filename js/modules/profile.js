@@ -360,6 +360,10 @@ export const profile = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="report">
                     ${t('Сводка для тренера')}
                 </button>
+
+                <button class="btn btn-ghost" data-action="nav" data-screen="planner">
+                    ${t('План тренировок')}
+                </button>
             </div>
 
             <div class="card">

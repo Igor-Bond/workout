@@ -34,6 +34,8 @@ import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
+import { plan as planCore } from '../core/plan.js';
+import { currentPlan } from './planner.js';
 
 const DAY = 86400000;
 
@@ -168,7 +170,10 @@ function compositionName(group, names, templates) {
  * кнопке внизу, которая завершает перебор. На карточке крупно — упражнения:
  * по ним узнают тренировку, а тип и дни это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи, ежедневное) {
+function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи, ежедневное, поПлану) {
+
+    // Сегодняшняя полночь: по ней видно, перенесено ли занятие с прошлого дня
+    const сегодняшнийДень = dates.startOfDay(Date.now());
 
     /*
      * Первый из очереди поднят в карточку — на самое видное место (§29.1).
@@ -326,7 +331,33 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
         <div class="section">
             <div class="section-title">${t('Начать')}</div>
 
-            ${первое ? ui.html`
+            <!--
+                Когда план объявлен, он идёт первым и отменяет очередь (§56).
+                Очередь угадывает ритм по истории и с задуманным кругом
+                расходится: замер дал 17 попаданий из 31. План не угадывает —
+                он сказан, и спорить с ним подсказке незачем.
+            -->
+            ${поПлану ? ui.html`
+                <!--
+                    Занятие едет на самой кнопке, а не вычисляется заново по
+                    нажатию: пересчёт шёл без списка сделанного за неделю и
+                    выдавал понедельничное там, где на карточке стояло
+                    четверговое. Кнопка обязана начинать ровно то, что назвала.
+                -->
+                <button class="repeat-card is-queue" data-action="today-start"
+                        data-name="${поПлану.name}"
+                        data-sets="${поПлану.sets ?? ''}"
+                        data-reps="${поПлану.reps ?? ''}">
+                    <span class="rep-label">${t('Сегодня по плану')}</span>
+                    <span class="rep-names">${поПлану.name}</span>
+                    <span class="rep-meta">
+                        ${поПлану.sets ? planCore.describe(поПлану).replace(`${поПлану.name} `, '') : t('без объёма')}
+                        ${поПлану.planned !== сегодняшнийДень
+                            ? ui.raw(` · ${ui.esc(t('перенесено с {день}', { день: dates.formatDayLabel(поПлану.planned, Date.now(), { lower: true }) }))}`)
+                            : ''}
+                    </span>
+                </button>
+            ` : первое ? ui.html`
                 <button class="repeat-card is-queue" data-action="home-like" data-id="${первое.workoutId}">
                     <span class="rep-label">${t('На очереди')}</span>
                     <span class="rep-names">${compositionName(первое, names, templates)}</span>
@@ -511,13 +542,14 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, сводки, templates, exercises, body, подходы] = await Promise.all([
+        const [active, сводки, templates, exercises, body, подходы, объявленный] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
             dbService.listTemplates(),
             dbService.listExercises({ includeArchived: true }),
             dbService.listBodyWeight(),
-            dbService.allSets()
+            dbService.allSets(),
+            currentPlan()
         ]);
 
         // Тоннаж — вся нагрузка, вместе с собственным весом (Р-52). Считается
@@ -569,6 +601,28 @@ export const home = {
         // Карточке нужны итоги той самой тренировки — тип и число подходов
         const записи = new Map(entries.map((e) => [e.workout.id, e]));
 
+        /*
+         * Что сегодня по объявленному плану (§56).
+         *
+         * Сделанным на этой неделе считается название состава: план говорит
+         * «Бицепс резинка», а в истории лежит тренировка из этого упражнения.
+         * Сверяться по названию проще и честнее, чем по набору
+         * идентификаторов: человек мог добавить упражнение по ходу, и это не
+         * повод считать день невыполненным.
+         *
+         * Зарядка при этом не в счёт. Она идёт каждый день и часто повторяет
+         * те же упражнения малым объёмом; засчитай её — и утренняя разминка
+         * молча закрывала бы дневное задание, которого никто не делал.
+         */
+        const сегодняшнийДень = dates.startOfDay(Date.now());
+        const понедельник = сегодняшнийДень - ((new Date(сегодняшнийДень).getDay() + 6) % 7) * DAY;
+
+        const сделаноЗаНеделю = entries
+            .filter((e) => e.workout.startedAt >= понедельник && !фон(e.workout))
+            .flatMap((e) => (e.exerciseIds || []).map((id) => names.get(id)).filter(Boolean));
+
+        const поПлану = planCore.today(объявленный, { done: сделаноЗаНеделю });
+
         // Карточка «Пора по периодичности» и плашки говорят об одном и том же
         // долге. Что плашки уже предлагают одним нажатием, из карточки убираем:
         // иначе те же названия стоят на экране дважды, а карточке остаётся
@@ -602,7 +656,8 @@ export const home = {
                 rhythm.frequentWorkouts(entries.filter((e) => !фон(e.workout))),
                 очередь,
                 записи,
-                ежедневное
+                ежедневное,
+                поПлану
             )}
 
             ${entries.length ? weekBlock(entries) : ''}
@@ -626,6 +681,65 @@ actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
  * названная плашкой: состав и веса берутся из неё.
  */
 actions.on('home-like', (el) => app.go('plan', 'repeat', el.dataset.id));
+
+/**
+ * Начать то, что сегодня по плану (§56).
+ *
+ * Задание берётся с самой кнопки: карточка уже решила, что сегодня, с учётом
+ * сделанного за неделю, и повторять этот счёт по нажатию нечем — списка
+ * сделанного здесь нет, а без него план откатывался бы к началу недели.
+ *
+ * Упражнение ищется по названию: план написан словами — тренером или
+ * языковой моделью, — а справочник хранит записи. Не нашлось — говорим прямо
+ * и предлагаем завести, а не собираем пустую тренировку молча.
+ */
+actions.on('today-start', async (el) => {
+    const занятие = {
+        name: el.dataset.name || '',
+        sets: Number(el.dataset.sets) || null,
+        reps: Number(el.dataset.reps) || null
+    };
+
+    if (!занятие.name) return app.render();
+
+    /*
+     * Упражнения может не оказаться — и это обычный случай, а не сбой.
+     *
+     * План составляет тренер или языковая модель, и названия в нём свои.
+     * Отказать здесь значило бы отправить человека заводить запись руками, а
+     * потом возвращаться и начинать заново — ради строки, которая уже есть.
+     * Поэтому предлагаем завести прямо отсюда и сразу начать; вид упражнения
+     * ставим обычный, а поправить его можно в справочнике.
+     */
+    let exercise = await dbService.findExerciseByName(занятие.name);
+
+    if (!exercise) {
+        const ok = await dialog.confirm({
+            title: t('Упражнения нет в справочнике'),
+            text: t('План называет «{название}», а такого упражнения не заведено. Завести и начать?', {
+                название: занятие.name
+            }),
+            confirmText: t('Завести')
+        });
+
+        if (!ok) return;
+
+        exercise = await dbService.createExercise({ name: занятие.name });
+    }
+
+    const workout = await dbService.createWorkout({
+        type: t('Силовая'),
+        plan: [{
+            exerciseId: exercise.id,
+            plannedSets: занятие.sets || 1,
+            targetReps: занятие.reps ?? null,
+            weight: 0,
+            skipped: false
+        }]
+    });
+
+    app.go(workout.interval ? 'interval' : 'session');
+});
 
 actions.on('home-forgotten-next', () => { показано += 1; app.render(); });
 actions.on('home-forgotten-prev', () => { показано -= 1; app.render(); });

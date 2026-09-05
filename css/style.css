@@ -2105,3 +2105,24 @@ button.ex-name:active { color: var(--accent); }
     font-size: 15px;
     font-weight: 700;
 }
+
+/*
+ * Развёртка плана (§56): строка на день.
+ *
+ * Дата слева узкой колонкой, занятие справа — так взгляд идёт по датам
+ * сверху вниз, не спотыкаясь о разную длину названий. День отдыха приглушён:
+ * он часть плана, но действия не требует.
+ */
+.plan-day {
+    display: flex;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+}
+
+.plan-day:last-child { border-bottom: none; }
+.plan-day.is-rest { color: var(--text-dim); }
+
+.plan-day-date { flex: none; width: 110px; color: var(--text-dim); font-size: 13px; }
+.plan-day-body { flex: 1; min-width: 0; }

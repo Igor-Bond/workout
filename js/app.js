@@ -23,6 +23,7 @@ import { stats } from './modules/stats.js';
 import { exercise } from './modules/exercise.js';
 import { exercises } from './modules/exercises.js';
 import { shares } from './modules/shares.js';
+import { planner } from './modules/planner.js';
 import { report } from './modules/report.js';
 import { recordsScreen } from './modules/records.js';
 import { profile } from './modules/profile.js';
@@ -52,6 +53,7 @@ function screens() {
             home, templates, plan, session, summary,
             interval: intervalScreen,
             history, calendar, stats, exercise, exercises, shares, report,
+            planner,
             records: recordsScreen,
             profile, guide,
             survey: surveyScreen
