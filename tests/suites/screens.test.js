@@ -12,6 +12,7 @@
 
 import { describe, it, equal, assert } from '../runner.js';
 import { screen, text, hasAction, press, seed, workout } from '../helpers/dom.js';
+import { app } from '../../js/app.js';
 
 import { home } from '../../js/modules/home.js';
 import { history } from '../../js/modules/history.js';
@@ -1412,5 +1413,71 @@ describe('Экран: выполнение, память паузы', () => {
         const view = await screen(session);
 
         assert(has(view, '1:15'), 'в меню отдыха стоит общая величина');
+    });
+});
+
+/*
+ * Заглушка «Загрузка…» при переходе (Р-47, Р-59).
+ *
+ * Правило двойное, и обе половины ломаются по-разному. Без задержки заглушка
+ * мелькает на быстрых переходах — итоги тренировки готовятся полсотни
+ * миллисекунд, и человек видит вспышку вместо перехода. Без самой заглушки
+ * долгий переход выглядит зависанием.
+ *
+ * Проверяется через настоящий app.render на настоящем узле экрана: правило
+ * живёт в нём, и проверять его копией смысла нет.
+ */
+describe('Экран: заглушка при переходе', () => {
+
+    /** Отрисовать маршрут и сказать, появлялась ли заглушка. */
+    async function переход(hash, задержка = 0) {
+        // Сначала встаём на другой экран: переход на тот же самый переходом
+        // не считается, и заглушки там не бывает вовсе — на этом первая
+        // версия проверки и попалась
+        location.hash = '#/home';
+        await app.render();
+
+        const модуль = history;
+        const было = модуль.render;
+
+        if (задержка) {
+            модуль.render = async (...args) => {
+                await new Promise((r) => setTimeout(r, задержка));
+                return было.apply(модуль, args);
+            };
+        }
+
+        const host = document.getElementById('screen');
+        let мелькнула = false;
+
+        const наблюдатель = new MutationObserver(() => {
+            if (host.querySelector('.loading')) мелькнула = true;
+        });
+
+        наблюдатель.observe(host, { childList: true, subtree: true });
+
+        try {
+            location.hash = hash;
+            await app.render();
+        } finally {
+            наблюдатель.disconnect();
+            модуль.render = было;
+        }
+
+        return мелькнула;
+    }
+
+    it('быстрый переход обходится без заглушки', async () => {
+        await seed();
+
+        equal(await переход('#/history'), false,
+            'полсотни миллисекунд — это не загрузка, а вспышка');
+    });
+
+    it('долгий переход заглушку показывает', async () => {
+        await seed();
+
+        equal(await переход('#/history', 400), true,
+            'иначе долгий переход выглядит зависанием');
     });
 });
