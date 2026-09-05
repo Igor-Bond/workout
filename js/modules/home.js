@@ -35,7 +35,7 @@ import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { plan as planCore } from '../core/plan.js';
-import { currentPlan } from './planner.js';
+import { currentPlan, PLAN_KEY } from './planner.js';
 
 const DAY = 86400000;
 
@@ -160,6 +160,94 @@ function compositionName(group, names, templates) {
     // Два названия, а не три: плашка стоит в ряд с другими, и длинная
     // занимает строку целиком, а ряды теснят кнопку внизу (§29.1)
     return exerciseLine({ exerciseIds: group.exerciseIds, workout: { type: t('Тренировка') } }, names, NAMES_ON_CHIP);
+}
+
+/**
+ * Состояние объявленного плана (§56.1).
+ *
+ * Приложение обязано говорить о плане на всех трёх границах, а не только
+ * пока он идёт. Утверждённый в субботу план, который начинается с
+ * понедельника, молчал так же, как его отсутствие: человек смотрел на
+ * главный экран и не понимал, принят ли он вообще. Кончившийся молчал тем же
+ * молчанием — приложение просто возвращалось к подсказкам по истории.
+ *
+ * Пока план идёт, полоски нет: о нём и так говорит карточка «Сегодня по
+ * плану», и второе напоминание рядом с ней было бы шумом.
+ */
+function планСостояние(план) {
+    const состояние = planCore.state(план);
+
+    if (состояние === 'none' || состояние === 'running') return '';
+
+    if (состояние === 'upcoming') {
+        const первый = planCore.first(план);
+
+        return ui.html`
+            <div class="plan-note">
+                <span class="plan-note-title">
+                    ${t('План начинается {день}', {
+                        день: dates.formatDayLabel(план.from, Date.now(), { lower: true })
+                    })}
+                </span>
+                <span class="plan-note-body">
+                    ${первый
+                        ? t('Первым — {занятие}. До тех пор приложение подсказывает по истории.', {
+                            занятие: planCore.describe(первый.session)
+                        })
+                        : t('До тех пор приложение подсказывает по истории.')}
+                </span>
+            </div>
+        `;
+    }
+
+    if (состояние === 'ending') {
+        const осталось = planCore.daysLeft(план);
+
+        return ui.html`
+            <div class="plan-note">
+                <span class="plan-note-title">
+                    ${осталось === 0
+                        ? t('Сегодня последний день плана')
+                        : t('План кончается через {n}', { n: format.count(осталось, format.WORDS.day) })}
+                </span>
+                <span class="plan-note-body">
+                    ${t('Следующий стоит попросить заранее: в сводке для тренера есть готовый запрос.')}
+                </span>
+                <button class="btn btn-ghost btn-sm" data-action="nav" data-screen="report">
+                    ${t('Сводка для тренера')}
+                </button>
+            </div>
+        `;
+    }
+
+    /*
+     * Кончившийся план не убирается сам (§56.1).
+     *
+     * Приложение уже вернулось к подсказкам по истории — молча продолжать
+     * было бы честно по поведению, но нечестно по разговору: человек
+     * объявлял программу на восемь недель и вправе узнать, что она
+     * исчерпана, а не обнаружить это по исчезнувшей карточке.
+     *
+     * Поэтому здесь оба выхода сразу: попросить следующий или убрать этот.
+     * Требовать нового плана прямо сейчас приложение не станет — тренировки
+     * идут и без него.
+     */
+    return ui.html`
+        <div class="plan-note is-over">
+            <span class="plan-note-title">
+                ${t('План кончился {дата}', { дата: dates.formatDate(planCore.until(план)) })}
+            </span>
+            <span class="plan-note-body">
+                ${t('Приложение снова подсказывает по истории. Можно взять следующий план или убрать этот.')}
+            </span>
+            <div class="row-links">
+                <button class="btn btn-accent btn-sm" data-action="nav" data-screen="planner">
+                    ${t('Новый план')}
+                </button>
+                <button class="link-btn" data-action="home-plan-drop">${t('Убрать план')}</button>
+            </div>
+        </div>
+    `;
 }
 
 /**
@@ -673,7 +761,7 @@ export const home = {
         return ui.html`
             ${ui.raw(ui.title(t('Тренировка')))}
 
-
+            ${планСостояние(объявленный)}
 
             ${active || startBlock(
                 entries[0],
@@ -782,6 +870,18 @@ actions.on('today-start', async (el) => {
     const workout = await dbService.createWorkout({ type: t('Силовая'), plan: состав });
 
     app.go(workout.interval ? 'interval' : 'session');
+});
+
+/**
+ * Убрать кончившийся план прямо с главного (§56.1).
+ *
+ * Без вопроса: план уже кончился и ни на что не влияет, а спрашивать
+ * «точно убрать?» о том, что и так не действует, — пустой разговор. Вернуть
+ * его можно тем же текстом, он никуда не делся из переписки.
+ */
+actions.on('home-plan-drop', async () => {
+    await dbService.setSetting(PLAN_KEY, null);
+    app.render();
 });
 
 actions.on('home-forgotten-next', () => { показано += 1; app.render(); });

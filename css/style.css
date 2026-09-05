@@ -655,6 +655,33 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 }
 
 /*
+ * Полоска состояния плана (§56.1).
+ *
+ * Не карточка: карточка на этом экране означает «нажми меня», а здесь
+ * сообщение. Отличается от фона левой чертой — тем же приёмом, что у
+ * предупреждений, только спокойнее.
+ */
+.plan-note {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-left: 3px solid var(--accent);
+    background: var(--panel-2);
+    border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.plan-note-title { font-weight: 700; }
+.plan-note-body { font-size: 13px; color: var(--text-dim); }
+
+.plan-note .btn { align-self: flex-start; margin-top: 6px; }
+.plan-note .row-links { margin-top: 6px; }
+
+/* Кончившийся план ничем не ведёт — и черта у него не зовёт, а закрывает */
+.plan-note.is-over { border-left-color: var(--line); }
+
+/*
  * Отсчёт подхода на время (§57).
  *
  * Число крупнее поля ввода вдвое: на него смотрят из планки одним глазом и

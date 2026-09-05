@@ -258,6 +258,71 @@ describe('Сегодня по плану', () => {
 
 });
 
+describe('Состояние плана', () => {
+
+    const p = plan.parse(ОБРАЗЕЦ);
+
+    it('до начала — объявлен, но не начался', () => {
+        equal(plan.state(p, MONDAY - 2 * DAY), 'upcoming');
+        equal(plan.startsIn(p, MONDAY - 2 * DAY), 2);
+    });
+
+    it('в день начала уже идёт, а не «начнётся»', () => {
+        equal(plan.state(p, MONDAY), 'running');
+        equal(plan.startsIn(p, MONDAY), 0);
+    });
+
+    it('в середине срока просто идёт', () => {
+        equal(plan.state(p, MONDAY + 14 * DAY), 'running');
+    });
+
+    it('за неделю до конца предупреждает', () => {
+        equal(plan.state(p, plan.until(p) - 3 * DAY), 'ending');
+    });
+
+    it('в последний день ещё идёт, а не кончился', () => {
+        equal(plan.state(p, plan.until(p) - 1000), 'ending');
+        equal(plan.daysLeft(p, plan.until(p) - 1000), 0);
+    });
+
+    it('после срока кончился', () => {
+        equal(plan.state(p, plan.until(p) + DAY), 'over');
+    });
+
+    it('без плана состояния нет', () => {
+        equal(plan.state(null), 'none');
+        equal(plan.state(plan.parse('Пн Бицепс 6 × 50')), 'none', 'без даты начала это не план');
+    });
+
+    it('осталось дней считается по календарю, а не по часам', () => {
+        equal(plan.daysLeft(p, MONDAY), 55, 'восемь недель минус сегодняшний день');
+    });
+
+});
+
+describe('Первый день плана', () => {
+
+    it('открывается первым тренировочным днём', () => {
+        const p = plan.parse(ОБРАЗЕЦ);
+
+        equal(plan.first(p)?.session.name, 'Бицепс резинка');
+        equal(plan.first(p)?.at, p.from);
+    });
+
+    it('день отдыха в начале перешагивается', () => {
+        // План с воскресенья: первый тренировочный — понедельник
+        const p = plan.parse('С 06.09.2026, 8 недель\nПн Бицепс резинка 6 × 50\nВс отдых');
+
+        equal(plan.first(p)?.session.name, 'Бицепс резинка');
+        equal(plan.first(p)?.at, p.from + DAY);
+    });
+
+    it('без плана первого дня нет', () => {
+        equal(plan.first(null), null);
+    });
+
+});
+
 describe('Ближайший день плана', () => {
 
     const p = plan.parse(ОБРАЗЕЦ);
