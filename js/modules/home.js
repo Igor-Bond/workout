@@ -345,13 +345,13 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                     четверговое. Кнопка обязана начинать ровно то, что назвала.
                 -->
                 <button class="repeat-card is-queue" data-action="today-start"
-                        data-name="${поПлану.name}"
-                        data-sets="${поПлану.sets ?? ''}"
-                        data-reps="${поПлану.reps ?? ''}">
+                        data-day="${JSON.stringify(поПлану.items || [поПлану])}">
                     <span class="rep-label">${t('Сегодня по плану')}</span>
-                    <span class="rep-names">${поПлану.name}</span>
+                    <span class="rep-names">${(поПлану.items || [поПлану]).map((у) => у.name).join(' + ')}</span>
                     <span class="rep-meta">
-                        ${поПлану.sets ? planCore.describe(поПлану).replace(`${поПлану.name} `, '') : t('без объёма')}
+                        ${поПлану.sets
+                            ? (поПлану.items || [поПлану]).map((у) => (у.reps ? `${у.sets} × ${у.reps}` : `${у.sets}`)).join(' + ')
+                            : t('без объёма')}
                         ${поПлану.planned !== сегодняшнийДень
                             ? ui.raw(` · ${ui.esc(t('перенесено с {день}', { день: dates.formatDayLabel(поПлану.planned, Date.now(), { lower: true }) }))}`)
                             : ''}
@@ -694,13 +694,10 @@ actions.on('home-like', (el) => app.go('plan', 'repeat', el.dataset.id));
  * и предлагаем завести, а не собираем пустую тренировку молча.
  */
 actions.on('today-start', async (el) => {
-    const занятие = {
-        name: el.dataset.name || '',
-        sets: Number(el.dataset.sets) || null,
-        reps: Number(el.dataset.reps) || null
-    };
+    let задание = [];
+    try { задание = JSON.parse(el.dataset.day || '[]'); } catch { задание = []; }
 
-    if (!занятие.name) return app.render();
+    if (!задание.length) return app.render();
 
     /*
      * Упражнения может не оказаться — и это обычный случай, а не сбой.
@@ -710,33 +707,40 @@ actions.on('today-start', async (el) => {
      * потом возвращаться и начинать заново — ради строки, которая уже есть.
      * Поэтому предлагаем завести прямо отсюда и сразу начать; вид упражнения
      * ставим обычный, а поправить его можно в справочнике.
+     *
+     * Спрашиваем про каждое незнакомое имя отдельно: в дне их может быть
+     * несколько, и согласие на одно не согласие на другое. Отказ обрывает
+     * запуск целиком — начинать день без половины задания незачем.
      */
-    let exercise = await dbService.findExerciseByName(занятие.name);
+    const состав = [];
 
-    if (!exercise) {
-        const ok = await dialog.confirm({
-            title: t('Упражнения нет в справочнике'),
-            text: t('План называет «{название}», а такого упражнения не заведено. Завести и начать?', {
-                название: занятие.name
-            }),
-            confirmText: t('Завести')
-        });
+    for (const упражнение of задание) {
+        let exercise = await dbService.findExerciseByName(упражнение.name);
 
-        if (!ok) return;
+        if (!exercise) {
+            const ok = await dialog.confirm({
+                title: t('Упражнения нет в справочнике'),
+                text: t('План называет «{название}», а такого упражнения не заведено. Завести и начать?', {
+                    название: упражнение.name
+                }),
+                confirmText: t('Завести')
+            });
 
-        exercise = await dbService.createExercise({ name: занятие.name });
-    }
+            if (!ok) return;
 
-    const workout = await dbService.createWorkout({
-        type: t('Силовая'),
-        plan: [{
+            exercise = await dbService.createExercise({ name: упражнение.name });
+        }
+
+        состав.push({
             exerciseId: exercise.id,
-            plannedSets: занятие.sets || 1,
-            targetReps: занятие.reps ?? null,
+            plannedSets: упражнение.sets || 1,
+            targetReps: упражнение.reps ?? null,
             weight: 0,
             skipped: false
-        }]
-    });
+        });
+    }
+
+    const workout = await dbService.createWorkout({ type: t('Силовая'), plan: состав });
 
     app.go(workout.interval ? 'interval' : 'session');
 });
