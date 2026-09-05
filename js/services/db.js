@@ -17,6 +17,7 @@ import { migrations } from './migrations.js';
 import { howTo } from './howto.js';
 import { i18n, t } from '../core/i18n.js';
 import { localizeExercise, canonicalName, canonicalGroup, deliveredHowTo } from '../i18n/exercises.js';
+import { SYNCED_SETTINGS } from '../core/merge.js';
 
 /**
  * Имя базы можно подменить до первого импорта модуля. Нужно ровно одному
@@ -1111,9 +1112,68 @@ export const dbService = {
         return row ? row.value : fallback;
     },
 
+    /**
+     * Записать настройку.
+     *
+     * Синхронизируемым (§39.1) проставляется updatedAt — по нему обмен и
+     * решает, чья запись свежее. Остальным не проставляется намеренно: без
+     * метки они для обмена невидимы, и это ровно то, что нужно устройству,
+     * настроенному под себя.
+     */
     async setSetting(key, value) {
-        await db.settings.put({ key, value });
+        const row = { key, value };
+        if (SYNCED_SETTINGS.includes(key)) row.updatedAt = Date.now();
+
+        await db.settings.put(row);
         return value;
+    },
+
+    /**
+     * Настройки на отправку: свежее указанного момента.
+     *
+     * Читаются поимённо, а не отбором по updatedAt, как остальные таблицы. У
+     * settings в схеме один индекс — ключ, а поднимать версию схемы ради
+     * второго нельзя: откат на прежнюю версию приложения после этого не
+     * открыл бы базу вовсе. Ключей в списке единицы, и перебор их поимённо
+     * стоит ровно столько же.
+     */
+    async changedSettings(since = 0) {
+        const rows = [];
+
+        for (const key of SYNCED_SETTINGS) {
+            const row = await db.settings.get(key);
+            if (!row) continue;
+
+            /*
+             * Настройка без отметки — та, что записана версией, где обмена
+             * для настроек ещё не было. Без отметки она невидима для
+             * отправки, и объявленный до обновления план не уехал бы
+             * никогда: человек ждал бы его на телефоне, а тот молчал.
+             *
+             * Поэтому отметка проставляется сейчас — от текущего момента.
+             * Если такой же неотмеченный план лежит и на втором устройстве,
+             * победит тот, что синхронизировался позже. Иначе не решить:
+             * когда его объявили, никто не записывал.
+             */
+            if (row.updatedAt === undefined) {
+                row.updatedAt = Date.now();
+                await db.settings.put(row);
+            }
+
+            if (row.updatedAt > since) rows.push(row);
+        }
+
+        return rows;
+    },
+
+    /** Настройка для сравнения со входящей. */
+    getSettingRow(key) {
+        return db.settings.get(key);
+    },
+
+    /** Настройка из облака кладётся как есть, вместе с чужим updatedAt. */
+    applyRemoteSetting(row) {
+        return db.settings.put({ key: row.key, value: row.value, updatedAt: row.updatedAt || 0 });
     },
 
     // ================== СИНХРОНИЗАЦИЯ (§39) ==================

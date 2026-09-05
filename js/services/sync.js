@@ -18,7 +18,7 @@
 import { t } from '../core/i18n.js';
 import { auth } from './auth.js';
 import { dbService } from './db.js';
-import { merge, SYNCED } from '../core/merge.js';
+import { merge, SYNCED, SYNCED_SETTINGS } from '../core/merge.js';
 import { config } from '../config.js';
 
 const LAST_SYNC_KEY = 'lastSync';
@@ -149,7 +149,52 @@ export const sync = {
             }
         }
 
-        return { applied, appliedRecords, seen };
+        const settings = await sync.pullSettings(ctx);
+
+        return { applied, appliedRecords, seen, settings };
+    },
+
+    /**
+     * Приём синхронизируемых настроек (§39.1).
+     *
+     * Отдельным проходом, а не в общем цикле по таблицам, и на то две
+     * причины. Отбор в общем цикле идёт по индексу updatedAt, а у settings в
+     * схеме один индекс — ключ; поднимать версию схемы ради второго нельзя,
+     * откат на прежнюю версию приложения после этого не открыл бы базу.
+     * И границы курсора здесь не нужно: ключей единицы, читать их целиком
+     * дешевле, чем вести для них отдельный счёт.
+     *
+     * План при этом ведёт себя как всё остальное: чья запись свежее, та и
+     * побеждает. Объявить план на компьютере и увидеть его на телефоне —
+     * ровно то, ради чего он вообще пишется текстом.
+     */
+    async pullSettings(ctx) {
+        const { getDoc, doc } = ctx.fs;
+        const ref = sync._collection(ctx, 'settings');
+        const applied = new Set();
+
+        for (const key of SYNCED_SETTINGS) {
+            let remote = null;
+
+            try {
+                const snapshot = await getDoc(doc(ref, key));
+                if (!snapshot.exists()) continue;
+                remote = snapshot.data();
+            } catch (e) {
+                // Настройка не история: не доехала — молча ждём следующего
+                // обмена, а тренировки из-за неё останавливать нельзя
+                console.warn('[Обмен] Настройка не принята:', key, e);
+                continue;
+            }
+
+            const local = await dbService.getSettingRow(key);
+            if (merge.resolve(local, remote) !== 'take-remote') continue;
+
+            await dbService.applyRemoteSetting({ key, value: remote.value, updatedAt: remote.updatedAt });
+            applied.add(key);
+        }
+
+        return applied;
     },
 
     // ================== ОТДАТЬ СВОЁ ==================
@@ -163,7 +208,7 @@ export const sync = {
      * не отправляли, осталась бы без отметки навсегда — и невидимой для
      * второго устройства.
      */
-    async push(ctx, since, applied, { everything = false } = {}) {
+    async push(ctx, since, applied, { everything = false, settings = new Set() } = {}) {
         const { doc, setDoc, writeBatch, serverTimestamp } = ctx.fs;
         let sent = 0;
 
@@ -197,6 +242,8 @@ export const sync = {
             sent += outgoing.length;
         }
 
+        sent += await sync.pushSettings(ctx, everything ? -1 : since, settings);
+
         /*
          * Документ профиля нужен, чтобы у пользователя вообще была запись в
          * users и было видно, когда устройство выходило на связь.
@@ -212,6 +259,45 @@ export const sync = {
                 { lastSyncAt: Date.now(), app: 'workout' },
                 { merge: true }
             );
+        }
+
+        return sent;
+    },
+
+    /**
+     * Отправка синхронизируемых настроек (§39.1).
+     *
+     * Ключ документа — сам ключ настройки, а не случайный идентификатор:
+     * настройка одна на пользователя, и второй документ для того же ключа
+     * означал бы, что два устройства спорят, чей план настоящий, вместо того
+     * чтобы сравнить метки.
+     *
+     * Ошибка здесь не валит обмен: план — не история, и не уехавший план
+     * уедет следующим разом, а вот потерянная из-за него тренировка не
+     * вернётся.
+     */
+    async pushSettings(ctx, since, applied = new Set()) {
+        const { doc, setDoc, serverTimestamp } = ctx.fs;
+
+        // Только что принятое обратно не отправляем: значение и метка у него
+        // ровно те же, и вторая запись за обмен ничего не меняет
+        const rows = (await dbService.changedSettings(since)).filter((r) => !applied.has(r.key));
+
+        let sent = 0;
+
+        for (const row of rows) {
+            try {
+                await setDoc(doc(sync._collection(ctx, 'settings'), row.key), {
+                    key: row.key,
+                    value: row.value,
+                    updatedAt: row.updatedAt || 0,
+                    syncedAt: serverTimestamp()
+                });
+
+                sent += 1;
+            } catch (e) {
+                console.warn('[Обмен] Настройка не отправлена:', row.key, e);
+            }
         }
 
         return sent;
@@ -250,14 +336,14 @@ export const sync = {
 
             const ctx = await auth.context();
 
-            const { applied, appliedRecords, seen } = await sync.pull(ctx, cursor);
+            const { applied, appliedRecords, seen, settings } = await sync.pull(ctx, cursor);
 
             // Между приёмом и отправкой: двойники приезжают именно с обменом
             // (§5.1), а сведение их переписывает тренировки и шаблоны — и это
             // должно уехать тем же разом, а не остаться до следующего
             const merged = await dbService.dedupeExercises();
 
-            const sent = await sync.push(ctx, since, applied, { everything: stamp });
+            const sent = await sync.push(ctx, since, applied, { everything: stamp, settings });
             if (stamp) config.set(STAMPED_KEY, true);
 
             sync.setLastSync(merge.nextSince(startedAt, appliedRecords));

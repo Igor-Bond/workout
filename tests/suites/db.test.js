@@ -1162,3 +1162,70 @@ describe('Уборка дополнительного веса из подход
         equal((await dbService.getExercise(ex.id)).bodyShare, 0);
     });
 });
+
+describe('Настройки в обмене (§39.1)', () => {
+
+    it('синхронизируемая настройка получает отметку времени', async () => {
+        await reset();
+
+        await dbService.setSetting('plan', { from: 1, weeks: 8 });
+        const row = await dbService.getSettingRow('plan');
+
+        assert(row.updatedAt > 0, 'без отметки обмену нечем сравнивать, чья запись свежее');
+    });
+
+    it('настройка устройства отметки не получает', async () => {
+        await reset();
+
+        await dbService.setSetting('restSeconds', 90);
+        const row = await dbService.getSettingRow('restSeconds');
+
+        equal(row.updatedAt, undefined, 'длительность отдыха настраивают под то устройство, что в руках');
+    });
+
+    it('на отправку идёт только изменившееся', async () => {
+        await reset();
+
+        await dbService.setSetting('plan', { weeks: 8 });
+        const row = await dbService.getSettingRow('plan');
+
+        equal((await dbService.changedSettings(row.updatedAt - 1)).length, 1);
+        equal((await dbService.changedSettings(row.updatedAt)).length, 0, 'уже отправленное второй раз не едет');
+    });
+
+    it('настройка устройства на отправку не идёт никогда', async () => {
+        await reset();
+
+        await dbService.setSetting('restSeconds', 90);
+        await dbService.setSetting('syncCursor', 12345);
+
+        equal(await dbService.changedSettings(0), [], 'курсор обмена в облаке разрушил бы приём');
+    });
+
+    /*
+     * План, объявленный до появления обмена настройками, лежит без отметки.
+     * Без этого он не уехал бы никогда: человек ждал бы его на телефоне, а
+     * тот молчал бы, потому что отправлять «нечего».
+     */
+    it('план без отметки получает её и уезжает', async () => {
+        await reset();
+
+        await db.settings.put({ key: 'plan', value: { weeks: 8 } });
+        equal((await dbService.getSettingRow('plan')).updatedAt, undefined);
+
+        const changed = await dbService.changedSettings(Date.now() - 1000);
+
+        equal(changed.length, 1, 'иначе прежний план не доедет ни до одного устройства');
+        assert((await dbService.getSettingRow('plan')).updatedAt > 0, 'отметка проставилась');
+    });
+
+    it('пришедшая настройка кладётся с чужой отметкой', async () => {
+        await reset();
+
+        await dbService.applyRemoteSetting({ key: 'plan', value: { weeks: 4 }, updatedAt: 777 });
+        const row = await dbService.getSettingRow('plan');
+
+        equal(row.value, { weeks: 4 });
+        equal(row.updatedAt, 777, 'своя отметка отправила бы её обратно как новую');
+    });
+});
