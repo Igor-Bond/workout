@@ -766,7 +766,17 @@ export const home = {
             ${active || startBlock(
                 entries[0],
                 templates,
-                rhythm.suggestType(workouts),
+                /*
+                 * Подсказка типа считается без фона (§29.1), как и очередь.
+                 *
+                 * Зарядка идёт каждое утро и типом тренировки в этом смысле
+                 * не является: с ней в счёте подсказка сравнивала утреннюю
+                 * разминку с вечерними занятиями и объявляла «дольше всего
+                 * не было „Дома без инвентаря“» тому, у кого вечерний тип
+                 * один-единственный. Строка занимала место и не говорила
+                 * ничего.
+                 */
+                rhythm.suggestType(workouts.filter((w) => !фон(w))),
                 names,
                 rhythm.dueExercises(entries, Date.now(), { skip: покрыто }),
                 rhythm.frequentWorkouts(entries.filter((e) => !фон(e.workout))),
