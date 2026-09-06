@@ -96,16 +96,40 @@ export const plan = {
 
         let from = null;
         let weeks = WEEKS;
+        let next = null;
 
-        for (const сырая of String(text).split('\n')) {
-            const строка = сырая.trim();
+        const строки = String(text).split('\n');
+
+        for (let i = 0; i < строки.length; i++) {
+            const строка = строки[i].trim();
             if (!строка) continue;
 
             // Шапка: «С 06.09.2026, 8 недель»
             const дата = строка.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})/);
 
-            if (дата && from === null) {
-                from = startOfDay(new Date(+дата[3], +дата[2] - 1, +дата[1]).getTime());
+            if (дата) {
+                const at = startOfDay(new Date(+дата[3], +дата[2] - 1, +дата[1]).getTime());
+
+                /*
+                 * Вторая дата начала — это второй план, и разбор здесь
+                 * кончается (Р-65).
+                 *
+                 * Собеседник, которого просят дать различающиеся недели
+                 * отдельными блоками, присылает их подряд одним текстом — и
+                 * это правильный ответ на правильную просьбу. А приложение
+                 * читало его насквозь: дату брало из первого блока, а дни
+                 * второго молча затирали дни первого. Получался план, которого
+                 * не писал никто: начало сентябрьское, занятия октябрьские.
+                 *
+                 * Остаток отдаётся целиком, чтобы экран мог предложить второй
+                 * блок отдельно, а не заставлял искать его в переписке.
+                 */
+                if (from !== null) {
+                    next = { from: at, text: строки.slice(i).join('\n').trim() };
+                    break;
+                }
+
+                from = at;
 
                 const срок = строка.match(/(\d+)\s*(недел|week|woche)/i);
                 if (срок) weeks = Math.max(1, Math.min(52, +срок[1]));
@@ -144,7 +168,7 @@ export const plan = {
             days[день] = plan.parseDay(хвост);
         }
 
-        return { from, weeks, days, stages, problems };
+        return { from, weeks, days, stages, problems, next };
     },
 
     /**

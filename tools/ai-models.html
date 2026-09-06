@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Какие модели отвечают — Трекер тренировок</title>
+
+<!--
+    Щуп для разговора с тренером (§60 ТЗ).
+
+    Состав моделей у Google меняется чаще, чем выходят версии приложения, и
+    когда одна перестаёт отвечать, надо не гадать, а спросить: какие есть и
+    какая правда работает с этим ключом.
+
+    Страница отдельная и вне приложения намеренно. Внутри ей место было бы
+    только на экране разговора, а нужна она в тот единственный момент, когда
+    разговор как раз не работает: класть починку внутрь сломанного — плохая
+    мысль. И она ничего не меняет в приложении: только читает.
+
+    Ключ отсюда никуда не уходит, кроме самого Google. Взять его можно из
+    приложения — база та же, страница на том же адресе.
+-->
+
+<style>
+    :root {
+        color-scheme: dark;
+        --bg: #14100e;
+        --panel: #1d1815;
+        --panel-2: #262019;
+        --line: #3a2f26;
+        --text: #efe7e0;
+        --dim: #a3968a;
+        --accent: #e8752a;
+        --ok: #4b9b5f;
+        --bad: #c0392b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        padding: 20px 16px 60px;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+
+    main { max-width: 760px; margin: 0 auto; }
+
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--dim); font-size: 13px; margin: 0 0 20px; }
+
+    .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 14px;
+    }
+
+    label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+
+    input[type=text], input[type=password] {
+        width: 100%;
+        padding: 10px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        font: inherit;
+        font-family: ui-monospace, Consolas, monospace;
+    }
+
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+
+    button {
+        padding: 9px 14px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+    }
+
+    button.primary { background: var(--accent); border-color: var(--accent); color: #14100e; font-weight: 700; }
+    button:disabled { opacity: 0.5; cursor: default; }
+
+    .hint { color: var(--dim); font-size: 13px; margin: 8px 0 0; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); font-weight: 600; }
+
+    td.name { font-family: ui-monospace, Consolas, monospace; font-size: 13px; word-break: break-all; }
+
+    .ok { color: var(--ok); }
+    .bad { color: var(--bad); }
+    .waiting { color: var(--dim); }
+
+    .status { margin-top: 12px; font-size: 14px; }
+    .status.bad { color: var(--bad); }
+
+    pre {
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px;
+        overflow: auto;
+        font-size: 12px;
+        max-height: 260px;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+</style>
+</head>
+<body>
+<main>
+    <h1>Какие модели отвечают</h1>
+    <p class="sub">Спрашивает у Google список моделей по вашему ключу и проверяет каждую настоящим запросом. Ничего не меняет — только читает.</p>
+
+    <div class="card">
+        <label for="key">Ключ Google AI Studio</label>
+        <input id="key" type="password" spellcheck="false" autocomplete="off" placeholder="AIza…">
+
+        <div class="row">
+            <button class="primary" id="list">Показать модели</button>
+            <button id="from-app">Взять ключ из приложения</button>
+            <button id="show">Показать ключ</button>
+        </div>
+
+        <p class="hint">
+            Ключ отсюда уходит только в Google — тот же адрес, к которому обращается само приложение.
+            «Взять из приложения» читает его из той же базы, что и трекер: страница лежит по тому же адресу.
+        </p>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <div class="card" id="result-card" hidden>
+        <div class="row" style="margin-top:0">
+            <button id="test-all">Проверить все</button>
+            <span class="hint" id="count"></span>
+        </div>
+
+        <table>
+            <thead>
+                <tr><th>Модель</th><th>Ответ</th><th></th></tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+
+        <p class="hint">
+            «Показать модели» лишь перечисляет то, что Google считает доступным. Отвечает ли модель
+            на самом деле — говорит только проверка: список и действительность расходятся сплошь и рядом.
+        </p>
+    </div>
+
+    <div class="card" id="raw-card" hidden>
+        <label>Что ответил Google на запрос списка</label>
+        <pre id="raw"></pre>
+    </div>
+</main>
+
+<script type="module">
+const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+const $ = (id) => document.getElementById(id);
+const status = (text, bad = false) => {
+    $('status').textContent = text;
+    $('status').className = bad ? 'status bad' : 'status';
+};
+
+/**
+ * Ключ из базы приложения.
+ *
+ * Открываем без указания версии: с меньшей браузер полез бы обновлять схему,
+ * а трогать чужую базу щуп не должен вовсе.
+ */
+$('from-app').addEventListener('click', () => {
+    status('Читаю базу приложения…');
+
+    const request = indexedDB.open('WorkoutTrackerDB');
+
+    request.onerror = () => status('База приложения не открылась. Откройте трекер хотя бы раз.', true);
+
+    request.onsuccess = () => {
+        const db = request.result;
+
+        if (!db.objectStoreNames.contains('settings')) {
+            db.close();
+            return status('В базе нет настроек — приложение ещё не запускалось здесь.', true);
+        }
+
+        const tx = db.transaction('settings', 'readonly');
+        const get = tx.objectStore('settings').get('aiKey');
+
+        get.onsuccess = () => {
+            const value = get.result?.value || '';
+            db.close();
+
+            if (!value) return status('В приложении ключ не задан.', true);
+
+            $('key').value = value;
+            status('Ключ взят из приложения.');
+        };
+
+        get.onerror = () => { db.close(); status('Не удалось прочитать ключ.', true); };
+    };
+});
+
+$('show').addEventListener('click', () => {
+    const field = $('key');
+    const скрыт = field.type === 'password';
+
+    field.type = скрыт ? 'text' : 'password';
+    $('show').textContent = скрыт ? 'Скрыть ключ' : 'Показать ключ';
+});
+
+/** Проверка одной модели: настоящий запрос, а не догадка по списку. */
+async function проверить(model, key) {
+    const url = `${ENDPOINT}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(key)}`;
+
+    const control = new AbortController();
+    const срок = setTimeout(() => control.abort(), 30000);
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ role: 'user', parts: [{ text: 'Ответь одним словом: работает' }] }]
+            }),
+            signal: control.signal
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            return { ok: false, text: `${response.status}: ${data?.error?.message || 'без объяснения'}` };
+        }
+
+        const текст = (data?.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim();
+        const причина = data?.candidates?.[0]?.finishReason;
+
+        if (!текст) return { ok: false, text: `пустой ответ${причина ? ` (${причина})` : ''}` };
+
+        return { ok: true, text: текст.slice(0, 60) };
+    } catch (e) {
+        return { ok: false, text: e.name === 'AbortError' ? 'не ответила за 30 секунд' : e.message };
+    } finally {
+        clearTimeout(срок);
+    }
+}
+
+function строка(model) {
+    const tr = document.createElement('tr');
+
+    const name = document.createElement('td');
+    name.className = 'name';
+    name.textContent = model;
+
+    const verdict = document.createElement('td');
+    verdict.className = 'waiting';
+    verdict.textContent = '—';
+
+    const action = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.textContent = 'Проверить';
+
+    btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        verdict.className = 'waiting';
+        verdict.textContent = 'спрашиваю…';
+
+        const итог = await проверить(model, $('key').value.trim());
+
+        verdict.className = итог.ok ? 'ok' : 'bad';
+        verdict.textContent = итог.text;
+        btn.disabled = false;
+    });
+
+    action.append(btn);
+    tr.append(name, verdict, action);
+    tr.dataset.model = model;
+
+    return tr;
+}
+
+$('list').addEventListener('click', async () => {
+    const key = $('key').value.trim();
+    if (!key) return status('Вставьте ключ.', true);
+
+    status('Спрашиваю список…');
+    $('result-card').hidden = true;
+    $('raw-card').hidden = true;
+
+    let data;
+
+    try {
+        const response = await fetch(`${ENDPOINT}?key=${encodeURIComponent(key)}&pageSize=200`);
+        data = await response.json().catch(() => null);
+
+        if (!response.ok) {
+            $('raw').textContent = JSON.stringify(data, null, 2);
+            $('raw-card').hidden = false;
+            return status(`Google не отдал список: ${response.status} — ${data?.error?.message || 'без объяснения'}`, true);
+        }
+    } catch (e) {
+        return status(`Не дозвонились до Google: ${e.message}`, true);
+    }
+
+    $('raw').textContent = JSON.stringify(data, null, 2);
+    $('raw-card').hidden = false;
+
+    /*
+     * Оставляем только те, что умеют generateContent: приложение обращается
+     * именно этим способом, и модель для встраивания текста ему не годится,
+     * как бы бодро она ни выглядела в списке.
+     */
+    const модели = (data?.models || [])
+        .filter((m) => (m.supportedGenerationMethods || []).includes('generateContent'))
+        .map((m) => String(m.name || '').replace(/^models\//, ''))
+        .sort();
+
+    const rows = $('rows');
+    rows.textContent = '';
+    модели.forEach((m) => rows.append(строка(m)));
+
+    $('count').textContent = `${модели.length} из ${(data?.models || []).length} умеют generateContent`;
+    $('result-card').hidden = модели.length === 0;
+
+    status(модели.length ? 'Список получен. Проверьте те, что похожи на нужную.' : 'Google не назвал ни одной подходящей модели.', !модели.length);
+});
+
+/**
+ * Проверка всех подряд — по одной, а не разом.
+ *
+ * Google считает частоту обращений, и пара десятков запросов в одну секунду
+ * упрётся в ограничение: список окажется красным целиком, и виновата будет
+ * проверка, а не модели.
+ */
+$('test-all').addEventListener('click', async () => {
+    const key = $('key').value.trim();
+    if (!key) return status('Вставьте ключ.', true);
+
+    const rows = [...$('rows').children];
+    $('test-all').disabled = true;
+
+    for (const tr of rows) {
+        const verdict = tr.children[1];
+
+        verdict.className = 'waiting';
+        verdict.textContent = 'спрашиваю…';
+
+        const итог = await проверить(tr.dataset.model, key);
+
+        verdict.className = итог.ok ? 'ok' : 'bad';
+        verdict.textContent = итог.text;
+    }
+
+    $('test-all').disabled = false;
+    status('Проверены все.');
+});
+</script>
+</body>
+</html>

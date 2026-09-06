@@ -24,7 +24,7 @@ import { t } from '../core/i18n.js';
 const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /** Модель по умолчанию. Меняется в настройках, если состав моделей уехал. */
-export const DEFAULT_MODEL = 'gemini-2.5-flash';
+export const DEFAULT_MODEL = 'gemini-3.5-flash';
 
 /**
  * Сколько ждать ответа.

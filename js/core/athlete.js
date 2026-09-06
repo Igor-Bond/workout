@@ -27,15 +27,30 @@
  * нечем — и не нужно.
  */
 
-/** Пустой профиль: у того, кто ничего не сказал, ограничений нет. */
+/**
+ * Пустой профиль: у того, кто ничего не сказал, ограничений нет.
+ *
+ * Веса тела здесь нет намеренно. Приложение ведёт его отдельно и по датам
+ * (§26.3), и он уже уходит в сводку вместе с изменением за период. Второе
+ * поле для того же числа разошлось бы с первым при первом же взвешивании, и
+ * собеседник получил бы два разных веса в одном письме.
+ *
+ * Год рождения, а не возраст: возраст молча устаревает, а год — нет.
+ */
 export const EMPTY = {
     goal: '',
+    sex: '',
+    birthYear: null,
+    height: null,
     days: null,
     minutes: null,
     equipment: [],
     limits: [],
     notes: ''
 };
+
+/** Пол: ключи, а не подписи — подписи переводятся при показе. */
+export const SEXES = ['male', 'female'];
 
 /**
  * Ограничение: { id, name, at, healedAt, exclude: [id], prefer: [id], note }.
@@ -49,6 +64,16 @@ const живое = (limit) => !!limit && !limit.healedAt;
 export const athlete = {
 
     EMPTY,
+    SEXES,
+
+    /** Сколько лет — по году рождения и текущему году. */
+    age(профиль, now = Date.now()) {
+        const год = Number(профиль?.birthYear);
+        if (!Number.isFinite(год) || год < 1900) return null;
+
+        const лет = new Date(now).getFullYear() - год;
+        return лет > 0 && лет < 120 ? лет : null;
+    },
 
     /** Профиль с заполненными по умолчанию полями: хранимый мог быть частичным. */
     normalize(stored) {
@@ -102,7 +127,7 @@ export const athlete = {
     filled(профиль) {
         const p = athlete.normalize(профиль);
 
-        return !!(p.goal || p.days || p.minutes || p.notes
+        return !!(p.goal || p.days || p.minutes || p.notes || p.sex || p.birthYear || p.height
             || p.equipment.length || athlete.active(p).length);
     },
 
@@ -115,12 +140,27 @@ export const athlete = {
      *
      * names — Map «упражнение → название»: ядро в базу не ходит.
      */
-    describe(профиль, names = new Map(), words = {}) {
+    describe(профиль, names = new Map(), words = {}, now = Date.now()) {
         const p = athlete.normalize(профиль);
         const строки = [];
 
         const имя = (id) => names.get(id) || null;
         const список = (ids) => (ids || []).map(имя).filter(Boolean).join(', ');
+
+        /*
+         * Кто человек — первой строкой, до целей и рамок.
+         *
+         * Возраст, пол и рост собеседник учитывает прежде всего остального:
+         * от них зависит и объём, и восстановление, и выбор движений. Веса
+         * тела здесь нет — он приходит своей строкой из истории взвешиваний.
+         */
+        const кто = [
+            p.sex ? words[p.sex] : null,
+            athlete.age(p, now) ? `${athlete.age(p, now)} ${words.years}` : null,
+            p.height ? `${p.height} ${words.cm}` : null
+        ].filter(Boolean);
+
+        if (кто.length) строки.push(кто.join(', '));
 
         if (p.goal) строки.push(`${words.goal}: ${p.goal}`);
 

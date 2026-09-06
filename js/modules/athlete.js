@@ -24,6 +24,7 @@ import { dbService } from '../services/db.js';
 import { athlete as ядро } from '../core/athlete.js';
 import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
+import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
@@ -93,6 +94,7 @@ export const athleteScreen = {
     async render() {
         const профиль = await currentAthlete();
         const names = await имена();
+        const возраст = ядро.age(профиль);
 
         const действующие = ядро.active(профиль);
         const прошедшие = профиль.limits.filter((l) => l.healedAt);
@@ -100,6 +102,45 @@ export const athleteScreen = {
         return ui.html`
             ${ui.raw(ui.title(t('О себе'),
                 t('Что приложение знает о вас помимо истории. Это же уходит в сводку для тренера — объяснять одно и то же каждый раз не придётся')))}
+
+            <!--
+                Веса тела здесь нет намеренно (§58): приложение ведёт его
+                отдельно и по датам, и он уже уходит в сводку. Второе поле для
+                того же числа разошлось бы с первым при первом взвешивании.
+            -->
+            <div class="card">
+                <div class="card-title">${t('Кто вы')}</div>
+
+                <div class="plan-row-fields">
+                    <div class="field">
+                        <label for="a-sex">${t('Пол')}</label>
+                        <select id="a-sex" data-change="athlete-field" data-key="sex">
+                            <option value="" ${ui.raw(профиль.sex ? '' : 'selected')}>${t('не указан')}</option>
+                            <option value="male" ${ui.raw(профиль.sex === 'male' ? 'selected' : '')}>${t('мужской')}</option>
+                            <option value="female" ${ui.raw(профиль.sex === 'female' ? 'selected' : '')}>${t('женский')}</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="a-year">${t('Год рождения')}</label>
+                        <input id="a-year" type="number" min="1900" max="2100" inputmode="numeric"
+                               placeholder="—" value="${профиль.birthYear ?? ''}"
+                               data-change="athlete-field" data-key="birthYear">
+                    </div>
+
+                    <div class="field">
+                        <label for="a-height">${t('Рост, см')}</label>
+                        <input id="a-height" type="number" min="100" max="250" inputmode="numeric"
+                               placeholder="—" value="${профиль.height ?? ''}"
+                               data-change="athlete-field" data-key="height">
+                    </div>
+                </div>
+
+                <p class="hint">
+                    ${возраст ? t('Это {n} — приложение считает его от года, чтобы он не устаревал.', { n: format.count(возраст, format.WORDS.year) }) : ''}
+                    ${t('Вес тела приложение ведёт само, по датам взвешиваний, — здесь его нет.')}
+                </p>
+            </div>
 
             <div class="card">
                 <div class="card-title">${t('Рамки')}</div>
@@ -225,11 +266,16 @@ actions.onChange('athlete-field', async (el) => {
     const key = el.dataset.key;
     const value = el.value.trim();
 
-    профиль[key] = (key === 'days' || key === 'minutes')
+    const числовые = ['days', 'minutes', 'birthYear', 'height'];
+
+    профиль[key] = числовые.includes(key)
         ? (value === '' ? null : Number(value))
         : value;
 
     await dbService.setSetting(ATHLETE_KEY, профиль);
+
+    // Возраст показан подписью под полем и обязан ответить на новый год
+    if (key === 'birthYear') await app.render();
 });
 
 actions.on('athlete-gear-add', async () => {

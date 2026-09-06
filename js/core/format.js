@@ -30,7 +30,8 @@ const WORDS = {
     day:      { ru: ['день', 'дня', 'дней'],                    en: ['day', 'days'],           de: ['Tag', 'Tage'] },
     minute:   { ru: ['минута', 'минуты', 'минут'],              en: ['minute', 'minutes'],     de: ['Minute', 'Minuten'] },
     week:     { ru: ['неделя', 'недели', 'недель'],             en: ['week', 'weeks'],         de: ['Woche', 'Wochen'] },
-    session:  { ru: ['занятие', 'занятия', 'занятий'],          en: ['session', 'sessions'],   de: ['Einheit', 'Einheiten'] }
+    session:  { ru: ['занятие', 'занятия', 'занятий'],          en: ['session', 'sessions'],   de: ['Einheit', 'Einheiten'] },
+    year:     { ru: ['год', 'года', 'лет'],                     en: ['year', 'years'],         de: ['Jahr', 'Jahre'] }
 };
 
 export const format = {

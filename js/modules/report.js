@@ -56,6 +56,10 @@ export const report = {
                 профиль,
                 new Map(exerciseList.map((e) => [e.id, e.name])),
                 {
+                    male: t('мужчина'),
+                    female: t('женщина'),
+                    years: t('лет'),
+                    cm: t('см'),
                     goal: t('Цель'),
                     days: t('дней в неделю'),
                     minutes: t('минут на тренировку'),
