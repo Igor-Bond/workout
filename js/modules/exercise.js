@@ -15,49 +15,65 @@ import { chart } from '../core/chart.js';
 import { format } from '../core/format.js';
 import { dates } from '../core/dates.js';
 import { kindLabel } from '../core/kinds.js';
+import { isBackground } from '../core/rhythm.js';
 
 const tile = (label, value) => ui.html`<div class="tile"><strong>${value}</strong><span>${label}</span></div>`;
 
 /**
- * График динамики (§25): рабочий результат и объём.
+ * График динамики (§25): рабочий результат и объём — двумя полями.
  *
- * Две линии в одном поле, но каждая в своём масштабе по вертикали — вес и
- * тоннаж отличаются на порядок, и в общем масштабе вес прижался бы к нулю.
+ * Раньше обе линии стояли в одном поле, каждая в своём невидимом масштабе по
+ * вертикали. Масштабы разные по необходимости — результат и объём отличаются
+ * на порядок, — но линии от этого пересекались, и глаз сравнивал то, что
+ * сравнивать нельзя: ни оси, ни чисел рядом нет (Р-64).
+ *
+ * Поэтому поля два. В каждом одна величина, подписанная своими единицами, и
+ * вертикаль внутри поля значит ровно одно.
+ *
  * Сглаженная линия показывает тренд, точки — фактические тренировки.
  */
-function dynamics(series, recordWorkoutId) {
-    if (series.length < 2) return null;
+function точка(p, y) {
+    return { x: p.at, y, key: p.workoutId, label: dates.formatShort(p.at) };
+}
 
+function resultChart(series, recordWorkoutId) {
     const smoothed = calc.movingAverage(series.map((p) => p.top));
-
-    const point = (p, y) => ({
-        x: p.at,
-        y,
-        key: p.workoutId,
-        label: dates.formatShort(p.at)
-    });
 
     return chart.line([
         {
-            color: 'var(--blue)',
-            width: 1.5,
-            dots: false,
-            segments: calc.segments(series).map((seg) =>
-                seg.map((p) => point(p, p.volume)))
-        },
-        {
             color: 'var(--accent)',
-            segments: calc.segments(series).map((seg) =>
-                seg.map((p) => point(p, p.top)))
+            segments: calc.segments(series).map((seg) => seg.map((p) => точка(p, p.top)))
         },
         {
             color: 'var(--text-dim)',
             width: 1,
             dashed: true,
             dots: false,
-            segments: [series.map((p, i) => point(p, smoothed[i]))]
+            segments: [series.map((p, i) => точка(p, smoothed[i]))]
         }
-    ], { marks: recordWorkoutId ? [recordWorkoutId] : [] });
+    ], { marks: recordWorkoutId ? [recordWorkoutId] : [], height: 130 });
+}
+
+/**
+ * Единица рабочего результата — по тому, что в подходах записано.
+ *
+ * Не по виду упражнения: вид можно поменять в справочнике, а записанные
+ * подходы от этого не меняются, и подпись обязана называть то, что на
+ * графике, а не то, чем упражнение считается сегодня.
+ */
+function единица(series, kind) {
+    const слова = { reps: 'повторений', weight: 'кг', time: 'секунд', distance: 'метров' };
+    return t(слова[kind] || 'повторений');
+}
+
+function volumeChart(series) {
+    return chart.line([
+        {
+            color: 'var(--blue)',
+            width: 1.5,
+            segments: calc.segments(series).map((seg) => seg.map((p) => точка(p, p.volume)))
+        }
+    ], { height: 100 });
 }
 
 export const exercise = {
@@ -77,9 +93,10 @@ export const exercise = {
             `;
         }
 
-        const [sets, weights] = await Promise.all([
+        const [sets, weights, проведённые] = await Promise.all([
             dbService.listSetsByExercise(record.id),
-            dbService.listBodyWeight()
+            dbService.listBodyWeight(),
+            dbService.listWorkouts()
         ]);
 
         if (sets.length === 0) {
@@ -136,10 +153,42 @@ export const exercise = {
          * на дату подхода, поэтому линия не переписывается при новом
          * взвешивании — оно действует со своего дня и дальше.
          */
-        const series = calc.exerciseSeries([...sets].reverse(), record.kind,
-            record.kind === 'reps'
-                ? (set) => calc.load(set, 'reps', bodyAt(set.performedAt), bodyShare) + (set.reps || 0) * (set.weight || 0)
-                : null);
+        const мера = record.kind === 'reps'
+            ? (set) => calc.load(set, 'reps', bodyAt(set.performedAt), bodyShare) + (set.reps || 0) * (set.weight || 0)
+            : null;
+
+        /*
+         * Зарядка в динамику не входит (Р-64).
+         *
+         * Одно и то же упражнение живёт в двух разных занятиях: вечером
+         * двенадцать подходов по сорок пять, утром один на шестьдесят восемь.
+         * Считая их одним рядом, график говорил неправду в обе стороны сразу:
+         * объём обрушивался вдесятеро — не потому, что стали делать меньше, а
+         * потому, что в ряд вошла разминка; а «рабочий результат» полз вверх,
+         * потому что один длинный подход зарядки больше любого из двенадцати
+         * рабочих.
+         *
+         * То же правило уже действует в очереди (Р-33) — здесь его просто не
+         * применили.
+         *
+         * Если рабочих занятий не набралось на график, показываем зарядку:
+         * упражнение, которое делают только в ней, иначе осталось бы вовсе без
+         * динамики. Подпись под графиком в обоих случаях говорит, что именно
+         * на нём.
+         */
+        const типы = new Map(проведённые.map((w) => [w.id, w.type]));
+        const рабочие = sets.filter((s) => !isBackground({ type: типы.get(s.workoutId) }));
+
+        const полный = calc.exerciseSeries([...sets].reverse(), record.kind, мера);
+        const рабочий = calc.exerciseSeries([...рабочие].reverse(), record.kind, мера);
+
+        const series = рабочий.length >= 2 ? рабочий : полный;
+        const толькоЗарядка = series !== рабочий;
+        const естьФон = sets.length > рабочие.length;
+
+        // Объём показывается, когда его есть чем мерить: у упражнения на
+        // время он складывается из нулей, и пустое поле лучше не рисовать
+        const естьОбъём = series.some((p) => p.volume > 0);
 
         const byWorkout = new Map();
         for (const set of sets) {
@@ -197,12 +246,31 @@ export const exercise = {
             ${series.length >= 2 ? ui.html`
                 <div class="card">
                     <div class="card-title">${t('Динамика')}</div>
-                    ${dynamics(series, best?.workoutId)}
+
+                    <div class="chart-title">${t('Рабочий результат, {единица}', { единица: единица(series, record.kind) })}</div>
+                    ${resultChart(series, best?.workoutId)}
                     <div class="legend">
-                        <span class="legend-item"><i class="dot is-accent"></i>${t('рабочий результат')}</span>
-                        <span class="legend-item"><i class="dot is-blue"></i>${t('объём')}</span>
+                        <span class="legend-item"><i class="dot is-accent"></i>${t('лучший подход')}</span>
                         <span class="legend-item"><i class="dot is-dim"></i>${t('тренд')}</span>
                     </div>
+
+                    ${естьОбъём ? ui.html`
+                        <div class="chart-title">${t('Объём за тренировку, кг')}</div>
+                        ${volumeChart(series)}
+                    ` : ''}
+
+                    <!--
+                        Подпись говорит, что на графике, а не украшает его.
+                        Пока зарядку считали наравне с рабочими занятиями,
+                        линии врали в обе стороны сразу (Р-64), и умолчать
+                        о том, что она исключена, значит оставить читателя
+                        гадать, почему график и плитки не сходятся.
+                    -->
+                    ${толькоЗарядка ? ui.html`
+                        <p class="hint">${t('На графике зарядка: рабочих тренировок с этим упражнением пока меньше двух.')}</p>
+                    ` : естьФон ? ui.html`
+                        <p class="hint">${t('Зарядка в график не входит — у неё свой объём, и вместе с рабочими занятиями она искажает обе линии.')}</p>
+                    ` : ''}
                 </div>
             ` : ''}
 

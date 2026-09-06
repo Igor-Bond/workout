@@ -19,6 +19,7 @@ import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
 import { restTimer } from '../core/timer.js';
 import { hold } from '../core/hold.js';
+import { haptics } from '../core/haptics.js';
 import { beeper } from '../core/beeper.js';
 import { wakeLock } from '../core/wakelock.js';
 import { config, MODES } from '../config.js';
@@ -817,6 +818,9 @@ async function записатьПодход(values) {
         ...values
     });
 
+    // Подход записан — короткий отклик под палец (§28.1)
+    haptics.tap();
+
     // Отдых запускается от нажатия, а не от отрисовки: пользователь уже
     // взаимодействовал со страницей, и браузер разрешит звук в конце.
     //
@@ -963,6 +967,9 @@ async function тикОтсчёта() {
 /** Завершение с переходом к итогам — общее для кнопки и разговора о плане. */
 async function finishWorkout(workout) {
     await dbService.finishWorkout(workout.id);
+
+    // Тренировка закрыта — это последнее закреплённое действие в ней (§28.1)
+    haptics.tap();
 
     restTimer.stop();
     currentId = null;

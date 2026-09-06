@@ -13,6 +13,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { plan as ядро } from '../core/plan.js';
+import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
@@ -176,6 +177,9 @@ actions.on('sheet-apply', async () => {
     if (!ядро.usable(разобран)) return;
 
     await dbService.setSetting(PLAN_KEY, { ...разобран, text: текст });
+
+    // План утверждён — восемь недель, за которые приложение теперь отвечает
+    haptics.tap();
 
     черновик = null;
     await app.render();
