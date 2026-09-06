@@ -18,7 +18,9 @@ import { dates } from '../core/dates.js';
 import { t, i18n } from '../core/i18n.js';
 import { estimate } from '../core/estimate.js';
 import { plan as planCore } from '../core/plan.js';
-import { currentPlan } from './planner.js';
+import { currentPlan, noteDecision, PLAN_KEY } from './planner.js';
+import { reserve } from '../core/reserve.js';
+import { haptics } from '../core/haptics.js';
 import { observations } from '../services/howgoing.js';
 import { putQuestion } from './coach.js';
 import { app } from '../app.js';
@@ -160,7 +162,7 @@ function bodyBlock(weights, range) {
  * в приложении, которое смотрит на пять величин, читается как «оно не
  * работает», а молчание — как молчание.
  */
-function ходБлок(наблюдения) {
+function ходБлок(наблюдения, планЕсть) {
     if (!наблюдения.length) return '';
 
     return ui.html`
@@ -176,11 +178,28 @@ function ходБлок(наблюдения) {
             ${наблюдения.map((н) => ui.html`
                 <div class="plan-rule note-${н.kind}">
                     ${н.text}
-                    <button class="link-btn" data-action="ask-coach" data-text="${н.text}">
-                        ${t('спросить тренера')}
-                    </button>
+
+                    <span class="row-links">
+                        <!--
+                            «Принять прибавку» стоит там же, где наблюдение
+                            (§59.1): решение принимается по нему, и уводить
+                            за ним на другой экран значило бы разрывать
+                            единственное место, где видно и повод, и
+                            последствие.
+                        -->
+                        ${н.action?.type === 'harder' && планЕсть ? ui.html`
+                            <button class="link-btn" data-action="accept-harder" data-name="${н.action.name}">
+                                ${t('принять прибавку')}
+                            </button>
+                        ` : ''}
+
+                        <button class="link-btn" data-action="ask-coach" data-text="${н.text}">
+                            ${t('спросить тренера')}
+                        </button>
+                    </span>
                 </div>
             `)}
+
 
             <p class="hint">
                 ${t('Приложение называет наблюдение и его основание — решаете вы.')}
@@ -298,7 +317,7 @@ export const stats = {
         return ui.html`
             ${ui.title(t('Статистика'))}
 
-            ${ходБлок(ход)}
+            ${ходБлок(ход, planCore.active(объявленный))}
 
             <div class="chips">${periodChips}</div>
 
@@ -485,4 +504,74 @@ actions.on('ask-coach', (el) => {
     }));
 
     app.go('coach');
+});
+/**
+ * Принять прибавку (§59.1).
+ *
+ * Последнее звено цепочки: приложение заметило, что запас велик, знает, какими
+ * станут числа, — и до сих пор человек шёл в план переписывать их руками, а
+ * потом (если не забывал) записывал решение в журнал. Два захода там, где
+ * довольно одного.
+ *
+ * Показываем конкретные числа, а не «снизь примерно на двадцать процентов»:
+ * «было 6 × 50, станет 6 × 40» человек понимает сразу, а проценты будет
+ * считать в уме стоя с резинкой.
+ *
+ * Правит только повторения. Подходы остаются: смена сопротивления — не смена
+ * схемы, и трогать её приложение не вправе.
+ */
+actions.on('accept-harder', async (el) => {
+    const имя = el.dataset.name;
+    const план = await currentPlan();
+
+    if (!имя || !план?.text) return;
+
+    /*
+     * Что станет с числами — считаем до вопроса, а не после.
+     *
+     * Спрашивать «принять прибавку?» и лишь потом показывать, что вышло,
+     * значит просить согласия вслепую.
+     */
+    const пары = [];
+
+    for (const у of planCore.items(план)) {
+        if (!planCore.same(у.name, имя) || !у.reps || !у.sets) continue;
+
+        const стало = reserve.lighter(у.reps);
+        const строка = `${у.sets} × ${у.reps} → ${у.sets} × ${стало}`;
+
+        if (стало && стало !== у.reps && !пары.includes(строка)) пары.push(строка);
+    }
+
+    if (пары.length === 0) {
+        return dialog.alert({
+            title: t('Нечего менять'),
+            text: t('В плане нет «{упражнение}» с повторениями — поправьте его сами.', { упражнение: имя })
+        });
+    }
+
+    const ok = await dialog.confirm({
+        title: t('Сопротивление потяжелее'),
+        text: [
+            t('Возьмите резинку жёстче (или укоротите рычаг), а повторения приложение снизит на пятую часть:'),
+            ...пары,
+            t('Подходы остаются прежними. План будет поправлен, решение — записано.')
+        ].join('\n'),
+        confirmText: t('Принять')
+    });
+
+    if (!ok) return;
+
+    const правленый = planCore.retune(план.text, имя, (r) => reserve.lighter(r));
+
+    await dbService.setSetting(PLAN_KEY, { ...planCore.parse(правленый), text: правленый });
+
+    await noteDecision({
+        kind: 'change',
+        text: t('{упражнение}: сопротивление потяжелее, повторения {пары}', { упражнение: имя, пары: пары.join('; ') }),
+        why: t('два занятия подряд запас был большой')
+    });
+
+    haptics.tap();
+    await app.render();
 });

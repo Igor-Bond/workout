@@ -26,7 +26,6 @@ export const EN = {
     'Изменить': 'Edit',
     'Удалить': 'Delete',
     'Готово': 'Done',
-    'Пусто': 'Empty',
     'Ничего не найдено': 'Nothing found',
     'Поиск': 'Search',
     'Не удалось открыть раздел. Подробности в консоли.':
@@ -78,7 +77,6 @@ export const EN = {
     'Создать шаблон': 'Create a template',
     'Новая тренировка': 'New workout',
     'Последние семь дней': 'Last seven days',
-    'Тренировок': 'Workouts',
     'Вес тела': 'Body weight',
     '{n} без тренировки': '{n} without a workout',
     'Обычно раз в {n}': 'Usually every {n}',
@@ -125,7 +123,6 @@ export const EN = {
     '← На главную': '← Home',
     'Выше': 'Move up',
     'Ниже': 'Move down',
-    'Убрать': 'Remove',
     'Последний раз: {что}': 'Last time: {что}',
     'Вес прикинут от веса тела — поправь под себя':
         'Weight estimated from your body weight — adjust it',
@@ -141,7 +138,6 @@ export const EN = {
     'всего {время}': '{время} total',
     'Тип тренировки:': 'Workout type:',
     'Название': 'Name',
-    'Шаблон': 'Template',
     'Изменения не тронут уже проведённые тренировки — их план сохранён внутри них':
         'Changes will not touch finished workouts — their plan is stored inside them',
     'Название шаблона': 'Template name',
@@ -194,7 +190,6 @@ export const EN = {
     'Под фильтры ничего не подходит.': 'Nothing matches the filters.',
     'Показать ещё {n} из {всего}': 'Show {n} more of {всего}',
     'Без упражнений': 'No exercises',
-    'упражнение': 'exercise',
     'Предыдущий месяц': 'Previous month',
     'Следующий месяц': 'Next month',
     'Без тренировки': 'No workout',
@@ -252,7 +247,6 @@ export const EN = {
         'Shade shows sets per day. The map scrolls sideways.',
     'без тренировки': 'no workout',
     'Объём по группам мышц': 'Volume by muscle group',
-    'Личные рекорды': 'Personal records',
     'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список':
         'An exercise whose record has not moved in a while shows up first',
     'Давние сверху': 'Oldest first',
@@ -287,13 +281,11 @@ export const EN = {
 
     // ================== СПРАВОЧНИК ==================
 
-    'Справочник упражнений': 'Exercise catalogue',
     'История упражнения держится на его записи здесь, поэтому используемое упражнение можно только архивировать':
         'An exercise’s history hangs on its entry here, so one in use can only be archived',
     'В работе — {n}': 'In use — {n}',
     'Архив — {n}': 'Archived — {n}',
     'Все упражнения в архиве.': 'Every exercise is archived.',
-    '← В профиль': '← To profile',
     'Объединить с другим': 'Merge with another',
     'В архив': 'Archive',
     'Вернуть из архива': 'Restore from archive',
@@ -410,12 +402,9 @@ export const EN = {
     '+ Что приложится к ответу': '+ What gets attached',
     '− Скрыть': '− Hide',
     'Отправить ответы': 'Send',
-    'Отправляю…': 'Sending…',
     'Отправить не вышло': 'Could not send',
     'Ответ не пропал: скопируй текст и отправь его сообщением разработчику.':
         'Your answers are not lost: copy the text and send it to the developer as a message.',
-    'Скопировать': 'Copy',
-    'Скопировано': 'Copied',
     'Выдели и скопируй вручную': 'Select and copy by hand',
     'Попробовать отправить ещё раз': 'Try sending again',
     'Облако у этой сборки не настроено.': 'This build has no cloud configured.',
@@ -430,7 +419,6 @@ export const EN = {
     'Как пользоваться': 'How to use',
     'Отзыв': 'Feedback',
     'Итоги': 'Summary',
-    'Программа': 'Program',
     'Разово, кг': 'One-rep max, kg',
 
     // Перевод базового справочника по просьбе (§53)
@@ -458,7 +446,6 @@ export const EN = {
         'A number picks an exercise, Enter records a set, Space skips rest.',
     'Завершить тренировку': 'Finish workout',
     'Перейти к итогам': 'Go to the summary',
-    'сегодня': 'today',
     'История — {n}': 'History — {n}',
     'Изменить описание': 'Edit the description',
     'Добавить описание': 'Add a description',
@@ -700,7 +687,6 @@ export const EN = {
     'Перенесено подходов: {сколько}.': 'Sets moved: {сколько}.',
     'Затронуто тренировок: {сколько}.': 'Workouts affected: {сколько}.',
     'Шаблонов: {сколько}.': 'Templates: {сколько}.',
-    'Удалить «{название}»?': 'Delete “{название}”?',
     'Упражнение ни разу не выполнялось, поэтому удаление ничего не разорвёт.': 'The exercise has never been done, so deleting it breaks nothing.',
     'Не удалось удалить': 'Could not delete',
 
@@ -916,7 +902,6 @@ export const EN = {
     'раз в {дни}': 'once every {дни}',
     'обычно {объём}': 'usually {объём}',
     'чередует {варианты}': 'alternates {варианты}',
-    'почти до отказа': 'close to failure',
     'запас около двух': 'about two reps in reserve',
     'запас большой': 'plenty in reserve',
     'запас большой два занятия подряд': 'plenty in reserve two sessions running',
@@ -1051,9 +1036,10 @@ export const EN = {
     'Ответ не получен: {что}': 'No answer: {что}',
     'Ответ пришёл пустым.': 'The answer came back empty.',
     'Запас в подходе': 'Reps in reserve',
-    'почти до отказа': 'almost to failure',
+    'почти отказ': 'near failure',
+    'почти до отказа': 'close to failure',
     'около двух': 'about two',
-    'было легко': 'it was easy',
+    'легко': 'easy',
     'сопротивление': 'the resistance',
     'Два занятия подряд запас был большой — пора увеличить {что}. Повторения при этом вниз примерно на пятую часть.': 'Two sessions in a row with plenty left in reserve — time to increase {что}. Drop the reps by about a fifth when you do.',
     'Два занятия подряд подход шёл почти до отказа. Это тяжелее, чем нужно: цель — оставлять около двух повторений.': 'Two sessions in a row the set went almost to failure. That is heavier than needed: the aim is to leave about two reps.',
@@ -1219,6 +1205,15 @@ export const EN = {
     // Как идёт программа (§63)
     'Как идёт программа': 'How the programme is going',
     'спросить тренера': 'ask the coach',
+    'принять прибавку': 'accept the step up',
+    'Сопротивление потяжелее': 'Heavier resistance',
+    'Возьмите резинку жёстче (или укоротите рычаг), а повторения приложение снизит на пятую часть:': 'Take a stiffer band (or shorten the lever) and the app will cut the reps by a fifth:',
+    'Подходы остаются прежними. План будет поправлен, решение — записано.': 'The number of sets stays. The plan will be corrected and the decision logged.',
+    'Принять': 'Accept',
+    'Нечего менять': 'Nothing to change',
+    'В плане нет «{упражнение}» с повторениями — поправьте его сами.': 'The plan has no “{упражнение}” with reps — correct it yourself.',
+    '{упражнение}: сопротивление потяжелее, повторения {пары}': '{упражнение}: heavier resistance, reps {пары}',
+    'два занятия подряд запас был большой': 'plenty in reserve two sessions running',
     'Приложение заметило: «{наблюдение}» Что с этим делать?': 'The app noticed: “{наблюдение}” What should I do about it?',
     'Вот что приложение видит по прошедшему этапу:': 'Here is what the app sees about the stage just finished:',
     'Приложение называет наблюдение и его основание — решаете вы.': 'The app names the observation and what it rests on — the decision is yours.',
