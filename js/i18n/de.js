@@ -1157,6 +1157,7 @@ export const DE = {
     'Восстановление': 'Erholung',
     'Что привезено': 'Was geholt wurde',
     'План на часы': 'Plan auf die Uhr',
+    'Не все часы это принимают: Amazfit — пока только T-Rex 3 Pro, Huawei — только бег, ходьбу и походы. Если на запястье ничего не появилось, дело в этом, а не в отправке. Тогда берите план в календарь телефона — он ложится на любые часы уведомлением.': 'Nicht jede Uhr nimmt das an: Amazfit bisher nur die T-Rex 3 Pro, Huawei nur Laufen, Gehen und Wandern. Erscheint am Handgelenk nichts, liegt es daran — nicht am Senden. Nimm den Plan dann in den Telefonkalender: er erreicht jede Uhr als Benachrichtigung.',
     'Пауза: {n} мин': 'Pause: {n} Min.',
     'Intervals.icu отдаёт запланированное на часы — у Zepp это «Загружать плановые тренировки». Уехавший план виден на запястье в тот момент, когда он нужен.': 'Intervals.icu gibt geplante Einheiten an die Uhr weiter — bei Zepp heißt das „Geplante Trainings laden“. Ein Plan, der dorthin gelangt ist, steht am Handgelenk genau dann, wenn er gebraucht wird.',
     'К отправке занятий: {n}': 'Zu sendende Einheiten: {n}',
