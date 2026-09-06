@@ -36,6 +36,8 @@ import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { plan as planCore } from '../core/plan.js';
 import { currentPlan, PLAN_KEY } from './planner.js';
+import { athlete } from '../core/athlete.js';
+import { currentAthlete } from './athlete.js';
 
 const DAY = 86400000;
 
@@ -654,14 +656,15 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, сводки, templates, exercises, body, подходы, объявленный] = await Promise.all([
+        const [active, сводки, templates, exercises, body, подходы, объявленный, профиль] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
             dbService.listTemplates(),
             dbService.listExercises({ includeArchived: true }),
             dbService.listBodyWeight(),
             dbService.allSets(),
-            currentPlan()
+            currentPlan(),
+            currentAthlete()
         ]);
 
         // Тоннаж — вся нагрузка, вместе с собственным весом (Р-52). Считается
@@ -685,7 +688,22 @@ export const home = {
         // бы просроченным он ни был (§29.1)
         const группы = new Map(exercises.filter((e) => e.group).map((e) => [e.id, e.group]));
 
-        const очередь = rhythm.dueWorkouts(entries, Date.now(), { groupOf: группы, background: фон });
+        /*
+         * Ограничения профиля исключают состав целиком (§58).
+         *
+         * Целиком, а не по одному упражнению: очередь предлагает повторить
+         * тренировку такой, какой она была, и предложить её без исключённого
+         * значило бы предложить не её. Человек, сказавший «колено», не должен
+         * получать в карточке день ног с припиской «только без приседаний» —
+         * он должен не получать его вовсе.
+         *
+         * Архив сюда же: он и есть способ сказать «я это больше не делаю».
+         */
+        const исключено = athlete.excluded(профиль);
+        const нельзя = (ids = []) => ids.some((id) => исключено.has(id) || архив.has(id));
+
+        const очередь = rhythm.dueWorkouts(entries, Date.now(), { groupOf: группы, background: фон })
+            .filter((g) => !нельзя(g.exerciseIds));
 
         /*
          * Фон отдельной строкой (§29.1).
@@ -750,6 +768,7 @@ export const home = {
         // по себе, в других тренировках
         const покрыто = new Set([
             ...архив,
+            ...исключено,
             ...очередь.filter((f) => f.overdue >= 1).flatMap((f) => f.exerciseIds),
 
             // Упражнения зарядки стоят разделом выше — и просрочены они

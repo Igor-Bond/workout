@@ -14,6 +14,8 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { plan as ядро } from '../core/plan.js';
 import { haptics } from '../core/haptics.js';
+import { athlete } from '../core/athlete.js';
+import { currentAthlete } from './athlete.js';
 import { dates } from '../core/dates.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
@@ -45,14 +47,42 @@ export const planner = {
     nav: 'workout',
 
     async render() {
-        const сохранённый = await currentPlan();
-        
+        const [сохранённый, профиль, список] = await Promise.all([
+            currentPlan(),
+            currentAthlete(),
+            dbService.listExercises({ includeArchived: true })
+        ]);
 
         const разобран = черновик
             ? ядро.parse(черновик.text)
             : сохранённый;
 
         const развёртка = разобран?.from ? ядро.expand(разобран, { days: 14 }) : [];
+
+        /*
+         * План, назвавший исключённое, говорит об этом при разборе (§58).
+         *
+         * Не отвергает: план составляет тренер или языковая модель, они про
+         * колено могли и не знать, а решать всё равно человеку — может, он
+         * как раз готов попробовать. Но узнать об этом он обязан до
+         * утверждения, а не в тот день, когда план позовёт к выпадам.
+         */
+        const исключено = athlete.excluded(профиль);
+        const найти = (имя) => список.find((e) => ядро.same(e.name, имя));
+
+        const спорные = [];
+
+        for (const день of Object.values(разобран?.days || {})) {
+            for (const у of (день?.items || (день ? [день] : []))) {
+                const запись = найти(у.name);
+                if (!запись || !исключено.has(запись.id)) continue;
+
+                const limit = athlete.limitFor(профиль, запись.id);
+                if (!спорные.some((s) => s.name === запись.name)) {
+                    спорные.push({ name: запись.name, limit: limit?.name || '' });
+                }
+            }
+        }
 
         return ui.html`
             ${ui.raw(ui.title(t('План тренировок'),
@@ -79,6 +109,21 @@ export const planner = {
                 <div class="card">
                     <div class="card-title">${t('Ближайшие две недели')}</div>
                     ${развёртка.map(строкаДня)}
+                </div>
+            ` : ''}
+
+            ${спорные.length ? ui.html`
+                <div class="card">
+                    <div class="card-title">${t('Спорит с вашими ограничениями')}</div>
+                    <p class="hint">
+                        ${t('План называет то, что вы исключили в «О себе». Утвердить его можно — но лучше знать об этом сейчас, а не в тот день, когда он к этому позовёт.')}
+                    </p>
+                    ${спорные.map((s) => ui.html`
+                        <div class="plan-day is-rest">
+                            <span class="plan-day-body">${s.name}</span>
+                            <span class="plan-day-date">${s.limit}</span>
+                        </div>
+                    `)}
                 </div>
             ` : ''}
 

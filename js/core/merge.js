@@ -30,7 +30,7 @@ export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight'];
  * Поэтому едет ровно то, что перечислено, и каждый новый ключ добавляется
  * сюда осознанно.
  */
-export const SYNCED_SETTINGS = ['plan'];
+export const SYNCED_SETTINGS = ['plan', 'athlete'];
 
 export const merge = {
 

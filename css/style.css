@@ -2176,3 +2176,50 @@ button.ex-name:active { color: var(--accent); }
 
 .plan-day-date { flex: none; width: 110px; color: var(--text-dim); font-size: 13px; }
 .plan-day-body { flex: 1; min-width: 0; }
+
+/*
+ * Ограничение на экране «О себе» (§58).
+ *
+ * Список исключённого стоит внутри карточки ограничения, а не рядом с ней:
+ * это его последствие, а не отдельная тема, и разнеси их — придётся объяснять
+ * связь словами.
+ */
+.limit {
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+}
+
+.limit:first-of-type { border-top: none; }
+
+.limit-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.limit-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 6px 0;
+}
+
+.limit-row-label {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    min-width: 76px;
+}
+
+.limit-row-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Убираемая плашка: крестик внутри неё, а не отдельной кнопкой рядом */
+.chip.is-removable { padding-right: 8px; }

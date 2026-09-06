@@ -24,6 +24,7 @@ import { exercise } from './modules/exercise.js';
 import { exercises } from './modules/exercises.js';
 import { shares } from './modules/shares.js';
 import { planner } from './modules/planner.js';
+import { athleteScreen } from './modules/athlete.js';
 import { report } from './modules/report.js';
 import { recordsScreen } from './modules/records.js';
 import { profile } from './modules/profile.js';
@@ -54,6 +55,7 @@ function screens() {
             interval: intervalScreen,
             history, calendar, stats, exercise, exercises, shares, report,
             planner,
+            athlete: athleteScreen,
             records: recordsScreen,
             profile, guide,
             survey: surveyScreen

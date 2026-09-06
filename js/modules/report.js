@@ -20,6 +20,8 @@ import { dbService } from '../services/db.js';
 import { report as build } from '../core/report.js';
 import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
+import { athlete } from '../core/athlete.js';
+import { currentAthlete } from './athlete.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 
@@ -32,11 +34,12 @@ export const report = {
     nav: 'profile',
 
     async render() {
-        const [entries, sets, exerciseList, weights] = await Promise.all([
+        const [entries, sets, exerciseList, weights, профиль] = await Promise.all([
             dbService.listWorkoutSummaries(),
             dbService.allSets(),
             dbService.listExercises({ includeArchived: true }),
-            dbService.listBodyWeight()
+            dbService.listBodyWeight(),
+            currentAthlete()
         ]);
 
         текст = build.build({
@@ -45,7 +48,23 @@ export const report = {
             exercises: Object.fromEntries(exerciseList.map((e) => [e.id, e])),
             weights,
             shareOf: (exercise) => estimate.shareOf(exercise),
-            background: isBackground
+            background: isBackground,
+
+            // Профиль складывается в строки здесь: ядро не переводит и за
+            // названиями упражнений в базу не ходит (§58)
+            profile: athlete.describe(
+                профиль,
+                new Map(exerciseList.map((e) => [e.id, e.name])),
+                {
+                    goal: t('Цель'),
+                    days: t('дней в неделю'),
+                    minutes: t('минут на тренировку'),
+                    equipment: t('Инвентарь'),
+                    limit: t('Ограничение'),
+                    exclude: t('нельзя'),
+                    prefer: t('взамен')
+                }
+            )
         });
 
         return ui.html`

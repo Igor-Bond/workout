@@ -358,6 +358,15 @@ export const profile = {
                     статистике: это выгрузка для человека со стороны, а не
                     экран для чтения о себе (§55).
                 -->
+                <!--
+                    «О себе» стоит первым: сводка и план опираются на него.
+                    Ограничения, названные здесь, исключают упражнения из
+                    подсказок и уезжают в сводку сами (§58).
+                -->
+                <button class="btn btn-ghost" data-action="nav" data-screen="athlete">
+                    ${t('О себе')}
+                </button>
+
                 <button class="btn btn-ghost" data-action="nav" data-screen="report">
                     ${t('Сводка для тренера')}
                 </button>
