@@ -207,3 +207,40 @@ describe('Занятия с часов', () => {
     });
 
 });
+
+describe('Оценка сна и шаги', () => {
+
+    it('оценка идёт вместе с длительностью', () => {
+        const rows = [0, 1, 2].map((i) => ({ date: NOW - i * DAY, sleep: 7 * 3600, score: 75 }));
+        const строки = recovery.describe(rows, { now: NOW });
+
+        assert(строки[0].includes('75'), `оценку считает Zepp, приложение её передаёт: ${строки[0]}`);
+    });
+
+    it('без оценки строка остаётся прежней', () => {
+        const строки = recovery.describe(ряд([[7, 52], [7, 52]]), { now: NOW });
+
+        assert(!строки[0].includes('оценка'), `пустую оценку выдумывать нельзя: ${строки[0]}`);
+    });
+
+    it('шаги называются отдельной строкой', () => {
+        const rows = [0, 1, 2].map((i) => ({ date: NOW - i * DAY, steps: 9000 + i * 100 }));
+        const строки = recovery.describe(rows, { now: NOW });
+
+        equal(строки.length, 1);
+        assert(строки[0].includes('9100'), `шаги: ${строки[0]}`);
+    });
+
+    it('разбор берёт шаги и оценку', () => {
+        const rows = icu.read([{ id: '2026-09-05', steps: 9273, sleepScore: 71, sleepSecs: 17520, restingHR: 48 }]);
+
+        equal(rows[0].steps, 9273);
+        equal(rows[0].score, 71);
+    });
+
+    it('день с одними шагами не выбрасывается', () => {
+        equal(icu.read([{ id: '2026-09-05', steps: 5796 }]).length, 1,
+            'день без сна — тоже день, и шаги в нём сказаны');
+    });
+
+});

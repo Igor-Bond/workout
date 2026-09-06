@@ -45,6 +45,70 @@ export async function currentActivities() {
     return Array.isArray(хранимое?.rows) ? хранимое.rows : [];
 }
 
+/** Всё, что известно о прошлой привозке занятий, — вместе с разбором пустоты. */
+async function сведенияОЗанятиях() {
+    const хранимое = await dbService.getSetting(ICU_ACTS, null);
+
+    return {
+        at: хранимое?.at || 0,
+        rows: Array.isArray(хранимое?.rows) ? хранимое.rows : [],
+        probe: хранимое?.probe || null
+    };
+}
+
+/**
+ * Что привезено — по числам, а не по ощущению (§62.3).
+ *
+ * Настройка идёт через три звена: часы, Zepp, Intervals.icu. Пустой экран в
+ * такой цепочке ничего не сообщает — виноватым может быть любое звено, и
+ * человек начинает гадать. Числа отвечают прямо: сколько записей пришло и
+ * что в них было.
+ */
+function привезеноБлок(замеры, занятия) {
+    const счёт = (поле) => замеры.rows.filter((r) => r[поле]).length;
+
+    return ui.html`
+        <div class="card">
+            <div class="card-title">${t('Что привезено')}</div>
+
+            <div class="plan-rule">
+                ${t('Замеров за месяц: {n}', { n: замеры.rows.length })}
+                <span class="plan-day-rest">
+                    ${t('сон — {сон}, пульс покоя — {пульс}, шаги — {шаги}', {
+                        сон: счёт('sleep'), пульс: счёт('rhr'), шаги: счёт('steps')
+                    })}
+                </span>
+            </div>
+
+            <div class="plan-rule">
+                ${t('Занятий за месяц: {n}', { n: занятия.rows.length })}
+
+                ${занятия.rows.length === 0 && занятия.probe ? ui.html`
+                    <span class="plan-day-rest">
+                        ${занятия.probe.count
+                            ? t('сервис прислал записей: {n}, но пульса и времени в них не нашлось', { n: занятия.probe.count })
+                            : t('сервис не прислал ни одной')}
+                    </span>
+                ` : ''}
+            </div>
+
+            ${занятия.rows.length === 0 ? ui.html`
+                <p class="hint">
+                    ${t('Пульс на тренировке появится, только если Вы запускаете занятие на самих часах: приложение сопоставит его с тренировкой по времени. Zepp отдаёт наружу то, что часы записали как занятие.')}
+                </p>
+            ` : ''}
+
+            ${занятия.probe?.keys?.length ? ui.html`
+                <details class="guide">
+                    <summary>${t('Поля, которые прислал сервис')}</summary>
+                    <div class="guide-body"><p class="hint">${занятия.probe.keys.join(', ')}</p></div>
+                </details>
+            ` : ''}
+        </div>
+    `;
+}
+
+
 /**
  * Строки о восстановлении и нагрузке для сводки и для дела тренеру (§55, §60).
  *
@@ -77,7 +141,7 @@ export const watch = {
             dbService.getSetting(ICU_KEY, ''),
             dbService.getSetting(ICU_ATHLETE, ''),
             currentWellness(),
-            currentActivities()
+            сведенияОЗанятиях()
         ]);
 
         const привязаны = icu.ready(key, athlete);
@@ -85,7 +149,7 @@ export const watch = {
 
         // Те же строки, что уходят в сводку и тренеру: человек должен видеть
         // отправляемое, а не его пересказ (§60)
-        const выводы = [...recovery.describe(хранимое.rows), ...effort.describe(занятия)];
+        const выводы = [...recovery.describe(хранимое.rows), ...effort.describe(занятия.rows)];
 
 
         return ui.html`
@@ -112,6 +176,8 @@ export const watch = {
                     </p>
                 </div>
             ` : ''}
+
+            ${привязаны && (хранимое.rows.length || занятия.at) ? привезеноБлок(хранимое, занятия) : ''}
 
             <!--
                 Порядок настройки объяснён здесь целиком, а не отослан в
@@ -218,19 +284,44 @@ actions.on('watch-load', async () => {
             icu.activities({ key, athlete, days: recovery.BASE })
         ]);
 
+        const беды = [];
+
         if (замеры.status === 'fulfilled') {
             await dbService.setSetting(ICU_DATA, { at: Date.now(), rows: замеры.value });
+        } else {
+            беды.push(замеры.reason?.message || t('Не удалось получить данные с часов.'));
         }
 
+        /*
+         * Занятия молчать не имеют права (§62.3).
+         *
+         * Раньше их осечка глоталась: сон приезжал, пульса не было, и
+         * человек оставался с вопросом, часы виноваты или приложение. Так
+         * настройка в три звена и превращается в гадание.
+         */
         if (занятия.status === 'fulfilled') {
-            await dbService.setSetting(ICU_ACTS, { at: Date.now(), rows: занятия.value });
+            const разбор = { at: Date.now(), rows: занятия.value };
+
+            /*
+             * Пусто — спрашиваем, что там на самом деле.
+             *
+             * Пустой список значит одно из трёх: занятий правда нет, Zepp их
+             * не отдаёт, или приложение не узнало полей. Различить это можно
+             * только по тому, что прислал сервис, — и лишний запрос ради
+             * ответа на «почему пусто» дешевле, чем это «почему».
+             */
+            if (занятия.value.length === 0) {
+                разбор.probe = await icu.probe({ key, athlete, days: recovery.BASE }).catch(() => null);
+            }
+
+            await dbService.setSetting(ICU_ACTS, разбор);
+        } else {
+            беды.push(занятия.reason?.message || t('Занятия забрать не удалось.'));
         }
 
         haptics.tap();
 
-        if (замеры.status === 'rejected') {
-            ошибка = замеры.reason?.message || t('Не удалось получить данные с часов.');
-        }
+        if (беды.length) ошибка = беды.join(' ');
         else if (замеры.value.length === 0) {
             ошибка = t('Intervals.icu ответил, но замеров за месяц там нет. Проверьте, что Zepp туда пишет.');
         }
@@ -241,6 +332,7 @@ actions.on('watch-load', async () => {
         await app.render();
     }
 });
+
 
 
 actions.on('watch-forget', async () => {

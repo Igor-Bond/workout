@@ -81,6 +81,12 @@ export const icu = {
         return data;
     },
 
+    /** Адрес конца сервиса за последние days дней. */
+    url(athlete, path, { days = 28, now = Date.now() } = {}) {
+        return `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/${path}`
+            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
+    },
+
     /**
      * Замеры за последние days дней.
      *
@@ -91,13 +97,8 @@ export const icu = {
     async wellness({ key, athlete, days = 28, now = Date.now() } = {}) {
         if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
 
-        const id = String(athlete).trim();
-        const url = `${ENDPOINT}/${encodeURIComponent(id)}/wellness`
-            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
-
-        return icu.read(await icu.get(url, key));
+        return icu.read(await icu.get(icu.url(athlete, 'wellness', { days, now }), key));
     },
-
 
     /**
      * Занятия, записанные часами, за последние days дней (§62.2).
@@ -109,12 +110,38 @@ export const icu = {
     async activities({ key, athlete, days = 28, now = Date.now() } = {}) {
         if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
 
-        const id = String(athlete).trim();
-        const url = `${ENDPOINT}/${encodeURIComponent(id)}/activities`
-            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
-
-        return icu.readActivities(await icu.get(url, key));
+        return icu.readActivities(await icu.get(icu.url(athlete, 'activities', { days, now }), key));
     },
+
+    /**
+     * Что сервис прислал на самом деле (§62.3).
+     *
+     * Пустой список занятий значит одно из трёх: занятий правда нет, Zepp их
+     * не отдаёт, или приложение не узнало полей. Различить это со стороны
+     * нельзя, а гадать вместе с человеком — худшее, что можно сделать с
+     * настройкой в три звена. Поэтому приложение спрашивает и показывает:
+     * сколько записей пришло и какие в них поля.
+     *
+     * Имена полей, а не значения: имена отвечают на вопрос «узнало ли
+     * приложение пульс», а значения — это уже данные человека, и складывать
+     * их в настройку незачем.
+     */
+    async probe({ key, athlete, path = 'activities', days = 28, now = Date.now() } = {}) {
+        const data = await icu.get(icu.url(athlete, path, { days, now }), key);
+
+        if (!Array.isArray(data)) return { count: 0, keys: [] };
+
+        const поля = new Set();
+
+        for (const row of data.slice(0, 5)) {
+            for (const [k, v] of Object.entries(row || {})) {
+                if (v !== null && v !== undefined && v !== '') поля.add(k);
+            }
+        }
+
+        return { count: data.length, keys: [...поля].sort() };
+    },
+
 
     /**
      * Разбор занятия.
@@ -178,7 +205,11 @@ export const icu = {
                     sleep: число(row?.sleepSecs),
                     rhr: число(row?.restingHR),
                     hrv: число(row?.hrv),
-                    steps: число(row?.steps)
+                    steps: число(row?.steps),
+
+                    // Оценку сна считает сам Zepp, и она видна в его же
+                    // приложении: приложение её не толкует, а передаёт
+                    score: число(row?.sleepScore)
                 };
             })
             .filter((r) => r.date !== null && (r.sleep || r.rhr || r.hrv || r.steps));
