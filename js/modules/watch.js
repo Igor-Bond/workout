@@ -23,9 +23,11 @@ import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS, ICU_PUSH } from '../serv
 import { recovery } from '../core/recovery.js';
 import { effort } from '../core/effort.js';
 import { schedule } from '../core/schedule.js';
+import { pushPlan } from '../services/watchplan.js';
 import { currentPlan } from './planner.js';
 import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
+import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
@@ -144,6 +146,8 @@ function сон(secs) {
  * двусторонний.
  */
 function планБлок(план, занятия, отправка) {
+    const осталось = schedule.left(отправка?.at);
+
     return ui.html`
         <div class="card">
             <div class="card-title">${t('План на часы')}</div>
@@ -165,7 +169,21 @@ function планБлок(план, занятия, отправка) {
                             n: отправка.count
                         })}
                     </p>
+
+                    <!--
+                        Край отправленного уезжает в прошлое сам собой, и часы
+                        об этом не скажут: они просто перестанут показывать
+                        занятия, и человек решит, что план кончился (§62.4).
+                    -->
+                    ${осталось !== null && осталось <= 3 ? ui.html`
+                        <p class="hint">
+                            ${осталось > 0
+                                ? t('Отправленного хватит ещё на {n} — пора отправить снова.', { n: format.count(осталось, format.WORDS.day) })
+                                : t('Отправленное кончилось: часы уже не знают, что сегодня по плану.')}
+                        </p>
+                    ` : ''}
                 ` : ''}
+
 
                 <button class="btn btn-accent" data-action="watch-push" ${ui.raw(шлём || !занятия.length ? 'disabled' : '')}>
                     ${шлём ? t('Отправляю…') : t('Отправить план на часы')}
@@ -403,84 +421,20 @@ actions.on('watch-forget', async () => {
     haptics.tap();
     await app.render();
 });
-/**
- * Отправить план на часы (§62.4).
- *
- * Обратный ход цепочки: до сих пор данные шли к приложению, здесь идут от
- * него. Intervals.icu отдаёт запланированное на часы, и у Zepp этот тумблер
- * стоит рядом с тем, которым забирают активность.
- *
- * Порядок такой: убрать своё прежнее за тот же отрезок, поставить новое. Не
- * наоборот и не «поверх»: сервис не различает повторов, и вторая отправка без
- * уборки поставила бы на каждый день по две одинаковых записи.
- *
- * Чужое не трогаем. В плане сервиса могут лежать тренировки, поставленные
- * руками или другим приложением; своё приложение узнаёт по опознавателю, а не
- * по названию — названия совпадают у кого угодно.
- *
- * Отправляем по одному. Занятий за две недели десяток, а общий запрос на всё
- * означал бы, что осечка на седьмом дне уносит и первые шесть: на часах
- * оказался бы обрывок программы, о котором приложение думает, что он целый.
- */
+
 actions.on('watch-push', async () => {
     if (шлём) return;
-
-    const [key, athlete, план] = await Promise.all([
-        dbService.getSetting(ICU_KEY, ''),
-        dbService.getSetting(ICU_ATHLETE, ''),
-        currentPlan()
-    ]);
-
-    if (!icu.ready(key, athlete) || !план) return;
-
-    const занятия = schedule.build(план, { rules: план.rules || [] });
-
-    if (занятия.length === 0) {
-        ошибка = t('В ближайшие две недели план не назначает ни одной тренировки.');
-        return app.render();
-    }
 
     шлём = true;
     ошибка = '';
     await app.render();
 
-    let поставлено = 0;
-    let убрано = 0;
+    const итог = await pushPlan(await currentPlan());
 
-    try {
-        const отрезок = schedule.span({});
+    ошибка = итог.error;
+    if (итог.placed) haptics.tap();
 
-        // Своё прежнее за тот же отрезок: иначе на каждый день встанет по две
-        // одинаковых записи, и разбирать их придётся человеку
-        const было = await icu.events({ key, athlete, ...отрезок });
-
-        for (const событие of было.filter(schedule.mine)) {
-            await icu.removeEvent({ key, athlete, id: событие.id });
-            убрано++;
-        }
-
-        for (const занятие of занятия) {
-            await icu.addEvent({ key, athlete, event: schedule.event(занятие) });
-            поставлено++;
-        }
-
-        await dbService.setSetting(ICU_PUSH, { at: Date.now(), count: поставлено });
-        haptics.tap();
-    } catch (e) {
-        /*
-         * Говорим, сколько успели.
-         *
-         * Отправка не откатывается: удалять уже поставленное из-за осечки на
-         * середине значит второй раз лезть в чужой сервис ровно тогда, когда
-         * он и так отвечает плохо. Честнее сказать, где остановились, — и
-         * следующая отправка приведёт всё в порядок, потому что начинается
-         * она с уборки своего.
-         */
-        ошибка = поставлено
-            ? t('{что} Поставлено занятий: {n}, остальные — нет.', { что: e.message, n: поставлено })
-            : e.message;
-    } finally {
-        шлём = false;
-        await app.render();
-    }
+    шлём = false;
+    await app.render();
 });
+

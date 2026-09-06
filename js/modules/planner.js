@@ -16,6 +16,7 @@ import { plan as ядро } from '../core/plan.js';
 import { haptics } from '../core/haptics.js';
 import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
+import { pushPlan, planPushed } from '../services/watchplan.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete } from './athlete.js';
 import { dates } from '../core/dates.js';
@@ -438,6 +439,19 @@ actions.on('sheet-apply', async () => {
         await dbService.setSetting(PLAN_KEY, { ...ядро.parse(правленый), text: правленый });
     }
 
+    /*
+     * Правленый план уезжает на часы сам (§62.4).
+     *
+     * Только если он уже уезжал: тот, кто ни разу не отправлял, не просил
+     * приложение ходить в чужой сервис при каждом утверждении, и делать это
+     * за него было бы нарушением правила «данные не уходят сами» (§60). А
+     * тот, кто отправлял, обратного и ждёт: план правят чаще, чем открывают
+     * экран часов, и несведённые часы врали бы про сегодняшний день.
+     */
+    const наЧасы = await planPushed()
+        ? await pushPlan(await currentPlan())
+        : null;
+
     черновик = null;
     await app.render();
 
@@ -445,7 +459,13 @@ actions.on('sheet-apply', async () => {
         title: t('План утверждён'),
         text: [
             t('Главный экран будет вести по нему. Пропущенный день не переносится: сетка держится, а пропущенное вернётся через неделю на своём месте.'),
-            итогЗаведения(итог)
+            итогЗаведения(итог),
+
+            // Про часы говорим и когда получилось, и когда нет: молчаливая
+            // осечка оставила бы на запястье прошлую программу (§62.4)
+            наЧасы?.placed
+                ? t('На часы отправлено занятий: {n}.', { n: наЧасы.placed })
+                : наЧасы?.error || ''
         ].filter(Boolean).join('\n\n')
     });
 });

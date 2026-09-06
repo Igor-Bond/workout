@@ -123,6 +123,25 @@ export const schedule = {
         };
     },
 
+    /**
+     * Сколько дней отправленного ещё впереди.
+     *
+     * Отправка накрывает две недели от дня нажатия, и дальше край уезжает в
+     * прошлое сам собой. Часы об этом не скажут: они просто перестанут
+     * показывать занятия, и человек решит, что план кончился.
+     */
+    left(at, { now = Date.now(), days = HORIZON } = {}) {
+        if (!at) return null;
+
+        const startOfDay = (ts) => {
+            const d = new Date(ts);
+            d.setHours(0, 0, 0, 0);
+            return d.getTime();
+        };
+
+        return days - Math.floor((startOfDay(now) - startOfDay(at)) / DAY);
+    },
+
     /** Границы отправки: с какого по какое число уедет план. */
     span({ from = Date.now(), days = HORIZON } = {}) {
         return { oldest: ymd(from), newest: ymd(from + (days - 1) * DAY) };
