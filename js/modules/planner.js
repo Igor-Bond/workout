@@ -35,8 +35,46 @@ let заводим = false;
 /** Ключ настройки, под которым лежит утверждённый план. */
 export const PLAN_KEY = 'plan';
 
+/** Когда план выгружали в календарь и каким он тогда был (§62.5). */
+export const ICS_KEY = 'planCalendar';
+
 /** Прочитать утверждённый план. */
 export const currentPlan = () => dbService.getSetting(PLAN_KEY, null);
+
+/**
+ * Переименование упражнения правит и план (§56.6).
+ *
+ * План связан со справочником строкой: он хранит названия, а не ссылки.
+ * Поэтому переименование в справочнике молча рвало связь — план продолжал
+ * звать «Жим лёжа», которого больше нет, и приложение предлагало завести его
+ * заново. Получались два упражнения об одном движении и разделённая между
+ * ними история — ровно то, ради чего справочник и заводился.
+ *
+ * Правится текст плана, а не разбор: план хранится своим текстом и правится
+ * человеком в том же поле; подмена в разборе была бы для него невидимой.
+ *
+ * Возвращает true, если план правда изменился, — вызывающий обязан об этом
+ * сказать: приложение поправило текст, который писал не оно.
+ */
+export async function renameInPlan(from, to) {
+    const план = await currentPlan();
+
+    if (!план?.text || !String(from).trim() || ядро.same(from, to)) return false;
+
+    const правленый = ядро.rename(план.text, from, to);
+    if (правленый === план.text) return false;
+
+    await dbService.setSetting(PLAN_KEY, { ...ядро.parse(правленый), text: правленый });
+
+    return true;
+}
+
+/** Зовёт ли действующий план это упражнение — по названию, как и всё в плане. */
+export async function planCalls(name) {
+    const план = await currentPlan();
+
+    return ядро.items(план).some((у) => ядро.same(у.name, name));
+}
 
 /**
  * Положить сюда план со стороны — из разговора с тренером (§60).
@@ -137,11 +175,12 @@ export const planner = {
     nav: 'workout',
 
     async render() {
-        const [сохранённый, профиль, список, ключ] = await Promise.all([
+        const [сохранённый, профиль, список, ключ, выгрузка] = await Promise.all([
             currentPlan(),
             currentAthlete(),
             dbService.listExercises({ includeArchived: true }),
-            dbService.getSetting(KEY_SETTING, '')
+            dbService.getSetting(KEY_SETTING, ''),
+            dbService.getSetting(ICS_KEY, null)
         ]);
 
         const разобран = черновик
@@ -223,9 +262,20 @@ export const planner = {
                         </p>
                     ` : ''}
 
+                    <!--
+                        Календарь не скажет, что план изменился: там лежит то,
+                        что выгрузили в прошлый раз (§62.5). Сказать обязано
+                        приложение — иначе напоминания будут звать к прежней
+                        программе, и человек поверит им, а не себе.
+                    -->
+                    ${выгрузка && выгрузка.text !== (сохранённый.text || '') ? ui.html`
+                        <p class="hint">${t('Выгрузка в календарь устарела: план менялся после неё.')}</p>
+                    ` : ''}
+
                     <button class="btn btn-ghost btn-sm" data-action="sheet-ics">
                         ${t('В календарь телефона')}
                     </button>
+
 
                     <button class="btn btn-ghost btn-sm" data-action="sheet-drop">${t('Убрать план')}</button>
 
@@ -687,6 +737,10 @@ actions.on('sheet-ics', async () => {
 
     // Отпускаем память не сразу: часть браузеров ещё читает ссылку
     setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    // Помним, каким план был на момент выгрузки: изменившийся надо выгрузить
+    // заново, а календарь об этом не скажет (§62.5)
+    await dbService.setSetting(ICS_KEY, { at: Date.now(), text: план.text || '' });
 
     haptics.tap();
 

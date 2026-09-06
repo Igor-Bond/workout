@@ -20,6 +20,8 @@ import { KINDS, kindLabel } from '../core/kinds.js';
 import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
 import { migrations } from '../services/migrations.js';
+import { plan as ядроПлана } from '../core/plan.js';
+import { renameInPlan, planCalls } from './planner.js';
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
 function row(exercise, usage) {
@@ -342,8 +344,26 @@ async function editExercise(exercise) {
 
     await dbService.updateExercise(exercise.id, values);
 
+    /*
+     * План связан со справочником строкой, и переименование её рвало (§56.6).
+     *
+     * Молча: план продолжал звать прежнее имя, приложение предлагало завести
+     * его заново, и выходили две записи об одном движении с разделённой
+     * историей. Теперь имя правится и в плане — и об этом говорится, потому
+     * что приложение поправило текст, который писал не оно.
+     */
+    if (!ядроПлана.same(exercise.name, values.name) && await renameInPlan(exercise.name, values.name)) {
+        await dialog.alert({
+            title: t('Название изменено и в плане'),
+            text: t('План звал «{было}» — теперь зовёт «{стало}». Иначе он перестал бы узнавать это упражнение.', {
+                было: exercise.name, стало: values.name
+            })
+        });
+    }
+
     app.render();
 }
+
 
 actions.on('ex-edit', async (el) => {
     const exercise = await dbService.getExercise(el.dataset.id);
@@ -413,10 +433,37 @@ actions.on('ex-merge', async (el) => {
     app.render();
 });
 
+/**
+ * Упражнение, которое зовёт план, убирать молча нельзя (§56.6).
+ *
+ * Связь плана со справочником — строка, и убранное упражнение план продолжит
+ * звать. Приложение предложит завести его заново, и вместо одной записи с
+ * историей появится вторая без неё. Спрашиваем один раз и говорим, чем это
+ * кончится.
+ */
+async function убратьМожно(exercise, { archive = true } = {}) {
+    if (!await planCalls(exercise.name)) return true;
+
+    return dialog.confirm({
+        title: t('План зовёт это упражнение'),
+        text: t('«{название}» стоит в действующем плане. Уберёте — план продолжит его звать, и приложение предложит завести его заново, уже без истории.', {
+            название: exercise.name
+        }),
+        confirmText: archive ? t('В архив') : t('Удалить'),
+        danger: !archive
+    });
+}
+
 actions.on('ex-archive', async (el) => {
-    await dbService.setExerciseArchived(el.dataset.id, true);
+    const exercise = await dbService.getExercise(el.dataset.id);
+    if (!exercise) return;
+
+    if (!await убратьМожно(exercise)) return;
+
+    await dbService.setExerciseArchived(exercise.id, true);
     app.render();
 });
+
 
 actions.on('ex-restore', async (el) => {
     await dbService.setExerciseArchived(el.dataset.id, false);
@@ -426,6 +473,8 @@ actions.on('ex-restore', async (el) => {
 actions.on('ex-delete', async (el) => {
     const exercise = await dbService.getExercise(el.dataset.id);
     if (!exercise) return;
+
+    if (!await убратьМожно(exercise, { archive: false })) return;
 
     const ok = await dialog.confirm({
         title: t('Удалить «{название}»?', { название: exercise.name }),

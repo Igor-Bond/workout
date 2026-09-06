@@ -2424,3 +2424,25 @@ button.ex-name:active { color: var(--accent); }
     text-transform: uppercase;
     color: var(--text-dim);
 }
+
+/* ================== КАК ИДЁТ ПРОГРАММА (§63) ================== */
+
+/*
+ * Наблюдение окрашено полосой слева, а не текстом.
+ *
+ * Цветной текст читается как ошибка, а тут ошибки нет: «можно тяжелее» и
+ * «запас потерян» — одинаково спокойные сведения, различающиеся направлением.
+ * Полоса это направление и показывает, не мешая читать.
+ */
+.note-up,
+.note-down,
+.note-watch,
+.note-ok {
+    border-left: 3px solid var(--line);
+    padding-left: 10px;
+}
+
+.note-up { border-left-color: var(--good); }
+.note-down { border-left-color: var(--accent); }
+.note-watch { border-left-color: var(--text-dim); }
+.note-ok { border-left-color: var(--good); }
