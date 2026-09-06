@@ -32,6 +32,7 @@ await import('./suites/report.test.js');
 await import('./suites/plan.test.js');
 await import('./suites/hold.test.js');
 await import('./suites/athlete.test.js');
+await import('./suites/reserve.test.js');
 await import('./suites/merge.test.js');
 await import('./suites/migrations.test.js');
 await import('./suites/db.test.js');

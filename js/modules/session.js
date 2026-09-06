@@ -19,6 +19,7 @@ import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
 import { restTimer } from '../core/timer.js';
 import { hold } from '../core/hold.js';
+import { reserve } from '../core/reserve.js';
 import { haptics } from '../core/haptics.js';
 import { beeper } from '../core/beeper.js';
 import { wakeLock } from '../core/wakelock.js';
@@ -120,7 +121,7 @@ async function load() {
     const history = currentId ? await dbService.listSetsByExercise(currentId) : [];
 
     return {
-        workout, sets, exercises, rows, kind,
+        workout, sets, exercises, rows, kind, history,
         bodyWeight: body?.weight || 0,
         last: сравнимый(history, workout, проведённые),
         best: records.best(history, kind, workout.id)
@@ -352,6 +353,61 @@ function holdBlock() {
     `;
 }
 
+/**
+ * Выбранный запас — до записи подхода он живёт только на экране.
+ *
+ * В модуле, а не в поле ввода: чипы перерисовываются вместе с карточкой, и
+ * выбор иначе слетал бы при каждой отрисовке. Сбрасывается после записи —
+ * запас относится к подходу, а не к упражнению.
+ */
+let запас = null;
+
+/**
+ * Запас в подходе (§59).
+ *
+ * Три ответа, а не число: между «ещё два» и «ещё три» человек не различает,
+ * а «почти до отказа», «около двух» и «было легко» различает уверенно.
+ *
+ * Ряд стоит на виду, а не под «Ещё…»: он и есть то, ради чего затевалось
+ * правило прогрессии, и спрятанный он не нажимался бы никогда. Но и не
+ * обязателен: не ответил — подход запишется без отметки, а правило подождёт
+ * следующего раза.
+ *
+ * Подсказка правила стоит здесь же, рядом с ответом, который её и породил.
+ */
+function запасБлок({ history, kind, exercises }) {
+    const занятия = records.sessions(history || []).map((s) => s.sets);
+    const итог = reserve.verdict(занятия);
+
+    const чип = (value, label) => ui.html`
+        <button class="chip ${запас === value ? 'is-active' : ''}"
+                data-action="sess-reserve" data-value="${value}">${label}</button>
+    `;
+
+    const прошлые = kind === 'weight' ? t('вес') : t('сопротивление');
+
+    return ui.html`
+        <div class="reserve">
+            <span class="reserve-label">${t('Запас в подходе')}</span>
+            <div class="chips">
+                ${чип(reserve.LOW, t('почти до отказа'))}
+                ${чип(reserve.TARGET, t('около двух'))}
+                ${чип(reserve.HIGH, t('было легко'))}
+            </div>
+        </div>
+
+        ${итог.verdict === 'harder' ? ui.html`
+            <p class="hint is-accent">
+                ${t('Два занятия подряд запас был большой — пора увеличить {что}. Повторения при этом вниз примерно на пятую часть.', { что: прошлые })}
+            </p>
+        ` : итог.verdict === 'easier' ? ui.html`
+            <p class="hint">
+                ${t('Два занятия подряд подход шёл почти до отказа. Это тяжелее, чем нужно: цель — оставлять около двух повторений.')}
+            </p>
+        ` : ''}
+    `;
+}
+
 /** Поля ввода зависят от вида упражнения (§6). */
 function fields(kind, prefill) {
     const value = (v) => (v === null || v === undefined ? '' : v);
@@ -468,6 +524,7 @@ function currentCard({ workout, sets, exercises, rows }) {
                 разных способа закончить один подход.
             -->
             ${отсчёт?.exerciseId === currentId ? '' : ui.html`
+                ${запасБлок(view)}
                 <div class="note-row">
                     <button class="link-btn" data-action="sess-note-toggle">${t('＋ заметка к подходу')}</button>
                     <input type="text" id="f-note" class="note-input" hidden
@@ -793,6 +850,10 @@ actions.on('sess-done', async () => {
     const values = readFields(kind);
     if (!values) return;
 
+    // Запас едет с подходом, если он отмечен (§59). Не отмечен — подход
+    // пишется без него, и правило подождёт следующего раза
+    if (reserve.valid(запас)) values.rir = запас;
+
     await записатьПодход(values);
 });
 
@@ -806,6 +867,10 @@ actions.on('sess-done', async () => {
  */
 async function записатьПодход(values) {
     const { workout, sets } = view;
+
+    // Запас относится к подходу, а не к упражнению: следующий начинается с
+    // чистого ряда, иначе один ответ молча повторялся бы весь вечер
+    запас = null;
 
     const note = document.getElementById('f-note')?.value.trim();
 
@@ -868,6 +933,24 @@ async function записатьПодход(values) {
 
     if (ask) await askAfterPlan(ask, workout);
 }
+
+/**
+ * Выбор запаса (§59).
+ *
+ * Повторное нажатие снимает выбор: ответить и передумать — обычное дело, а
+ * снимать ответ было бы нечем, кроме перезагрузки.
+ *
+ * Перерисовка на месте, а не всего экрана: нажатие на чип не должно ни
+ * выдирать фокус из поля повторений, ни гасить полосу отдыха.
+ */
+actions.on('sess-reserve', (el) => {
+    const value = Number(el.dataset.value);
+    запас = запас === value ? null : value;
+
+    for (const чип of document.querySelectorAll('[data-action="sess-reserve"]')) {
+        чип.classList.toggle('is-active', Number(чип.dataset.value) === запас);
+    }
+});
 
 // ================== ОТСЧЁТ ПОДХОДА НА ВРЕМЯ (§57) ==================
 

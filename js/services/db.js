@@ -673,7 +673,7 @@ export const dbService = {
      * Запись подхода. order — сквозной номер в тренировке, он и задаёт
      * фактический порядок выполнения; setNumber — номер внутри упражнения.
      */
-    async addSet({ workoutId, exerciseId, order, setNumber, reps, weight, duration, distance, note, performedAt }) {
+    async addSet({ workoutId, exerciseId, order, setNumber, reps, weight, duration, distance, note, rir, performedAt }) {
         const now = Date.now();
         const record = {
             id: newId(),
@@ -692,6 +692,17 @@ export const dbService = {
         if (Number.isFinite(duration) && duration > 0) record.duration = duration;
         if (Number.isFinite(distance) && distance > 0) record.distance = distance;
         if (note) record.note = note;
+
+        /*
+         * Запас в подходе (§59) — свободным полем, как и всё остальное, что
+         * появилось после первой схемы: индекса ему не нужно, а поднимать
+         * версию схемы ради него нельзя (§35).
+         *
+         * Незаполненный не сохраняется по общему правилу: молчание значит
+         * «не сказал», и подменять его нулём нельзя — правило прогрессии
+         * прочло бы это как «шёл до отказа».
+         */
+        if (Number.isFinite(rir) && rir > 0) record.rir = rir;
 
         await db.sets.add(record);
         return record;

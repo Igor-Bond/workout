@@ -2223,3 +2223,29 @@ button.ex-name:active { color: var(--accent); }
 
 /* Убираемая плашка: крестик внутри неё, а не отдельной кнопкой рядом */
 .chip.is-removable { padding-right: 8px; }
+
+/*
+ * Запас в подходе (§59).
+ *
+ * Ряд стоит на виду, а не под «Ещё…»: он и есть то, ради чего затевалось
+ * правило прогрессии, и спрятанный он не нажимался бы никогда. Но и не
+ * кричит: подпись мелкая, чипы обычные — это уточнение к подходу, а не
+ * второй способ его записать.
+ */
+.reserve {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0 12px;
+}
+
+.reserve-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Подсказка правила говорит о действии — и потому окрашена, а не сера */
+.hint.is-accent { color: var(--accent); }
