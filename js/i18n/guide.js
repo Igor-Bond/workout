@@ -101,9 +101,10 @@ const RU = {
                     ['Правка', 'Тот же экран: в поле уже лежит действующий план. Поправь строку, нажми *Разобрать*, посмотри, что изменилось в развёртке, и утверди заново.'],
                     ['Границы', 'Пока план не начался, на главном стоит дата начала и первое занятие. За неделю до конца приложение предупредит и предложит попросить следующий. Кончился — скажет об этом и вернётся к подсказкам по истории.'],
                     ['Незнакомое упражнение', 'План составляет не приложение, и названия в нём свои. Чего нет в справочнике, оно предложит завести прямо с карточки — по каждому имени отдельно.'],
+                    ['Этапы и чередование', 'Программа на двенадцать недель обычно состоит из этапов. Приложение их исполняет: «Этап 2 (недели 5–8)» действует ровно в свои недели и переключится само. Если недели различаются, они объявляются заголовками «Неделя 1» и «Неделя 2» — приложение чередует их. Утверждать заново каждый месяц не нужно.'],
                     ['Прогноз', 'Пока план объявлен, «Постоянство» на статистике не гадает по истории, а называет день из сетки: гадать там, где сказано, незачем.']
                 ] },
-                { hint: 'План хранит одну недельную сетку и срок. Если недели различаются — скажем, объём чередуется через неделю, — попроси их отдельными блоками, каждый со своей датой начала, и утверждай по понедельникам. План уезжает в облако вместе с историей: объявленный на компьютере, он появится на телефоне.' }
+                { hint: 'План уезжает в облако вместе с историей: объявленный на компьютере, он появится на телефоне.' }
             ]
         },
         {
@@ -264,9 +265,10 @@ const EN = {
                     ['Editing', 'Same screen: the field already holds the plan in force. Fix a line, press *Parse*, look at what changed in the expansion, and approve it again.'],
                     ['Boundaries', 'Before the plan starts, the main screen shows its start date and first session. A week before the end the app warns you and offers to ask for the next one. Once it is over the app says so and goes back to history-based suggestions.'],
                     ['An unknown exercise', 'The plan is not written by the app, and the names in it are its own. Anything missing from the catalogue can be added right from the card — one name at a time.'],
+                    ['Stages and alternation', 'A twelve-week programme usually consists of stages. The app executes them: “Stage 2 (weeks 5–8)” is in force exactly during its weeks and switches over by itself. If the weeks differ, they are headed “Week 1” and “Week 2” — the app alternates between them. No monthly re-approval needed.'],
                     ['Forecast', 'While a plan is declared, “Consistency” in statistics stops guessing from history and names the day from the grid: guessing where it has been stated is pointless.']
                 ] },
-                { hint: 'A plan holds one weekly grid and a length. If the weeks differ — say the volume alternates every other week — ask for them as separate blocks, each with its own start date, and approve one every Monday. The plan syncs to the cloud along with your history: declared on the computer, it shows up on the phone.' }
+                { hint: 'The plan syncs to the cloud along with your history: declared on the computer, it shows up on the phone.' }
             ]
         },
         {
@@ -427,9 +429,10 @@ const DE = {
                     ['Ändern', 'Derselbe Bildschirm: Im Feld liegt bereits der geltende Plan. Ändere eine Zeile, drücke *Auswerten*, sieh dir an, was sich in der Ansicht ändert, und bestätige erneut.'],
                     ['Ränder', 'Bevor der Plan beginnt, zeigt die Startseite sein Startdatum und die erste Einheit. Eine Woche vor Ende warnt die App und bietet an, den nächsten anzufragen. Ist er vorbei, sagt sie es und kehrt zu Vorschlägen nach Verlauf zurück.'],
                     ['Unbekannte Übung', 'Den Plan schreibt nicht die App, und die Namen darin sind seine eigenen. Was im Katalog fehlt, lässt sich direkt von der Karte anlegen — jeder Name einzeln.'],
+                    ['Phasen und Wechsel', 'Ein Zwölf-Wochen-Programm besteht meist aus Phasen. Die App führt sie aus: „Phase 2 (Wochen 5–8)“ gilt genau in ihren Wochen und schaltet von selbst um. Unterscheiden sich die Wochen, werden sie mit „Woche 1“ und „Woche 2“ überschrieben — die App wechselt sie ab. Monatliches Neubestätigen entfällt.'],
                     ['Prognose', 'Solange ein Plan erklärt ist, rät „Beständigkeit“ in der Statistik nicht mehr nach Verlauf, sondern nennt den Tag aus dem Raster: Raten, wo es gesagt wurde, ist sinnlos.']
                 ] },
-                { hint: 'Ein Plan hält ein Wochenraster und eine Dauer. Unterscheiden sich die Wochen — etwa wenn der Umfang jede zweite Woche wechselt —, frag sie als eigene Blöcke an, jeden mit eigenem Startdatum, und bestätige montags einen. Der Plan geht mit dem Verlauf in die Cloud: am Computer erklärt, erscheint er auf dem Telefon.' }
+                { hint: 'Der Plan geht mit dem Verlauf in die Cloud: am Computer erklärt, erscheint er auf dem Telefon.' }
             ]
         },
         {

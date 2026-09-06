@@ -94,8 +94,23 @@ async function дело() {
         )
     });
 
-    return prompt.dossier({ summary, plan: план?.text || '' });
+    /*
+     * Где человек в программе (§56.4).
+     *
+     * Текст плана этого не говорит: он один на все двенадцать недель. Без
+     * строки собеседник правит начало программы, когда человек живёт уже в
+     * её середине, — и делает это уверенно, потому что ошибиться ему нечем.
+     */
+    const где = план && planCore.active(план)
+        ? [
+            t('Сейчас неделя {n} из {всего}', { n: planCore.weekOf(план), всего: план.weeks }),
+            planCore.stageAt(план)?.label || ''
+        ].filter(Boolean).join('. ')
+        : '';
+
+    return prompt.dossier({ summary, plan: план?.text || '', now: где });
 }
+
 
 function сообщение(m, index) {
     const свой = m.role === 'user';
