@@ -61,7 +61,7 @@ export const report = {
     build({
         entries = [], sets = [], exercises = {}, weights = [],
         now = Date.now(), weeks = WEEKS, shareOf = () => 1, background = null,
-        profile = [], withRequest = true, catalogue = [], recovery = []
+        profile = [], withRequest = true, catalogue = [], recovery = [], journal = []
     } = {}) {
         const since = dates.startOfDay(now) - weeks * 7 * DAY;
 
@@ -100,7 +100,19 @@ export const report = {
         }
 
 
+        /*
+         * Решения по программе идут следом за восстановлением (§64).
+         *
+         * Это единственное, чего нет в числах: числа говорят, что человек
+         * делает, журнал — что он уже пробовал и чем это кончилось.
+         * Собеседник, не знающий этого, предлагает по кругу одно и то же.
+         */
+        if (journal.length) {
+            строки.push(t('Решения по программе:'), ...journal.map((s) => `— ${s}`), '');
+        }
+
         if (свежие.length === 0) {
+
             строки.push(t('За последние {недели} тренировок не было.', { недели: format.count(weeks, format.WORDS.week) }));
             return строки.join('\n');
         }

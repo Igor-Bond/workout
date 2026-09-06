@@ -1227,4 +1227,18 @@ export const EN = {
     'План за две недели выполнен полностью — {всего} из {всего}.': 'The plan for two weeks was met in full — {всего} of {всего}.',
     'Повторений за неделю ниже прошлой на {процент}%.': 'Reps this week are {процент}% below last week.',
     'Повторений за неделю выше прошлой на {процент}%.': 'Reps this week are {процент}% above last week.',
+    // Журнал решений по программе (§64)
+    'Журнал решений': 'Decision log',
+    'Пока пусто. Здесь копится то, что объясняет программу: что поменяли и почему.': 'Empty so far. What explains your programme collects here: what was changed and why.',
+    'Записать решение': 'Log a decision',
+    'Решение по программе': 'A decision about the programme',
+    'Одна строка о том, что поменялось, и одна — почему. Это уйдёт в сводку и тренеру.': 'One line about what changed and one about why. This goes into the summary and to the coach.',
+    'Что поменяли': 'What changed',
+    'Резинка потяжелее, повторения с 50 на 40': 'Heavier band, reps from 50 down to 40',
+    'Почему (необязательно)': 'Why (optional)',
+    'Три занятия подряд запас был большой': 'Plenty in reserve three sessions running',
+    'Записать': 'Log it',
+    'Утверждён план с {начало}, {недели}': 'Plan approved, from {начало}, {недели}',
+    'Решения по программе:': 'Decisions about the programme:',
+    'Правка': 'Change',
 };

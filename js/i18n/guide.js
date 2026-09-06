@@ -39,6 +39,7 @@ const RU = {
                     'Сделал подход — *Выполнено*. Числа уже подставлены, обычно менять нечего. После записи пойдёт отдых.',
                     'Когда всё — *Завершить*. Появятся итоги, а из них можно сохранить состав шаблоном, чтобы в следующий раз не собирать заново.'
                 ] },
+                { hint: 'Первый запуск начинается со знакомства: четыре шага — о себе, упражнения, тренер, план. Каждый можно отложить, приложение после этого работает; вернуться к ним — «Профиль» → «Знакомство».' },
                 { example: 'Пример. Силовая: жим лёжа 3×8 · тяга в наклоне 3×10 · подъём на бицепс 3×12. Девять подходов, минут сорок вместе с отдыхом.' }
             ]
         },
@@ -77,6 +78,7 @@ const RU = {
                     ['Упражнения со своим весом', 'У отжиманий и подтягиваний нагрузку приложение считает само: строка «Своим весом» — это доля твоего веса, приходящаяся на упражнение, и она же уходит в статистику. Вписывать туда ничего не надо. Ссылка «＋ дополнительный вес» нужна, только если ты правда надел пояс или зажал гантель: оно прибавляется к нагрузке и показывается второй строкой. Тоннаж в статистике и в истории — это вся нагрузка вместе: и собственный вес, и отягощение; вес тела берётся на дату подхода, поэтому новое взвешивание прошлые тренировки не переписывает. Долю можно поправить под себя — «Профиль → Справочник → Доли своего веса»; правка пересчитает всю историю сразу.'],
                     ['Порядок упражнений', 'По умолчанию по кругу: подход первого, подход второго, снова первого. В настройках можно выбрать «по одному» — закрывать план упражнения целиком — или свободный порядок. Переключается и на ходу, на самом выполнении.'],
                     ['Отдых', 'Запускается сам после записи. Кнопками «±5 с» время прибавляют и убавляют, а если кнопку задержать — шаг разгоняется, и до трёх минут доходишь одним движением. Изменённое запоминается за этим упражнением: после приседа своё время, после планки своё. Настройка в профиле остаётся началом отсчёта для тех упражнений, про которые вы ещё ничего не сказали. Когда у упражнения своё время, полоса так и подписана. По окончании — сигнал и вибрация, если они включены.'],
+                    ['Запас в подходе', 'После записи можно ответить, сколько повторений осталось в запасе: «почти до отказа», «около двух», «было легко». Спрашивается один раз за подход и не обязательно. Два занятия подряд с большим запасом — и приложение скажет, что можно тяжелее; два подряд до отказа — что запас потерян.'],
                     ['«Ещё…»', 'Под этой кнопкой редкое: добавить упражнение вне плана, пропустить, вернуться к уже выполненному, заметка.'],
                     ['Заметки', 'Три уровня: к подходу, к упражнению в этой тренировке и ко всей тренировке. Видны потом в истории.'],
                     ['Упражнение на время', 'Под полем секунд — кнопка *Отсчёт*. Пять секунд на приготовиться, дальше приложение считает вслух теми же сигналами, что в табате, и само записывает подход, когда время вышло. Остановишь раньше — запишется то, что правда прошло, а не обещанное. Оставишь поле пустым — пойдёт секундомер: для планки «до отказа» цели и не бывает.'],
@@ -105,6 +107,42 @@ const RU = {
                     ['Прогноз', 'Пока план объявлен, «Постоянство» на статистике не гадает по истории, а называет день из сетки: гадать там, где сказано, незачем.']
                 ] },
                 { hint: 'План уезжает в облако вместе с историей: объявленный на компьютере, он появится на телефоне.' }
+            ]
+        },
+        {
+            name: 'Тренер и профиль',
+            blocks: [
+                { p: 'Приложение умеет обсуждать программу с языковой моделью прямо здесь. Дело — кондиции по истории, ограничения и действующая программа — оно подкладывает само, и до отправки видно, что именно уйдёт.' },
+                { steps: [
+                    '*Профиль* → *О себе*: пол, год рождения, рост, инвентарь и ограничения. Это то, чего не видно по истории.',
+                    '*Профиль* → *Тренер*: ключ Google, он бесплатный. Без ключа работает всё остальное.',
+                    'Спросить своими словами. Если в ответе есть план, рядом появится кнопка «Перенести в план» — он ляжет черновиком, а утверждаете вы.'
+                ] },
+                { rows: [
+                    ['Ограничение', 'Названное ограничение исключает упражнения отовсюду, где приложение предлагает: из очереди, из забытого, из подбора. План, назвавший исключённое, скажет об этом при разборе — но принять его всё равно можно, решение за вами.'],
+                    ['Карточки упражнений', 'Вид, группу и описание для незнакомых упражнений заполняет тренер по образцу вашего справочника — при утверждении плана и при создании упражнения руками. Узнанное («Отжимания от пола» — те же «Отжимания») он не заводит второй записью, а правит название в плане.'],
+                    ['Как идёт программа', 'Карточка на статистике: запас в подходе, восстановление, исполнение плана и объём — вместе. Приложение называет наблюдение и его основание, а решаете вы. Сказать нечего — карточки нет.']
+                ] },
+                { hint: 'Ключ лежит только на этом устройстве и в облако не уезжает — на втором заведите свой. Переписка не хранится: то, что стоило сохранить, сохранено планом.' }
+            ]
+        },
+        {
+            name: 'Часы и календарь',
+            blocks: [
+                { p: 'Приложение считает нагрузку, но о восстановлении не знает ничего, а программа зависит от него не меньше. Сон и пульс покоя оно забирает с часов — через Intervals.icu, потому что наружу Zepp отдаёт данные только так.' },
+                { steps: [
+                    'В Zepp: *Профиль* → *Добавить аккаунты* → Intervals.icu.',
+                    'На intervals.icu: *Settings* → *Developer* → API key. Там же номер спортсмена, он вида i123456.',
+                    '*Профиль* → *Данные с часов*: вписать номер и ключ, нажать *Забрать данные*.'
+                ] },
+                { rows: [
+                    ['Что приезжает', 'Сон и его оценка, пульс покоя, вариабельность, шаги. Выводы делаются по неделе против месячной базы: одна короткая ночь не значит ничего, неделя коротких — значит многое.'],
+                    ['Пульс тренировки', 'Появится, только если запускать занятие на самих часах: приложение сопоставит его с вашей тренировкой по времени, с допуском в двадцать минут, и покажет пульс и калории на итогах.'],
+                    ['Куда это идёт', 'В сводку для тренера и в разговор — рядом с профилем. И в карточку «Как идёт программа».'],
+                    ['План на часы', 'Отправляется на две недели вперёд, дни отдыха не уезжают. Принимают присланное не все часы: у Amazfit это пока только T-Rex 3 Pro, у Huawei — только бег, ходьба и походы.'],
+                    ['План в календарь', 'Работает всегда и ни от кого не зависит. Файл на две недели, напоминание в восемь утра; уведомление телефона видно и на часах, настраивать для этого нечего.']
+                ] },
+                { hint: 'Ключ Intervals.icu, как и ключ тренера, остаётся на этом устройстве. Приложение забирает сон, пульс и шаги — и больше ничего.' }
             ]
         },
         {
@@ -203,6 +241,7 @@ const EN = {
                     'Finished a set? Tap *Done*. The numbers are already filled in, usually nothing to change. Rest starts right after.',
                     'When you are finished, tap *Finish*. The summary appears, and from it you can save the line-up as a template so you do not build it again.'
                 ] },
+                { hint: 'The first launch starts with getting started: four steps — about you, exercises, coach, plan. Each of them can be put off and the app still works; to come back to them, go to «Profile» → «Getting started».' },
                 { example: 'For example. Strength: bench press 3×8 · bent-over row 3×10 · biceps curl 3×12. Nine sets, about forty minutes including rest.' }
             ]
         },
@@ -241,6 +280,7 @@ const EN = {
                     ['Body-weight exercises', 'For push-ups and pull-ups the app works out the load itself: the “Own weight” line is the share of your body weight this exercise lifts, and that is what goes into the stats. Nothing to type in. The “＋ added weight” link is only for when you really put on a belt or hold a dumbbell: it is added to the load and shows on a second line. Tonnage in the stats and in history is the whole load together — your own weight and any added weight; body weight is taken as of the date of the set, so a new weigh-in does not rewrite past workouts. The share can be tuned — Profile → Catalogue → Body-weight shares; editing it recalculates the whole history at once.'],
                     ['Exercise order', 'Round robin by default: a set of the first, a set of the second, the first again. In settings you can choose one at a time — finish an exercise’s planned sets — or free order. It also switches mid-workout.'],
                     ['Rest', 'Starts by itself after a set. The “±5 s” buttons add and take away time; hold one down and the step speeds up, so three minutes are one movement away. What you change is remembered for that exercise: one length after squats, another after a plank. The setting in the profile stays the starting point for exercises you have not said anything about yet. When an exercise has its own length, the bar says so. When it ends: a sound and vibration, if they are on.'],
+                    ['Reps in reserve', 'After a set you can say how many reps were left: “close to failure”, “about two”, “it was easy”. Asked once per set and never required. Two sessions running with plenty in reserve and the app will say you can go heavier; two running to failure and it will say the reserve is gone.'],
                     ['“More…”', 'The rare things live there: add an exercise outside the plan, skip one, go back to a finished one, write a note.'],
                     ['Notes', 'Three levels: for a set, for an exercise in this workout, and for the whole workout. They show up later in history.'],
                     ['Timed exercise', 'Under the seconds field there is a *Countdown* button. Five seconds to get ready, then the app counts aloud with the same signals as tabata and records the set itself when the time is up. Stop earlier and it records what actually passed, not what was promised. Leave the field empty and it runs as a stopwatch: a plank to failure has no target at all.'],
@@ -269,6 +309,42 @@ const EN = {
                     ['Forecast', 'While a plan is declared, “Consistency” in statistics stops guessing from history and names the day from the grid: guessing where it has been stated is pointless.']
                 ] },
                 { hint: 'The plan syncs to the cloud along with your history: declared on the computer, it shows up on the phone.' }
+            ]
+        },
+        {
+            name: 'Coach and profile',
+            blocks: [
+                { p: 'The app can discuss your programme with a language model right here. The dossier — your condition from history, your limits and the plan in force — it supplies itself, and you see exactly what will be sent before it goes.' },
+                { steps: [
+                    '*Profile* → *About me*: sex, year of birth, height, equipment and limits. This is what history cannot show.',
+                    '*Profile* → *Coach*: a Google key, which is free. Without a key everything else still works.',
+                    'Ask in your own words. If the answer contains a plan, a “Move to plan” button appears next to it — it lands as a draft, and approving it is yours to do.'
+                ] },
+                { rows: [
+                    ['Limits', 'A stated limit excludes exercises everywhere the app suggests anything: from the queue, from the forgotten list, from selection. A plan that names something excluded says so when parsed — you can still accept it, the decision is yours.'],
+                    ['Exercise cards', 'The kind, muscle group and description for unknown exercises are filled in by the coach, following your own catalogue — when a plan is approved and when you create an exercise by hand. What it recognises (“Push-ups from the floor” is the same as “Push-ups”) it does not add twice: it corrects the name in the plan instead.'],
+                    ['How the programme is going', 'A card in statistics: reps in reserve, recovery, plan adherence and volume — together. The app names the observation and what it rests on; the decision is yours. If there is nothing to say, there is no card.']
+                ] },
+                { hint: 'The key stays on this device and never goes to the cloud — set up your own on a second one. The conversation is not stored: whatever was worth keeping is kept by the plan.' }
+            ]
+        },
+        {
+            name: 'Watch and calendar',
+            blocks: [
+                { p: 'The app counts your load but knows nothing about recovery, and the programme depends on it just as much. It fetches sleep and resting heart rate from your watch — through Intervals.icu, because that is the only way Zepp hands data out.' },
+                { steps: [
+                    'In Zepp: *Profile* → *Add accounts* → Intervals.icu.',
+                    'On intervals.icu: *Settings* → *Developer* → API key. The athlete number is there too, in the form i123456.',
+                    '*Profile* → *Data from your watch*: enter the number and the key, press *Fetch the data*.'
+                ] },
+                { rows: [
+                    ['What arrives', 'Sleep and its score, resting heart rate, variability, steps. Conclusions are drawn over a week against a month-long baseline: one short night means nothing, a week of them means a lot.'],
+                    ['Heart rate for a workout', 'Appears only if you start the session on the watch itself: the app then matches it to your workout by time, with a twenty-minute margin, and shows heart rate and calories in the summary.'],
+                    ['Where it goes', 'Into the summary for a coach and into the conversation — next to your profile. And into the “How the programme is going” card.'],
+                    ['Plan to the watch', 'Sent two weeks ahead; rest days are not sent. Not every watch accepts it: Amazfit so far only the T-Rex 3 Pro, Huawei only runs, walks and hikes.'],
+                    ['Plan into the calendar', 'Always works and depends on nobody. A file for two weeks with a reminder at eight in the morning; a phone notification shows on the watch too, with nothing to set up.']
+                ] },
+                { hint: 'The Intervals.icu key, like the coach key, stays on this device. The app takes sleep, heart rate and steps — and nothing else.' }
             ]
         },
         {
@@ -367,6 +443,7 @@ const DE = {
                     'Satz fertig? Tippe auf *Erledigt*. Die Zahlen stehen schon da, meist gibt es nichts zu ändern. Danach läuft die Pause.',
                     'Wenn du fertig bist, tippe auf *Beenden*. Das Ergebnis erscheint, und daraus kannst du die Zusammenstellung als Vorlage speichern, damit du sie nicht neu bauen musst.'
                 ] },
+                { hint: 'Der erste Start beginnt mit den ersten Schritten: vier Punkte — über dich, Übungen, Trainer, Plan. Jeder lässt sich aufschieben, die App läuft danach trotzdem; zurück dorthin über „Profil“ → „Erste Schritte“.' },
                 { example: 'Ein Beispiel. Kraft: Bankdrücken 3×8 · vorgebeugtes Rudern 3×10 · Bizepscurls 3×12. Neun Sätze, etwa vierzig Minuten mit Pausen.' }
             ]
         },
@@ -405,6 +482,7 @@ const DE = {
                     ['Übungen mit Eigengewicht', 'Bei Liegestützen und Klimmzügen berechnet die App die Last selbst: Die Zeile „Eigengewicht“ ist der Anteil deines Körpergewichts, der auf die Übung entfällt, und genau der geht in die Statistik. Dort ist nichts einzutragen. Der Link „＋ Zusatzgewicht“ ist nur dafür da, wenn du wirklich einen Gürtel angelegt oder eine Hantel eingeklemmt hast: Es wird zur Last addiert und erscheint in einer zweiten Zeile. Die Tonnage in Statistik und Historie ist die gesamte Last zusammen — Eigengewicht und Zusatzgewicht; das Körpergewicht wird zum Datum des Satzes genommen, ein neues Wiegen schreibt vergangene Trainings also nicht um. Den Anteil kannst du anpassen — Profil → Katalog → Anteile des Eigengewichts; eine Änderung rechnet die gesamte Historie sofort neu.'],
                     ['Reihenfolge der Übungen', 'Standardmäßig im Kreis: ein Satz der ersten, ein Satz der zweiten, wieder die erste. In den Einstellungen kannst du „nacheinander“ wählen — eine Übung ganz abschließen — oder freie Reihenfolge. Das lässt sich auch mitten im Training umstellen.'],
                     ['Pause', 'Startet nach dem Erfassen von selbst. Mit den Knöpfen „±5 s“ wird die Zeit verlängert und verkürzt; hältst du einen gedrückt, beschleunigt sich der Schritt, und drei Minuten sind eine Bewegung entfernt. Das Geänderte merkt sich die Übung: nach Kniebeugen die eine Zeit, nach der Planke die andere. Die Einstellung im Profil bleibt der Ausgangspunkt für Übungen, zu denen du noch nichts gesagt hast. Hat eine Übung ihre eigene Zeit, steht das auf der Leiste. Am Ende: Ton und Vibration, sofern eingeschaltet.'],
+                    ['Reserve im Satz', 'Nach dem Eintragen kannst du sagen, wie viele Wiederholungen übrig waren: „fast bis zum Versagen“, „etwa zwei“, „war leicht“. Wird einmal pro Satz gefragt und ist nie Pflicht. Zwei Einheiten in Folge mit viel Reserve — die App sagt, es darf schwerer werden; zwei in Folge bis zum Versagen — die Reserve ist weg.'],
                     ['„Mehr…“', 'Dahinter liegt das Seltene: eine Übung außerhalb des Plans, überspringen, zu einer erledigten zurück, eine Notiz.'],
                     ['Notizen', 'Drei Ebenen: zum Satz, zur Übung in diesem Training und zum ganzen Training. Sie tauchen später im Verlauf auf.'],
                     ['Übung auf Zeit', 'Unter dem Sekundenfeld steht die Taste *Countdown*. Fünf Sekunden zum Bereitmachen, dann zählt die App laut mit denselben Signalen wie bei Tabata und trägt den Satz selbst ein, wenn die Zeit um ist. Hörst du früher auf, wird eingetragen, was wirklich vergangen ist, nicht das Versprochene. Lässt du das Feld leer, läuft eine Stoppuhr: Für eine Planke bis zum Versagen gibt es gar kein Ziel.'],
@@ -433,6 +511,42 @@ const DE = {
                     ['Prognose', 'Solange ein Plan erklärt ist, rät „Beständigkeit“ in der Statistik nicht mehr nach Verlauf, sondern nennt den Tag aus dem Raster: Raten, wo es gesagt wurde, ist sinnlos.']
                 ] },
                 { hint: 'Der Plan geht mit dem Verlauf in die Cloud: am Computer erklärt, erscheint er auf dem Telefon.' }
+            ]
+        },
+        {
+            name: 'Trainer und Profil',
+            blocks: [
+                { p: 'Die App kann dein Programm mit einem Sprachmodell direkt hier besprechen. Die Akte — deine Verfassung aus dem Verlauf, deine Einschränkungen und der geltende Plan — legt sie selbst bei, und vor dem Senden siehst du genau, was hinausgeht.' },
+                { steps: [
+                    '*Profil* → *Über dich*: Geschlecht, Geburtsjahr, Größe, Ausrüstung und Einschränkungen. Das ist, was der Verlauf nicht zeigt.',
+                    '*Profil* → *Trainer*: ein Google-Schlüssel, kostenlos. Ohne Schlüssel funktioniert alles andere weiter.',
+                    'Frag mit eigenen Worten. Steckt in der Antwort ein Plan, erscheint daneben „In den Plan übernehmen“ — er landet als Entwurf, bestätigen tust du.'
+                ] },
+                { rows: [
+                    ['Einschränkungen', 'Eine genannte Einschränkung schließt Übungen überall dort aus, wo die App etwas vorschlägt: aus der Warteschlange, aus dem Vergessenen, aus der Auswahl. Ein Plan, der Ausgeschlossenes nennt, sagt es beim Einlesen — annehmen kannst du ihn trotzdem, die Entscheidung ist deine.'],
+                    ['Übungskarten', 'Art, Muskelgruppe und Beschreibung unbekannter Übungen füllt der Trainer nach dem Vorbild deines Katalogs — beim Bestätigen eines Plans und beim Anlegen von Hand. Was er wiedererkennt („Liegestütze am Boden“ sind dieselben „Liegestütze“), legt er nicht doppelt an, sondern korrigiert den Namen im Plan.'],
+                    ['Wie das Programm läuft', 'Eine Karte in der Statistik: Reserve im Satz, Erholung, Planerfüllung und Umfang — zusammen. Die App nennt die Beobachtung und worauf sie beruht; entscheiden tust du. Gibt es nichts zu sagen, gibt es keine Karte.']
+                ] },
+                { hint: 'Der Schlüssel bleibt nur auf diesem Gerät und geht nicht in die Cloud — auf einem zweiten lege einen eigenen an. Das Gespräch wird nicht gespeichert: Was zu behalten war, behält der Plan.' }
+            ]
+        },
+        {
+            name: 'Uhr und Kalender',
+            blocks: [
+                { p: 'Die App zählt die Belastung, weiß aber nichts über die Erholung — und davon hängt das Programm nicht weniger ab. Schlaf und Ruhepuls holt sie von der Uhr, über Intervals.icu, denn nur so gibt Zepp die Daten heraus.' },
+                { steps: [
+                    'In Zepp: *Profil* → *Konten hinzufügen* → Intervals.icu.',
+                    'Auf intervals.icu: *Settings* → *Developer* → API key. Dort steht auch die Sportlernummer, in der Form i123456.',
+                    '*Profil* → *Daten von der Uhr*: Nummer und Schlüssel eintragen, *Daten holen* drücken.'
+                ] },
+                { rows: [
+                    ['Was ankommt', 'Schlaf und seine Bewertung, Ruhepuls, Variabilität, Schritte. Geschlossen wird über eine Woche gegen eine Monatsbasis: eine kurze Nacht bedeutet nichts, eine Woche davon bedeutet viel.'],
+                    ['Puls beim Training', 'Erscheint nur, wenn du die Einheit auf der Uhr selbst startest: die App ordnet sie deinem Training nach Zeit zu, mit zwanzig Minuten Spielraum, und zeigt Puls und Kalorien in der Auswertung.'],
+                    ['Wohin das geht', 'In die Übersicht für den Trainer und ins Gespräch — neben dein Profil. Und in die Karte „Wie das Programm läuft“.'],
+                    ['Plan auf die Uhr', 'Wird zwei Wochen im Voraus gesendet, Ruhetage nicht. Nicht jede Uhr nimmt das an: Amazfit bisher nur die T-Rex 3 Pro, Huawei nur Laufen, Gehen und Wandern.'],
+                    ['Plan in den Kalender', 'Funktioniert immer und hängt von niemandem ab. Eine Datei für zwei Wochen mit Erinnerung um acht Uhr morgens; eine Telefon-Benachrichtigung sieht auch die Uhr, einzurichten ist dafür nichts.']
+                ] },
+                { hint: 'Der Intervals.icu-Schlüssel bleibt wie der Trainer-Schlüssel auf diesem Gerät. Die App holt Schlaf, Puls und Schritte — sonst nichts.' }
             ]
         },
         {

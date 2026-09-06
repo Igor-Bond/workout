@@ -19,6 +19,7 @@ import { prompt } from '../core/prompt.js';
 import { pushPlan, planPushed } from '../services/watchplan.js';
 import { schedule } from '../core/schedule.js';
 import { ical } from '../core/ical.js';
+import { planJournal } from '../core/journal-plan.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete } from './athlete.js';
 import { dates } from '../core/dates.js';
@@ -34,6 +35,34 @@ let заводим = false;
 
 /** Ключ настройки, под которым лежит утверждённый план. */
 export const PLAN_KEY = 'plan';
+
+/**
+ * Журнал решений по программе (§64).
+ *
+ * Синхронизируется вместе с планом: решение «перешёл на резинку потяжелее»
+ * принято один раз, а тренируется человек с двух устройств.
+ */
+export const JOURNAL_KEY = 'planJournal';
+
+/** Прочитать журнал. Всегда массив: пустой журнал — это пустой список. */
+export async function currentJournal() {
+    const записи = await dbService.getSetting(JOURNAL_KEY, null);
+    return Array.isArray(записи) ? записи : [];
+}
+
+/**
+ * Записать решение.
+ *
+ * Зовётся и руками, и приложением: утверждение плана — тоже решение, и
+ * записывать его человеку было бы работой за приложение.
+ */
+export async function noteDecision({ kind = 'note', text = '', why = '', at = Date.now() } = {}) {
+    const записи = planJournal.add(await currentJournal(), { kind, text, why, at });
+
+    await dbService.setSetting(JOURNAL_KEY, записи);
+
+    return записи;
+}
 
 /** Когда план выгружали в календарь и каким он тогда был (§62.5). */
 export const ICS_KEY = 'planCalendar';
@@ -169,18 +198,55 @@ function сеткиБлок(план, сейчас) {
     `;
 }
 
+/**
+ * Журнал решений (§64): что и почему меняли в программе.
+ *
+ * Стоит на экране плана, а не в истории: история отвечает на вопрос «что я
+ * делал», журнал — «почему программа выглядит так». Это разные вопросы, и
+ * задают их в разных местах.
+ *
+ * Причина показывается наравне с решением, а не прячется: без неё запись
+ * бессмысленна и через месяц, и для собеседника — «перешёл на резинку
+ * потяжелее» видно и по числам, а «потому что три занятия подряд запас был
+ * большой» нет.
+ */
+function журналБлок(записи) {
+    return ui.html`
+        <div class="card">
+            <div class="card-title">${t('Журнал решений')}</div>
+
+            ${записи.length ? записи.slice(0, 12).map((з) => ui.html`
+                <div class="plan-day">
+                    <span class="plan-day-date">${dates.formatDayLabel(з.at)}</span>
+                    <span class="plan-day-body">
+                        ${з.text}
+                        ${з.why ? ui.html`<span class="plan-day-rest">${з.why}</span>` : ''}
+                    </span>
+                    <button class="icon-btn" data-action="journal-drop" data-id="${з.id}"
+                            title="${t('Убрать')}">×</button>
+                </div>
+            `) : ui.raw(ui.empty(t('Пока пусто. Здесь копится то, что объясняет программу: что поменяли и почему.')))}
+
+            <button class="btn btn-ghost btn-sm" data-action="journal-add">
+                ${t('Записать решение')}
+            </button>
+        </div>
+    `;
+}
+
 export const planner = {
 
     title: 'План тренировок',
     nav: 'workout',
 
     async render() {
-        const [сохранённый, профиль, список, ключ, выгрузка] = await Promise.all([
+        const [сохранённый, профиль, список, ключ, выгрузка, журнал] = await Promise.all([
             currentPlan(),
             currentAthlete(),
             dbService.listExercises({ includeArchived: true }),
             dbService.getSetting(KEY_SETTING, ''),
-            dbService.getSetting(ICS_KEY, null)
+            dbService.getSetting(ICS_KEY, null),
+            currentJournal()
         ]);
 
         const разобран = черновик
@@ -411,6 +477,8 @@ export const planner = {
                 ` : ''}
             </div>
 
+            ${журналБлок(журнал)}
+
             <button class="btn btn-ghost" data-action="nav" data-screen="report">${t('Сводка для тренера')}</button>
         `;
     },
@@ -508,6 +576,22 @@ actions.on('sheet-apply', async () => {
     const наЧасы = await planPushed()
         ? await pushPlan(await currentPlan())
         : null;
+
+    /*
+     * Утверждение — тоже решение, и записывает его приложение (§64).
+     *
+     * Записывать самому то, что приложение и так знает, человек не станет, а
+     * без этой строки журнал начинается с середины: правки есть, а с чего всё
+     * началось — нет.
+     */
+    await noteDecision({
+        kind: 'plan',
+        text: t('Утверждён план с {начало}, {недели}', {
+            начало: dates.formatDate(разобран.from),
+            недели: format.count(разобран.weeks, format.WORDS.week)
+        }),
+        why: (разобран.stages || [])[0] || ''
+    });
 
     черновик = null;
     await app.render();
@@ -750,4 +834,36 @@ actions.on('sheet-ics', async () => {
             n: занятия.length
         })
     });
+});
+/**
+ * Записать решение руками (§64).
+ *
+ * Два поля: что и почему. Второе необязательно, но спрошено отдельно — иначе
+ * его не пишут: в одну строку человек кладёт действие, а причина остаётся у
+ * него в голове и через месяц теряется вместе с ней.
+ */
+actions.on('journal-add', async () => {
+    const values = await dialog.form({
+        title: t('Решение по программе'),
+        text: t('Одна строка о том, что поменялось, и одна — почему. Это уйдёт в сводку и тренеру.'),
+        fields: [
+            { name: 'text', label: t('Что поменяли'), required: true, placeholder: t('Резинка потяжелее, повторения с 50 на 40') },
+            { name: 'why', label: t('Почему (необязательно)'), placeholder: t('Три занятия подряд запас был большой') }
+        ],
+        confirmText: t('Записать')
+    });
+
+    if (!values) return;
+
+    await noteDecision({ kind: 'change', text: values.text, why: values.why });
+
+    haptics.tap();
+    await app.render();
+});
+
+actions.on('journal-drop', async (el) => {
+    const записи = planJournal.remove(await currentJournal(), el.dataset.id);
+
+    await dbService.setSetting(JOURNAL_KEY, записи);
+    await app.render();
 });

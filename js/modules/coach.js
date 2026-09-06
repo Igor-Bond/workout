@@ -30,7 +30,9 @@ import { isBackground } from '../core/rhythm.js';
 import { haptics } from '../core/haptics.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
-import { currentPlan, putDraft } from './planner.js';
+import { currentPlan, currentJournal, putDraft } from './planner.js';
+import { planJournal } from '../core/journal-plan.js';
+import { dates } from '../core/dates.js';
 import { currentAthlete } from './athlete.js';
 import { recoveryLines } from './watch.js';
 
@@ -79,6 +81,9 @@ async function дело() {
 
         // Сон и пульс покоя с часов, если они привязаны (§62)
         recovery: await recoveryLines(),
+
+        // Что и почему меняли в программе (§64): единственное, чего нет в числах
+        journal: planJournal.describe(await currentJournal(), { format: (at) => dates.formatDate(at) }),
         profile: athlete.describe(
             профиль,
             new Map(exerciseList.map((e) => [e.id, e.name])),
