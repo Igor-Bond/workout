@@ -9,6 +9,8 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
+import { effort } from '../core/effort.js';
+import { currentActivities } from './watch.js';
 import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { kindFields } from '../core/kinds.js';
@@ -241,6 +243,10 @@ export const summary = {
 
         const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
 
+        // Занятие с часов, отвечающее этой тренировке (§62.2): сопоставляется
+        // по времени — названия у часов и у приложения совпасть не могут
+        const снаружи = effort.match(workout, await currentActivities());
+
         // Нагрузка собственным весом (§15.2): без неё тренировка целиком на
         // своём весе показывала на итогах пустоту вместо счёта
         const bodyVolume = calc.bodyVolume(sets, exercises, weights, null,
@@ -306,6 +312,18 @@ export const summary = {
                         ? tile(t('Тоннаж, кг'), format.decimal(totals.volume + bodyVolume, 0))
                         : ''}
                     ${tile(t('Повт. на подход'), totals.avgReps ? format.decimal(totals.avgReps) : '—')}
+
+                    <!--
+                        Пульс и потраченное приходят с часов (§62.2) и стоят
+                        рядом с подходами намеренно: приложение знает, что
+                        человек сделал, часы — чего это ему стоило, и вместе
+                        они отвечают на вопрос «не слишком ли тяжело», ради
+                        которого план и правят. Нет часов — нет и плиток.
+                    -->
+                    ${снаружи?.avgHr ? tile(t('Пульс'), String(Math.round(снаружи.avgHr))) : ''}
+                    ${снаружи?.maxHr ? tile(t('Пульс макс.'), String(Math.round(снаружи.maxHr))) : ''}
+                    ${снаружи?.calories ? tile(t('Ккал'), String(Math.round(снаружи.calories))) : ''}
+
                 </div>
             </div>
 

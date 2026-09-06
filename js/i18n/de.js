@@ -1137,6 +1137,13 @@ export const DE = {
     'Подробнее — «Как пользоваться»': 'Mehr unter „So benutzt du die App“',
     // Данные с часов (§62)
     'Данные с часов': 'Daten von der Uhr',
+    'Пульс': 'Puls',
+    'Пульс макс.': 'Puls max.',
+    'Ккал': 'kcal',
+    'Шаги: в среднем {n} в день': 'Schritte: im Schnitt {n} pro Tag',
+    'Пульс на занятиях: средний {ср}, максимум {макс}': 'Puls beim Training: im Schnitt {ср}, maximal {макс}',
+    'Пульс на занятиях: средний {ср}': 'Puls beim Training: im Schnitt {ср}',
+    'Потрачено на занятиях за неделю: {n} ккал': 'Beim Training verbraucht diese Woche: {n} kcal',
     'Сон и пульс покоя — то, чего приложение о вас не знает, а программа от этого зависит': 'Schlaf und Ruhepuls — was die App über dich nicht weiß und wovon das Programm abhängt',
     'Восстановление': 'Erholung',
     'Восстановление:': 'Erholung:',

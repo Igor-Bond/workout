@@ -1140,6 +1140,13 @@ export const EN = {
     'Подробнее — «Как пользоваться»': 'More in “How to use it”',
     // Данные с часов (§62)
     'Данные с часов': 'Data from your watch',
+    'Пульс': 'Heart rate',
+    'Пульс макс.': 'Peak HR',
+    'Ккал': 'kcal',
+    'Шаги: в среднем {n} в день': 'Steps: {n} a day on average',
+    'Пульс на занятиях: средний {ср}, максимум {макс}': 'Heart rate in sessions: {ср} average, {макс} peak',
+    'Пульс на занятиях: средний {ср}': 'Heart rate in sessions: {ср} average',
+    'Потрачено на занятиях за неделю: {n} ккал': 'Burned in sessions this week: {n} kcal',
     'Сон и пульс покоя — то, чего приложение о вас не знает, а программа от этого зависит': 'Sleep and resting heart rate — what the app cannot know about you, and what the programme depends on',
     'Восстановление': 'Recovery',
     'Восстановление:': 'Recovery:',

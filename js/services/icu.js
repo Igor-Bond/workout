@@ -50,19 +50,12 @@ export const icu = {
     ready: (key, athlete) => !!String(key || '').trim() && !!String(athlete || '').trim(),
 
     /**
-     * Замеры за последние days дней.
+     * Запрос к Intervals.icu с личным ключом.
      *
-     * Возвращает [{ date, sleep, rhr, hrv, steps }] — секунды сна, удары в
-     * минуту. Пропуски остаются пропусками: часы снимают не каждую ночь, и
-     * подставлять вместо пропуска ноль значило бы считать бессонницу.
+     * Один на все концы сервиса: ошибки, срок ожидания и разбор ответа у них
+     * общие, и второе написание того же рано или поздно разошлось бы с первым.
      */
-    async wellness({ key, athlete, days = 28, now = Date.now() } = {}) {
-        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
-
-        const id = String(athlete).trim();
-        const url = `${ENDPOINT}/${encodeURIComponent(id)}/wellness`
-            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
-
+    async get(url, key) {
         const control = new AbortController();
         const срок = setTimeout(() => control.abort(), TIMEOUT);
 
@@ -85,7 +78,79 @@ export const icu = {
 
         if (!response.ok) throw new Error(причина(response.status));
 
-        return icu.read(data);
+        return data;
+    },
+
+    /**
+     * Замеры за последние days дней.
+     *
+     * Возвращает [{ date, sleep, rhr, hrv, steps }] — секунды сна, удары в
+     * минуту. Пропуски остаются пропусками: часы снимают не каждую ночь, и
+     * подставлять вместо пропуска ноль значило бы считать бессонницу.
+     */
+    async wellness({ key, athlete, days = 28, now = Date.now() } = {}) {
+        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
+
+        const id = String(athlete).trim();
+        const url = `${ENDPOINT}/${encodeURIComponent(id)}/wellness`
+            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
+
+        return icu.read(await icu.get(url, key));
+    },
+
+
+    /**
+     * Занятия, записанные часами, за последние days дней (§62.2).
+     *
+     * Отдельным запросом, а не вместе с замерами: у Intervals.icu это разные
+     * концы, и складывать их в один вызов значило бы терять оба, когда упал
+     * один.
+     */
+    async activities({ key, athlete, days = 28, now = Date.now() } = {}) {
+        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
+
+        const id = String(athlete).trim();
+        const url = `${ENDPOINT}/${encodeURIComponent(id)}/activities`
+            + `?oldest=${ymd(now - days * DAY)}&newest=${ymd(now)}`;
+
+        return icu.readActivities(await icu.get(url, key));
+    },
+
+    /**
+     * Разбор занятия.
+     *
+     * Имена полей приняты с запасом: у Intervals.icu часть величин приходит
+     * то под своим именем, то под приставкой icu_ — в зависимости от того,
+     * посчитал их сервис сам или взял у источника. Перебрать три написания
+     * дешевле, чем однажды показать пустой пульс и гадать почему.
+     */
+    readActivities(data) {
+        if (!Array.isArray(data)) return [];
+
+        const число = (v) => (Number.isFinite(v) && v > 0 ? v : null);
+        const первое = (...vs) => vs.map(число).find((v) => v !== null) ?? null;
+
+        return data
+            .map((row) => {
+                const начало = new Date(String(row?.start_date_local || row?.start_date || '')).getTime();
+                if (!Number.isFinite(начало)) return null;
+
+                const длительность = первое(row?.elapsed_time, row?.moving_time, row?.icu_elapsed_time) || 0;
+
+                return {
+                    id: String(row?.id ?? ''),
+                    name: String(row?.name || ''),
+                    type: String(row?.type || ''),
+                    start: начало,
+                    end: начало + длительность * 1000,
+                    seconds: длительность,
+                    avgHr: первое(row?.average_heartrate, row?.icu_average_hr, row?.icu_hr_avg),
+                    maxHr: первое(row?.max_heartrate, row?.icu_max_hr),
+                    calories: первое(row?.calories, row?.icu_calories, row?.kcal),
+                    load: первое(row?.icu_training_load, row?.trimp)
+                };
+            })
+            .filter(Boolean);
     },
 
     /**
@@ -96,7 +161,8 @@ export const icu = {
      *
      * Строка без сна и без пульса выбрасывается: Intervals.icu заводит запись
      * на каждый день, в том числе пустую, и без отбора «данных за неделю»
-     * оказалось бы семь, а замеров — два.
+     * оказалось бы семь, а замеров — два. Строка с одними шагами остаётся:
+     * шаги тоже ответ на вопрос, чем человек занят помимо тренировок.
      */
     read(data) {
         if (!Array.isArray(data)) return [];
@@ -115,7 +181,7 @@ export const icu = {
                     steps: число(row?.steps)
                 };
             })
-            .filter((r) => r.date !== null && (r.sleep || r.rhr || r.hrv));
+            .filter((r) => r.date !== null && (r.sleep || r.rhr || r.hrv || r.steps));
     }
 };
 
@@ -123,5 +189,6 @@ export const icu = {
 export const ICU_KEY = 'icuKey';
 export const ICU_ATHLETE = 'icuAthlete';
 
-/** Под этим ключом лежат последние привезённые замеры — чтобы не ходить в сеть за каждым показом. */
+/** Под этими ключами лежит привезённое — чтобы не ходить в сеть за каждым показом. */
 export const ICU_DATA = 'icuWellness';
+export const ICU_ACTS = 'icuActivities';

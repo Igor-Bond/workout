@@ -19,8 +19,9 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA } from '../services/icu.js';
+import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS } from '../services/icu.js';
 import { recovery } from '../core/recovery.js';
+import { effort } from '../core/effort.js';
 import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
 import { t } from '../core/i18n.js';
@@ -38,17 +39,25 @@ export async function currentWellness() {
     return Array.isArray(хранимое?.rows) ? хранимое : { at: 0, rows: [] };
 }
 
+/** Занятия с часов, привезённые в прошлый раз (§62.2). */
+export async function currentActivities() {
+    const хранимое = await dbService.getSetting(ICU_ACTS, null);
+    return Array.isArray(хранимое?.rows) ? хранимое.rows : [];
+}
+
 /**
- * Строки о восстановлении для сводки и для дела тренеру (§55, §60).
+ * Строки о восстановлении и нагрузке для сводки и для дела тренеру (§55, §60).
  *
  * Пустой массив, если часы не привязаны или замеров нет: выдумывать
  * восстановление приложение не станет, а «данных нет» в сводке — строка,
  * которую собеседник читает как шум.
  */
 export async function recoveryLines({ now = Date.now() } = {}) {
-    const { rows } = await currentWellness();
-    return recovery.describe(rows, { now });
+    const [{ rows }, занятия] = await Promise.all([currentWellness(), currentActivities()]);
+
+    return [...recovery.describe(rows, { now }), ...effort.describe(занятия, { now })];
 }
+
 
 /** Сон в человеческом виде: «7 ч 10 мин». */
 function сон(secs) {
@@ -64,15 +73,20 @@ export const watch = {
     nav: 'profile',
 
     async render() {
-        const [key, athlete, хранимое] = await Promise.all([
+        const [key, athlete, хранимое, занятия] = await Promise.all([
             dbService.getSetting(ICU_KEY, ''),
             dbService.getSetting(ICU_ATHLETE, ''),
-            currentWellness()
+            currentWellness(),
+            currentActivities()
         ]);
 
         const привязаны = icu.ready(key, athlete);
         const последняя = recovery.last(хранимое.rows);
-        const выводы = recovery.describe(хранимое.rows);
+
+        // Те же строки, что уходят в сводку и тренеру: человек должен видеть
+        // отправляемое, а не его пересказ (§60)
+        const выводы = [...recovery.describe(хранимое.rows), ...effort.describe(занятия)];
+
 
         return ui.html`
             ${ui.raw(ui.title(t('Данные с часов'),
@@ -80,7 +94,7 @@ export const watch = {
 
             ${ошибка ? ui.html`<div class="banner is-danger"><span>${ошибка}</span></div>` : ''}
 
-            ${привязаны && хранимое.rows.length ? ui.html`
+            ${привязаны && выводы.length ? ui.html`
                 <div class="card">
                     <div class="card-title">${t('Восстановление')}</div>
                     ${выводы.map((с) => ui.html`<div class="plan-rule">${с}</div>`)}
@@ -192,12 +206,32 @@ actions.on('watch-load', async () => {
     await app.render();
 
     try {
-        const rows = await icu.wellness({ key, athlete, days: recovery.BASE });
+        /*
+         * Замеры и занятия — двумя запросами, но одним нажатием.
+         *
+         * allSettled, а не all: у Intervals.icu это разные концы, и упавший
+         * один не должен уносить второй. Сон приезжает даже тогда, когда
+         * занятий нет вовсе, — а так оно у большинства и есть.
+         */
+        const [замеры, занятия] = await Promise.allSettled([
+            icu.wellness({ key, athlete, days: recovery.BASE }),
+            icu.activities({ key, athlete, days: recovery.BASE })
+        ]);
 
-        await dbService.setSetting(ICU_DATA, { at: Date.now(), rows });
+        if (замеры.status === 'fulfilled') {
+            await dbService.setSetting(ICU_DATA, { at: Date.now(), rows: замеры.value });
+        }
+
+        if (занятия.status === 'fulfilled') {
+            await dbService.setSetting(ICU_ACTS, { at: Date.now(), rows: занятия.value });
+        }
+
         haptics.tap();
 
-        if (rows.length === 0) {
+        if (замеры.status === 'rejected') {
+            ошибка = замеры.reason?.message || t('Не удалось получить данные с часов.');
+        }
+        else if (замеры.value.length === 0) {
             ошибка = t('Intervals.icu ответил, но замеров за месяц там нет. Проверьте, что Zepp туда пишет.');
         }
     } catch (e) {
@@ -207,6 +241,7 @@ actions.on('watch-load', async () => {
         await app.render();
     }
 });
+
 
 actions.on('watch-forget', async () => {
     const точно = await dialog.confirm({
@@ -220,6 +255,7 @@ actions.on('watch-forget', async () => {
 
     await dbService.setSetting(ICU_KEY, '');
     await dbService.setSetting(ICU_DATA, null);
+    await dbService.setSetting(ICU_ACTS, null);
 
     haptics.tap();
     await app.render();
