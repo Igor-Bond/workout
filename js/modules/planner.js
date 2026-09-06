@@ -52,7 +52,10 @@ function строкаДня(день) {
     return ui.html`
         <div class="plan-day ${занятие ? '' : 'is-rest'}">
             <span class="plan-day-date">${dates.formatDayLabel(день.at)}</span>
-            <span class="plan-day-body">${занятие ? ядро.describe(занятие) : t('отдых')}</span>
+            <span class="plan-day-body">
+                ${занятие ? ядро.describe(занятие) : t('отдых')}
+                ${занятие?.rest ? ui.html`<span class="plan-day-rest">${t('пауза {n}', { n: format.seconds(занятие.rest) })}</span>` : ''}
+            </span>
         </div>
     `;
 }
@@ -125,6 +128,20 @@ export const planner = {
                 <div class="card">
                     <div class="card-title">${t('Ближайшие две недели')}</div>
                     ${развёртка.map(строкаДня)}
+                </div>
+            ` : ''}
+
+            <!--
+                Правила программы (§56.2) стоят рядом с сеткой, а не вместо
+                неё: сетка говорит, что делать, правила — как. Приложение их
+                не толкует, но хранит, показывает и отдаёт вместе с планом
+                тому, кто составляет следующий, — без них он честно предложит
+                наращивать повторения там, где программа это запрещает.
+            -->
+            ${разобран?.rules?.length ? ui.html`
+                <div class="card">
+                    <div class="card-title">${t('Правила программы')}</div>
+                    ${разобран.rules.map((r) => ui.html`<div class="plan-rule">${r}</div>`)}
                 </div>
             ` : ''}
 

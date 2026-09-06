@@ -466,7 +466,8 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                     то, что назвала.
                 -->
                 <button class="repeat-card is-queue" data-action="today-start"
-                        data-day="${JSON.stringify(поПлану.items || [поПлану])}">
+                        data-day="${JSON.stringify(поПлану.items || [поПлану])}"
+                        data-rest="${поПлану.rest || ''}">
                     <span class="rep-label">${t('Сегодня по плану')}</span>
                     <span class="rep-names">${планНазвания(поПлану)}</span>
                     <span class="rep-meta">${планОбъём(поПлану)}</span>
@@ -844,6 +845,8 @@ actions.on('today-start', async (el) => {
 
     if (!задание.length) return app.render();
 
+    const пауза = Number(el.dataset.rest) || 0;
+
     /*
      * Упражнения может не оказаться — и это обычный случай, а не сбой.
      *
@@ -897,6 +900,17 @@ actions.on('today-start', async (el) => {
     }
 
     const workout = await dbService.createWorkout({ type: t('Силовая'), plan: состав });
+
+    /*
+     * Пауза дня из плана переезжает на тренировку (§56.2).
+     *
+     * Свободным полем у тренировки: у шестисетового дня пауза десять минут, у
+     * двенадцатисетового пять — это свойство дня, а не упражнения и не
+     * приложения. Общая настройка отдыха такого различия не знает, а
+     * запоминать её за упражнением неверно: одно и то же упражнение стоит в
+     * днях с разной паузой.
+     */
+    if (пауза > 0) await dbService.updateWorkout(workout.id, { restSeconds: пауза });
 
     app.go(workout.interval ? 'interval' : 'session');
 });

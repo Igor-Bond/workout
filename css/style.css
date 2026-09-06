@@ -2292,3 +2292,19 @@ button.ex-name:active { color: var(--accent); }
     border-color: var(--bad);
     color: var(--bad);
 }
+
+/* Правило программы (§56.2): строка списка, а не карточка — их читают подряд */
+.plan-rule {
+    padding: 6px 0;
+    border-top: 1px solid var(--line);
+    font-size: 14px;
+}
+
+.plan-rule:first-of-type { border-top: none; }
+
+/* Пауза дня стоит подписью под заданием, а не спорит с ним за строку */
+.plan-day-rest {
+    display: block;
+    font-size: 12px;
+    color: var(--text-dim);
+}
