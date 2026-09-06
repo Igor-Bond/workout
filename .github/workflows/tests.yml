@@ -10,6 +10,11 @@
 # просто откроется. Playwright ставится здесь, в рабочем каталоге бегунка, и
 # в репозиторий не попадает. Версия закреплена: обновлять её — осознанное
 # действие, а не сюрприз в понедельник.
+#
+# Провалы пишутся ещё и в сводку прогона (GITHUB_STEP_SUMMARY). Журнал шага
+# незалогиненному не разворачивается вовсе, и упавший прогон выглядел как
+# «Process completed with exit code 1» — без единого слова о том, что
+# сломалось. Сводка открыта всем и попадается на глаза первой.
 
 name: Проверки
 
@@ -24,11 +29,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
 
       # --no-save: package.json в проекте нет и заводить его незачем
       - name: Поставить браузер
@@ -54,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Забытый в PRECACHE_URLS файл ломает офлайн молча: в сети всё
       # работает, а без сети приложение не открывается — и узнаётся это в
