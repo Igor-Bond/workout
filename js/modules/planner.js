@@ -17,6 +17,8 @@ import { haptics } from '../core/haptics.js';
 import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
 import { pushPlan, planPushed } from '../services/watchplan.js';
+import { schedule } from '../core/schedule.js';
+import { ical } from '../core/ical.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete } from './athlete.js';
 import { dates } from '../core/dates.js';
@@ -221,7 +223,12 @@ export const planner = {
                         </p>
                     ` : ''}
 
+                    <button class="btn btn-ghost btn-sm" data-action="sheet-ics">
+                        ${t('В календарь телефона')}
+                    </button>
+
                     <button class="btn btn-ghost btn-sm" data-action="sheet-drop">${t('Убрать план')}</button>
+
 
                 </div>
             ` : ''}
@@ -640,3 +647,53 @@ actions.on('sheet-create', async () => {
     await app.render();
 });
 
+/**
+ * План в календарь телефона (§62.5).
+ *
+ * Запасной путь к запястью, не зависящий ни от кого. Часы показывают
+ * уведомления телефона всегда — даже те, у которых сломана кнопка, — а
+ * дойдёт ли до них плановая тренировка из Intervals.icu, решает прошивка
+ * Zepp, и у владельца она не дошла.
+ *
+ * Файлом, а не записью в чужой календарь напрямую: доступа к календарю у
+ * страницы нет и быть не должно, а .ics понимают все — и телефон, и
+ * компьютер, и почта.
+ */
+actions.on('sheet-ics', async () => {
+    const план = await currentPlan();
+    if (!план) return;
+
+    const занятия = schedule.build(план, { rules: план.rules || [] });
+
+    if (занятия.length === 0) {
+        return dialog.alert({
+            title: t('Нечего класть в календарь'),
+            text: t('В ближайшие две недели план не назначает ни одной тренировки.')
+        });
+    }
+
+    const blob = new Blob([ical.build(занятия, { name: t('План тренировок') })], {
+        type: 'text/calendar;charset=utf-8'
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = ical.filename();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    // Отпускаем память не сразу: часть браузеров ещё читает ссылку
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+    haptics.tap();
+
+    await dialog.alert({
+        title: t('Расписание выгружено'),
+        text: t('Занятий: {n}, на две недели вперёд. Откройте файл — телефон предложит добавить их в календарь, а напоминание в 8 утра телефон покажет и на часах.', {
+            n: занятия.length
+        })
+    });
+});
