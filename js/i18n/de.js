@@ -1215,6 +1215,9 @@ export const DE = {
     'Intervals.icu ответил, но замеров за месяц там нет. Проверьте, что Zepp туда пишет.': 'Intervals.icu hat geantwortet, aber es gibt keine Messwerte für den Monat. Prüfe, ob Zepp dorthin schreibt.',
     // Как идёт программа (§63)
     'Как идёт программа': 'Wie das Programm läuft',
+    'спросить тренера': 'den Trainer fragen',
+    'Приложение заметило: «{наблюдение}» Что с этим делать?': 'Die App hat bemerkt: „{наблюдение}“ Was soll ich damit tun?',
+    'Вот что приложение видит по прошедшему этапу:': 'Das sieht die App zur eben beendeten Phase:',
     'Приложение называет наблюдение и его основание — решаете вы.': 'Die App nennt die Beobachtung und worauf sie beruht — entscheiden tust du.',
     '{упражнение}: два занятия подряд запас большой — можно тяжелее.': '{упражнение}: zwei Einheiten in Folge viel Reserve — es darf schwerer werden.',
     '{упражнение}: два занятия подряд почти до отказа — запас потерян.': '{упражнение}: zwei Einheiten in Folge fast bis zum Versagen — die Reserve ist weg.',

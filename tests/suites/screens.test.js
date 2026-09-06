@@ -1484,3 +1484,35 @@ describe('Экран: заглушка при переходе', () => {
             'иначе долгий переход выглядит зависанием');
     });
 });
+
+describe('Очередь при объявленном плане (Р-72)', () => {
+
+    it('первый из очереди не пропадает, когда карточку занял план', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const DAY = 86400000;
+        const now = Date.now();
+
+        // Три занятия одним составом: без повторов очереди не из чего строить
+        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+
+        const день = new Date(now).getDay();
+        const дни = { [день]: { name: 'Bench', sets: 6, reps: 10 } };
+
+        await dbService.setSetting('plan', {
+            from: now - 3 * DAY,
+            weeks: 8,
+            days: дни,
+            grids: [{ label: '', from: null, to: null, days: дни }],
+            text: 'проба'
+        });
+
+        const view = await screen(home);
+        const строка = text(view);
+
+        assert(строка.includes('Сегодня по плану'), `план обязан занять карточку: ${строка.slice(0, 200)}`);
+        assert(строка.includes('Bench'), 'состав, до которого дольше всего не доходили, не должен исчезать с экрана');
+
+        await dbService.setSetting('plan', null);
+    });
+
+});

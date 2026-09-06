@@ -19,12 +19,8 @@ import { t, i18n } from '../core/i18n.js';
 import { estimate } from '../core/estimate.js';
 import { plan as planCore } from '../core/plan.js';
 import { currentPlan } from './planner.js';
-import { progress } from '../core/progress.js';
-import { reserve } from '../core/reserve.js';
-import { recovery } from '../core/recovery.js';
-import { report } from '../core/report.js';
-import { isBackground } from '../core/rhythm.js';
-import { currentWellness } from './watch.js';
+import { observations } from '../services/howgoing.js';
+import { putQuestion } from './coach.js';
 import { app } from '../app.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
@@ -158,81 +154,6 @@ function bodyBlock(weights, range) {
 }
 
 /**
- * «Как идёт программа» (§63): сложение того, что лежало порознь.
- *
- * Собирается здесь, а не в ядре: ядро не ходит в базу и не знает, что такое
- * зарядка. Здесь — только сбор, все пороги и все слова живут в ядре, и
- * проверяются отдельно от базы.
- */
-async function какИдёт(entries, sets, exercises, план, now) {
-    const DAY = 86400000;
-    const сегодня = dates.startOfDay(now);
-
-    /*
-     * Зарядка считается отдельно везде, где считается что-либо по нагрузке
-     * (Р-33, Р-64, Р-66). Здесь тем более: утренний бицепс на сорок пять раз
-     * закрыл бы собой и запас, и объём вечерней работы.
-     */
-    const фоновые = new Set(entries.filter((e) => isBackground(e.workout)).map((e) => e.workout.id));
-    const рабочие = sets.filter((s) => !s.deletedAt && !фоновые.has(s.workoutId));
-
-    // Запас по каждому упражнению: правило прогрессии считается по нему (§59)
-    const занятия = report.byExercise(рабочие.filter((s) => s.performedAt >= now - 28 * DAY));
-
-    const запас = [];
-
-    for (const [id, список] of занятия.entries()) {
-        const { verdict } = reserve.verdict(список);
-        if (verdict) запас.push({ name: exercises[id]?.name || t('упражнение'), verdict });
-    }
-
-    // Сон и пульс покоя — только если часы привязаны и данные привозили (§62)
-    const { rows } = await currentWellness();
-
-    const восстановление = progress.recovery({
-        sleep: recovery.sleep(rows, { now }),
-        resting: (() => {
-            const пульс = recovery.resting(rows, { now });
-            return пульс ? { ...пульс, threshold: recovery.SHIFT } : null;
-        })()
-    });
-
-    /*
-     * Исполнение плана: прошедшие дни, сегодняшний не в счёт.
-     *
-     * Сегодня ещё не пропущено — вечер впереди, — и считать его невыполненным
-     * значит упрекать человека в полдень за то, чего он не делал.
-     */
-    const сделаноВ = new Set(
-        entries
-            .filter((e) => !isBackground(e.workout))
-            .map((e) => dates.startOfDay(e.workout.startedAt))
-    );
-
-    const дни = planCore.active(план, now)
-        ? planCore.expand(план, { from: сегодня - 13 * DAY, days: 14 })
-            .filter((d) => dates.startOfDay(d.at) < сегодня)
-            .map((d) => ({ day: dates.startOfDay(d.at), session: d.session }))
-        : [];
-
-    // Объём считаем повторениями: у работы с резинкой и своим весом железа
-    // нет, и тоннаж молчал бы там, где нагрузка есть (§15.2)
-    const повторений = (от, до) => рабочие
-        .filter((s) => s.performedAt >= от && s.performedAt < до)
-        .reduce((sum, s) => sum + (s.reps || 0), 0);
-
-    return progress.describe({
-        reserve: запас,
-        recovery: восстановление,
-        adherence: progress.adherence(дни, сделаноВ),
-        volume: {
-            current: повторений(сегодня - 6 * DAY, now + DAY),
-            previous: повторений(сегодня - 13 * DAY, сегодня - 6 * DAY)
-        }
-    });
-}
-
-/**
  * Карточка хода программы.
  *
  * Пустой не бывает: если сказать нечего, карточки нет вовсе. «Всё в порядке»
@@ -245,15 +166,29 @@ function ходБлок(наблюдения) {
     return ui.html`
         <div class="card">
             <div class="card-title">${t('Как идёт программа')}</div>
+
+            <!--
+                Кнопка рядом с наблюдением, а не одна на карточку (§63.1).
+                Спрашивают о конкретном — «запас большой третье занятие», — а
+                общий вопрос «как дела» человек всё равно допишет сам, и
+                собеседник ответит общим же.
+            -->
             ${наблюдения.map((н) => ui.html`
-                <div class="plan-rule note-${н.kind}">${н.text}</div>
+                <div class="plan-rule note-${н.kind}">
+                    ${н.text}
+                    <button class="link-btn" data-action="ask-coach" data-text="${н.text}">
+                        ${t('спросить тренера')}
+                    </button>
+                </div>
             `)}
+
             <p class="hint">
                 ${t('Приложение называет наблюдение и его основание — решаете вы.')}
             </p>
         </div>
     `;
 }
+
 
 export const stats = {
 
@@ -358,7 +293,7 @@ export const stats = {
                 value: e.sets
             }));
 
-        const ход = await какИдёт(entries, sets, exercises, объявленный, Date.now());
+        const ход = await observations();
 
         return ui.html`
             ${ui.title(t('Статистика'))}
@@ -534,4 +469,20 @@ actions.on('body-add', async () => {
 
     await dbService.setBodyWeight({ weight: values.weight, note: values.note });
     app.render();
+});
+
+/**
+ * Спросить тренера об этом наблюдении (§63.1).
+ *
+ * Вопрос собирается здесь и кладётся в поле разговора, а не отправляется:
+ * человек должен увидеть, о чём спрашивает, и дописать своё — «колено уже не
+ * болит», «на этой неделе была командировка». Отправить за него значило бы
+ * задать вопрос, которого он не задавал.
+ */
+actions.on('ask-coach', (el) => {
+    putQuestion(t('Приложение заметило: «{наблюдение}» Что с этим делать?', {
+        наблюдение: el.dataset.text
+    }));
+
+    app.go('coach');
 });
