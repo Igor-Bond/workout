@@ -76,7 +76,10 @@ body {
     font-family: var(--font-text);
     font-size: 15px;
     line-height: 1.45;
-    min-height: var(--app-height);
+    /* Страница не прокручивается — прокручивается содержимое каркаса (Р-70) */
+    height: var(--app-height);
+    overflow: hidden;
+
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
 
@@ -128,20 +131,51 @@ p:last-child { margin-bottom: 0; }
 
 /* ================== КАРКАС ================== */
 
+/*
+ * Каркас держит высоту окна, прокручивается только содержимое (Р-70).
+ *
+ * Раньше прокручивалась страница целиком, а меню держалось на
+ * position: fixed. На айфоне такое меню не стоит на месте: при инерционной
+ * прокрутке и при сворачивании адресной строки Safari пересчитывает
+ * положение прикреплённого элемента с запозданием, и меню едет вслед за
+ * пальцем. Ни один порядок свойств этого не лечит — лечит только то, что
+ * меню перестаёт быть прикреплённым.
+ *
+ * Поэтому каркас ровно в окно, содержимое прокручивается внутри себя, а меню
+ * — обычный сосед по колонке. Оно не может уехать: ему некуда.
+ *
+ * Клавиатура вычитается из высоты каркаса: она перекрывает окно, не уменьшая
+ * его (§31), и без вычитания низ содержимого оказался бы под ней.
+ */
 .shell {
-    min-height: var(--app-height);
+    height: calc(var(--app-height) - var(--keyboard-inset));
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
+/*
+ * Меню в разметке идёт первым — на компьютере оно слева, и читалкам экрана
+ * разумно встречать его до содержимого. На телефоне его место внизу, и
+ * говорит об этом раскладка, а не порядок в разметке.
+ */
+.nav { order: 2; }
+
 .content {
+    order: 1;
     flex: 1;
     width: 100%;
     max-width: var(--content);
     margin: 0 auto;
-    padding: calc(16px + var(--safe-top)) 14px
-             calc(var(--nav-height) + var(--safe-bottom) + 24px);
+    padding: calc(16px + var(--safe-top)) 14px 24px;
+
+    /* Прокрутка живёт здесь, и дальше себя она не уходит: иначе тяга за
+       краем списка раскачивала бы страницу целиком */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
 }
+
 
 .screen { display: block; }
 
@@ -161,8 +195,8 @@ p:last-child { margin-bottom: 0; }
 /* ================== МЕНЮ ================== */
 
 .nav {
-    position: fixed;
-    left: 0; right: 0; bottom: 0;
+    /* Не fixed: прикреплённое меню на айфоне едет вслед за пальцем (Р-70) */
+    flex: none;
     background: var(--panel);
     border-top: 1px solid var(--line);
     padding-bottom: var(--safe-bottom);
@@ -1718,11 +1752,8 @@ svg.heatmap { display: block; }
     .shell { flex-direction: row; }
 
     .nav {
-        position: sticky;
-        top: 0;
-        left: auto; right: auto; bottom: auto;
-        align-self: flex-start;
-        height: var(--app-height);
+        order: 0;
+        align-self: stretch;
         width: 230px;
         flex: none;
         border-top: none;

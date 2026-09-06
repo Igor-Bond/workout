@@ -127,7 +127,10 @@ export const app = {
             || current.name !== route.name
             || current.params.join('/') !== route.params.join('/');
 
-        const scroll = navigated ? 0 : document.scrollingElement.scrollTop;
+        // Прокручивается содержимое каркаса, а не страница (Р-70): страница
+        // стоит на месте, и её scrollTop всегда ноль
+        const полоса = document.querySelector('.content') || document.scrollingElement;
+        const scroll = navigated ? 0 : полоса.scrollTop;
 
         current?.screen?.unmount?.();
 
@@ -193,7 +196,7 @@ export const app = {
 
         // Возвращать прокрутку надо после вставки разметки: до неё высота
         // страницы ещё прежняя, и браузер обрежет значение по ней
-        document.scrollingElement.scrollTop = scroll;
+        полоса.scrollTop = scroll;
 
         screen.mount?.(route.params);
     },
