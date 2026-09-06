@@ -169,23 +169,15 @@ export const profile = {
             </button>
 
             <!--
-                Знакомство остаётся достижимым и после первого запуска (§61):
-                отложенный шаг иначе некуда было бы вернуть, а «настрою
-                потом» — самый частый ответ на любой из четырёх.
+                Всё, что настраивают редко, — за одной кнопкой (§30.1).
+                Программа, ограничения, тренер, часы и знакомство лежали здесь
+                пятью строками и топили то, чем пользуются: язык, отдых, звук,
+                справочник. Тот, кто ведёт журнал и не хочет ни планов, ни
+                тренера, теперь просто не заходит на тот экран.
             -->
-            <button class="btn btn-ghost" data-action="nav" data-screen="intro">
-                ${t('Знакомство: с чего начать')}
+            <button class="btn btn-ghost" data-action="nav" data-screen="program">
+                ${t('Программа и тренер')}
             </button>
-
-            <!--
-                Данные с часов (§62) стоят рядом со знакомством: это тоже
-                настройка «один раз и надолго», и искать её будут здесь же.
-            -->
-            <button class="btn btn-ghost" data-action="nav" data-screen="watch">
-                ${t('Данные с часов')}
-            </button>
-
-
 
             <!--
                 Выбор языка появляется, только когда перевод полон (§53).
@@ -371,33 +363,8 @@ export const profile = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="exercises">
                     ${t('Справочник упражнений')}
                 </button>
-
-                <!--
-                    Сводка стоит рядом со справочником и копией, а не в
-                    статистике: это выгрузка для человека со стороны, а не
-                    экран для чтения о себе (§55).
-                -->
-                <!--
-                    «О себе» стоит первым: сводка и план опираются на него.
-                    Ограничения, названные здесь, исключают упражнения из
-                    подсказок и уезжают в сводку сами (§58).
-                -->
-                <button class="btn btn-ghost" data-action="nav" data-screen="athlete">
-                    ${t('О себе')}
-                </button>
-
-                <button class="btn btn-ghost" data-action="nav" data-screen="coach">
-                    ${t('Тренер')}
-                </button>
-
-                <button class="btn btn-ghost" data-action="nav" data-screen="report">
-                    ${t('Сводка для тренера')}
-                </button>
-
-                <button class="btn btn-ghost" data-action="nav" data-screen="planner">
-                    ${t('План тренировок')}
-                </button>
             </div>
+
 
             <div class="card">
                 <div class="card-title">${t('Синхронизация')}</div>

@@ -1485,34 +1485,58 @@ describe('Экран: заглушка при переходе', () => {
     });
 });
 
-describe('Очередь при объявленном плане (Р-72)', () => {
+describe('Очередь и план на главном (Р-72)', () => {
 
-    it('первый из очереди не пропадает, когда карточку занял план', async () => {
-        const ex = await seed({ name: 'Bench', kind: 'weight' });
-        const DAY = 86400000;
-        const now = Date.now();
+    const DAY = 86400000;
 
-        // Три занятия одним составом: без повторов очереди не из чего строить
-        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+    /** План, у которого тренировочный день — сегодня и через два дня. */
+    function сетка(now) {
+        const сегодня = new Date(now).getDay();
+        const через = new Date(now + 2 * DAY).getDay();
 
-        const день = new Date(now).getDay();
-        const дни = { [день]: { name: 'Bench', sets: 6, reps: 10 } };
+        return {
+            [сегодня]: { name: 'Bench', sets: 6, reps: 10 },
+            [через]: { name: 'Squat', sets: 5, reps: 8 }
+        };
+    }
+
+    async function сПланом(now) {
+        const дни = сетка(now);
 
         await dbService.setSetting('plan', {
-            from: now - 3 * DAY,
-            weeks: 8,
-            days: дни,
+            from: now - 3 * DAY, weeks: 8, days: дни,
             grids: [{ label: '', from: null, to: null, days: дни }],
             text: 'проба'
         });
+    }
+
+    it('при плане «Следом» показывает его дни, а не очередь', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const now = Date.now();
+
+        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+
+        await сПланом(now);
 
         const view = await screen(home);
         const строка = text(view);
 
         assert(строка.includes('Сегодня по плану'), `план обязан занять карточку: ${строка.slice(0, 200)}`);
-        assert(строка.includes('Bench'), 'состав, до которого дольше всего не доходили, не должен исчезать с экрана');
+        assert(строка.includes('Squat'), `ближайший день плана обязан быть в плашках: ${строка.slice(0, 400)}`);
 
         await dbService.setSetting('plan', null);
     });
 
+    it('без плана всё как было: первый карточкой, остальные плашками', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const now = Date.now();
+
+        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+
+        const строка = text(await screen(home));
+
+        assert(строка.includes('На очереди'), `очередь без плана остаётся: ${строка.slice(0, 200)}`);
+    });
+
 });
+

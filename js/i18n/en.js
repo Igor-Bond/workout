@@ -1244,4 +1244,13 @@ export const EN = {
     'Утверждён план с {начало}, {недели}': 'Plan approved, from {начало}, {недели}',
     'Решения по программе:': 'Decisions about the programme:',
     'Правка': 'Change',
+    // Программа и тренер — отдельный экран (§30.1)
+    'Программа и тренер': 'Programme and coach',
+    'Всё, что настраивают редко: программа, ограничения, разговор с тренером и обмен с часами': 'Everything you set up rarely: the programme, your limits, the conversation with a coach and the exchange with your watch',
+    'Тренер и часы': 'Coach and watch',
+    'Пол, возраст, рост, инвентарь и ограничения. Названное ограничение убирает упражнения из подсказок и уезжает в сводку.': 'Sex, age, height, equipment and limits. A stated limit removes exercises from suggestions and travels into the summary.',
+    'Недельная сетка, которой приложение следует вместо того, чтобы угадывать ритм по истории. Здесь же журнал решений.': 'The weekly grid the app follows instead of guessing your rhythm from history. The decision log lives here too.',
+    'Кондиции, ограничения и восстановление одним текстом — для переписки с живым тренером.': 'Your condition, limits and recovery as one text — for a conversation with a human coach.',
+    'Разговор о программе прямо в приложении. Нужен бесплатный ключ Google; без него работает всё остальное.': 'A conversation about the programme right in the app. It needs a free Google key; everything else works without one.',
+    'Сон, пульс покоя, вариабельность и шаги через Intervals.icu. Отсюда же план уходит на часы и в календарь.': 'Sleep, resting heart rate, variability and steps through Intervals.icu. The plan also leaves for the watch and the calendar from here.',
 };

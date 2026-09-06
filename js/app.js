@@ -31,6 +31,7 @@ import { recordsScreen } from './modules/records.js';
 import { profile } from './modules/profile.js';
 import { guide } from './modules/guide.js';
 import { surveyScreen } from './modules/survey.js';
+import { program } from './modules/program.js';
 import { intro } from './modules/intro.js';
 import { watch } from './modules/watch.js';
 
@@ -63,7 +64,7 @@ function screens() {
             records: recordsScreen,
             profile, guide,
             survey: surveyScreen,
-            intro, watch
+            intro, watch, program
         };
     }
 
