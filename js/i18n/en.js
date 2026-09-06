@@ -1180,6 +1180,8 @@ export const EN = {
     'Сон за неделю: в среднем {часы} ч {минуты} мин, оценка {оценка}': 'Sleep this week: {часы} h {минуты} min on average, score {оценка}',
     'Пульс покоя: {сейчас}, обычно {база}': 'Resting heart rate: {сейчас}, usually {база}',
     'Пульс покоя: {сейчас}, как обычно': 'Resting heart rate: {сейчас}, as usual',
+    'Вариабельность пульса: {сейчас}, обычно {база}': 'Heart rate variability: {сейчас}, usually {база}',
+    'Вариабельность пульса: {сейчас}, как обычно': 'Heart rate variability: {сейчас}, as usual',
     'Часы не привязаны.': 'The watch is not connected.',
     'Ключ не принят. Проверьте его в настройках Intervals.icu.': 'The key was rejected. Check it in your Intervals.icu settings.',
     'Спортсмен не найден. Проверьте номер вида i123456.': 'Athlete not found. Check the number, which looks like i123456.',

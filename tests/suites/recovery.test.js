@@ -244,3 +244,27 @@ describe('Оценка сна и шаги', () => {
     });
 
 });
+
+describe('Вариабельность пульса', () => {
+
+    it('сравнивается с месячной базой долей, а не ударами', () => {
+        const неделя = Array.from({ length: 7 }, (_, i) => ({ date: NOW - i * DAY, hrv: 60 }));
+        const месяц = Array.from({ length: 21 }, (_, i) => ({ date: NOW - (7 + i) * DAY, hrv: 40 }));
+
+        const строки = recovery.describe([...неделя, ...месяц], { now: NOW });
+
+        assert(строки.some((с) => с.includes('обычно')), `сдвиг должен быть назван: ${строки.join(' | ')}`);
+    });
+
+    it('мелкое колебание молчит', () => {
+        const rows = Array.from({ length: 28 }, (_, i) => ({ date: NOW - i * DAY, hrv: 50 + (i % 2) }));
+        const строки = recovery.describe(rows, { now: NOW });
+
+        assert(строки.some((с) => с.includes('как обычно')), `разброс ВСР — это не событие: ${строки.join(' | ')}`);
+    });
+
+    it('без замеров молчит', () => {
+        equal(recovery.variability([], { now: NOW }), null);
+    });
+
+});

@@ -1177,6 +1177,8 @@ export const DE = {
     'Сон за неделю: в среднем {часы} ч {минуты} мин, оценка {оценка}': 'Schlaf diese Woche: im Schnitt {часы} Std. {минуты} Min., Bewertung {оценка}',
     'Пульс покоя: {сейчас}, обычно {база}': 'Ruhepuls: {сейчас}, sonst {база}',
     'Пульс покоя: {сейчас}, как обычно': 'Ruhepuls: {сейчас}, wie immer',
+    'Вариабельность пульса: {сейчас}, обычно {база}': 'Herzratenvariabilität: {сейчас}, sonst {база}',
+    'Вариабельность пульса: {сейчас}, как обычно': 'Herzratenvariabilität: {сейчас}, wie immer',
     'Часы не привязаны.': 'Die Uhr ist nicht verbunden.',
     'Ключ не принят. Проверьте его в настройках Intervals.icu.': 'Der Schlüssel wurde abgelehnt. Prüfe ihn in den Einstellungen von Intervals.icu.',
     'Спортсмен не найден. Проверьте номер вида i123456.': 'Sportler nicht gefunden. Prüfe die Nummer der Form i123456.',
