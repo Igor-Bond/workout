@@ -20,7 +20,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { ai, DEFAULT_MODEL } from '../services/ai.js';
+import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
 import { plan as planCore } from '../core/plan.js';
 import { report as build } from '../core/report.js';
@@ -51,9 +51,6 @@ let ошибка = '';
 /** Показывать ли дело целиком — по нажатию, а не всегда. */
 let раскрыто = false;
 
-const KEY_SETTING = 'aiKey';
-const MODEL_SETTING = 'aiModel';
-
 /** Собрать дело: сводка без задания плюс действующая программа. */
 async function дело() {
     const [entries, sets, exerciseList, weights, профиль, план] = await Promise.all([
@@ -73,6 +70,11 @@ async function дело() {
         shareOf: (exercise) => estimate.shareOf(exercise),
         background: isBackground,
         withRequest: false,
+
+        // Справочник целиком, а не только сделанное за период (§55): иначе
+        // подзабытое упражнение в план не попадёт никогда, а на его место
+        // придут выдуманные названия
+        catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
         profile: athlete.describe(
             профиль,
             new Map(exerciseList.map((e) => [e.id, e.name])),
@@ -305,8 +307,19 @@ actions.on('coach-preset', (el) => {
 actions.on('coach-ask', async () => {
     if (ждём) return;
 
-    const вопрос = document.getElementById('coach-text')?.value.trim();
+    const поле = document.getElementById('coach-text');
+    const вопрос = поле?.value.trim();
     if (!вопрос) return;
+
+    /*
+     * Клавиатуру убираем сами, до перерисовки.
+     *
+     * На айфоне поле остаётся в фокусе и после нажатия кнопки, а перерисовка
+     * подменяет его новым узлом — фокус слетает, клавиатура уезжает, окно
+     * меняет высоту, и экран будто плывёт. Снять фокус заранее дешевле, чем
+     * потом объяснять пляску разметки.
+     */
+    поле.blur();
 
     const key = await dbService.getSetting(KEY_SETTING, '');
     const model = await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL);

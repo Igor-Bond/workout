@@ -17,6 +17,9 @@ import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { format } from '../core/format.js';
 import { KINDS, kindLabel } from '../core/kinds.js';
+import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
+import { prompt } from '../core/prompt.js';
+import { migrations } from '../services/migrations.js';
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
 function row(exercise, usage) {
@@ -133,6 +136,42 @@ export const exercises = {
 
 const kindOptions = () => KINDS.map((k) => ({ value: k.value, label: `${t(k.label)} — ${t(k.hint)}` }));
 
+/**
+ * Заполнить карточку упражнения силами тренера (§60.1).
+ *
+ * Тот же путь, что у незнакомых упражнений плана (§56.3), только для одного
+ * названия. Смысл тот же: вид, группу и описание человек всё равно
+ * дописывает руками — тем самым знанием, которое у собеседника есть, — а
+ * приложение по названию их не угадает.
+ *
+ * Возвращает карточку или null. Осечка не молчит: спросили — надо ответить,
+ * почему не вышло, иначе выглядит как сломанная кнопка.
+ */
+async function спроситьКарточку(имя) {
+    const key = await dbService.getSetting(KEY_SETTING, '');
+    if (!ai.ready(key)) return null;
+
+    const список = await dbService.listExercises();
+    const такое_же = (a, b) => migrations.normalizeName(a) === migrations.normalizeName(b);
+
+    try {
+        const ответ = await ai.ask({
+            key,
+            model: await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL),
+            messages: [{ text: prompt.cards({ names: [имя], known: список }) }]
+        });
+
+        const [карточка] = prompt.readCards(ответ, { names: [имя], same: такое_же });
+
+        // Узнавание («это то же, что X») здесь ни к чему: человек заводит
+        // упражнение сам и на совпадение ему укажет проверка имени
+        return карточка && !карточка.same ? карточка : null;
+    } catch (e) {
+        await dialog.alert({ title: t('Тренер не ответил'), text: e.message });
+        return null;
+    }
+}
+
 actions.on('ex-add', async () => {
     const values = await dialog.form({
         title: t('Новое упражнение'),
@@ -159,9 +198,37 @@ actions.on('ex-add', async () => {
         return;
     }
 
+    /*
+     * Пустую карточку предлагаем заполнить тренеру (§60.1).
+     *
+     * Только пустую и только с согласия: человек, который вписал группу и
+     * описание сам, ничего у собеседника не просил, а обращение — это его
+     * ключ и его квота. Спрашиваем один раз, отказ ничего не ломает.
+     */
+    const пусто = !values.group?.trim() && !values.howTo?.trim();
+
+    if (пусто && ai.ready(await dbService.getSetting(KEY_SETTING, ''))) {
+        const согласен = await dialog.confirm({
+            title: t('Заполнить карточку?'),
+            text: t('Тренер подберёт группу и описание по образцу справочника. Вид вы уже выбрали — его он не тронет.'),
+            confirmText: t('Заполнить'),
+            cancelText: t('Не нужно')
+        });
+
+        if (согласен) {
+            const карточка = await спроситьКарточку(values.name);
+
+            if (карточка) {
+                values.group = карточка.group || '';
+                values.howTo = карточка.howTo || '';
+            }
+        }
+    }
+
     await dbService.createExercise(values);
     app.render();
 });
+
 
 /**
  * Как выполнять (§5.2).
@@ -177,18 +244,41 @@ actions.on('ex-info', async (el) => {
 
     const где = [kindLabel(exercise.kind), exercise.group].filter(Boolean).join(' · ');
 
+    const ключ = await dbService.getSetting(KEY_SETTING, '');
+
     const choice = await dialog.choose({
         title: exercise.name,
         text: exercise.howTo
             ? `${где}\n\n${exercise.howTo}`
             : `${где}\n\n${t('Описания нет. Его можно вписать своими словами — оно будет видно и во время интервальной программы.')}`,
         options: [
+            // Тренер предлагается там, где описания нет: дописывать чужими
+            // словами уже написанное своими — работа наоборот (§60.1)
+            ...(!exercise.howTo && ai.ready(ключ)
+                ? [{ value: 'ask', label: t('Пусть опишет тренер'), hint: t('Подберёт описание по образцу справочника') }]
+                : []),
             { value: 'video', label: t('Найти видео'), hint: t('Откроется поиск в новой вкладке') },
             { value: 'edit', label: exercise.howTo ? t('Изменить описание') : t('Добавить описание') }
         ]
     });
 
     if (choice === 'edit') return editExercise(exercise);
+
+    if (choice === 'ask') {
+        const карточка = await спроситьКарточку(exercise.name);
+        if (!карточка) return;
+
+        await dbService.updateExercise(exercise.id, {
+            howTo: карточка.howTo || '',
+
+            // Группу не перебиваем: свою человек ставил осознанно
+            group: exercise.group || карточка.group || ''
+        });
+
+        await app.render();
+
+        return dialog.alert({ title: exercise.name, text: карточка.howTo || t('Описание не пришло.') });
+    }
 
     if (choice === 'video') {
         const query = encodeURIComponent(t('{название} упражнение техника выполнения', { название: exercise.name }));

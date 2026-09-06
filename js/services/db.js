@@ -276,9 +276,9 @@ export const dbService = {
     },
 
     /** Найти по названию или создать. Основной способ добавления в план. */
-    async ensureExercise({ name, kind = 'weight', group = '' }) {
+    async ensureExercise({ name, kind = 'weight', group = '', howTo = '' }) {
         return (await dbService.findExerciseByName(name))
-            || dbService.createExercise({ name, kind, group });
+            || dbService.createExercise({ name, kind, group, howTo });
     },
 
     async updateExercise(id, changes) {

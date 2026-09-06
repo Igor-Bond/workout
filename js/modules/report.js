@@ -50,6 +50,11 @@ export const report = {
             shareOf: (exercise) => estimate.shareOf(exercise),
             background: isBackground,
 
+            // Справочник целиком, а не только сделанное за период (§55):
+            // иначе подзабытое упражнение в план не попадёт никогда, а на
+            // его место придут выдуманные названия
+            catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
+
             // Профиль складывается в строки здесь: ядро не переводит и за
             // названиями упражнений в базу не ходит (§58)
             profile: athlete.describe(
