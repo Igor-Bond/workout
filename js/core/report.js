@@ -53,7 +53,7 @@ export const report = {
     build({
         entries = [], sets = [], exercises = {}, weights = [],
         now = Date.now(), weeks = WEEKS, shareOf = () => 1, background = null,
-        profile = []
+        profile = [], withRequest = true
     } = {}) {
         const since = dates.startOfDay(now) - weeks * 7 * DAY;
 
@@ -178,6 +178,16 @@ export const report = {
                 строки.push(`— ${exercises[id]?.name || t('упражнение')}: ${повторы}`);
             }
         }
+
+        /*
+         * Задание приписывается не всегда (§60).
+         *
+         * В сводке, которую копируют в чужую переписку, оно обязательно: без
+         * него разговор начинается с выяснения, чего от собеседника хотят.
+         * А в разговоре внутри приложения человек спрашивает своими словами,
+         * и готовый запрос там спорил бы с его вопросом.
+         */
+        if (!withRequest) return строки.join('\n');
 
         return [...строки, ...report.request({ свежие, weeks, now })].join('\n');
     },

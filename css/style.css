@@ -2249,3 +2249,35 @@ button.ex-name:active { color: var(--accent); }
 
 /* Подсказка правила говорит о действии — и потому окрашена, а не сера */
 .hint.is-accent { color: var(--accent); }
+
+/*
+ * Переписка с тренером (§60).
+ *
+ * Свои сообщения прижаты вправо и подсвечены, ответы — во всю ширину слева.
+ * Это единственная разница: рисовать «пузыри» мессенджера незачем, здесь не
+ * болтают, а спрашивают по делу, и ответ читают целиком.
+ */
+.thread {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.msg-body { white-space: pre-wrap; }
+
+.msg.is-mine {
+    align-self: flex-end;
+    max-width: 85%;
+    padding: 8px 12px;
+    background: var(--panel-2);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+}
+
+.msg .btn { margin-top: 10px; }
+
+/* Ошибка обращения — полоска того же вида, но красной рамкой */
+.banner.is-danger {
+    border-color: var(--bad);
+    color: var(--bad);
+}

@@ -367,6 +367,10 @@ export const profile = {
                     ${t('О себе')}
                 </button>
 
+                <button class="btn btn-ghost" data-action="nav" data-screen="coach">
+                    ${t('Тренер')}
+                </button>
+
                 <button class="btn btn-ghost" data-action="nav" data-screen="report">
                     ${t('Сводка для тренера')}
                 </button>
