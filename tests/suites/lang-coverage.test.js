@@ -37,6 +37,7 @@ import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { intro } from '../../js/modules/intro.js';
+import { watch } from '../../js/modules/watch.js';
 import { planner } from '../../js/modules/planner.js';
 import { athleteScreen } from '../../js/modules/athlete.js';
 import { coach } from '../../js/modules/coach.js';
@@ -55,6 +56,7 @@ const SCREENS = [
     ['Справка', guide],
     ['Отзыв', surveyScreen],
     ['Знакомство', intro],
+    ['Часы', watch],
     ['План тренировок', planner],
     ['О себе', athleteScreen],
     ['Тренер', coach]

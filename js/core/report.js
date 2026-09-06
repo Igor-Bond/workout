@@ -61,7 +61,7 @@ export const report = {
     build({
         entries = [], sets = [], exercises = {}, weights = [],
         now = Date.now(), weeks = WEEKS, shareOf = () => 1, background = null,
-        profile = [], withRequest = true, catalogue = []
+        profile = [], withRequest = true, catalogue = [], recovery = []
     } = {}) {
         const since = dates.startOfDay(now) - weeks * 7 * DAY;
 
@@ -86,6 +86,19 @@ export const report = {
         if (profile.length) {
             строки.push(t('О себе:'), ...profile.map((s) => `— ${s}`), '');
         }
+
+        /*
+         * Восстановление идёт следом за профилем (§62).
+         *
+         * Сон и пульс покоя — не история занятий, а условия, в которых она
+         * идёт: неделя коротких ночей объясняет провал лучше любых чисел
+         * объёма. Строки приходят готовыми: ядро в сеть не ходит и часы не
+         * опрашивает.
+         */
+        if (recovery.length) {
+            строки.push(t('Восстановление:'), ...recovery.map((s) => `— ${s}`), '');
+        }
+
 
         if (свежие.length === 0) {
             строки.push(t('За последние {недели} тренировок не было.', { недели: format.count(weeks, format.WORDS.week) }));

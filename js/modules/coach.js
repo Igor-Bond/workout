@@ -32,6 +32,7 @@ import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { currentPlan, putDraft } from './planner.js';
 import { currentAthlete } from './athlete.js';
+import { recoveryLines } from './watch.js';
 
 /**
  * Переписка живёт в модуле: [{ role, text }].
@@ -75,6 +76,9 @@ async function дело() {
         // подзабытое упражнение в план не попадёт никогда, а на его место
         // придут выдуманные названия
         catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
+
+        // Сон и пульс покоя с часов, если они привязаны (§62)
+        recovery: await recoveryLines(),
         profile: athlete.describe(
             профиль,
             new Map(exerciseList.map((e) => [e.id, e.name])),

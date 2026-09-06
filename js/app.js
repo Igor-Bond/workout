@@ -32,6 +32,7 @@ import { profile } from './modules/profile.js';
 import { guide } from './modules/guide.js';
 import { surveyScreen } from './modules/survey.js';
 import { intro } from './modules/intro.js';
+import { watch } from './modules/watch.js';
 
 /**
  * Список экранов собирается при первом обращении, а не при загрузке модуля.
@@ -62,7 +63,7 @@ function screens() {
             records: recordsScreen,
             profile, guide,
             survey: surveyScreen,
-            intro
+            intro, watch
         };
     }
 

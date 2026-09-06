@@ -22,6 +22,7 @@ import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete } from './athlete.js';
+import { recoveryLines } from './watch.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 
@@ -54,6 +55,9 @@ export const report = {
             // иначе подзабытое упражнение в план не попадёт никогда, а на
             // его место придут выдуманные названия
             catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
+
+            // Сон и пульс покоя с часов, если они привязаны (§62)
+            recovery: await recoveryLines(),
 
             // Профиль складывается в строки здесь: ядро не переводит и за
             // названиями упражнений в базу не ходит (§58)
