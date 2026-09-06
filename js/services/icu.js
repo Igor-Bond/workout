@@ -81,6 +81,71 @@ export const icu = {
         return data;
     },
 
+    /**
+     * Запрос с телом: создание и удаление запланированного (§62.4).
+     *
+     * Отдельно от чтения: у чтения ошибка стоит пустого экрана, а здесь —
+     * записи в чужом сервисе, и молчать о ней нельзя тем более.
+     */
+    async send(url, key, { method = 'POST', body = null } = {}) {
+        const control = new AbortController();
+        const срок = setTimeout(() => control.abort(), TIMEOUT);
+
+        let response;
+
+        try {
+            response = await fetch(url, {
+                method,
+                headers: {
+                    Authorization: `Basic ${btoa(`API_KEY:${String(key).trim()}`)}`,
+                    ...(body ? { 'Content-Type': 'application/json' } : {})
+                },
+                body: body ? JSON.stringify(body) : undefined,
+                signal: control.signal
+            });
+        } catch (e) {
+            if (e.name === 'AbortError') throw new Error(t('Intervals.icu не ответил.'));
+            throw new Error(t('Нет связи с Intervals.icu.'));
+        } finally {
+            clearTimeout(срок);
+        }
+
+        if (!response.ok) throw new Error(причина(response.status));
+
+        // Удаление отвечает пустотой, и разбирать её как JSON незачем
+        return response.status === 204 ? null : response.json().catch(() => null);
+    },
+
+    /** Запланированное в сервисе за отрезок: нужно, чтобы убрать своё прежнее. */
+    async events({ key, athlete, oldest, newest } = {}) {
+        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
+
+        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events`
+            + `?oldest=${oldest}&newest=${newest}`;
+
+        const data = await icu.get(url, key);
+
+        return Array.isArray(data) ? data : [];
+    },
+
+    /** Поставить занятие в план сервиса. */
+    async addEvent({ key, athlete, event } = {}) {
+        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
+
+        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events`;
+
+        return icu.send(url, key, { method: 'POST', body: event });
+    },
+
+    /** Убрать занятие из плана сервиса. */
+    async removeEvent({ key, athlete, id } = {}) {
+        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
+
+        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events/${encodeURIComponent(id)}`;
+
+        return icu.send(url, key, { method: 'DELETE' });
+    },
+
     /** Адрес конца сервиса за последние days дней. */
     url(athlete, path, { days = 28, now = Date.now() } = {}) {
         return `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/${path}`
@@ -219,6 +284,9 @@ export const icu = {
 /** Ключи настроек. Личные, на этом устройстве: в облако не уезжают (§39.1). */
 export const ICU_KEY = 'icuKey';
 export const ICU_ATHLETE = 'icuAthlete';
+
+/** Когда и сколько занятий плана уехало на часы (§62.4). */
+export const ICU_PUSH = 'icuPlanPush';
 
 /** Под этими ключами лежит привезённое — чтобы не ходить в сеть за каждым показом. */
 export const ICU_DATA = 'icuWellness';

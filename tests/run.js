@@ -40,6 +40,7 @@ await import('./suites/db.test.js');
 await import('./suites/screens.test.js');
 await import('./suites/intro.test.js');
 await import('./suites/recovery.test.js');
+await import('./suites/schedule.test.js');
 await import('./suites/kinds.test.js');
 await import('./suites/docs.test.js');
 await import('./suites/journal.test.js');
