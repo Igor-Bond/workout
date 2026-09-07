@@ -1,10 +1,11 @@
 /**
  * Знакомство при первом запуске (§61 ТЗ).
  *
- * Проверять тут надо ровно две вещи: кому оно показывается и что отказ
- * запоминается. Первое потому, что ошибка в условии встретит знакомством
- * человека с полугодовой историей; второе потому, что спрошенное дважды об
- * одном — это не вопрос, а навязчивость.
+ * Проверять тут надо три вещи: кому оно показывается, что шаги идут по
+ * одному, и что отказ запоминается. Первое потому, что ошибка в условии
+ * встретит знакомством человека с полугодовой историей; второе потому, что
+ * список из пяти карточек человек закрывает целиком; третье потому, что
+ * спрошенное дважды об одном — это не вопрос, а навязчивость.
  */
 
 import { describe, it, equal, assert } from '../runner.js';
@@ -38,53 +39,69 @@ describe('Кому показывать знакомство', () => {
 
 });
 
-describe('Экран знакомства', () => {
+describe('Шаги идут по одному', () => {
 
-    it('называет все четыре шага и последствие отказа', async () => {
+    it('первым спрашивается профиль', async () => {
         await seed();
 
         const view = await screen(intro);
         const строка = text(view);
 
-        for (const шаг of ['О себе', 'Упражнения', 'Тренер', 'План']) {
-            assert(строка.includes(шаг), `шаг «${шаг}» пропал: ${строка.slice(0, 200)}`);
-        }
-
+        assert(строка.includes('О себе'), `первый шаг: ${строка.slice(0, 200)}`);
+        assert(строка.includes('шаг 1 из 5'), `номер шага обязателен: ${строка.slice(0, 200)}`);
         assert(строка.includes('колен'), 'без последствия отказ выходит наугад');
-        assert(hasAction(view, 'intro-done'), 'выход обязателен: знакомство не ловушка');
     });
 
-    it('заполненный профиль отмечен готовым и не просит «потом»', async () => {
+    it('заполненный профиль пропускает шаг вперёд', async () => {
+        await seed();
+        await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
+
+        const строка = text(await screen(intro));
+
+        assert(строка.includes('Вес тела'), `следующим идёт вес: ${строка.slice(0, 200)}`);
+        assert(строка.includes('шаг 2 из 5'));
+    });
+
+    it('вес спрашивается прямо здесь, а не ссылкой', async () => {
         await seed();
         await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
 
         const view = await screen(intro);
-        const шаг = [...view.querySelectorAll('.card')].find((c) => text(c).startsWith('О себе'));
 
-        assert(text(шаг).includes('готово'), `не отмечен готовым: ${text(шаг)}`);
-        assert(!шаг.querySelector('[data-action="intro-skip"]'), 'предлагать отложить сделанное незачем');
+        assert(hasAction(view, 'intro-weight'),
+            'уводить за одним числом на другой экран значит потерять человека на полпути');
     });
 
     it('отложенный шаг помнится и не спрашивается снова', async () => {
         await seed();
 
-        await press('intro-skip', { step: 'coach' });
+        await press('intro-skip', { step: 'athlete' });
 
         const сохранено = await dbService.getSetting(INTRO_KEY, null);
-        equal(сохранено.skipped.includes('coach'), true);
+        equal(сохранено.skipped.includes('athlete'), true);
 
-        const view = await screen(intro);
-        const шаг = [...view.querySelectorAll('.card')].find((c) => text(c).startsWith('Тренер'));
+        const строка = text(await screen(intro));
 
-        assert(text(шаг).includes('потом'), `отказ не отмечен: ${text(шаг)}`);
-        assert(!шаг.querySelector('[data-action="intro-skip"]'), 'второй раз о том же не спрашивают');
+        assert(строка.includes('Вес тела'), `после отказа идёт следующий шаг: ${строка.slice(0, 200)}`);
+        assert(строка.includes('пропущено'), 'пройденное и отложенное видно строками');
     });
 
-    it('кнопка внизу говорит, что осталось незаполненным', async () => {
+    it('когда шагов не осталось, знакомство прощается', async () => {
         await seed();
 
-        assert(text(await screen(intro)).includes('Пропустить остальное'),
-            'обещать «начать», когда половина шагов не сделана, — врать о состоянии');
+        for (const шаг of ['athlete', 'weight', 'exercises', 'coach', 'plan']) {
+            await press('intro-skip', { step: шаг });
+        }
+
+        const строка = text(await screen(intro));
+
+        assert(строка.includes('можно тренироваться'), `итог: ${строка.slice(0, 200)}`);
+    });
+
+    it('выход есть на любом шаге', async () => {
+        await seed();
+
+        assert(hasAction(await screen(intro), 'intro-done'), 'знакомство не ловушка');
     });
 
     it('«начать» закрывает знакомство навсегда', async () => {

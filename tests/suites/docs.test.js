@@ -15,6 +15,24 @@ import { describe, it, assert } from '../runner.js';
 
 const читать = async (path) => (await fetch(`../${path}`, { cache: 'no-store' })).text();
 
+/**
+ * Все ссылки на решения в тексте.
+ *
+ * В скобках их бывает несколько: «(Р-59, Р-76)» — один абзац объясняет два
+ * решения, и это правильно. Разбор по одной скобке такие ссылки не замечал, и
+ * запись выглядела осиротевшей, хотя ссылка на неё есть.
+ */
+function ссылкиНаРешения(текст) {
+    const найдено = new Set();
+
+    for (const m of текст.matchAll(/\((Р-\d+(?:\s*,\s*Р-\d+)*)\)/g)) {
+        for (const номер of m[1].split(',')) найдено.add(номер.trim());
+    }
+
+    return найдено;
+}
+
+
 describe('ТЗ и журнал решений', () => {
 
     it('у каждой ссылки в ТЗ есть запись в журнале', async () => {
@@ -22,7 +40,7 @@ describe('ТЗ и журнал решений', () => {
         const journal = await читать('docs/DECISIONS.md');
 
         const записи = new Set([...journal.matchAll(/^## (Р-\d+)\./gm)].map((m) => m[1]));
-        const ссылки = [...new Set([...spec.matchAll(/\((Р-\d+)\)/g)].map((m) => m[1]))];
+        const ссылки = [...ссылкиНаРешения(spec)];
 
         const битые = ссылки.filter((номер) => !записи.has(номер));
 
@@ -34,7 +52,7 @@ describe('ТЗ и журнал решений', () => {
         const spec = await читать('docs/SPEC.md');
         const journal = await читать('docs/DECISIONS.md');
 
-        const ссылки = new Set([...spec.matchAll(/\((Р-\d+)\)/g)].map((m) => m[1]));
+        const ссылки = ссылкиНаРешения(spec);
         const сироты = [...journal.matchAll(/^## (Р-\d+)\./gm)]
             .map((m) => m[1])
             .filter((номер) => !ссылки.has(номер));

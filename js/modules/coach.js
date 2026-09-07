@@ -174,17 +174,47 @@ export const coach = {
                 ${ui.raw(ui.title(t('Тренер'),
                     t('Разговор о программе прямо здесь: дело приложение подложит само, а пришедший план перенесётся одной кнопкой')))}
 
+                ${ошибка ? ui.html`<div class="banner is-danger"><span>${ошибка}</span></div>` : ''}
+
+                <!--
+                    Где брать ключ — по шагам и со ссылкой (§60.2).
+                    «Заведите ключ в Google AI Studio» — это отсылка, а не
+                    объяснение: человек, не знающий, что такое AI Studio, на
+                    ней и остановится.
+                -->
+                <div class="card">
+                    <div class="card-title">${t('Где взять ключ')}</div>
+                    <p class="hint">
+                        ${t('Приложение обращается к языковой модели Google от вашего имени и вашим ключом. Ключ бесплатный, карта не нужна, занимает минуту.')}
+                    </p>
+
+                    <div class="plan-rule">${t('1. Откройте страницу ключей Google AI Studio и войдите обычным аккаунтом Google.')}</div>
+                    <div class="plan-rule">${t('2. Нажмите «Create API key» — и выберите проект, если спросят. Годится любой.')}</div>
+                    <div class="plan-rule">${t('3. Скопируйте строку, которая начинается на AIza, и вставьте её ниже.')}</div>
+
+                    <button class="btn btn-ghost btn-sm" data-action="coach-key-site">
+                        ${t('Открыть страницу ключей')}
+                    </button>
+                </div>
+
                 <div class="card">
                     <div class="card-title">${t('Нужен ключ')}</div>
-                    <p class="hint">
-                        ${t('Приложение обращается к языковой модели Google от вашего имени и вашим ключом. Ключ бесплатный: заведите его в Google AI Studio и вставьте сюда.')}
-                    </p>
 
                     <div class="field">
                         <label for="ai-key">${t('Ключ')}</label>
                         <input id="ai-key" type="password" autocomplete="off" spellcheck="false"
                                placeholder="AIza…" data-change="coach-key">
                     </div>
+
+                    <!--
+                        Кнопка рядом с полем, а не только событие смены
+                        (§60.2). На телефоне вставка из буфера события change
+                        не даёт, пока поле не потеряет фокус, — человек
+                        вставлял ключ, ничего не происходило, и он уходил.
+                    -->
+                    <button class="btn btn-accent" data-action="coach-key-save" ${ui.raw(ждём ? 'disabled' : '')}>
+                        ${ждём ? t('Проверяю…') : t('Сохранить и проверить')}
+                    </button>
 
                     <p class="hint">
                         ${t('Ключ остаётся на этом устройстве и в облако не уезжает — на втором заведите свой. В приложении он лежит открыто: тот, кто дойдёт до хранилища браузера, его увидит. Защита не в тайне, а в ограничении ключа по адресу сайта в консоли Google.')}
@@ -194,6 +224,7 @@ export const coach = {
                 <button class="btn btn-ghost" data-action="nav" data-screen="report">${t('Сводка для тренера')}</button>
             `;
         }
+
 
         const текст = раскрыто ? await дело() : '';
 
@@ -296,14 +327,65 @@ export const coach = {
 
 // ================== ДЕЙСТВИЯ ==================
 
-actions.onChange('coach-key', async (el) => {
-    const key = el.value.trim();
-    if (!key) return;
+/** Страница ключей Google AI Studio. */
+const KEY_PAGE = 'https://aistudio.google.com/apikey';
 
-    await dbService.setSetting(KEY_SETTING, key);
-    haptics.tap();
-    app.render();
+actions.on('coach-key-site', () => {
+    window.open(KEY_PAGE, '_blank', 'noopener');
 });
+
+/**
+ * Сохранить ключ и сразу проверить его (§60.2).
+ *
+ * Проверяем, а не просто сохраняем. Ключ — строка из шестидесяти знаков,
+ * скопированная наполовину или с чужого проекта, выглядит точно так же, как
+ * рабочий; человек узнавал об этом при первом вопросе, через минуту ожидания
+ * и с сообщением, которое относил к вопросу, а не к ключу.
+ *
+ * Проверка — самый дешёвый настоящий запрос: одно слово, короткий ответ.
+ * Поддельной проверки «на глаз» тут быть не может: строка правильного вида
+ * ничем не отличается от строки, которую Google не примет.
+ */
+actions.on('coach-key-save', async () => {
+    if (ждём) return;
+
+    const поле = document.getElementById('ai-key');
+    const key = поле?.value.trim();
+
+    if (!key) {
+        ошибка = t('Поле пустое: вставьте ключ целиком, он начинается на AIza.');
+        return app.render();
+    }
+
+    ждём = true;
+    ошибка = '';
+    await app.render();
+
+    try {
+        await ai.ask({
+            key,
+            model: await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL),
+            messages: [{ text: 'ok' }]
+        });
+
+        await dbService.setSetting(KEY_SETTING, key);
+        haptics.tap();
+    } catch (e) {
+        ошибка = e.message;
+    } finally {
+        ждём = false;
+        await app.render();
+    }
+});
+
+/**
+ * Смена поля ключа больше ничего не сохраняет (§60.2).
+ *
+ * Раньше сохраняла — и это выглядело как молчание: человек вставлял ключ, а
+ * приложение не отвечало ничем. Хуже, на телефоне событие смены при вставке
+ * из буфера не приходит вовсе, пока поле не потеряет фокус. Теперь сохраняет
+ * кнопка, и она же говорит, принят ключ или нет.
+ */
 
 actions.onChange('coach-model', async (el) => {
     await dbService.setSetting(MODEL_SETTING, el.value.trim() || DEFAULT_MODEL);

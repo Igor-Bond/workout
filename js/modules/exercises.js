@@ -59,6 +59,37 @@ function row(exercise, usage) {
     `;
 }
 
+/**
+ * Поиск по справочнику (§5.3).
+ *
+ * Список растёт вместе с программой: у владельца в нём два десятка
+ * упражнений, и найти «Отжимания узким хватом» среди трёх видов отжиманий
+ * прокруткой — это уже работа. Поиск живёт в модуле, а не в разметке:
+ * перерисовка не должна его стирать.
+ *
+ * Ищем по названию и по группе мышц: «грудь» отвечает на вопрос не хуже
+ * точного имени, а помнят люди чаще группу.
+ */
+let поиск = '';
+
+/*
+ * Ключ поиска — тот же, которым упражнение ищется по имени в базе.
+ *
+ * Своей нормализации здесь заводить незачем: «Жим лёжа» и «жим лежа» должны
+ * находиться одинаково и в поиске, и в справочнике, а два написания одного
+ * правила однажды разойдутся.
+ */
+const ключ = (s) => migrations.normalizeName(s);
+
+
+function подходит(exercise) {
+    if (!поиск) return true;
+
+    const что = ключ(поиск);
+
+    return ключ(exercise.name).includes(что) || ключ(exercise.group).includes(что);
+}
+
 export const exercises = {
 
     title: 'Справочник',
@@ -74,8 +105,10 @@ export const exercises = {
             usage.set(e.id, await dbService.countSetsOfExercise(e.id));
         }));
 
-        const active = all.filter((e) => !e.archived);
-        const archived = all.filter((e) => e.archived);
+        const найдено = all.filter(подходит);
+
+        const active = найдено.filter((e) => !e.archived);
+        const archived = найдено.filter((e) => e.archived);
         const foreign = await dbService.countForeignBaseExercises();
 
         return ui.html`
@@ -83,6 +116,19 @@ export const exercises = {
                 t('История упражнения держится на его записи здесь, поэтому используемое упражнение можно только архивировать')))}
 
             <button class="btn btn-accent" data-action="ex-add">${t('Добавить упражнение')}</button>
+
+            <!--
+                Поиск стоит над списком и появляется, только когда список
+                правда длинный (§5.3): над пятью строками он занимал бы место
+                и ничего не решал.
+            -->
+            ${all.length >= 12 ? ui.html`
+                <div class="field">
+                    <input id="ex-search" type="search" autocomplete="off" spellcheck="false"
+                           value="${поиск}" placeholder="${t('Поиск по названию или группе')}">
+                </div>
+            ` : ''}
+
 
             <!--
                 Доли своего веса — отдельным экраном, а не полем в правке
@@ -521,3 +567,38 @@ actions.on('ex-relocalize', async () => {
 
     app.render();
 });
+
+/*
+ * Поиск обновляет список по вводу, а не по потере фокуса (§5.3).
+ *
+ * change приходит слишком поздно: человек ищет, глядя в список, а список до
+ * ухода из поля не меняется. Задержка в четверть секунды — чтобы не
+ * перерисовывать на каждой букве; фокус и место курсора при перерисовке
+ * восстанавливаются, поэтому ввод не сбивается.
+ */
+let поискЖдёт = 0;
+
+document.addEventListener('input', (e) => {
+    if (e.target.id !== 'ex-search') return;
+
+    поиск = e.target.value;
+
+    clearTimeout(поискЖдёт);
+
+    поискЖдёт = setTimeout(async () => {
+        await app.render();
+
+        /*
+         * Возвращаем фокус: перерисовка подменяет поле новым узлом, и без
+         * этого человек набирает первую букву, теряет клавиатуру и решает,
+         * что поиск сломан.
+         */
+        const поле = document.getElementById('ex-search');
+
+        if (поле) {
+            поле.focus();
+            поле.setSelectionRange(поле.value.length, поле.value.length);
+        }
+    }, 250);
+});
+
