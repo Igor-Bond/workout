@@ -1505,6 +1505,40 @@ describe('Экран: выполнение, память паузы', () => {
         assert(has(своя, '2:00'), `правка обязана быть выше дня: ${text(своя).slice(0, 200)}`);
     });
 
+    /*
+     * Круговой день (Р-84): у главного упражнения пауза дня, у добора — своя,
+     * записанная в строке плана. Своя обязана быть старше дневной, иначе круг
+     * не описать: приложение дало бы десять минут и после минутного добора.
+     */
+    it('своя пауза упражнения из плана старше дневной', async () => {
+        const первое = await seed();
+        const второе = await dbService.createExercise({ name: 'Пресс', kind: 'reps', group: 'Пресс' });
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        session.leave();
+
+        const workout = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: первое.id, plannedSets: 6, targetReps: 50, restSeconds: 60, skipped: false },
+                { exerciseId: второе.id, plannedSets: 6, targetReps: 25, skipped: false }
+            ]
+        });
+
+        await dbService.updateWorkout(workout.id, { restSeconds: 600 });
+
+        const своя = text(await screen(session));
+        assert(своя.includes('1:00'), `у первого упражнения своя минута: ${своя.slice(0, 200)}`);
+
+        await press('sess-select', { id: второе.id });
+        const дневная = text(await screen(session));
+
+        assert(дневная.includes('10:00'),
+            `о втором своего не сказано — работает пауза дня: ${дневная.slice(0, 200)}`);
+    });
+
     it('ввод во время отсчёта правит идущую паузу, а не следующую', async () => {
         const ex = await seed();
 

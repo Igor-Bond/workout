@@ -130,6 +130,17 @@ function строкаДня(день) {
             <span class="plan-day-body">
                 ${занятие ? ядро.describe(занятие) : t('отдых')}
                 ${занятие?.rest ? ui.html`<span class="plan-day-rest">${t('пауза {n}', { n: format.seconds(занятие.rest) })}</span>` : ''}
+
+                <!--
+                    Своя пауза упражнения названа отдельно и с именем (Р-84):
+                    в дневную её не свернуть — они разные, — а без имени
+                    непонятно, к чему из «А + Б» относится минута.
+                -->
+                ${(занятие?.items || []).filter((у) => у.rest).map((у) => ui.html`
+                    <span class="plan-day-rest">
+                        ${у.name}: ${t('пауза {n}', { n: format.seconds(у.rest) })}
+                    </span>
+                `)}
             </span>
         </div>
     `;

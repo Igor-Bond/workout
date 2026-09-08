@@ -1013,6 +1013,13 @@ actions.on('today-start', async (el) => {
             plannedSets: упражнение.sets || 1,
             targetReps: время ? null : (упражнение.reps ?? null),
             targetDuration: время ? (упражнение.reps ?? null) : null,
+
+            /*
+             * Своя пауза упражнения из строки плана (Р-84). Едет вместе с
+             * заданием: круговой день тем и описан, что у главного
+             * упражнения десять минут, а у добора — минута.
+             */
+            restSeconds: упражнение.rest || undefined,
             weight: 0,
             skipped: false
         });
