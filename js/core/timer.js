@@ -13,6 +13,9 @@ import { config } from '../config.js';
 
 let endsAt = 0;
 let handle = 0;
+
+/** Когда отдых начался: от него считается вся длительность (Р-81). */
+let startedAt = 0;
 let exerciseId = null;
 
 const listeners = { tick: new Set(), finish: new Set() };
@@ -215,7 +218,8 @@ export const restTimer = {
     start(seconds = config.get('restSeconds'), forExerciseId = null) {
         if (!config.get('restEnabled') || !seconds) return false;
 
-        endsAt = Date.now() + seconds * 1000;
+        startedAt = Date.now();
+        endsAt = startedAt + seconds * 1000;
         exerciseId = forExerciseId;
 
         stopInterval();
@@ -253,6 +257,32 @@ export const restTimer = {
         scheduleSignal();
 
         emit('tick');
+    },
+
+    /**
+     * Задать всю длительность отдыха, а не сдвинуть её (Р-81).
+     *
+     * Человек вспоминает про паузу уже во время неё: «а сегодня же десять
+     * минут». Он вводит десять минут — и имеет в виду десять минут отдыха
+     * целиком, от последнего подхода, а не десять минут сверх прошедших
+     * трёх. Поэтому считаем от начала: новый конец — начало плюс введённое.
+     *
+     * Если введённое уже прошло, отдых кончается сам собой на ближайшем
+     * тике — с сигналом, как и положено кончившемуся отдыху. Обрывать его
+     * молча нельзя: человек ждёт звука, а не тишины.
+     */
+    retotal(seconds) {
+        if (!restTimer.running) return false;
+
+        const всего = restTimer.clamp(seconds);
+        if (всего === null) return false;
+
+        endsAt = startedAt + всего * 1000;
+
+        scheduleSignal();
+        emit('tick');
+
+        return true;
     },
 
     /** Меньше этого отдых не укорачивается — дальше только «Пропустить». */

@@ -1264,4 +1264,7 @@ export const DE = {
     'Проверяю…': 'Prüfe…',
     'Поле пустое: вставьте ключ целиком, он начинается на AIza.': 'Das Feld ist leer: füge den ganzen Schlüssel ein, er beginnt mit AIza.',
     'Поиск по названию или группе': 'Suche nach Name oder Muskelgruppe',
+
+    // Ввод паузы во время идущего отсчёта (§16)
+    'Отсчёт уже идёт: введённое считается всей длительностью паузы, от последнего подхода. Прошедшее вычтется само.': 'Der Countdown läuft bereits: die Eingabe zählt als gesamte Pause ab dem letzten Satz. Die verstrichene Zeit wird selbst abgezogen.',
 };

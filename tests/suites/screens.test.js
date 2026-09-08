@@ -1352,8 +1352,16 @@ describe('Экран: план, новое упражнение', () => {
  */
 describe('Экран: выполнение, память паузы', () => {
 
-    /** Начать тренировку из одного упражнения и открыть выполнение. */
+    /**
+     * Начать тренировку из одного упражнения и открыть выполнение.
+     *
+     * С уходом с экрана: сегодняшние правки пауз живут в модуле (Р-81), а
+     * база между проверками чистится и раздаёт те же самые идентификаторы —
+     * без ухода правка одной проверки досталась бы упражнению следующей.
+     */
     async function начать(exercise) {
+        session.leave();
+
         await dbService.createWorkout({
             type: 'Силовая',
             plan: [{ exerciseId: exercise.id, plannedSets: 3, targetReps: 10, weight: 50, skipped: false }]
@@ -1416,6 +1424,104 @@ describe('Экран: выполнение, память паузы', () => {
         const view = await screen(session);
 
         assert(has(view, '1:15'), 'в меню отдыха стоит общая величина');
+    });
+
+    /*
+     * Сегодняшний темп (Р-81). Одна тренировка идёт в одном ритме, и тот, кто
+     * поставил десять минут, не хочет задавать их заново на каждом следующем
+     * упражнении — а прежде каждое новое начиналось с общей настройки, потому
+     * что про него в справочнике ничего не записано.
+     */
+    async function вписать(seconds) {
+        const было = dialog.form;
+        const спрошено = {};
+
+        dialog.form = async (options) => { спрошено.form = options; return { rest: seconds }; };
+
+        try {
+            await press('sess-rest');
+        } finally {
+            dialog.form = было;
+        }
+
+        return спрошено;
+    }
+
+    /** Начать тренировку из двух упражнений подряд. */
+    async function начать_две(первое, второе) {
+        session.leave();
+
+        await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: первое.id, plannedSets: 3, targetReps: 10, weight: 50, skipped: false },
+                { exerciseId: второе.id, plannedSets: 3, targetReps: 10, weight: 40, skipped: false }
+            ]
+        });
+
+        await screen(session);
+    }
+
+    it('заданная руками пауза переходит на следующее упражнение', async () => {
+        const первое = await seed();
+        const второе = await dbService.createExercise({ name: 'Тяга', kind: 'weight', group: 'Спина' });
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        await начать_две(первое, второе);
+        await вписать(600);
+
+        await press('sess-select', { id: второе.id });
+        const view = await screen(session);
+
+        assert(has(view, '10:00'),
+            `следующее упражнение обязано взять сегодняшний темп: ${text(view).slice(0, 200)}`);
+    });
+
+    /*
+     * Пауза дня из плана старше собственной длительности упражнения (§56.2),
+     * но не старше сказанного сегодня руками: человек, поправивший её посреди
+     * тренировки, сказал последним — а прежде правка молча проигрывала плану
+     * и выглядела не сработавшей.
+     */
+    it('правка старше дневной паузы плана', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        await начать(ex);
+
+        const workout = await dbService.getActiveWorkout();
+        await dbService.updateWorkout(workout.id, { restSeconds: 300 });
+
+        const дневная = await screen(session);
+        assert(has(дневная, '5:00'), 'без правки день ведёт');
+
+        await вписать(120);
+        const своя = await screen(session);
+
+        assert(has(своя, '2:00'), `правка обязана быть выше дня: ${text(своя).slice(0, 200)}`);
+    });
+
+    it('ввод во время отсчёта правит идущую паузу, а не следующую', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        await начать(ex);
+        restTimer.start(90, ex.id);
+
+        const спрошено = await вписать(300);
+
+        assert(String(спрошено.form?.text).includes('Отсчёт уже идёт'),
+            'окно обязано предупредить, что введённое считается всей паузой');
+        assert(restTimer.remaining > 290,
+            `идущий отсчёт обязан подхватить ввод, а осталось ${restTimer.remaining}`);
+
+        restTimer.stop();
     });
 });
 
