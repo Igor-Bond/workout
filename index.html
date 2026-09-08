@@ -94,7 +94,12 @@
         </div>
     </nav>
 
-    <div class="content">
+    <!--
+        Прокручиваемая область получает фокус с клавиатуры (Р-78): без этого
+        Page Down и стрелки не прокручивают ничего — страница не двигается, а
+        до внутренней прокрутки клавишам не добраться.
+    -->
+    <div class="content" tabindex="0">
         <div id="banners" class="banners"></div>
         <main id="screen" class="screen">
             <div class="loading" data-t>Загрузка…</div>

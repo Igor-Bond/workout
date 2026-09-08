@@ -124,7 +124,7 @@ export const exercises = {
             -->
             ${all.length >= 12 ? ui.html`
                 <div class="field">
-                    <input id="ex-search" type="search" autocomplete="off" spellcheck="false"
+                    <input id="ex-search" type="text" autocomplete="off" spellcheck="false"
                            value="${поиск}" placeholder="${t('Поиск по названию или группе')}">
                 </div>
             ` : ''}
