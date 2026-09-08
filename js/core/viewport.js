@@ -49,6 +49,25 @@ function apply() {
     doc.classList.toggle('keyboard-open', covered > 120);
 }
 
+/**
+ * Окно не должно уезжать при открытой клавиатуре (Р-80).
+ *
+ * Тело ровно в высоту окна и не прокручивается, но Safari при фокусе в поле
+ * всё равно сдвигает окно вверх, чтобы показать поле над клавиатурой.
+ * Приложению это не нужно: каркас уже укоротился на высоту клавиатуры
+ * (§31), и поле видно и так. А сдвиг показывает пустоту под телом и
+ * выглядит как прокрутка на ровном месте.
+ *
+ * Возвращаем на место только при открытой клавиатуре и только если окно
+ * правда уехало: в остальное время трогать прокрутку окна незачем.
+ */
+function держатьОкно() {
+    if (!document.documentElement.classList.contains('keyboard-open')) return;
+    if (window.scrollY === 0 && window.scrollX === 0) return;
+
+    window.scrollTo(0, 0);
+}
+
 function schedule() {
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(apply);
@@ -60,6 +79,7 @@ export const viewport = {
     init() {
         apply();
 
+        window.addEventListener('scroll', держатьОкно, { passive: true });
         window.addEventListener('resize', schedule);
         window.addEventListener('orientationchange', schedule);
 
