@@ -9,6 +9,7 @@
 import { describe, it, equal, assert, throws } from '../runner.js';
 import { db, dbService } from '../../js/services/db.js';
 import { migrations } from '../../js/services/migrations.js';
+import { HOW_TO, howTo } from '../../js/services/howto.js';
 
 /** Чистая база перед каждой проверкой: порядок наборов не должен влиять. */
 async function reset() {
@@ -1008,6 +1009,26 @@ describe('Доставка новых базовых упражнений', () =
         const keys = migrations.BASE_EXERCISES.map((e) => migrations.normalizeName(e.name));
 
         equal(new Set(keys).size, keys.length);
+    });
+
+    /*
+     * Описание ищется по нормализованному ключу, а ключи в словаре пишутся
+     * руками (Р-83). Одна буква «ё» в ключе — и описание не найдётся никогда:
+     * поиск идёт по «е», совпадения нет, упражнение приезжает без техники, и
+     * молча. Именно так и было у «Подъёма резинки перед собой».
+     */
+    it('ключи описаний нормализованы, иначе они недостижимы', () => {
+        const кривые = Object.keys(HOW_TO).filter((k) => k !== migrations.normalizeName(k));
+
+        equal(кривые.length, 0, `не найдутся никогда: ${кривые.join(', ')}`);
+    });
+
+    it('у каждого базового упражнения есть описание', () => {
+        const без = migrations.BASE_EXERCISES
+            .filter((e) => !howTo(migrations.normalizeName(e.name)))
+            .map((e) => e.name);
+
+        equal(без.length, 0, `приедут без техники: ${без.join(', ')}`);
     });
 
     it('интервальные упражнения не требуют снаряда', async () => {
