@@ -67,6 +67,7 @@ export const EN = {
     'Повторить прошлую': 'Repeat last',
     'Предыдущее': 'Previous',
     'На очереди': 'Up next',
+    'Если хочется добавить': 'If you feel like more',
     'Следом': 'Then',
     'Что повторяете': 'What you repeat',
     'Чаще всего': 'Most often',
