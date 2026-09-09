@@ -225,17 +225,25 @@ function loadLine({ exercises, kind, bodyWeight }, prefill) {
     const exercise = exercises[currentId] || {};
 
     const свой = estimate.bodyLoad({ exercise: { ...exercise, kind }, bodyWeight });
-    if (!свой) return '';
+    if (свой === null) return '';
 
     const довес = Number(prefill?.weight) || 0;
     const когда = kind === 'time' ? t('на удержании') : t('за повторение');
 
     return ui.html`
-        <div class="rec-line">
-            <span class="rec-label">${t('Своим весом')}</span>
-            <span class="rec-value">≈ ${format.load(свой)} ${t('кг')}</span>
-            <span class="rec-when">${когда}</span>
-        </div>
+        <!--
+            У резинки доля своего веса нулевая (Р-85), и строки «своим весом»
+            быть не должно: своего веса там не поднимают. Но вторая строка
+            нужна и ей — тем и записывается нагрузка резинки, если её
+            измерили.
+        -->
+        ${свой > 0 ? ui.html`
+            <div class="rec-line">
+                <span class="rec-label">${t('Своим весом')}</span>
+                <span class="rec-value">≈ ${format.load(свой)} ${t('кг')}</span>
+                <span class="rec-when">${когда}</span>
+            </div>
+        ` : ''}
 
         <!--
             Вторая строка стоит в разметке всегда, но показывается, только
@@ -266,7 +274,7 @@ function refreshExtraLine() {
         bodyWeight: view.bodyWeight
     });
 
-    if (!свой) return;
+    if (свой === null) return;
 
     const довес = Number(document.getElementById('f-weight')?.value) || 0;
     row.hidden = довес <= 0;

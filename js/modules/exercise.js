@@ -223,7 +223,14 @@ export const exercise = {
                     ${tile(t('Последний раз'), daysAgo === 0 ? t('сегодня') : format.count(daysAgo, format.WORDS.day))}
                 </div>
 
-                ${record.kind === 'reps' && !bodyLoad ? ui.html`
+                <!--
+                    Про неотмеченный вес тела говорится только там, где он
+                    что-то решает. У резинки доля нулевая (Р-85): объём не
+                    считается не потому, что вес не отмечен, а потому, что
+                    своего веса в упражнении нет, — и звать отмечать его
+                    значило бы обещать, что после этого объём появится.
+                -->
+                ${record.kind === 'reps' && bodyShare > 0 && !bodyLoad ? ui.html`
                     <p class="hint">
                         ${t('Объём не считается: не отмечен вес тела.')}
                         <button class="link-btn" data-action="nav" data-screen="stats">${t('Отметить в статистике')}</button>
