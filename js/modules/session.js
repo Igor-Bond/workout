@@ -113,6 +113,32 @@ function запомнитьПаузу(exerciseId, seconds) {
     последняя = seconds;
 }
 
+/**
+ * Довес упражнения с внешним сопротивлением помнится за упражнением (Р-86).
+ *
+ * У штанги вес — решение на сегодня, и приложение его не предсказывает
+ * (§10.2): подставить прошлый значило бы решить за человека, что он поднимет.
+ * У резинки это не решение, а свойство снаряда: связка «синяя + зелёная +
+ * красная + жёлтая» тянет одинаково в понедельник и в пятницу, и вписывать её
+ * заново каждую тренировку — та же морока, что с паузой до Р-46.
+ *
+ * Признак ровно один и он уже есть: нулевая доля собственного веса (Р-85).
+ * Она стоит там, где нагрузка внешняя и другого способа её записать нет.
+ */
+async function запомнитьДовес(вес) {
+    const exercise = знакомые[currentId];
+    if (!exercise || !currentId) return;
+
+    if (estimate.shareOf({ ...exercise, kind: exercise.kind || 'weight' }) !== 0) return;
+
+    const число = Number(вес) || 0;
+    if (число === (Number(exercise.defaultWeight) || 0)) return;
+
+    // Свой снимок правится сразу: следующая отрисовка читает его, а не базу
+    знакомые[currentId] = { ...exercise, defaultWeight: число || undefined };
+    await dbService.updateExercise(currentId, { defaultWeight: число || undefined });
+}
+
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
 let currentId = null;
 let mode = null;
@@ -224,7 +250,15 @@ function сравнимый(history, workout, проведённые) {
 function loadLine({ exercises, kind, bodyWeight }, prefill) {
     const exercise = exercises[currentId] || {};
 
-    const свой = estimate.bodyLoad({ exercise: { ...exercise, kind }, bodyWeight });
+    /*
+     * У нулевой доли вес тела ни при чём (Р-85, Р-86): своего веса в
+     * упражнении нет, а довес есть — и показать его надо, даже если человек
+     * ни разу не взвешивался. Взвешивание требуется только там, где долю на
+     * него умножают.
+     */
+    const доля = estimate.shareOf({ ...exercise, kind });
+    const свой = доля === 0 ? 0 : estimate.bodyLoad({ exercise: { ...exercise, kind }, bodyWeight });
+
     if (свой === null) return '';
 
     const довес = Number(prefill?.weight) || 0;
@@ -269,10 +303,10 @@ function refreshExtraLine() {
     const row = document.getElementById('rec-extra');
     if (!row || !view) return;
 
-    const свой = estimate.bodyLoad({
-        exercise: { ...(view.exercises[currentId] || {}), kind: view.kind },
-        bodyWeight: view.bodyWeight
-    });
+    const exercise = { ...(view.exercises[currentId] || {}), kind: view.kind };
+
+    const доля = estimate.shareOf(exercise);
+    const свой = доля === 0 ? 0 : estimate.bodyLoad({ exercise, bodyWeight: view.bodyWeight });
 
     if (свой === null) return;
 
@@ -567,7 +601,13 @@ function currentCard({ workout, sets, exercises, rows }) {
     if (!row) return ui.empty(t('Добавь упражнение, чтобы начать.'));
 
     const exercise = exercises[currentId] || {};
-    const prefill = engine.prefill(workout.plan, sets, currentId);
+    // Довес резинки — свойство снаряда, а не решение на сегодня (Р-86):
+    // движку он приносится готовым, справочника тот не знает
+    const prefill = engine.prefill(workout.plan, sets, currentId, {
+        weight: estimate.shareOf({ ...exercise, kind: exercise.kind || 'weight' }) === 0
+            ? exercise.defaultWeight
+            : null
+    });
     const own = engine.setsOf(sets, currentId);
 
     const planItem = workout.plan.find((p) => p.exerciseId === currentId);
@@ -962,6 +1002,8 @@ async function записатьПодход(values) {
 
     // Подход записан — короткий отклик под палец (§28.1)
     haptics.tap();
+
+    await запомнитьДовес(values.weight);
 
     // Отдых запускается от нажатия, а не от отрисовки: пользователь уже
     // взаимодействовал со страницей, и браузер разрешит звук в конце.
