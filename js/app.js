@@ -32,7 +32,7 @@ import { profile } from './modules/profile.js';
 import { guide } from './modules/guide.js';
 import { surveyScreen } from './modules/survey.js';
 import { program } from './modules/program.js';
-import { intro } from './modules/intro.js';
+import { intro, знакомствоЖдёт } from './modules/intro.js';
 import { watch } from './modules/watch.js';
 
 /**
@@ -234,6 +234,44 @@ export const app = {
 
 
         screen.mount?.(route.params);
+
+        // Полоса возврата к знакомству (Р-94): человек ушёл с него на чужой
+        // экран, и без неё остальные шаги ему больше не встретятся
+        app.renderIntroBanner(route.name);
+    },
+
+    /**
+     * Знакомство отправило человека на другой экран и ждёт его назад (Р-94).
+     *
+     * Полоса живёт ровно между уходом и возвращением: на самом знакомстве её
+     * нет, у прошедшего его — тоже. Ничего не спрашивает и не мешает —
+     * говорит, на каком человек шаге, и предлагает вернуться.
+     */
+    async renderIntroBanner(screenName) {
+        if (screenName === 'intro') return app.hideBanner('intro');
+
+        const ждёт = await знакомствоЖдёт().catch(() => null);
+
+        if (!ждёт) return app.hideBanner('intro');
+
+        const текст = t('Знакомство: шаг {n} из {всего}', { n: ждёт.номер, всего: ждёт.всего });
+
+        /*
+         * Номер меняется, пока полоса висит: человек заполнил профиль — и он
+         * уже на втором шаге, не сходя с экрана. Полосу при этом не
+         * пересоздаём: она мигала бы при каждой перерисовке.
+         */
+        const висит = document.querySelector('[data-banner="intro"] span');
+
+        if (висит) {
+            if (висит.textContent !== текст) висит.textContent = текст;
+            return;
+        }
+
+        app.showBanner('intro', ui.html`
+            <span>${текст}</span>
+            <button class="banner-btn" data-action="nav" data-screen="intro">${t('Вернуться')}</button>
+        `);
     },
 
     /** Подсветка активного раздела в меню. */

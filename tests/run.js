@@ -16,6 +16,7 @@ import { actions } from '../js/core/actions.js';
 actions.init();
 
 // Наборы регистрируют проверки самим фактом импорта
+await import('./suites/config.test.js');
 await import('./suites/i18n.test.js');
 await import('./suites/actions.test.js');
 await import('./suites/wakelock.test.js');

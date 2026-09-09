@@ -239,6 +239,28 @@ p:last-child { margin-bottom: 0; }
     font-size: 13px;
 }
 
+/*
+ * Приложение не запустилось (Р-95).
+ *
+ * Не полоса и не окно: и то и другое рисуется модулями, а их в этот момент
+ * нет. Обычный текст на месте «Загрузка…» — единственное, что точно покажется.
+ */
+.boot-failed {
+    padding: 40px 16px;
+    text-align: center;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.boot-failed p { margin: 0 0 10px; }
+
+.boot-failed .boot-quiet {
+    color: var(--text-dim);
+    font-size: 12px;
+    word-break: break-word;
+}
+
 .noscript {
     padding: 20px;
     color: var(--text);

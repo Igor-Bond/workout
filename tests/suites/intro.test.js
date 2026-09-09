@@ -10,7 +10,7 @@
 
 import { describe, it, equal, assert } from '../runner.js';
 import { screen, text, hasAction, press, seed, workout } from '../helpers/dom.js';
-import { intro, INTRO_KEY, нужноЗнакомство } from '../../js/modules/intro.js';
+import { intro, INTRO_KEY, нужноЗнакомство, знакомствоЖдёт } from '../../js/modules/intro.js';
 import { ATHLETE_KEY } from '../../js/modules/athlete.js';
 import { dbService } from '../../js/services/db.js';
 
@@ -102,6 +102,56 @@ describe('Шаги идут по одному', () => {
         await seed();
 
         assert(hasAction(await screen(intro), 'intro-done'), 'знакомство не ловушка');
+    });
+
+    /*
+     * Шаг уводит на чужой экран, и знакомству нужно чем-то позвать обратно
+     * (Р-94). Без метки человек заполнял профиль и оставался в нём: остальные
+     * четыре шага не показывались никогда, и знакомство выглядело состоящим
+     * из одного шага.
+     */
+    it('уход на шаг помечается и просит вернуться', async () => {
+        await seed();
+
+        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+
+        equal((await dbService.getSetting(INTRO_KEY, null))?.pending, 'athlete');
+        equal(await знакомствоЖдёт(), { номер: 1, всего: 5 });
+    });
+
+    it('возвращение снимает метку', async () => {
+        await seed();
+
+        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+        await screen(intro);
+
+        equal((await dbService.getSetting(INTRO_KEY, null))?.pending, null);
+        equal(await знакомствоЖдёт(), null, 'человек вернулся — звать больше некуда');
+    });
+
+    it('номер на полосе идёт за сделанным', async () => {
+        await seed();
+
+        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+        await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
+
+        equal((await знакомствоЖдёт()).номер, 2, 'профиль заполнен — знакомство уже на втором шаге');
+    });
+
+    it('пройденное знакомство обратно не зовёт', async () => {
+        await seed();
+
+        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+        await press('intro-done');
+
+        equal(await знакомствоЖдёт(), null);
+    });
+
+    it('без ухода полосы нет', async () => {
+        await seed();
+        await screen(intro);
+
+        equal(await знакомствоЖдёт(), null, 'знакомство открыто — звать в него неоткуда');
     });
 
     it('«начать» закрывает знакомство навсегда', async () => {

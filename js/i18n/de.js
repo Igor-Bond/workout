@@ -1282,6 +1282,8 @@ export const DE = {
     // Пошаговое знакомство, ключ Google и поиск по справочнику (§61, §60.2, §5.3)
     'Пять шагов, каждый можно пропустить. Приложение работает и без них — просто по-разному': 'Fünf Schritte, jeder überspringbar. Die App funktioniert auch ohne sie — nur anders',
     'шаг {n} из {всего}': 'Schritt {n} von {всего}',
+    'Знакомство: шаг {n} из {всего}': 'Einstieg: Schritt {n} von {всего}',
+    'Вернуться': 'Zurück',
     'Всё, можно тренироваться': 'Das war’s — Zeit zu trainieren',
     'Один раз сейчас, дальше — когда захотите. Отмечать удобно раз в неделю в один и тот же день.': 'Einmal jetzt, danach wann du willst. Praktisch ist einmal pro Woche am selben Tag.',
     'Без веса нагрузка отжиманий, планки и складки считается нулём: приложение берёт её долей от веса тела. Половина вашей работы просто не попадёт в счёт.': 'Ohne Gewicht zählt die Belastung von Liegestützen, Planke und Crunches als null: die App nimmt sie als Anteil des Körpergewichts. Die Hälfte deiner Arbeit käme gar nicht in die Rechnung.',

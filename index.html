@@ -114,6 +114,53 @@
     <div class="noscript">Приложению нужен JavaScript — включите его в настройках браузера.</div>
 </noscript>
 
+<!--
+    Сторож запуска (Р-95).
+
+    Обычный скрипт, а не модуль, и стоит он до модуля: если модуль не
+    загрузился или упал на первой строке, этот всё равно выполнится. Иначе
+    человек видит «Загрузка…» вечно, а мы не узнаём ничего — «не открывается
+    в браузере» это всё, что доходит до разработчика.
+
+    Ничего не чинит: показывает, что случилось, и чем показать это тому, кто
+    сможет починить. Текст двуязычный — переводчик живёт в модулях, а их-то и
+    нет.
+-->
+<script>
+(function () {
+    var беда = null;
+
+    window.addEventListener('error', function (e) {
+        беда = беда || (e.message + (e.filename ? ' — ' + e.filename + ':' + e.lineno : ''));
+    }, true);
+
+    window.addEventListener('unhandledrejection', function (e) {
+        беда = беда || ('' + ((e.reason && e.reason.message) || e.reason));
+    });
+
+    setTimeout(function () {
+        var место = document.querySelector('#screen .loading');
+        if (!место) return;
+
+        место.className = 'boot-failed';
+        место.textContent = '';
+
+        var строка = function (текст, тихо) {
+            var p = document.createElement('p');
+            p.textContent = текст;
+            if (тихо) p.className = 'boot-quiet';
+            место.appendChild(p);
+        };
+
+        строка('Приложение не запустилось. Попробуйте обновить страницу.');
+        строка('The app did not start. Try reloading the page.', true);
+
+        if (беда) строка(беда, true);
+        строка(navigator.userAgent, true);
+    }, 8000);
+})();
+</script>
+
 <script type="module" src="js/main.js"></script>
 </body>
 </html>

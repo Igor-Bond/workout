@@ -10,6 +10,47 @@
 const PREFIX = 'wt_';
 
 /**
+ * Настройки переживают отказ хранилища (Р-95).
+ *
+ * `localStorage` доступен не всегда: браузер с запретом на данные сайтов —
+ * у Firefox это обычная строгая защита от слежения — на первое же обращение
+ * бросает исключение, а не возвращает пусто. Настройки читаются при самой
+ * первой отрисовке, и необёрнутое обращение роняло приложение целиком: экран
+ * оставался на «Загрузка…», и со стороны это выглядело как «не открывается в
+ * этом браузере».
+ *
+ * Запасное хранилище — в памяти: настройки живут до перезагрузки и работают
+ * все до одной. Хуже, чем с диском, и несравнимо лучше, чем никак.
+ */
+const впамяти = new Map();
+let жалоба = false;
+
+function пожаловаться(e) {
+    if (жалоба) return;
+
+    жалоба = true;
+    console.warn('[Настройки] Хранилище недоступно, работаем в памяти:', e);
+}
+
+function читать(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (e) {
+        пожаловаться(e);
+        return впамяти.has(key) ? впамяти.get(key) : null;
+    }
+}
+
+function писать(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (e) {
+        пожаловаться(e);
+        впамяти.set(key, value);
+    }
+}
+
+/**
  * Пальцем или мышью.
  *
  * При отсутствии matchMedia считаем, что телефон: приложение прежде всего
@@ -185,8 +226,8 @@ export const config = {
     },
 
     get(key) {
-        const raw = localStorage.getItem(PREFIX + key);
-        if (raw === null) return DEFAULTS[key];
+        const raw = читать(PREFIX + key);
+        if (raw === null || raw === undefined) return DEFAULTS[key];
 
         try {
             return JSON.parse(raw);
@@ -197,7 +238,7 @@ export const config = {
     },
 
     set(key, value) {
-        localStorage.setItem(PREFIX + key, JSON.stringify(value));
+        писать(PREFIX + key, JSON.stringify(value));
     },
 
     /** Все настройки одним объектом. */
@@ -209,6 +250,9 @@ export const config = {
 
     /** Сброс к значениям по умолчанию. */
     reset() {
-        for (const key of Object.keys(DEFAULTS)) localStorage.removeItem(PREFIX + key);
+        for (const key of Object.keys(DEFAULTS)) {
+            впамяти.delete(PREFIX + key);
+            try { localStorage.removeItem(PREFIX + key); } catch (e) { пожаловаться(e); }
+        }
     }
 };
