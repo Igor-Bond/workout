@@ -267,6 +267,10 @@ export const planner = {
         const развёртка = разобран?.from ? ядро.expand(разобран, { days: 14 }) : [];
         const этап = сохранённый ? ядро.stageAt(сохранённый) : null;
 
+        // Разобранное годится к утверждению — от этого зависит и кнопка, и
+        // то, какая из кнопок на экране яркая (Р-96)
+        const можноУтвердить = !!черновик && ядро.usable(разобран);
+
         /*
          * План, назвавший исключённое, говорит об этом при разборе (§58).
          *
@@ -477,13 +481,22 @@ export const planner = {
                 <textarea id="plan-text" class="report-text" rows="12"
                           placeholder="${t('С 06.09.2026, 8 недель')}">${черновик?.text ?? сохранённый?.text ?? ''}</textarea>
 
+                <!--
+                    Яркая кнопка на экране одна (Р-96). Пока плана нет,
+                    главное действие — «Разобрать»; как только разобранное
+                    можно утвердить, главным становится оно, а «Разобрать»
+                    гаснет. Две оранжевые кнопки подряд сливались в одно
+                    пятно, и было непонятно, где кончается одна.
+                -->
                 <div class="row-links">
-                    <button class="btn btn-accent" data-action="sheet-parse">${t('Разобрать')}</button>
+                    <button class="btn ${можноУтвердить ? 'btn-ghost' : 'btn-accent'}" data-action="sheet-parse">
+                        ${t('Разобрать')}
+                    </button>
                     <label class="btn btn-ghost" for="plan-file">${t('Из файла')}</label>
                     <input type="file" id="plan-file" accept=".txt,.md,.csv,text/plain" hidden data-change="sheet-file">
                 </div>
 
-                ${черновик && ядро.usable(разобран) ? ui.html`
+                ${можноУтвердить ? ui.html`
                     <button class="btn btn-accent btn-lg" data-action="sheet-apply">${t('Утвердить план')}</button>
                 ` : ''}
             </div>

@@ -29,6 +29,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
+import { planner, putDraft } from '../../js/modules/planner.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
 import { restTimer } from '../../js/core/timer.js';
@@ -714,6 +715,67 @@ describe('Экран: справочник, поиск', () => {
             поле.dispatchEvent(new Event('input', { bubbles: true }));
             поле.remove();
         }
+    });
+
+});
+
+/**
+ * Яркая кнопка на экране плана одна (§56, Р-96).
+ *
+ * «Разобрать» и «Утвердить план» стояли одна под другой, обе оранжевые и обе
+ * во всю ширину, — и сливались в одно пятно буквой Г. Проверяется по классам:
+ * цвет берётся из них, и разъехаться они с разметкой не могут.
+ */
+describe('Экран: план, одна яркая кнопка', () => {
+
+    /*
+     * Смотрим карточку с полем плана, а не весь экран: рядом бывает своя
+     * карточка «Завести все» — она про другое дело и стоит отдельно, между
+     * карточками зазор есть всегда. Сливались же кнопки внутри одной.
+     */
+    const яркие = (view) => [...view.querySelector('#plan-text').closest('.card').querySelectorAll('.btn-accent')]
+        .map((b) => b.textContent.trim());
+
+    it('без черновика главное действие — «Разобрать»', async () => {
+        await seed();
+        putDraft('');
+
+        const view = await screen(planner);
+
+        equal(яркие(view), ['Разобрать']);
+    });
+
+    it('с разобранным черновиком яркое одно — «Утвердить план»', async () => {
+        await seed();
+
+        putDraft(['С 07.09.2026, 8 недель', '', 'Пн Отжимания 6 × 50, пауза 5 мин', 'Ср Баскетбол'].join('\n'));
+
+        const view = await screen(planner);
+
+        equal(яркие(view), ['Утвердить план'],
+            'две оранжевые кнопки подряд читаются как одна');
+
+        assert(view.querySelector('[data-action="sheet-parse"]').className.includes('btn-ghost'),
+            '«Разобрать» гаснет, но остаётся: правку строки надо чем-то перечитать');
+
+        putDraft('');
+    });
+
+    /*
+     * Непонятый черновик утверждать нечего — и тогда «Разобрать» остаётся
+     * главным: человеку надо поправить текст и нажать её снова.
+     */
+    it('на непонятом черновике яркое остаётся у «Разобрать»', async () => {
+        await seed();
+
+        putDraft('какой-то текст без даты и дней');
+
+        const view = await screen(planner);
+
+        equal(яркие(view), ['Разобрать']);
+        assert(!hasAction(view, 'sheet-apply'), 'утверждать нечего');
+
+        putDraft('');
     });
 
 });
