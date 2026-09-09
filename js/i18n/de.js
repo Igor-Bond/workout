@@ -904,6 +904,14 @@ export const DE = {
     'талия': 'Taille',
     'см за месяц': 'cm im Monat',
 
+    // Сводка с часов в статистике (§62.6)
+    'С часов': 'Von der Uhr',
+    'Сон': 'Schlaf',
+    'Пульс покоя': 'Ruhepuls',
+    'Шаги в день': 'Schritte pro Tag',
+    'Пульс занятий': 'Puls im Training',
+    'Среднее за неделю. Привезено {когда}.': 'Wochendurchschnitt. Geholt {когда}.',
+
     // Шаги с целью (§62.5)
     'Шаги': 'Schritte',
     'из {n}': 'von {n}',

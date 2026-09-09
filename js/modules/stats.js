@@ -24,6 +24,10 @@ import { haptics } from '../core/haptics.js';
 import { observations } from '../services/howgoing.js';
 import { putQuestion } from './coach.js';
 import { app } from '../app.js';
+import { currentWellness, currentActivities } from './watch.js';
+import { recovery } from '../core/recovery.js';
+import { effort } from '../core/effort.js';
+import { ICU_STEPS_GOAL } from '../services/icu.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
 let period = 'month';
@@ -95,6 +99,82 @@ function monthLabels(days) {
 
     // Первая подпись часто налезает на край — она и так очевидна по второй
     return labels.slice(1);
+}
+
+/**
+ * Что привезли часы — компактно, в статистике (§62.6, Р-91).
+ *
+ * Раньше это жило только на экране настройки часов, куда заходят один раз, и
+ * в сводке тренеру. Выходило, что человек видит свой сон и пульс покоя реже
+ * всех: тренер получает их каждую неделю, а хозяин — когда вспомнит.
+ *
+ * Здесь плитками, а не строками: числа в ряд читаются одним взглядом, как и
+ * остальные плитки статистики. Толкование — то же самое, что уходит
+ * собеседнику, и лежит оно строками ниже: два разных объяснения одних чисел
+ * были бы двумя разными приложениями.
+ *
+ * Пусто — карточки нет вовсе: часы не у всех, и «нет данных» в разделе за
+ * разделом это шум, а не сведения.
+ */
+async function часыБлок() {
+    const [{ rows, at }, занятия, цель] = await Promise.all([
+        currentWellness(),
+        currentActivities(),
+        dbService.getSetting(ICU_STEPS_GOAL, 0)
+    ]);
+
+    if (rows.length === 0 && занятия.length === 0) return null;
+
+    const сон = recovery.sleep(rows);
+    const пульс = recovery.resting(rows);
+    const шаги = recovery.steps(rows);
+
+    const свежие = effort.recent(занятия);
+    const пульсЗанятий = свежие.length
+        ? свежие.map((a) => Number(a.avgHr)).filter((v) => v > 0)
+        : [];
+
+    const средний = пульсЗанятий.length
+        ? Math.round(пульсЗанятий.reduce((s, v) => s + v, 0) / пульсЗанятий.length)
+        : 0;
+
+    const выводы = [...recovery.describe(rows), ...effort.describe(занятия)];
+
+    return ui.html`
+        <div class="card">
+            <div class="card-title">${t('С часов')}</div>
+
+            <div class="tiles">
+                <!--
+                    Сон часами и минутами, а не «7:15:00»: секунды сна не
+                    измеряют, а двоеточий в плитке и так хватает
+                -->
+                ${сон !== null ? tile(t('Сон'), t('{часы} ч {минуты} мин', {
+                    часы: Math.floor(сон / 3600), минуты: Math.round((сон % 3600) / 60)
+                })) : ''}
+                <!--
+                    У пульса покоя изменения в плитке нет намеренно: там рост
+                    красится хорошим цветом, а у этой величины рост — плохой
+                    знак. Сдвиг к обычному сказан словами строкой ниже.
+                -->
+                ${пульс ? tile(t('Пульс покоя'), String(пульс.now)) : ''}
+                ${шаги !== null ? tile(t('Шаги в день'), format.decimal(Math.round(шаги), 0)) : ''}
+                ${средний ? tile(t('Пульс занятий'), String(средний)) : ''}
+                ${цель > 0 && шаги !== null
+                    ? tile(t('Цель по шагам'), `${Math.min(999, Math.round((шаги / цель) * 100))} %`)
+                    : ''}
+            </div>
+
+            ${выводы.map((с) => ui.html`<div class="plan-rule">${с}</div>`)}
+
+            <p class="hint">
+                ${t('Среднее за неделю. Привезено {когда}.', {
+                    когда: dates.formatDayLabel(at, Date.now(), { lower: true })
+                })}
+                <button class="link-btn" data-action="nav" data-screen="watch">${t('Данные с часов')}</button>
+            </p>
+        </div>
+    `;
 }
 
 /**
@@ -279,9 +359,15 @@ export const stats = {
         );
 
         if (entries.length === 0) {
+            /*
+             * Часы и вес показываются и без тренировок: они про человека, а
+             * не про подходы. Тому, кто ещё не занимался, но уже носит часы,
+             * пустой раздел говорил бы, что приложение о нём ничего не знает.
+             */
             return ui.html`
                 ${ui.title(t('Статистика'))}
                 ${ui.empty(t('Нет данных — сначала проведи тренировку.'))}
+                ${(await часыБлок()) || ''}
                 ${bodyBlock(weights, null)}
             `;
         }
@@ -348,11 +434,14 @@ export const stats = {
             }));
 
         const ход = await observations();
+        const часы = await часыБлок();
 
         return ui.html`
             ${ui.title(t('Статистика'))}
 
             ${ходБлок(ход, planCore.active(объявленный))}
+
+            ${часы || ''}
 
             <div class="chips">${periodChips}</div>
 

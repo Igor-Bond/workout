@@ -94,7 +94,14 @@ const EN = {
         'Отжимания узким хватом': 'Diamond push-ups',
         'Обратные отжимания': 'Bench dips',
         'Отжимания в наклоне': 'Pike push-ups',
-        'Вис на турнике': 'Dead hang'
+        'Вис на турнике': 'Dead hang',
+
+        'Махи гирей': 'Kettlebell swing',
+        'Гоблет-приседания': 'Goblet squat',
+        'Становая тяга с гирей': 'Kettlebell deadlift',
+        'Тяга гири в наклоне': 'Kettlebell bent-over row',
+        'Жим гири стоя': 'Kettlebell overhead press',
+        'Турецкий подъём': 'Turkish get-up'
     },
 
     howTo: {
@@ -161,7 +168,14 @@ const EN = {
         'Отжимания узким хватом': 'Hands under the chest, thumbs and index fingers forming a triangle. Elbows stay close to the body.',
         'Обратные отжимания': 'Hands on a bench behind you, feet in front. Lower to a right angle at the elbow, keep the shoulders down.',
         'Отжимания в наклоне': 'Hips high, body in an inverted V. Lower the crown of the head between the hands, elbows along the body.',
-        'Вис на турнике': 'Grip at shoulder width, body relaxed. Do not let the shoulders sag — keep the blades slightly drawn together.'
+        'Вис на турнике': 'Grip at shoulder width, body relaxed. Do not let the shoulders sag — keep the blades slightly drawn together.',
+
+        'Махи гирей': 'The hips do the work, not the arms: hips back, then snap forward. The bell floats up on its own, back stays flat, no higher than the chest.',
+        'Гоблет-приседания': 'Bell at the chest, elbows in. Sink between the knees, back straight, heels down.',
+        'Становая тяга с гирей': 'Bell between the feet, hips back, back flat. Drive with the legs, the bell travels close to the body.',
+        'Тяга гири в наклоне': 'Torso hinged forward, back flat, free hand supported. Pull with the elbow back and squeeze the shoulder blade.',
+        'Жим гири стоя': 'Bell racked at the shoulder, elbow tucked. Press to a straight arm without arching the lower back.',
+        'Турецкий подъём': 'Slow and step by step: roll to the elbow, to the hand, bridge, sweep the knee under, stand. Eyes on the bell the whole time.'
     }
 };
 
@@ -242,7 +256,14 @@ const DE = {
         'Отжимания узким хватом': 'Diamant-Liegestütze',
         'Обратные отжимания': 'Trizepsdips an der Bank',
         'Отжимания в наклоне': 'Pike-Liegestütze',
-        'Вис на турнике': 'Hängen an der Stange'
+        'Вис на турнике': 'Hängen an der Stange',
+
+        'Махи гирей': 'Kettlebell-Swing',
+        'Гоблет-приседания': 'Goblet-Squat',
+        'Становая тяга с гирей': 'Kreuzheben mit Kettlebell',
+        'Тяга гири в наклоне': 'Rudern mit Kettlebell',
+        'Жим гири стоя': 'Schulterdrücken mit Kettlebell',
+        'Турецкий подъём': 'Türkisch Aufstehen'
     },
 
     howTo: {
@@ -309,7 +330,14 @@ const DE = {
         'Отжимания узким хватом': 'Hände unter der Brust, Daumen und Zeigefinger bilden ein Dreieck. Die Ellbogen bleiben am Körper.',
         'Обратные отжимания': 'Hände hinter dir auf der Bank, Beine vorn. Bis zum rechten Winkel im Ellbogen absenken, Schultern unten lassen.',
         'Отжимания в наклоне': 'Hüfte hoch, Körper im umgekehrten V. Den Scheitel zwischen den Händen absenken, Ellbogen am Körper.',
-        'Вис на турнике': 'Griff schulterbreit, Körper locker. Die Schultern nicht durchhängen lassen — Schulterblätter leicht zusammen.'
+        'Вис на турнике': 'Griff schulterbreit, Körper locker. Die Schultern nicht durchhängen lassen — Schulterblätter leicht zusammen.',
+
+        'Махи гирей': 'Die Hüfte arbeitet, nicht die Arme: Becken zurück, dann kräftig nach vorn. Die Kugel fliegt von selbst, Rücken gerade, nicht höher als die Brust.',
+        'Гоблет-приседания': 'Kugel vor der Brust, Ellbogen innen. Zwischen die Knie absinken, Rücken gerade, Fersen am Boden.',
+        'Становая тяга с гирей': 'Kugel zwischen den Füßen, Becken zurück, Rücken gerade. Aus den Beinen heben, die Kugel bleibt nah am Körper.',
+        'Тяга гири в наклоне': 'Oberkörper vorgebeugt, Rücken gerade, freie Hand abgestützt. Mit dem Ellbogen nach hinten ziehen, Schulterblatt zusammenführen.',
+        'Жим гири стоя': 'Kugel in der Rack-Position an der Schulter, Ellbogen angelegt. Bis zum gestreckten Arm drücken, Lendenwirbelsäule nicht überstrecken.',
+        'Турецкий подъём': 'Langsam und Schritt für Schritt: auf den Ellbogen, auf die Hand, Brücke, Knie durchziehen, aufstehen. Der Blick bleibt an der Kugel.'
     }
 };
 

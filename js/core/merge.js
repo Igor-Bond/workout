@@ -28,9 +28,11 @@ export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight'];
  * другу границу приёма, и часть истории перестала бы доезжать вовсе.
  *
  * Поэтому едет ровно то, что перечислено, и каждый новый ключ добавляется
- * сюда осознанно.
+ * сюда осознанно. Цель по шагам едет (Р-89): сколько шагов считать своим
+ * днём — решение человека, а не свойство устройства. Ключ Intervals.icu не
+ * едет и не поедет: он личный и лежит там, где его завели (§39.1).
  */
-export const SYNCED_SETTINGS = ['plan', 'athlete', 'planJournal'];
+export const SYNCED_SETTINGS = ['plan', 'athlete', 'planJournal', 'stepsGoal'];
 
 export const merge = {
 

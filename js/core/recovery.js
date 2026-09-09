@@ -92,6 +92,11 @@ export const recovery = {
         return среднее(recovery.recent(rows, options).map((r) => r.sleep));
     },
 
+    /** Средние шаги за окно. Та же величина, что уходит собеседнику. */
+    steps(rows = [], options = {}) {
+        return среднее(recovery.recent(rows, options).map((r) => r.steps));
+    },
+
     /**
      * Пульс покоя: сколько сейчас и насколько это отличается от базы.
      *
@@ -193,7 +198,7 @@ export const recovery = {
          * одинаковой историей подходов. Собеседнику это говорит больше, чем
          * ещё одно число об объёме.
          */
-        const шаги = среднее(recovery.recent(rows, { now }).map((r) => r.steps));
+        const шаги = recovery.steps(rows, { now });
 
         if (шаги !== null) {
             строки.push(t('Шаги: в среднем {n} в день', { n: Math.round(шаги) }));

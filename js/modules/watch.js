@@ -373,19 +373,38 @@ actions.onChange('watch-key', async (el) => {
  * задерживать отправку, либо отправлять без данных. Привезённое лежит и
  * говорит, когда оно привезено.
  */
-actions.on('watch-load', async () => {
-    if (ждём) return;
+/**
+ * Забрать замеры и занятия (§62.1).
+ *
+ * Один и тот же ход для кнопки и для автоматического забора (Р-90) — иначе
+ * это были бы два разных забора с разной судьбой ошибок и разным составом
+ * запросов, и расходиться они начали бы с первой же правки.
+ *
+ * `тихо` — про голос, а не про действие: молчаливый забор не рисует ни
+ * ожидания, ни красной полосы. Осечка при нём — обычное дело (метро, самолёт,
+ * выключенный вайфай), и сообщать о ней тому, кто ничего не нажимал, незачем;
+ * место осечки — рядом с кнопкой, которую нажали.
+ *
+ * `notSooner` — не чаще, чем раз в столько-то: возвращение в приложение
+ * случается два десятка раз за тренировку, а замеры за это время не меняются.
+ */
+export async function забратьСЧасов({ notSooner = 0, тихо = true } = {}) {
+    if (ждём) return null;
 
     const [key, athlete] = await Promise.all([
         dbService.getSetting(ICU_KEY, ''),
         dbService.getSetting(ICU_ATHLETE, '')
     ]);
 
-    if (!icu.ready(key, athlete)) return;
+    if (!icu.ready(key, athlete)) return null;
 
-    ждём = true;
-    ошибка = '';
-    await app.render();
+    if (notSooner > 0) {
+        const прошлый = await currentWellness();
+        if (прошлый.at && Date.now() - прошлый.at < notSooner) return null;
+    }
+
+    ждём = !тихо;
+    if (!тихо) { ошибка = ''; await app.render(); }
 
     try {
         /*
@@ -435,19 +454,34 @@ actions.on('watch-load', async () => {
             беды.push(занятия.reason?.message || t('Занятия забрать не удалось.'));
         }
 
+        const приехало = замеры.status === 'fulfilled' || занятия.status === 'fulfilled';
+
+        if (тихо) return { received: приехало };
+
         haptics.tap();
 
         if (беды.length) ошибка = беды.join(' ');
         else if (замеры.value.length === 0) {
             ошибка = t('Intervals.icu ответил, но замеров за месяц там нет. Проверьте, что Zepp туда пишет.');
         }
+
+        return { received: приехало };
     } catch (e) {
-        ошибка = e.message;
+        // Молчаливому забору осечка не повод рисовать полосу: он идёт сам,
+        // а объясняться приложение обязано перед тем, кто нажал
+        if (!тихо) ошибка = e.message;
+        else console.warn('[Часы] Молчаливый забор не удался:', e);
+
+        return { received: false };
     } finally {
-        ждём = false;
-        await app.render();
+        if (!тихо) {
+            ждём = false;
+            await app.render();
+        }
     }
-});
+}
+
+actions.on('watch-load', () => забратьСЧасов({ тихо: false }));
 
 
 
