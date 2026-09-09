@@ -34,6 +34,15 @@ export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight'];
  */
 export const SYNCED_SETTINGS = ['plan', 'athlete', 'planJournal', 'stepsGoal'];
 
+/**
+ * Свой ли это объект — тот, что можно разобрать по ключам и собрать заново.
+ *
+ * Простой набор полей — да. Отметка времени Firestore, Date, что угодно со
+ * своим прототипом — нет: пересборка превратила бы их в набор чисел.
+ */
+const свой = (v) => !!v && typeof v === 'object'
+    && (Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null);
+
 export const merge = {
 
     SYNCED,
@@ -82,13 +91,29 @@ export const merge = {
      * Firestore не принимает undefined. Наши записи полны необязательных
      * полей — вес у планки, заметка, отметка удаления, — и без очистки
      * запись просто не уйдёт.
+     *
+     * Вглубь, а не только по верху (Р-97). Тренировка везёт с собой план, а
+     * план — список упражнений со своими необязательными полями: пауза
+     * упражнения, заметка к строке. Очистка по верхнему слою их не видела, и
+     * обмен падал целиком: «Unsupported field value: undefined (found in
+     * document users/…/workouts/…)». На компьютере той же беды не было —
+     * тренировки заводились до того, как у строк плана появились свои поля.
+     *
+     * Чужие объекты не разбираются: отметка времени Firestore — не набор
+     * полей, и пересобранная по ключам она перестала бы быть отметкой.
      */
-    clean(record) {
+    clean(value) {
+        if (Array.isArray(value)) {
+            return value.filter((v) => v !== undefined).map(merge.clean);
+        }
+
+        if (!свой(value)) return value;
+
         const result = {};
 
-        for (const [key, value] of Object.entries(record)) {
-            if (value === undefined) continue;
-            result[key] = value;
+        for (const [key, v] of Object.entries(value)) {
+            if (v === undefined) continue;
+            result[key] = merge.clean(v);
         }
 
         return result;

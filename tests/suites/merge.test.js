@@ -159,6 +159,47 @@ describe('Очистка записи', () => {
 
         equal(Object.keys(clean).sort(), ['a', 'b', 'c', 'd'], 'ноль и пустая строка — это значения');
     });
+
+    /*
+     * Тот самый отказ обмена (Р-97): «Unsupported field value: undefined
+     * (found in document users/…/workouts/…)». Тренировка везёт с собой план,
+     * а undefined сидел внутри его строк — очистка по верхнему слою его не
+     * видела, и падал весь обмен, а не одна запись.
+     */
+    it('undefined выбрасывается и из вложенного', () => {
+        const clean = merge.clean({
+            id: 'w1',
+            plan: [
+                { exerciseId: 'e1', restSeconds: undefined, note: undefined, plannedSets: 6 },
+                { exerciseId: 'e2', restSeconds: 60 }
+            ],
+            sets: [{ id: 's1', reps: 10, weight: undefined }]
+        });
+
+        equal(Object.keys(clean.plan[0]).sort(), ['exerciseId', 'plannedSets']);
+        equal(clean.plan[1].restSeconds, 60, 'заданное остаётся');
+        equal(Object.keys(clean.sets[0]).sort(), ['id', 'reps']);
+    });
+
+    it('пустой элемент списка не уезжает', () => {
+        equal(merge.clean({ items: [1, undefined, 2] }).items, [1, 2]);
+    });
+
+    /*
+     * Отметка времени Firestore — не набор полей: пересобранная по ключам,
+     * она перестала бы быть отметкой. Чужие объекты очистка не разбирает.
+     */
+    it('чужие объекты не пересобираются', () => {
+        class Отметка { constructor() { this.seconds = 5; } }
+
+        const метка = new Отметка();
+        const дата = new Date(1000);
+
+        const clean = merge.clean({ syncedAt: метка, at: дата });
+
+        equal(clean.syncedAt === метка, true, 'отметка обязана уехать той же');
+        equal(clean.at === дата, true);
+    });
 });
 
 describe('Отметка последнего обмена', () => {

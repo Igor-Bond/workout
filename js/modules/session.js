@@ -1470,8 +1470,14 @@ actions.on('sess-note-exercise', async () => {
 
     if (!values) return;
 
-    const plan = view.workout.plan.map((p) =>
-        p.exerciseId === currentId ? { ...p, note: values.note || undefined } : p);
+    // Заметки нет — нет и поля: undefined внутри строки плана роняет обмен
+    // целиком (Р-97), а очистка по верхнему слою его не замечает
+    const plan = view.workout.plan.map((p) => {
+        if (p.exerciseId !== currentId) return p;
+
+        const { note: _было, ...остальное } = p;
+        return values.note ? { ...остальное, note: values.note } : остальное;
+    });
 
     await dbService.updateWorkout(view.workout.id, { plan });
     app.render();
