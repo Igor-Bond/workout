@@ -594,6 +594,26 @@ describe('Тренировки и подходы', () => {
         equal((await dbService.listBodyWeight()).length, 0);
     });
 
+    /**
+     * Обхват талии живёт в той же записи, что и вес (Р-88).
+     *
+     * Мерят их одним утром, а схему хранилища трогать нельзя (§35). Главное
+     * здесь — что взвешивание без ленты не стирает прошлый замер: человек
+     * встаёт на весы чаще, чем берёт сантиметр.
+     */
+    it('талия пишется рядом с весом и не теряется без неё', async () => {
+        await reset();
+
+        await dbService.setBodyWeight({ weight: 93, waist: 98 });
+        equal((await dbService.lastBodyWeight()).waist, 98);
+
+        await dbService.setBodyWeight({ weight: 92.5 });
+        const запись = await dbService.lastBodyWeight();
+
+        equal(запись.weight, 92.5);
+        equal(запись.waist, 98, 'взвесился без ленты — прежний замер обязан остаться');
+    });
+
     it('удалённая тренировка не заслоняет собой новую активную', async () => {
         await reset();
 

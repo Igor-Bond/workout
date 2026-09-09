@@ -108,6 +108,18 @@ function bodyBlock(weights, range) {
     const change = calc.bodyChange(series);
     const last = weights[weights.length - 1];
 
+    /*
+     * Талия рядом с весом (Р-88).
+     *
+     * Весы отвечают не на тот вопрос, который задаёт человек, решивший убрать
+     * живот: вес стоит, пока мышцы приходят на место ушедшего жира, — а
+     * сантиметры уходят. Показывается только тем, кто мерит: пустая плитка с
+     * прочерком звала бы вписать в неё что попало.
+     */
+    const талия = calc.bodySeries(weights, range, 'waist');
+    const поТалии = calc.bodyChange(талия);
+    const последняяТалия = талия[талия.length - 1];
+
     return ui.html`
         <div class="card">
             <div class="card-title">${t('Вес тела')}</div>
@@ -120,6 +132,12 @@ function bodyBlock(weights, range) {
                         `${change.delta > 0 ? '+' : change.delta < 0 ? '−' : ''}${format.weight(Math.abs(change.delta))}`
                     ) : ''}
                     ${tile(t('Взвешиваний'), String(series.length))}
+
+                    ${последняяТалия ? tile(t('Талия, см'), format.weight(последняяТалия.weight)) : ''}
+                    ${поТалии ? tile(
+                        t('Талия за период, см'),
+                        `${поТалии.delta > 0 ? '+' : поТалии.delta < 0 ? '−' : ''}${format.weight(Math.abs(поТалии.delta))}`
+                    ) : ''}
                 </div>
 
                 ${series.length >= 2 ? chart.line([{
@@ -143,6 +161,23 @@ function bodyBlock(weights, range) {
                         до: format.weight(change.to),
                         дни: format.count(change.days, format.WORDS.day)
                     })}</p>
+                ` : ''}
+
+                <!--
+                    Своя линия, а не вторая на графике веса (Р-88):
+                    килограммы и сантиметры — величины разной природы, и
+                    общая ось складывала бы их в одну картинку, где непонятно,
+                    что именно пошло вниз.
+                -->
+                ${талия.length >= 2 ? ui.html`
+                    <div class="chart-title">${t('Талия, см')}</div>
+                    ${chart.line([{
+                        color: 'var(--accent)',
+                        segments: [талия.map((p) => ({
+                            x: p.at, y: p.weight, key: `waist-${p.at}`,
+                            label: dates.formatShort(p.at)
+                        }))]
+                    }], { height: 110 })}
                 ` : ''}
 
                 <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at, Date.now(), { lower: true }) })}</p>
@@ -479,6 +514,13 @@ actions.on('body-add', async () => {
             : t('Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.'),
         fields: [
             { name: 'weight', label: t('Вес, кг'), type: 'number', required: true, value: last?.weight ?? '' },
+
+            /*
+             * Талия необязательна и стоит второй (Р-88): её мерят не каждый
+             * раз, а требовать ленту ради взвешивания значило бы не получить
+             * ни того, ни другого. Пустое поле прежний замер не стирает.
+             */
+            { name: 'waist', label: t('Талия, см (необязательно)'), type: 'number', value: today?.waist ?? '' },
             { name: 'note', label: t('Заметка (необязательно)'), value: today?.note || '' }
         ],
         confirmText: t('Сохранить')
@@ -486,7 +528,7 @@ actions.on('body-add', async () => {
 
     if (!values || !values.weight) return;
 
-    await dbService.setBodyWeight({ weight: values.weight, note: values.note });
+    await dbService.setBodyWeight({ weight: values.weight, waist: values.waist, note: values.note });
     app.render();
 });
 

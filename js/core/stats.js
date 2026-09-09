@@ -484,11 +484,12 @@ export const stats = {
     },
 
     /** Точки графика веса тела: {at, weight}. */
-    bodySeries(entries = [], range = null) {
+    bodySeries(entries = [], range = null, field = 'weight') {
         return entries
             .filter((e) => stats.inRange(e.at, range))
+            .filter((e) => Number.isFinite(Number(e[field])) && Number(e[field]) > 0)
             .sort((a, b) => a.at - b.at)
-            .map((e) => ({ at: e.at, weight: e.weight }));
+            .map((e) => ({ at: e.at, weight: Number(e[field]) }));
     },
 
     /**

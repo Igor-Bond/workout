@@ -1078,18 +1078,32 @@ export const dbService = {
      * сколько угодно раз, но в истории веса нужна одна точка на день,
      * иначе график превратится в шум от утренних и вечерних измерений.
      */
-    async setBodyWeight({ at = Date.now(), weight, note = '' }) {
+    /**
+     * Замер тела на день: вес и, если мерили, обхват талии (§26.3).
+     *
+     * Талия живёт свободным полем в той же записи (Р-88): схему хранилища
+     * трогать нельзя (§35), а мерят её тогда же, когда взвешиваются, — раз в
+     * неделю утром. Отдельная таблица была бы второй записью об одном утре.
+     *
+     * undefined значит «не мерили» и прежнее не стирает: человек может
+     * взвеситься без ленты, и терять из-за этого прошлый замер незачем.
+     */
+    async setBodyWeight({ at = Date.now(), weight, waist, note = '' }) {
         const day = startOfDay(at);
         const now = Date.now();
 
         const existing = await db.bodyWeight.where('at').equals(day).first();
+        const число = Number(waist) > 0 ? Number(waist) : undefined;
 
         if (existing) {
-            await db.bodyWeight.update(existing.id, { weight, note, deletedAt: undefined, updatedAt: now });
+            const правка = { weight, note, deletedAt: undefined, updatedAt: now };
+            if (число !== undefined) правка.waist = число;
+
+            await db.bodyWeight.update(existing.id, правка);
             return dbService.getBodyWeightOn(day);
         }
 
-        const record = { id: newId(), at: day, weight, note, updatedAt: now };
+        const record = { id: newId(), at: day, weight, waist: число, note, updatedAt: now };
         await db.bodyWeight.add(record);
         return record;
     },

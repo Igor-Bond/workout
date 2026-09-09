@@ -19,7 +19,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS, ICU_PUSH } from '../services/icu.js';
+import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS, ICU_PUSH, ICU_STEPS_GOAL } from '../services/icu.js';
 import { recovery } from '../core/recovery.js';
 import { effort } from '../core/effort.js';
 import { schedule } from '../core/schedule.js';
@@ -228,13 +228,14 @@ export const watch = {
     nav: 'profile',
 
     async render() {
-        const [key, athlete, хранимое, занятия, план, отправка] = await Promise.all([
+        const [key, athlete, хранимое, занятия, план, отправка, цельШагов] = await Promise.all([
             dbService.getSetting(ICU_KEY, ''),
             dbService.getSetting(ICU_ATHLETE, ''),
             currentWellness(),
             сведенияОЗанятиях(),
             currentPlan(),
-            dbService.getSetting(ICU_PUSH, null)
+            dbService.getSetting(ICU_PUSH, null),
+            dbService.getSetting(ICU_STEPS_GOAL, 0)
         ]);
 
         const привязаны = icu.ready(key, athlete);
@@ -318,6 +319,26 @@ export const watch = {
                         <button class="link-btn" data-action="watch-forget">${t('Отвязать')}</button>
                     ` : ''}
                 </div>
+            </div>
+
+            <!--
+                Цель по шагам стоит здесь, а не в профиле (Р-89): шаги
+                приезжают отсюда, и настройка живёт рядом со своим источником.
+                Ставит её человек — сколько ему нужно, приложение не знает, а
+                десять тысяч из рекламы шагомеров не норма и не цель.
+            -->
+            <div class="card">
+                <div class="card-title">${t('Шаги')}</div>
+
+                <p class="hint">
+                    ${цельШагов > 0
+                        ? t('Цель — {n} шагов в день. Она видна на главном экране рядом с сегодняшним числом.', { n: format.decimal(цельШагов, 0) })
+                        : t('Без цели шаги просто показываются числом. Цель нужна не приложению, а Вам: она превращает ходьбу в то, что видно сделанным.')}
+                </p>
+
+                <button class="btn btn-ghost btn-sm" data-action="steps-goal">
+                    ${цельШагов > 0 ? t('Изменить цель') : t('Поставить цель')}
+                </button>
             </div>
 
             <button class="btn btn-ghost" data-action="nav" data-screen="profile">${t('← В профиль')}</button>
@@ -464,3 +485,31 @@ actions.on('watch-push', async () => {
     await app.render();
 });
 
+
+/**
+ * Цель по шагам (§62.5, Р-89).
+ *
+ * Ноль — «цели нет», и это законный ответ: тогда шаги просто показываются
+ * числом. Пустое поле значит то же самое, а не «оставить как было»: убрать
+ * цель человек должен уметь так же легко, как поставить.
+ */
+actions.on('steps-goal', async () => {
+    const было = await dbService.getSetting(ICU_STEPS_GOAL, 0);
+
+    const values = await dialog.form({
+        title: t('Цель по шагам'),
+        text: t('Сколько шагов в день Вы считаете своим днём. Пусто — цели нет, шаги останутся просто числом.'),
+        fields: [
+            { name: 'goal', label: t('Шагов в день'), type: 'number', value: было || '', placeholder: '8000' }
+        ],
+        confirmText: t('Сохранить')
+    });
+
+    if (!values) return;
+
+    const цель = Math.max(0, Math.round(Number(values.goal) || 0));
+
+    await dbService.setSetting(ICU_STEPS_GOAL, цель);
+    haptics.tap();
+    await app.render();
+});

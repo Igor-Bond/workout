@@ -512,8 +512,30 @@ function запасБлок({ history, kind, exercises }) {
     `;
 }
 
+/**
+ * В чём человек считает это упражнение на время (Р-87).
+ *
+ * Планку держат секундами, а баскетбол играют часами: 90 минут в поле для
+ * секунд — это 5400, и вписывать такое никто не станет. Единица помнится за
+ * упражнением, как пауза (Р-46) и вес резинки (Р-86): она свойство занятия, а
+ * не сегодняшнее решение.
+ *
+ * Внутри всё по-прежнему в секундах — в базе, в отсчёте, в истории. Минуты
+ * живут только на входе и на подписи.
+ */
+const МИНУТА = 60;
+
+function вМинутах(exercise) {
+    return exercise?.timeUnit === 'min';
+}
+
+/** Множитель ввода: во что превращается вписанное число. */
+function шагВремени(exercise) {
+    return вМинутах(exercise) ? МИНУТА : 1;
+}
+
 /** Поля ввода зависят от вида упражнения (§6). */
-function fields(kind, prefill) {
+function fields(kind, prefill, exercise = {}) {
     const value = (v) => (v === null || v === undefined ? '' : v);
 
     if (kind === 'time') {
@@ -526,17 +548,31 @@ function fields(kind, prefill) {
          */
         if (отсчёт?.exerciseId === currentId) return holdBlock();
 
+        const минуты = вМинутах(exercise);
+        const введённое = prefill.duration === null || prefill.duration === undefined
+            ? null
+            : (минуты ? Math.round((prefill.duration / МИНУТА) * 10) / 10 : prefill.duration);
+
         return ui.html`
-            <input type="number" class="big-input" id="f-duration" min="0" inputmode="numeric"
-                   placeholder="0" value="${value(prefill.duration)}" data-enter="sess-done">
-            <div class="big-label">${t('секунд')}</div>
+            <input type="number" class="big-input" id="f-duration" min="0" inputmode="decimal"
+                   placeholder="0" value="${value(введённое)}" data-enter="sess-done">
+            <div class="big-label">${минуты ? t('минут') : t('секунд')}</div>
 
             <!--
                 Отсчёт предлагается, но не навязывается: поле остаётся, и
                 вписать число руками можно по-прежнему. Секундомер без цели
                 тоже нужен — планку «до отказа» никакой целью не описать.
+
+                Занятие на час отсчётом не меряют вовсе — его записывают по
+                факту, одним числом (Р-87). Поэтому рядом переключатель
+                единицы: он же и говорит, в чём приложение сейчас считает.
             -->
-            <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
+            <div class="row-links">
+                <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
+                <button class="link-btn" data-action="sess-time-unit">
+                    ${минуты ? t('считать в секундах') : t('считать в минутах')}
+                </button>
+            </div>
         `;
     }
 
@@ -626,7 +662,7 @@ function currentCard({ workout, sets, exercises, rows }) {
                 ${loadLine(view, prefill)}
             </div>
 
-            ${fields(exercise.kind || 'weight', prefill)}
+            ${fields(exercise.kind || 'weight', prefill, exercise)}
 
             <!--
                 Во время отсчёта заметки и «Выполнено» убраны (§57): свою
@@ -932,7 +968,7 @@ function invalid(id) {
 }
 
 /** Значения полей по виду упражнения. null означает «не прошло проверку». */
-function readFields(kind) {
+function readFields(kind, exercise = {}) {
     const num = (id) => {
         const el = document.getElementById(id);
         if (!el || el.value.trim() === '') return null;
@@ -941,7 +977,10 @@ function readFields(kind) {
     };
 
     if (kind === 'time') {
-        const duration = num('f-duration');
+        // Вписать могли в минутах (Р-87), а хранится всегда в секундах
+        const введённое = num('f-duration');
+        const duration = введённое === null ? null : Math.round(введённое * шагВремени(exercise));
+
         if (!duration || duration <= 0) { invalid('f-duration'); return null; }
         return { duration };
     }
@@ -962,9 +1001,10 @@ function readFields(kind) {
 actions.on('sess-done', async () => {
     if (!view || !currentId) return;
 
-    const kind = view.exercises[currentId]?.kind || 'weight';
+    const exercise = view.exercises[currentId] || {};
+    const kind = exercise.kind || 'weight';
 
-    const values = readFields(kind);
+    const values = readFields(kind, exercise);
     if (!values) return;
 
     // Запас едет с подходом, если он отмечен (§59). Не отмечен — подход
@@ -1102,7 +1142,9 @@ function снятьОтсчёт() {
 actions.on('sess-hold-start', () => {
     if (!view || !currentId) return;
 
-    const target = hold.clamp(document.getElementById('f-duration')?.value);
+    // Поле может считать в минутах (Р-87), а отсчёт идёт секундами
+    const вписано = Number(document.getElementById('f-duration')?.value) || 0;
+    const target = hold.clamp(вписано * шагВремени(знакомые[currentId]));
 
     отсчёт = { exerciseId: currentId, target, startedAt: Date.now() };
 
@@ -1355,6 +1397,26 @@ actions.on('sess-note-toggle', (el) => {
  * а не общая настройка из профиля. Общая остаётся началом отсчёта для
  * незнакомых упражнений (Р-46).
  */
+/**
+ * Переключить единицу упражнения на время (Р-87).
+ *
+ * Помнится за упражнением: планку всегда считают секундами, баскетбол всегда
+ * минутами, и спрашивать об этом каждый раз незачем. Записанное в истории не
+ * трогается — оно в секундах и там и остаётся.
+ */
+actions.on('sess-time-unit', async () => {
+    if (!currentId) return;
+
+    const было = знакомые[currentId] || {};
+    const timeUnit = вМинутах(было) ? 'sec' : 'min';
+
+    знакомые[currentId] = { ...было, timeUnit };
+    await dbService.updateExercise(currentId, { timeUnit });
+
+    haptics.tap();
+    await app.render();
+});
+
 actions.on('sess-rest', async () => {
     const идёт = restTimer.running && restTimer.exerciseId === currentId;
 

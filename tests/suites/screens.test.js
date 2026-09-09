@@ -92,6 +92,44 @@ describe('Экран: главная', () => {
         assert(!has(мало, '×'), 'множителя повторов на экране больше нет');
     });
 
+    /**
+     * Талия и шаги на главном (Р-88, Р-89).
+     *
+     * Обе строки показываются только тем, у кого есть что показывать: талия —
+     * тому, кто её мерит, шаги — тому, у кого привязаны часы. Иначе это место
+     * занимала бы просьба, а не сведения.
+     */
+    it('талия показывается тому, кто её мерит', async () => {
+        await seed();
+        await dbService.setBodyWeight({ weight: 93 });
+
+        assert(!has(await screen(home), 'талия'), 'без замера строки нет');
+
+        await dbService.setBodyWeight({ weight: 93, waist: 98 });
+        const view = await screen(home);
+
+        assert(has(view, 'талия'), `после замера строка есть: ${text(view).slice(0, 200)}`);
+        assert(has(view, '98'), 'с самим числом');
+    });
+
+    it('шаги показываются только с привезёнными замерами', async () => {
+        await seed();
+
+        assert(!has(await screen(home), 'Шаги'), 'без часов шагам взяться неоткуда');
+
+        await dbService.setSetting('icuWellness', {
+            at: Date.now(),
+            rows: [{ date: Date.now() - DAY, steps: 6400 }, { date: Date.now(), steps: 8200 }]
+        });
+        await dbService.setSetting('stepsGoal', 8000);
+
+        const view = await screen(home);
+
+        assert(has(view, 'Шаги'), `раздел появился: ${text(view).slice(0, 200)}`);
+        assert(has(view, '8 200') || has(view, '8200'), 'показывается последний известный день');
+        assert(has(view, '100 %'), 'цель выполнена — доля видна');
+    });
+
     it('незавершённая тренировка предлагается к продолжению', async () => {
         const ex = await seed();
         await dbService.createWorkout({ type: 'Силовая', plan: [
@@ -1676,6 +1714,75 @@ describe('Очередь и план на главном (Р-72)', () => {
         const строка = text(await screen(home));
 
         assert(строка.includes('На очереди'), `очередь без плана остаётся: ${строка.slice(0, 200)}`);
+    });
+
+});
+
+/**
+ * Единица упражнения на время (Р-87).
+ *
+ * Планку держат секундами, баскетбол играют часами: 90 минут в поле для секунд
+ * — это 5400, и вписывать такое никто не станет. Единица помнится за
+ * упражнением, а внутри всё остаётся секундами.
+ */
+describe('Экран: выполнение, минуты вместо секунд', () => {
+
+    async function начать(exercise) {
+        session.leave();
+
+        await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: exercise.id, plannedSets: 1, targetDuration: null, skipped: false }]
+        });
+
+        return screen(session);
+    }
+
+    it('по умолчанию считает секундами', async () => {
+        const ex = await seed({ name: 'Планка', kind: 'time', group: 'Пресс' });
+
+        const view = await начать(ex);
+
+        assert(text(view).includes('секунд'), `подпись поля: ${text(view).slice(0, 200)}`);
+        assert(hasAction(view, 'sess-time-unit'), 'переключатель обязан быть на виду');
+    });
+
+    it('переключение помнится за упражнением', async () => {
+        const ex = await seed({ name: 'Баскетбол', kind: 'time', group: 'Кардио' });
+
+        await начать(ex);
+        await press('sess-time-unit');
+
+        equal((await dbService.getExercise(ex.id)).timeUnit, 'min');
+
+        const view = await screen(session);
+        assert(text(view).includes('минут'), `подпись обязана смениться: ${text(view).slice(0, 200)}`);
+    });
+
+    /*
+     * Прошлое значение показывается в той же единице, в которой его вводили:
+     * 5400 секунд в поле «минут» — это 90, а не 5400.
+     */
+    it('прошлое значение переводится в минуты', async () => {
+        const ex = await seed({ name: 'Баскетбол', kind: 'time', group: 'Кардио' });
+        await dbService.updateExercise(ex.id, { timeUnit: 'min' });
+
+        session.leave();
+
+        const workout = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: ex.id, plannedSets: 2, targetDuration: null, skipped: false }]
+        });
+
+        await dbService.addSet({
+            workoutId: workout.id, exerciseId: ex.id,
+            order: 1, setNumber: 1, duration: 5400
+        });
+
+        const view = await screen(session);
+        const поле = view.querySelector('#f-duration');
+
+        equal(поле?.getAttribute('value'), '90', 'полтора часа — это 90 минут, а не 5400');
     });
 
 });

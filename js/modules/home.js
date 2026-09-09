@@ -38,6 +38,8 @@ import { plan as planCore } from '../core/plan.js';
 import { currentPlan, PLAN_KEY } from './planner.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete } from './athlete.js';
+import { currentWellness } from './watch.js';
+import { ICU_STEPS_GOAL } from '../services/icu.js';
 
 const DAY = 86400000;
 
@@ -745,6 +747,54 @@ function weekBlock(entries) {
  * Запись открывает то же окно, что и на статистике: обработчик `body-add`
  * зарегистрирован там и, как и `nav`, доступен всему приложению.
  */
+/**
+ * Шаги за день с целью (§62.5, Р-89).
+ *
+ * Показывается только тому, у кого шаги есть: без часов это была бы строка о
+ * нуле, а нулём приложение попрекать не станет. День берётся последний, о
+ * котором известно, — часы отдают данные не сразу, и вчерашние шаги честнее
+ * сегодняшнего нуля, если он ещё не приехал.
+ *
+ * Цель ставит человек. Без неё показывается просто число: десять тысяч из
+ * рекламы шагомеров — не медицинская норма и не цель этого человека.
+ */
+async function шагиБлок() {
+    const [{ rows }, цель] = await Promise.all([
+        currentWellness(),
+        dbService.getSetting(ICU_STEPS_GOAL, 0)
+    ]);
+
+    const сшагами = rows.filter((r) => r.steps > 0).sort((a, b) => a.date - b.date);
+    const последний = сшагами[сшагами.length - 1];
+
+    if (!последний) return null;
+
+    const неделя = сшагами.filter((r) => r.date >= Date.now() - 7 * DAY);
+    const среднее = неделя.length
+        ? Math.round(неделя.reduce((s, r) => s + r.steps, 0) / неделя.length)
+        : 0;
+
+    const доля = цель > 0 ? Math.min(100, Math.round((последний.steps / цель) * 100)) : 0;
+
+    return ui.html`
+        <div class="section">
+            <div class="section-title">${t('Шаги')}</div>
+
+            <button class="weight-row" data-action="steps-goal">
+                <span class="w-value">
+                    ${format.decimal(последний.steps, 0)}
+                    ${цель > 0 ? ui.html`<small>${t('из {n}', { n: format.decimal(цель, 0) })}</small>` : ''}
+                </span>
+                <span class="w-meta">
+                    ${dates.formatDayLabel(последний.date, Date.now(), { lower: true })}
+                    ${цель > 0 ? ` · ${доля} %` : ''}
+                    ${среднее ? ` · ${t('в среднем {n} за неделю', { n: format.decimal(среднее, 0) })}` : ''}
+                </span>
+            </button>
+        </div>
+    `;
+}
+
 function bodyBlock(records) {
     if (records.length === 0) return null;
 
@@ -752,6 +802,13 @@ function bodyBlock(records) {
     const month = stats.bodyChange(records.filter((r) => r.at >= Date.now() - 30 * DAY));
 
     const sign = (v) => (v > 0 ? '+' : v < 0 ? '−' : '');
+
+    // Талия рядом с весом и только у того, кто её мерит (Р-88): у веса и
+    // сантиметров разный ход, и один без другого отвечает лишь наполовину
+    const талия = stats.bodyChange(
+        stats.bodySeries(records.filter((r) => r.at >= Date.now() - 30 * DAY), null, 'waist'));
+
+    const последняяТалия = [...records].reverse().find((r) => Number(r.waist) > 0);
 
     return ui.html`
         <div class="section">
@@ -765,6 +822,17 @@ function bodyBlock(records) {
                         : ''}${dates.formatDayLabel(last.at, Date.now(), { lower: true })}
                 </span>
             </button>
+
+            ${последняяТалия ? ui.html`
+                <button class="weight-row" data-action="body-add">
+                    <span class="w-value">${format.weight(последняяТалия.waist)} <small>${t('см')}</small></span>
+                    <span class="w-meta">
+                        ${t('талия')}${талия && талия.delta
+                            ? ` · ${sign(талия.delta)}${format.weight(Math.abs(талия.delta))} ${t('см за месяц')}`
+                            : ''}
+                    </span>
+                </button>
+            ` : ''}
         </div>
     `;
 }
@@ -775,7 +843,7 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, сводки, templates, exercises, body, подходы, объявленный, профиль] = await Promise.all([
+        const [active, сводки, templates, exercises, body, подходы, объявленный, профиль, шаги] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
             dbService.listTemplates(),
@@ -783,7 +851,8 @@ export const home = {
             dbService.listBodyWeight(),
             dbService.allSets(),
             currentPlan(),
-            currentAthlete()
+            currentAthlete(),
+            шагиБлок()
         ]);
 
         // Тоннаж — вся нагрузка, вместе с собственным весом (Р-52). Считается
@@ -927,6 +996,8 @@ export const home = {
 
             ${entries.length ? weekBlock(entries) : ''}
 
+            ${шаги || ''}
+
             ${bodyBlock(body) || ''}
         `;
     }
@@ -1008,11 +1079,21 @@ actions.on('today-start', async (el) => {
          */
         const время = exercise.kind === 'time';
 
+        /*
+         * Число плана читается в единице упражнения (Р-87). «Планка 2 × 45» —
+         * это сорок пять секунд, «Баскетбол 1 × 90» — девяносто минут, и
+         * различает их карточка упражнения, а не текст: текст справочника не
+         * знает, а здесь упражнение уже найдено.
+         */
+        const минуты = время && exercise.timeUnit === 'min';
+
         состав.push({
             exerciseId: exercise.id,
             plannedSets: упражнение.sets || 1,
             targetReps: время ? null : (упражнение.reps ?? null),
-            targetDuration: время ? (упражнение.reps ?? null) : null,
+            targetDuration: время
+                ? (упражнение.reps ? упражнение.reps * (минуты ? 60 : 1) : null)
+                : null,
 
             /*
              * Своя пауза упражнения из строки плана (Р-84). Едет вместе с
