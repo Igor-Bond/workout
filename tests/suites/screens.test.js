@@ -560,6 +560,164 @@ describe('Экран: итоги', () => {
     });
 });
 
+/**
+ * Поиск по справочнику отбирает на месте (§5.3, Р-93).
+ *
+ * Проверяется в настоящем документе, а не в отдельном узле: отбор работает
+ * прямо по разметке, и смысл его в том, что экран при вводе не
+ * перерисовывается — на телефоне перерисовка закрывала и открывала
+ * клавиатуру после каждой буквы.
+ */
+describe('Экран: справочник, поиск', () => {
+
+    /** Справочник из двенадцати упражнений: короче поле поиска не показывается. */
+    async function положить() {
+        await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+
+        const прочие = [
+            ['Приседания', 'Ноги'], ['Выпады', 'Ноги'], ['Ягодичный мостик', 'Ноги'],
+            ['Тяга резинки к поясу', 'Спина'], ['Подтягивания', 'Спина'],
+            ['Отжимания', 'Грудь'], ['Брусья', 'Грудь'],
+            ['Жим стоя', 'Плечи'], ['Махи с резинкой в стороны', 'Плечи'],
+            ['Пресс', 'Пресс'], ['Планка', 'Пресс']
+        ];
+
+        for (const [name, group] of прочие) {
+            await dbService.createExercise({ name, kind: 'reps', group });
+        }
+    }
+
+    /** Отрисовать справочник в настоящий документ и вернуть узел. */
+    async function открыть() {
+        const box = document.createElement('div');
+        box.innerHTML = String(await exercises.render());
+        document.body.appendChild(box);
+
+        exercises.mount?.();
+
+        return box;
+    }
+
+    /** Набрать в поле поиска — так же, как это делает человек. */
+    async function набрать(box, текст) {
+        const поле = box.querySelector('#ex-search');
+        поле.value = текст;
+        поле.dispatchEvent(new Event('input', { bubbles: true }));
+
+        await new Promise((r) => setTimeout(r, 30));
+    }
+
+    const видимые = (box) => [...box.querySelectorAll('.ex-row')].filter((r) => !r.hidden);
+
+    it('оставляет подходящее и считает найденное', async () => {
+        await положить();
+        const box = await открыть();
+
+        try {
+            assert(box.querySelector('#ex-search'), 'на длинном списке поле обязано быть');
+            equal(видимые(box).length, 12, 'до ввода видно всё');
+
+            await набрать(box, 'ног');
+
+            const имена = видимые(box).map((r) => r.querySelector('.ex-name').textContent.trim());
+
+            equal(имена.length, 3, `нашлось: ${имена.join(', ')}`);
+            assert(имена.includes('Приседания') && имена.includes('Ягодичный мостик'),
+                'ищется и по названию, и по группе');
+
+            assert(box.querySelector('#ex-active-title').textContent.includes('3'),
+                'заголовок считает найденное, а не всё подряд');
+        } finally {
+            box.remove();
+        }
+    });
+
+    /*
+     * Поле поиска обязано пережить ввод: перерисовка экрана подменяла его
+     * новым узлом, и телефон закрывал клавиатуру после каждой буквы.
+     */
+    it('поле ввода не подменяется', async () => {
+        await положить();
+        const box = await открыть();
+
+        try {
+            const было = box.querySelector('#ex-search');
+
+            await набрать(box, 'жим');
+            await набрать(box, 'жим л');
+
+            equal(box.querySelector('#ex-search'), было, 'узел поля обязан остаться тем же');
+            equal(box.querySelector('#ex-search').value, 'жим л', 'и набранное в нём тоже');
+        } finally {
+            box.remove();
+        }
+    });
+
+    it('пустой запрос возвращает весь список', async () => {
+        await положить();
+        const box = await открыть();
+
+        try {
+            await набрать(box, 'планка');
+            equal(видимые(box).length, 1);
+
+            await набрать(box, '');
+            equal(видимые(box).length, 12);
+        } finally {
+            box.remove();
+        }
+    });
+
+    it('ненайденное говорит об этом', async () => {
+        await положить();
+        const box = await открыть();
+
+        try {
+            await набрать(box, 'штанга на бицепс без ничего');
+
+            equal(видимые(box).length, 0);
+            equal(box.querySelector('#ex-nothing').hidden, false);
+        } finally {
+            box.remove();
+        }
+    });
+
+    /*
+     * Экран рисуется заново по другим поводам — архивации, переименованию, —
+     * и набранное в поиске обязано пережить это: иначе после архивации из
+     * поиска перед человеком молча разворачивается весь справочник.
+     */
+    it('отбор переживает перерисовку', async () => {
+        await положить();
+        const первый = await открыть();
+
+        try {
+            await набрать(первый, 'плеч');
+            equal(видимые(первый).length, 2);
+        } finally {
+            первый.remove();
+        }
+
+        const второй = await открыть();
+
+        try {
+            equal(второй.querySelector('#ex-search').value, 'плеч', 'поле помнит набранное');
+            equal(видимые(второй).length, 2, 'и список остаётся отобранным');
+        } finally {
+            второй.remove();
+
+            // Поиск живёт в модуле и переживает экраны — следующей проверке
+            // он достался бы набранным
+            const поле = document.createElement('input');
+            поле.id = 'ex-search';
+            document.body.appendChild(поле);
+            поле.dispatchEvent(new Event('input', { bubbles: true }));
+            поле.remove();
+        }
+    });
+
+});
+
 describe('Экран: карточка упражнения', () => {
 
     it('несуществующее упражнение не роняет экран', async () => {

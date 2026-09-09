@@ -907,6 +907,16 @@ export const EN = {
     'талия': 'waist',
     'см за месяц': 'cm over the month',
 
+    // Экран часов: настройка и проверка (§62.1)
+    'Сон, пульс покоя, шаги и пульс занятий. Забираются сами — здесь настройка и проверка': 'Sleep, resting HR, steps and session HR. Fetched automatically — this screen is for setup and checking',
+    'Приложение часов умеет отдавать данные стороннему сервису, а Intervals.icu умеет отдавать их по ключу. Приложение забирает у Intervals.icu сон, пульс покоя, шаги и занятия — и больше ничего.': 'Your watch app can hand data to a third-party service, and Intervals.icu can hand it on by key. The app takes sleep, resting HR, steps and sessions from Intervals.icu — and nothing else.',
+    'Привезено {когда}, дальше само — при запуске и возвращении, не чаще раза в три часа.': 'Fetched {когда}; from here on by itself — on launch and on return, at most once every three hours.',
+    'Пока ничего не привозили. Забор идёт сам при запуске, но можно и сейчас.': 'Nothing fetched yet. It happens by itself on launch, but you can do it now.',
+    'Забрать сейчас': 'Fetch now',
+    'Смотреть в статистике': 'See it in statistics',
+    'Отправить план на часы (необязательно)': 'Send the plan to the watch (optional)',
+    'Проверить связку': 'Check the connection',
+
     // Сводка с часов в статистике (§62.6)
     'С часов': 'From the watch',
     'Сон': 'Sleep',
@@ -1170,7 +1180,6 @@ export const EN = {
     'Пульс на занятиях: средний {ср}, максимум {макс}': 'Heart rate in sessions: {ср} average, {макс} peak',
     'Пульс на занятиях: средний {ср}': 'Heart rate in sessions: {ср} average',
     'Потрачено на занятиях за неделю: {n} ккал': 'Burned in sessions this week: {n} kcal',
-    'Сон и пульс покоя — то, чего приложение о вас не знает, а программа от этого зависит': 'Sleep and resting heart rate — what the app cannot know about you, and what the programme depends on',
     'Восстановление': 'Recovery',
     'Что привезено': 'What was fetched',
     'План на часы': 'Plan to the watch',
@@ -1199,8 +1208,7 @@ export const EN = {
     'Занятия забрать не удалось.': 'The sessions could not be fetched.',
     'Восстановление:': 'Recovery:',
     'Как это связано': 'How it is connected',
-    'Zepp умеет отдавать данные стороннему сервису, а Intervals.icu умеет отдавать их по ключу. Приложение забирает у Intervals.icu сон и пульс покоя — и больше ничего.': 'Zepp can hand your data to a third-party service, and Intervals.icu can hand it on by key. The app takes sleep and resting heart rate from Intervals.icu — and nothing else.',
-    '1. В Zepp: Профиль → Добавить аккаунты → Intervals.icu.': '1. In Zepp: Profile → Add accounts → Intervals.icu.',
+    '1. В приложении часов разрешите Intervals.icu: Zepp — Профиль → Добавить аккаунты → Intervals.icu; Huawei Health — Сторонние сервисы → Health Service Kit, затем на intervals.icu подключить HUAWEI Health.': '1. Allow Intervals.icu in your watch app: Zepp — Profile → Add accounts → Intervals.icu; Huawei Health — Third-party services → Health Service Kit, then connect HUAWEI Health on intervals.icu.',
     '2. На intervals.icu: Settings → Developer → API key.': '2. On intervals.icu: Settings → Developer → API key.',
     '3. Там же номер спортсмена — он вида i123456.': '3. The athlete number is there too — it looks like i123456.',
     'Номер спортсмена': 'Athlete number',
@@ -1212,8 +1220,6 @@ export const EN = {
     'Отвязать': 'Disconnect',
     'Отвязать часы?': 'Disconnect the watch?',
     'Ключ и привезённые замеры будут стёрты. История тренировок не тронется.': 'The key and the measurements fetched will be erased. Your training history is not touched.',
-    'Последний замер {день}': 'Last measurement {день}',
-    'Привезено {когда}. Эти же строки уходят в сводку и тренеру.': 'Fetched {когда}. These same lines go into the summary and to the coach.',
     '{часы} ч {минуты} мин': '{часы} h {минуты} min',
     'Сон за неделю: в среднем {часы} ч {минуты} мин': 'Sleep this week: {часы} h {минуты} min on average',
     'Сон за неделю: в среднем {часы} ч {минуты} мин, оценка {оценка}': 'Sleep this week: {часы} h {минуты} min on average, score {оценка}',
@@ -1297,6 +1303,7 @@ export const EN = {
     'Проверяю…': 'Checking…',
     'Поле пустое: вставьте ключ целиком, он начинается на AIza.': 'The field is empty: paste the whole key, it starts with AIza.',
     'Поиск по названию или группе': 'Search by name or muscle group',
+    'Ничего не нашлось.': 'Nothing found.',
 
     // Ввод паузы во время идущего отсчёта (§16)
     'Отсчёт уже идёт: введённое считается всей длительностью паузы, от последнего подхода. Прошедшее вычтется само.': 'The countdown is already running: what you enter counts as the whole rest from the last set. The time already gone is subtracted for you.',

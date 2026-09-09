@@ -27,8 +27,18 @@ import { renameInPlan, planCalls } from './planner.js';
 function row(exercise, usage) {
     const used = usage.get(exercise.id) || 0;
 
+    /*
+     * Ключ поиска едет в самой строке (Р-93).
+     *
+     * Отбор делается на месте, без перерисовки экрана, и сравнивать ему надо с
+     * чем-то, что уже есть в разметке. Считать ключ заново из показанного
+     * текста нельзя: там и вид, и число подходов, и по «12 подходов» нашлось
+     * бы полсправочника.
+     */
+    const искомое = `${ключ(exercise.name)} ${ключ(exercise.group || '')}`.trim();
+
     return ui.html`
-        <div class="ex-row" data-id="${exercise.id}">
+        <div class="ex-row" data-id="${exercise.id}" data-search="${искомое}">
             <div class="ex-main">
                 <!--
                     Название нажимается: описание техники нужнее всего в
@@ -81,15 +91,6 @@ let поиск = '';
  */
 const ключ = (s) => migrations.normalizeName(s);
 
-
-function подходит(exercise) {
-    if (!поиск) return true;
-
-    const что = ключ(поиск);
-
-    return ключ(exercise.name).includes(что) || ключ(exercise.group).includes(что);
-}
-
 export const exercises = {
 
     title: 'Справочник',
@@ -105,10 +106,9 @@ export const exercises = {
             usage.set(e.id, await dbService.countSetsOfExercise(e.id));
         }));
 
-        const найдено = all.filter(подходит);
-
-        const active = найдено.filter((e) => !e.archived);
-        const archived = найдено.filter((e) => e.archived);
+        // Списки полные: отбор идёт по разметке, а не по данным (Р-93)
+        const active = all.filter((e) => !e.archived);
+        const archived = all.filter((e) => e.archived);
         const foreign = await dbService.countForeignBaseExercises();
 
         return ui.html`
@@ -161,24 +161,83 @@ export const exercises = {
                 </div>
             ` : ''}
 
-            <div class="card">
-                <div class="card-title">${t('В работе — {n}', { n: active.length })}</div>
+            <!--
+                Списки рисуются целиком, а отбор идёт на месте (Р-93): экран
+                при вводе не перерисовывается, поле не подменяется, и
+                клавиатура на телефоне не закрывается после каждой буквы.
+            -->
+            <div class="card" id="ex-active-card">
+                <div class="card-title" id="ex-active-title">${t('В работе — {n}', { n: active.length })}</div>
                 ${active.length
                     ? active.map((e) => row(e, usage))
                     : ui.raw(ui.empty(t('Все упражнения в архиве.')))}
+
+                <p class="hint" id="ex-nothing" hidden>${t('Ничего не нашлось.')}</p>
             </div>
 
             ${archived.length ? ui.html`
-                <div class="card">
-                    <div class="card-title">${t('Архив — {n}', { n: archived.length })}</div>
+                <div class="card" id="ex-archive-card">
+                    <div class="card-title" id="ex-archive-title">${t('Архив — {n}', { n: archived.length })}</div>
                     ${archived.map((e) => row(e, usage))}
                 </div>
             ` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="profile">${t('← В профиль')}</button>
         `;
+    },
+
+    /**
+     * Отбор восстанавливается после перерисовки (Р-93).
+     *
+     * Экран рисуется целиком по любому другому поводу — упражнение
+     * заархивировали, переименовали, перевели, — и разметка возвращается
+     * полной. Строка поиска при этом остаётся набранной, и список обязан
+     * остаться отобранным: иначе после архивации из поиска перед человеком
+     * молча разворачивается весь справочник.
+     */
+    mount() {
+        if (поиск) отобрать();
     }
 };
+
+/**
+ * Оставить видимыми подходящие строки (§5.3, Р-93).
+ *
+ * Прямо в разметке, без перерисовки экрана: перерисовка подменяет поле ввода
+ * новым узлом, и телефон на это закрывает и открывает клавиатуру заново —
+ * после каждой буквы. Фокус вернуть можно, мигание клавиатуры — нет.
+ */
+function отобрать() {
+    const что = ключ(поиск);
+
+    const счёт = { active: 0, archive: 0 };
+
+    for (const строка of document.querySelectorAll('.ex-row')) {
+        const подходит = !что || (строка.dataset.search || '').includes(что);
+
+        строка.hidden = !подходит;
+
+        if (!подходит) continue;
+        if (строка.closest('#ex-archive-card')) счёт.archive += 1;
+        else счёт.active += 1;
+    }
+
+    const заголовок = (id, текст) => {
+        const el = document.getElementById(id);
+        if (el && el.textContent.trim() !== текст) el.textContent = текст;
+    };
+
+    заголовок('ex-active-title', t('В работе — {n}', { n: счёт.active }));
+    заголовок('ex-archive-title', t('Архив — {n}', { n: счёт.archive }));
+
+    // Пустой архив при поиске прячется целиком: карточка с одним заголовком
+    // «Архив — 0» отвечает на вопрос, которого не задавали
+    const архив = document.getElementById('ex-archive-card');
+    if (архив) архив.hidden = счёт.archive === 0;
+
+    const пусто = document.getElementById('ex-nothing');
+    if (пусто) пусто.hidden = счёт.active > 0;
+}
 
 // ================== ДЕЙСТВИЯ ==================
 
@@ -569,36 +628,20 @@ actions.on('ex-relocalize', async () => {
 });
 
 /*
- * Поиск обновляет список по вводу, а не по потере фокуса (§5.3).
+ * Поиск отбирает по вводу, а не по потере фокуса (§5.3).
  *
  * change приходит слишком поздно: человек ищет, глядя в список, а список до
- * ухода из поля не меняется. Задержка в четверть секунды — чтобы не
- * перерисовывать на каждой букве; фокус и место курсора при перерисовке
- * восстанавливаются, поэтому ввод не сбивается.
+ * ухода из поля не меняется.
+ *
+ * Отбор идёт на месте и сразу, без задержки и без перерисовки (Р-93). Прежде
+ * здесь была четверть секунды и app.render(): перерисовка подменяла поле
+ * новым узлом, фокус возвращался — а телефон успевал закрыть и открыть
+ * клавиатуру, и так после каждой буквы.
  */
-let поискЖдёт = 0;
-
 document.addEventListener('input', (e) => {
     if (e.target.id !== 'ex-search') return;
 
     поиск = e.target.value;
-
-    clearTimeout(поискЖдёт);
-
-    поискЖдёт = setTimeout(async () => {
-        await app.render();
-
-        /*
-         * Возвращаем фокус: перерисовка подменяет поле новым узлом, и без
-         * этого человек набирает первую букву, теряет клавиатуру и решает,
-         * что поиск сломан.
-         */
-        const поле = document.getElementById('ex-search');
-
-        if (поле) {
-            поле.focus();
-            поле.setSelectionRange(поле.value.length, поле.value.length);
-        }
-    }, 250);
+    отобрать();
 });
 
