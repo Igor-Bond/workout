@@ -901,6 +901,12 @@ export const DE = {
     'Талия, см': 'Taille, cm',
     'Талия за период, см': 'Taille im Zeitraum, cm',
     'Талия, см (необязательно)': 'Taille, cm (optional)',
+    'Все замеры — {n}': 'Alle Messungen — {n}',
+    'Замер {день}': 'Messung vom {день}',
+    'Пустая талия уберёт обхват. Дату можно поправить — замер переедет на выбранный день.': 'Ein leeres Taillenfeld entfernt den Umfang. Das Datum lässt sich korrigieren — die Messung wandert auf den gewählten Tag.',
+    'Дата': 'Datum',
+    'Убрать замер {день}?': 'Messung vom {день} entfernen?',
+    '{вес} кг. Он уйдёт из графика и из счёта за период.': '{вес} kg. Sie verschwindet aus dem Diagramm und aus der Periodenrechnung.',
     'талия': 'Taille',
     'см за месяц': 'cm im Monat',
 

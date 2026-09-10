@@ -178,6 +178,27 @@ async function часыБлок() {
 }
 
 /**
+ * Дата для поля ввода и обратно (§26.3, Р-98).
+ *
+ * `input[type=date]` понимает только «2026-09-10» и отдаёт то же самое.
+ * Разбирать его через `new Date(строка)` нельзя: такая строка читается как
+ * UTC, и у тех, кто живёт западнее Гринвича, замер уезжал бы на день назад.
+ */
+function дляПоля(at) {
+    const d = new Date(at);
+    const два = (n) => String(n).padStart(2, '0');
+
+    return `${d.getFullYear()}-${два(d.getMonth() + 1)}-${два(d.getDate())}`;
+}
+
+function изПоля(текст, запасной) {
+    const m = String(текст || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return запасной;
+
+    return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+}
+
+/**
  * Вес тела (§26.3).
  *
  * Отдельная карточка, а не строка в общих показателях: это не результат
@@ -261,6 +282,38 @@ function bodyBlock(weights, range) {
                 ` : ''}
 
                 <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at, Date.now(), { lower: true }) })}</p>
+
+                <!--
+                    Список замеров со правкой и удалением (Р-98).
+                    Свёрнут: за год их полсотни, а нужны они в тот редкий раз,
+                    когда в весе ошиблись цифрой. Свежие сверху — искать
+                    ошибку идут в последнее, а не в позапрошлый год.
+                -->
+                <details class="guide">
+                    <summary>${t('Все замеры — {n}', { n: weights.length })}</summary>
+                    <div class="guide-body">
+                        ${[...weights].reverse().map((r) => ui.html`
+                            <div class="ex-row">
+                                <div class="ex-main">
+                                    <span class="ex-name">
+                                        ${format.weight(r.weight)} ${t('кг')}${r.waist
+                                            ? ` · ${format.weight(r.waist)} ${t('см')}`
+                                            : ''}
+                                    </span>
+                                    <div class="ex-meta">
+                                        ${dates.formatDayLabel(r.at, Date.now(), { lower: true })}${r.note ? ` · ${r.note}` : ''}
+                                    </div>
+                                </div>
+                                <div class="ex-actions">
+                                    <button class="icon-btn" data-action="body-edit" data-id="${r.id}"
+                                            title="${t('Изменить')}">✎</button>
+                                    <button class="icon-btn is-danger" data-action="body-drop" data-id="${r.id}"
+                                            title="${t('Убрать')}">×</button>
+                                </div>
+                            </div>
+                        `)}
+                    </div>
+                </details>
             ` : ui.empty(t('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.'))}
 
             <button class="btn btn-ghost btn-sm" data-action="body-add">
@@ -618,6 +671,71 @@ actions.on('body-add', async () => {
     if (!values || !values.weight) return;
 
     await dbService.setBodyWeight({ weight: values.weight, waist: values.waist, note: values.note });
+    app.render();
+});
+
+/**
+ * Правка замера (§26.3, Р-98).
+ *
+ * То же окно, что при записи, только с датой и с настоящей правкой: пустая
+ * талия здесь убирает обхват, а не оставляет прежний. Ошибиться в весе на
+ * цифру — обычное дело, и без правки запись оставалось только удалить, а
+ * вписать её задним числом было нечем: запись всегда шла сегодняшним днём.
+ */
+actions.on('body-edit', async (el) => {
+    const записи = await dbService.listBodyWeight();
+    const запись = записи.find((r) => r.id === el.dataset.id);
+
+    if (!запись) return;
+
+    const values = await dialog.form({
+        title: t('Замер {день}', { день: dates.formatDate(запись.at) }),
+        text: t('Пустая талия уберёт обхват. Дату можно поправить — замер переедет на выбранный день.'),
+        fields: [
+            { name: 'date', label: t('Дата'), type: 'date', value: дляПоля(запись.at) },
+            { name: 'weight', label: t('Вес, кг'), type: 'number', required: true, value: запись.weight },
+            { name: 'waist', label: t('Талия, см (необязательно)'), type: 'number', value: запись.waist ?? '' },
+            { name: 'note', label: t('Заметка (необязательно)'), value: запись.note || '' }
+        ],
+        confirmText: t('Сохранить')
+    });
+
+    if (!values || !values.weight) return;
+
+    await dbService.updateBodyWeight(запись.id, {
+        at: изПоля(values.date, запись.at),
+        weight: values.weight,
+        waist: values.waist,
+        note: values.note
+    });
+
+    haptics.tap();
+    app.render();
+});
+
+/**
+ * Удаление замера (§26.3).
+ *
+ * С вопросом: график и «за период» считаются по этим точкам, и убранная
+ * молча меняет обе величины. Мягко, как всё остальное, — иначе второе
+ * устройство прислало бы её обратно.
+ */
+actions.on('body-drop', async (el) => {
+    const записи = await dbService.listBodyWeight();
+    const запись = записи.find((r) => r.id === el.dataset.id);
+
+    if (!запись) return;
+
+    const ok = await dialog.confirm({
+        title: t('Убрать замер {день}?', { день: dates.formatDate(запись.at) }),
+        text: t('{вес} кг. Он уйдёт из графика и из счёта за период.', { вес: format.weight(запись.weight) }),
+        confirmText: t('Убрать')
+    });
+
+    if (!ok) return;
+
+    await dbService.deleteBodyWeight(запись.id);
+    haptics.tap();
     app.render();
 });
 

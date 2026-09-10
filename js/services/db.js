@@ -1125,6 +1125,54 @@ export const dbService = {
         return all[all.length - 1] || null;
     },
 
+    /**
+     * Правка замера (§26.3, Р-98).
+     *
+     * Отличается от setBodyWeight не только тем, что знает запись в лицо.
+     * Там пустая талия значит «не мерили сегодня» и прежнее не трогает —
+     * человек встаёт на весы чаще, чем берёт ленту. Здесь он правит конкретную
+     * запись, и пустое поле значит именно пусто: иначе ошибочный обхват
+     * нечем было бы убрать.
+     *
+     * Дата тоже правится: замер, записанный не тем днём, иначе оставалось бы
+     * только удалить, а вписать его задним числом было бы нечем.
+     */
+    async updateBodyWeight(id, { at, weight, waist, note = '' } = {}) {
+        const record = await db.bodyWeight.get(id);
+        if (!alive(record)) return null;
+
+        const now = Date.now();
+        const day = startOfDay(at ?? record.at);
+
+        const собрать = (основа) => {
+            const запись = { ...основа, at: day, weight, note, deletedAt: undefined, updatedAt: now };
+
+            // Поля нет вовсе, когда обхват не задан: пустое поле — это
+            // «убрать», а не «оставить как было»
+            delete запись.waist;
+            if (Number(waist) > 0) запись.waist = Number(waist);
+
+            return запись;
+        };
+
+        if (day === record.at) {
+            await db.bodyWeight.put(собрать(record));
+            return dbService.getBodyWeightOn(day);
+        }
+
+        /*
+         * Перенос на другой день. Запись на день по-прежнему одна: если там
+         * уже что-то лежит, правка ложится в неё, а прежняя уходит
+         * надгробием — иначе на графике появился бы день с двумя точками.
+         */
+        const занято = await db.bodyWeight.where('at').equals(day).first();
+
+        await db.bodyWeight.update(id, { deletedAt: now, updatedAt: now });
+        await db.bodyWeight.put(собрать(alive(занято) ? занято : { id: newId() }));
+
+        return dbService.getBodyWeightOn(day);
+    },
+
     async deleteBodyWeight(id) {
         const now = Date.now();
         await db.bodyWeight.update(id, { deletedAt: now, updatedAt: now });

@@ -904,6 +904,12 @@ export const EN = {
     'Талия, см': 'Waist, cm',
     'Талия за период, см': 'Waist over the period, cm',
     'Талия, см (необязательно)': 'Waist, cm (optional)',
+    'Все замеры — {n}': 'All measurements — {n}',
+    'Замер {день}': 'Measurement of {день}',
+    'Пустая талия уберёт обхват. Дату можно поправить — замер переедет на выбранный день.': 'An empty waist removes the measurement. The date can be corrected — the entry moves to the chosen day.',
+    'Дата': 'Date',
+    'Убрать замер {день}?': 'Remove the measurement of {день}?',
+    '{вес} кг. Он уйдёт из графика и из счёта за период.': '{вес} kg. It will leave the chart and the period totals.',
     'талия': 'waist',
     'см за месяц': 'cm over the month',
 

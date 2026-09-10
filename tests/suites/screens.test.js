@@ -1063,6 +1063,50 @@ describe('Экран: статистика и рекорды', () => {
         assert(has(await screen(recordsScreen), 'появятся после первой тренировки'));
     });
 
+    /*
+     * Замеры правятся и убираются (Р-98). До этого запись веса была
+     * односторонней: ошибся цифрой — и «39,1 кг» оставались в графике
+     * навсегда, перекашивая и линию, и «за период».
+     */
+    it('каждый замер можно поправить и убрать', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        await dbService.setBodyWeight({ weight: 93.1, waist: 98 });
+
+        const view = await screen(stats);
+
+        assert(has(view, 'Все замеры'), `список замеров обязан быть: ${text(view).slice(0, 200)}`);
+        assert(hasAction(view, 'body-edit'), 'правка');
+        assert(hasAction(view, 'body-drop'), 'удаление');
+        assert(has(view, '98'), 'обхват виден в строке');
+    });
+
+    it('удаление убирает замер из графика и из счёта', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        const первый = await dbService.setBodyWeight({ at: Date.now() - 7 * DAY, weight: 94 });
+        await dbService.setBodyWeight({ weight: 93 });
+
+        const было = await dbService.listBodyWeight();
+        equal(было.length, 2);
+
+        const подтвердить = dialog.confirm;
+        dialog.confirm = async () => true;
+
+        try {
+            await press('body-drop', { id: первый.id });
+        } finally {
+            dialog.confirm = подтвердить;
+        }
+
+        equal((await dbService.listBodyWeight()).length, 1);
+
+        const view = await screen(stats);
+        assert(!has(view, '94'), `убранный замер не должен считаться: ${text(view).slice(0, 200)}`);
+    });
+
     it('рекорд показывается по каждому упражнению', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [8, 70]]);

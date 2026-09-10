@@ -78,6 +78,13 @@ html, body {
     padding: 0;
     background: var(--bg);
 
+    /*
+     * Тема тёмная — и системные части браузера тоже (Р-98). Календарь у
+     * `input[type=date]` рисует браузер, и в светлой теме он приезжает белым
+     * листом посреди тёмного экрана, со значком, которого не видно.
+     */
+    color-scheme: dark;
+
     /* Тяга за край не должна раскачивать страницу: тянется список внутри */
     overscroll-behavior: none;
 }
@@ -511,6 +518,7 @@ input[type=text],
 input[type=number],
 input[type=search],
 input[type=password],
+input[type=date],
 select,
 textarea {
     width: 100%;

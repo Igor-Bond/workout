@@ -711,6 +711,93 @@ describe('Тренировки и подходы', () => {
     });
 });
 
+
+/**
+ * Правка и удаление замера (§26.3, Р-98).
+ *
+ * Ошибиться в весе на цифру — обычное дело, и без правки такую запись
+ * оставалось только удалить: вписать её задним числом было нечем, замер
+ * всегда шёл сегодняшним днём.
+ */
+describe('Правка замера', () => {
+
+    const DAY = 86400000;
+
+    it('вес и заметка правятся на месте', async () => {
+        await reset();
+
+        const { id } = await dbService.setBodyWeight({ weight: 39.1, waist: 98 });
+        await dbService.updateBodyWeight(id, { weight: 93.1, waist: 98, note: 'утро' });
+
+        const запись = await dbService.lastBodyWeight();
+
+        equal(запись.weight, 93.1);
+        equal(запись.note, 'утро');
+        equal((await dbService.listBodyWeight()).length, 1, 'правка не плодит записей');
+    });
+
+    it('пустая талия убирает обхват', async () => {
+        await reset();
+
+        const { id } = await dbService.setBodyWeight({ weight: 93, waist: 98 });
+        await dbService.updateBodyWeight(id, { weight: 93 });
+
+        const запись = await dbService.lastBodyWeight();
+
+        equal(запись.waist, undefined,
+            'в правке пустое поле значит пусто, иначе ошибочный обхват нечем убрать');
+    });
+
+    it('замер переезжает на выбранный день', async () => {
+        await reset();
+
+        const вчера = Date.now() - DAY;
+        const { id } = await dbService.setBodyWeight({ weight: 93 });
+
+        await dbService.updateBodyWeight(id, { at: вчера, weight: 93 });
+
+        const все = await dbService.listBodyWeight();
+
+        equal(все.length, 1, 'запись одна, просто другим днём');
+        equal(await dbService.getBodyWeightOn(Date.now()), null, 'сегодняшней больше нет');
+        equal((await dbService.getBodyWeightOn(вчера)).weight, 93);
+    });
+
+    it('переезд на занятый день оставляет одну запись', async () => {
+        await reset();
+
+        const вчера = Date.now() - DAY;
+
+        await dbService.setBodyWeight({ at: вчера, weight: 92 });
+        const { id } = await dbService.setBodyWeight({ weight: 93 });
+
+        await dbService.updateBodyWeight(id, { at: вчера, weight: 93 });
+
+        const все = await dbService.listBodyWeight();
+
+        equal(все.length, 1, 'на день по-прежнему одна: две точки в одном дне — шум');
+        equal(все[0].weight, 93, 'побеждает то, что правили');
+    });
+
+    it('удаление мягкое и убирает из списка', async () => {
+        await reset();
+
+        const { id } = await dbService.setBodyWeight({ weight: 93 });
+        await dbService.deleteBodyWeight(id);
+
+        equal((await dbService.listBodyWeight()).length, 0);
+        assert(await db.bodyWeight.get(id), 'надгробие остаётся: иначе второе устройство вернёт запись');
+    });
+
+    it('чужой идентификатор ничего не портит', async () => {
+        await reset();
+        await dbService.setBodyWeight({ weight: 93 });
+
+        equal(await dbService.updateBodyWeight('нет-такого', { weight: 1 }), null);
+        equal((await dbService.listBodyWeight()).length, 1);
+    });
+});
+
 describe('Сводка внутри тренировки', () => {
 
     /*
