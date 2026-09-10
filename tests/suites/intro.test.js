@@ -1,36 +1,53 @@
 /**
  * Знакомство при первом запуске (§61 ТЗ).
  *
- * Проверять тут надо три вещи: кому оно показывается, что шаги идут по
- * одному, и что отказ запоминается. Первое потому, что ошибка в условии
- * встретит знакомством человека с полугодовой историей; второе потому, что
- * список из пяти карточек человек закрывает целиком; третье потому, что
- * спрошенное дважды об одном — это не вопрос, а навязчивость.
+ * Проверять тут надо четыре вещи: кому оно показывается, что шаги идут по
+ * одному и ходят в обе стороны, что ответы доезжают туда, где живут
+ * постоянно, и что в конце человека не бросают на пустом экране.
+ *
+ * Первое потому, что ошибка в условии встретит знакомством человека с
+ * полугодовой историей. Второе потому, что мастер без «назад» — это допрос.
+ * Третье потому, что вопрос, ответ на который никуда не попал, хуже
+ * незаданного. Четвёртое потому, что «готово» без дороги дальше — это тупик.
  */
 
 import { describe, it, equal, assert } from '../runner.js';
 import { screen, text, hasAction, press, seed, workout } from '../helpers/dom.js';
 import { intro, INTRO_KEY, нужноЗнакомство, знакомствоЖдёт } from '../../js/modules/intro.js';
 import { ATHLETE_KEY } from '../../js/modules/athlete.js';
+import { KEY_SETTING } from '../../js/services/ai.js';
 import { dbService } from '../../js/services/db.js';
+
+/** Начать знакомство с чистого листа: ответы живут в модуле и переживают экран. */
+async function сначала() {
+    const упражнение = await seed();
+    intro.leave();
+
+    return упражнение;
+}
+
+/** Пройти вперёд столько раз, сколько сказано. */
+async function вперёд(раз = 1) {
+    for (let i = 0; i < раз; i++) await press('intro-next');
+}
 
 describe('Кому показывать знакомство', () => {
 
     it('на пустой базе — да', async () => {
-        await seed();
+        await сначала();
 
         equal(await нужноЗнакомство(), true);
     });
 
     it('пройденное больше не появляется', async () => {
-        await seed();
+        await сначала();
         await dbService.setSetting(INTRO_KEY, { done: true });
 
         equal(await нужноЗнакомство(), false);
     });
 
     it('человеку с историей — нет', async () => {
-        const упражнение = await seed();
+        const упражнение = await сначала();
         await workout(упражнение, [[10, 60]]);
 
         equal(await нужноЗнакомство(), false,
@@ -41,126 +58,220 @@ describe('Кому показывать знакомство', () => {
 
 describe('Шаги идут по одному', () => {
 
-    it('первым спрашивается профиль', async () => {
-        await seed();
-
-        const view = await screen(intro);
-        const строка = text(view);
-
-        assert(строка.includes('О себе'), `первый шаг: ${строка.slice(0, 200)}`);
-        assert(строка.includes('шаг 1 из 5'), `номер шага обязателен: ${строка.slice(0, 200)}`);
-        assert(строка.includes('колен'), 'без последствия отказ выходит наугад');
-    });
-
-    it('заполненный профиль пропускает шаг вперёд', async () => {
-        await seed();
-        await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
+    it('начинается с приветствия, а не с вопроса', async () => {
+        await сначала();
 
         const строка = text(await screen(intro));
 
-        assert(строка.includes('Вес тела'), `следующим идёт вес: ${строка.slice(0, 200)}`);
-        assert(строка.includes('шаг 2 из 5'));
+        assert(строка.includes('журнал тренировок'), `сначала о том, куда человек попал: ${строка.slice(0, 200)}`);
+        assert(строка.includes('шаг 1 из 5'), 'номер шага обязателен');
+        assert(hasAction(await screen(intro), 'intro-skip'), 'настройку можно пропустить целиком');
     });
 
-    it('вес спрашивается прямо здесь, а не ссылкой', async () => {
-        await seed();
-        await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
+    it('«далее» ведёт по шагам, «назад» возвращает', async () => {
+        await сначала();
+        await screen(intro);
 
-        const view = await screen(intro);
+        await вперёд(1);
+        assert(text(await screen(intro)).includes('шаг 2 из 5'), 'второй шаг');
 
-        assert(hasAction(view, 'intro-weight'),
-            'уводить за одним числом на другой экран значит потерять человека на полпути');
+        await вперёд(2);
+        assert(text(await screen(intro)).includes('шаг 4 из 5'), 'четвёртый шаг');
+
+        await press('intro-back');
+        assert(text(await screen(intro)).includes('шаг 3 из 5'), 'назад — обязательная дорога, иначе это допрос');
     });
 
-    it('отложенный шаг помнится и не спрашивается снова', async () => {
-        await seed();
+    it('на первом шаге назад некуда', async () => {
+        await сначала();
 
-        await press('intro-skip', { step: 'athlete' });
-
-        const сохранено = await dbService.getSetting(INTRO_KEY, null);
-        equal(сохранено.skipped.includes('athlete'), true);
-
-        const строка = text(await screen(intro));
-
-        assert(строка.includes('Вес тела'), `после отказа идёт следующий шаг: ${строка.slice(0, 200)}`);
-        assert(строка.includes('пропущено'), 'пройденное и отложенное видно строками');
+        assert(!hasAction(await screen(intro), 'intro-back'));
     });
 
-    it('когда шагов не осталось, знакомство прощается', async () => {
-        await seed();
+    it('шаги никуда не уводят со страницы', async () => {
+        await сначала();
+        await screen(intro);
 
-        for (const шаг of ['athlete', 'weight', 'exercises', 'coach', 'plan']) {
-            await press('intro-skip', { step: шаг });
+        for (let i = 0; i < 5; i++) {
+            const view = await screen(intro);
+
+            assert(!hasAction(view, 'nav'),
+                `шаг ${i + 1} обязан спрашивать здесь: уводящий шаг обрывает знакомство`);
+
+            await вперёд(1);
         }
+    });
+
+    it('после пяти шагов идёт сводка ответов', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(5);
 
         const строка = text(await screen(intro));
 
-        assert(строка.includes('можно тренироваться'), `итог: ${строка.slice(0, 200)}`);
+        assert(строка.includes('Проверьте'), `итог: ${строка.slice(0, 200)}`);
+        assert(hasAction(await screen(intro), 'intro-goto'), 'каждую строку сводки можно поправить');
     });
 
-    it('выход есть на любом шаге', async () => {
-        await seed();
+    it('правка из сводки возвращает на нужный шаг', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(5);
 
-        assert(hasAction(await screen(intro), 'intro-done'), 'знакомство не ловушка');
+        await press('intro-goto', { step: 'about' });
+
+        assert(text(await screen(intro)).includes('шаг 2 из 5'), 'вернулись именно туда, что правим');
+    });
+
+    it('за сводкой короткая справка, за ней развилка', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(6);
+
+        assert(text(await screen(intro)).includes('Как это работает'), 'справка');
+
+        await вперёд(1);
+        const конец = await screen(intro);
+
+        assert(text(конец).includes('С чего начнёте'), 'развилка вместо одинокого «готово»');
+        assert(hasAction(конец, 'intro-finish'), 'и дороги дальше');
+    });
+
+});
+
+describe('Ответы доезжают', () => {
+
+    it('пол, цель, инвентарь и ограничение ложатся в профиль', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(1);
+
+        await press('intro-sex', { value: 'male' });
+        await press('intro-goal', { value: 'убрать живот' });
+        await вперёд(1);
+
+        await press('intro-gear', { value: 'резинка' });
+        await press('intro-limit', { value: 'колено' });
+        await вперёд(1);
+
+        const профиль = await dbService.getSetting(ATHLETE_KEY, null);
+
+        equal(профиль.sex, 'male');
+        equal(профиль.goal, 'убрать живот');
+        equal(профиль.equipment, ['резинка']);
+        equal(профиль.limits.map((l) => l.name), ['колено']);
+    });
+
+    it('нажатие по чипу второй раз его снимает', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(2);
+
+        await press('intro-gear', { value: 'гиря' });
+        await press('intro-gear', { value: 'гиря' });
+        await вперёд(1);
+
+        equal((await dbService.getSetting(ATHLETE_KEY, null)).equipment, []);
     });
 
     /*
-     * Шаг уводит на чужой экран, и знакомству нужно чем-то позвать обратно
-     * (Р-94). Без метки человек заполнял профиль и оставался в нём: остальные
-     * четыре шага не показывались никогда, и знакомство выглядело состоящим
-     * из одного шага.
+     * Ответы живут в модуле между шагами, и без снятия набранного нажатие по
+     * чипу стирало бы то, что дописано в поле рядом. Здесь это и проверяется:
+     * поле заполняется, потом жмётся чип, потом смотрим, что сохранилось.
      */
-    it('уход на шаг помечается и просит вернуться', async () => {
-        await seed();
+    it('нажатие по чипу не стирает набранное в поле', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(1);
 
-        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+        const поле = document.createElement('input');
+        поле.id = 'in-year';
+        поле.value = '1985';
+        document.body.appendChild(поле);
 
-        equal((await dbService.getSetting(INTRO_KEY, null))?.pending, 'athlete');
-        equal(await знакомствоЖдёт(), { номер: 1, всего: 5 });
+        try {
+            await press('intro-sex', { value: 'female' });
+            await вперёд(1);
+        } finally {
+            поле.remove();
+        }
+
+        equal((await dbService.getSetting(ATHLETE_KEY, null)).birthYear, 1985);
     });
 
-    it('возвращение снимает метку', async () => {
-        await seed();
+    it('ключ тренера сохраняется', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(4);
 
-        await press('intro-go', { step: 'athlete', screen: 'athlete' });
+        const поле = document.createElement('input');
+        поле.id = 'in-key';
+        поле.value = 'AIzaПроверочный';
+        document.body.appendChild(поле);
+
+        try {
+            await вперёд(1);
+        } finally {
+            поле.remove();
+        }
+
+        equal(await dbService.getSetting(KEY_SETTING, ''), 'AIzaПроверочный');
+    });
+
+});
+
+describe('Выход из знакомства', () => {
+
+    it('«пропустить настройку» закрывает его насовсем', async () => {
+        await сначала();
         await screen(intro);
 
-        equal((await dbService.getSetting(INTRO_KEY, null))?.pending, null);
-        equal(await знакомствоЖдёт(), null, 'человек вернулся — звать больше некуда');
+        await press('intro-skip');
+
+        equal((await dbService.getSetting(INTRO_KEY, null))?.done, true);
+        equal(await нужноЗнакомство(), false);
     });
 
-    it('номер на полосе идёт за сделанным', async () => {
-        await seed();
+    it('развилка закрывает знакомство и ведёт, куда выбрали', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(7);
 
-        await press('intro-go', { step: 'athlete', screen: 'athlete' });
-        await dbService.setSetting(ATHLETE_KEY, { goal: 'сила', limits: [] });
+        await press('intro-finish', { screen: 'exercises' });
 
-        equal((await знакомствоЖдёт()).номер, 2, 'профиль заполнен — знакомство уже на втором шаге');
+        equal((await dbService.getSetting(INTRO_KEY, null))?.done, true);
+        equal(await нужноЗнакомство(), false);
     });
 
+    /*
+     * Полоса возврата осталась для тех случаев, когда человек всё же ушёл со
+     * знакомства — из справки или из развилки (Р-94). Сами шаги никуда не
+     * уводят, и во время них полосы не бывает.
+     */
     it('пройденное знакомство обратно не зовёт', async () => {
-        await seed();
-
-        await press('intro-go', { step: 'athlete', screen: 'athlete' });
-        await press('intro-done');
+        await сначала();
+        await screen(intro);
+        await press('intro-skip');
 
         equal(await знакомствоЖдёт(), null);
     });
 
-    it('без ухода полосы нет', async () => {
-        await seed();
+    it('без метки ухода полосы нет', async () => {
+        await сначала();
         await screen(intro);
 
-        equal(await знакомствоЖдёт(), null, 'знакомство открыто — звать в него неоткуда');
+        equal(await знакомствоЖдёт(), null);
     });
 
-    it('«начать» закрывает знакомство навсегда', async () => {
-        await seed();
+    it('метка ухода зовёт обратно и называет шаг', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(2);
 
-        await press('intro-done');
+        const состояние = await dbService.getSetting(INTRO_KEY, null);
+        await dbService.setSetting(INTRO_KEY, { ...состояние, pending: 'gear' });
 
-        equal((await dbService.getSetting(INTRO_KEY, null))?.done, true);
-        equal(await нужноЗнакомство(), false);
+        equal(await знакомствоЖдёт(), { номер: 3, всего: 5 });
     });
 
 });
