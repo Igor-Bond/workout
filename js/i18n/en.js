@@ -1366,4 +1366,5 @@ export const EN = {
     'Режим': 'Schedule',
     '{n} дн в неделю': '{n} days a week',
     '{n} мин на тренировку': '{n} min a session',
+    'Пропустите — ничего не потеряете: ключ вставляется когда угодно, в «Профиль» → «Программа и тренер» → «Тренер».': 'Skip it — nothing is lost: the key can be pasted any time under “Profile” → “Programme and coach” → “Coach”.',
 };

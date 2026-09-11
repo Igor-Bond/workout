@@ -1364,4 +1364,5 @@ export const DE = {
     'Режим': 'Umfang',
     '{n} дн в неделю': '{n} Tage pro Woche',
     '{n} мин на тренировку': '{n} Min pro Einheit',
+    'Пропустите — ничего не потеряете: ключ вставляется когда угодно, в «Профиль» → «Программа и тренер» → «Тренер».': 'Überspring es — nichts geht verloren: der Schlüssel lässt sich jederzeit unter „Profil“ → „Programm und Coach“ → „Coach“ eintragen.',
 };
