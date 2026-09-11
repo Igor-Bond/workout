@@ -22,6 +22,7 @@ import { recordsScreen } from '../../js/modules/records.js';
 import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
 import { plan } from '../../js/modules/plan.js';
+import { plan as planCore } from '../../js/core/plan.js';
 import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
@@ -1978,29 +1979,37 @@ describe('Экран: заглушка при переходе', () => {
     });
 });
 
+/*
+ * План кладётся в настройки так же, как его кладёт приложение: текстом, из
+ * которого он и разобран (Р-104). Собранный руками разбор с подставным
+ * текстом — это план, которого не бывает: читается он всё равно из текста.
+ */
+const ДНИ_НЕДЕЛИ = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+/** Дата для шапки плана: «07.09.2026». */
+function датойПлана(ts) {
+    const d = new Date(ts);
+    const два = (n) => String(n).padStart(2, '0');
+
+    return `${два(d.getDate())}.${два(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+/** Записать план из строк дней: «Bench 6 × 10» на сегодня и так далее. */
+async function положитьПлан(from, дни) {
+    const текст = [`С ${датойПлана(from)}, 8 недель`]
+        .concat(дни.map(([at, задание]) => `${ДНИ_НЕДЕЛИ[new Date(at).getDay()]} ${задание}`))
+        .join('\n');
+
+    await dbService.setSetting('plan', { ...planCore.parse(текст), text: текст });
+}
+
 describe('Очередь и план на главном (Р-72)', () => {
 
     const DAY = 86400000;
 
     /** План, у которого тренировочный день — сегодня и через два дня. */
-    function сетка(now) {
-        const сегодня = new Date(now).getDay();
-        const через = new Date(now + 2 * DAY).getDay();
-
-        return {
-            [сегодня]: { name: 'Bench', sets: 6, reps: 10 },
-            [через]: { name: 'Squat', sets: 5, reps: 8 }
-        };
-    }
-
     async function сПланом(now) {
-        const дни = сетка(now);
-
-        await dbService.setSetting('plan', {
-            from: now - 3 * DAY, weeks: 8, days: дни,
-            grids: [{ label: '', from: null, to: null, days: дни }],
-            text: 'проба'
-        });
+        await положитьПлан(now - 3 * DAY, [[now, 'Bench 6 × 10'], [now + 2 * DAY, 'Squat 5 × 8']]);
     }
 
     it('при плане «Следом» показывает его дни, а не очередь', async () => {
@@ -2116,16 +2125,10 @@ describe('Главный: очередь при действующем план�
 
     /** План: сегодня одно занятие, через два дня другое. */
     async function сПланом(now, сегодня_имя, через_имя) {
-        const дни = {
-            [new Date(now).getDay()]: { name: сегодня_имя, sets: 5, reps: 8 },
-            [new Date(now + 2 * DAY).getDay()]: { name: через_имя, sets: 6, reps: 10 }
-        };
-
-        await dbService.setSetting('plan', {
-            from: now - 3 * DAY, weeks: 8, days: дни,
-            grids: [{ label: '', from: null, to: null, days: дни }],
-            text: 'проба'
-        });
+        await положитьПлан(now - 3 * DAY, [
+            [now, `${сегодня_имя} 5 × 8`],
+            [now + 2 * DAY, `${через_имя} 6 × 10`]
+        ]);
     }
 
     /**

@@ -9,6 +9,8 @@
 
 import { describe, it, equal, assert } from '../runner.js';
 import { plan } from '../../js/core/plan.js';
+import { currentPlan, PLAN_KEY } from '../../js/modules/planner.js';
+import { dbService } from '../../js/services/db.js';
 
 const DAY = 86400000;
 
@@ -875,6 +877,45 @@ describe('Разделитель объёма (Р-75)', () => {
 
         equal(день.name, 'Баскетбол');
         equal(день.sets, null);
+    });
+
+});
+
+/**
+ * Утверждённый план читается разбором сегодняшним, а не вчерашним (Р-104).
+ *
+ * В хранилище лежат текст и разбор вместе. Текст писал человек, разбор
+ * служебный — и когда разбор становится умнее, действующая программа обязана
+ * поумнеть вместе с ним, не требуя утверждать себя заново.
+ */
+describe('Разбор утверждённого плана', () => {
+
+    const ТЕКСТ = 'С 07.09.2026, 8 недель\nПн Сгибание рук с резиной на бицепс 3 × 15, пауза 1.5 мин';
+
+    it('читается заново из текста, а не берётся из хранилища', async () => {
+        await dbService.setSetting(PLAN_KEY, {
+            text: ТЕКСТ,
+            from: new Date(2026, 8, 7).getTime(),
+            weeks: 8,
+            days: { 1: { name: 'Сгибание рук с резиной на бицепс 3 × 15, пауза 1.5 мин' } }
+        });
+
+        const день = (await currentPlan()).days[1];
+
+        equal(день.name, 'Сгибание рук с резиной на бицепс', 'прежнее понимание не должно пережить починку');
+        equal(день.rest, 90);
+    });
+
+    it('план без текста отдаётся как есть', async () => {
+        await dbService.setSetting(PLAN_KEY, { from: 1, weeks: 8, days: {} });
+
+        equal((await currentPlan()).weeks, 8);
+    });
+
+    it('плана нет — и читать нечего', async () => {
+        await dbService.setSetting(PLAN_KEY, null);
+
+        equal(await currentPlan(), null);
     });
 
 });
