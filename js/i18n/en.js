@@ -1360,4 +1360,10 @@ export const EN = {
     'спина': 'back',
     'локоть': 'elbow',
     'запястье': 'wrist',
+    'своё — например, петли': 'your own — suspension straps, say',
+    'своё — например, нет турника': 'your own — no pull-up bar, say',
+    'Готово — на главный экран': 'Done — go to the main screen',
+    'Режим': 'Schedule',
+    '{n} дн в неделю': '{n} days a week',
+    '{n} мин на тренировку': '{n} min a session',
 };

@@ -1212,8 +1212,17 @@ table.log tr:last-child td { border-bottom: none; }
 .repeat-card .rep-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 
 /* Второстепенные действия строкой ссылок — но с пальцевой площадью нажатия */
+/*
+ * Ряд кнопок переносится, а не уезжает за край (Р-102).
+ *
+ * Без переноса flex жмёт кнопки до нечитаемого и всё равно не помещает:
+ * на узком экране семь чипов инвентаря уехали за правый край — четыре из
+ * семи оказались недоступны вовсе, и со стороны это выглядело так, будто
+ * приложение не даёт выбрать несколько.
+ */
 .row-links {
     display: flex;
+    flex-wrap: wrap;
     align-items: stretch;
     gap: 4px;
     margin-top: 2px;
@@ -2512,6 +2521,30 @@ button.ex-name:active { color: var(--accent); }
 }
 
 .intro-bar span.is-done { background: var(--accent); }
+
+/*
+ * Поле «своё» и кнопка рядом, а не столбиком (Р-102).
+ *
+ * У полей ввода ширина во всю строку — в общем ряду это выталкивает кнопку
+ * на следующую строку, и короткий вопрос занимает четыре ряда вместо двух.
+ */
+.intro-add {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.intro-add input {
+    flex: 1;
+    width: auto;
+    margin-bottom: 0;
+}
+
+.intro-add .btn {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
 
 /* ================== КАК ИДЁТ ПРОГРАММА (§63) ================== */
 

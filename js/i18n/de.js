@@ -1358,4 +1358,10 @@ export const DE = {
     'спина': 'Rücken',
     'локоть': 'Ellbogen',
     'запястье': 'Handgelenk',
+    'своё — например, петли': 'eigenes — zum Beispiel Schlingentrainer',
+    'своё — например, нет турника': 'eigenes — zum Beispiel keine Klimmzugstange',
+    'Готово — на главный экран': 'Fertig — zum Hauptbildschirm',
+    'Режим': 'Umfang',
+    '{n} дн в неделю': '{n} Tage pro Woche',
+    '{n} мин на тренировку': '{n} Min pro Einheit',
 };

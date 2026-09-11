@@ -116,6 +116,8 @@ async function собратьОтветы() {
         birthYear: профиль.birthYear ?? '',
         height: профиль.height ?? '',
         goal: профиль.goal || '',
+        days: профиль.days ?? '',
+        minutes: профиль.minutes ?? '',
         equipment: [...профиль.equipment],
         limits: ядро.active(профиль).map((l) => l.name),
         weight: вес?.weight ?? '',
@@ -138,7 +140,8 @@ function снять() {
     const текст = (id) => поле(id)?.value.trim();
 
     for (const [id, ключ] of [['in-year', 'birthYear'], ['in-height', 'height'],
-        ['in-goal', 'goal'], ['in-weight', 'weight'], ['in-waist', 'waist'], ['in-key', 'key']]) {
+        ['in-goal', 'goal'], ['in-days', 'days'], ['in-minutes', 'minutes'],
+        ['in-weight', 'weight'], ['in-waist', 'waist'], ['in-key', 'key']]) {
         const v = текст(id);
         if (v !== undefined) ответы[ключ] = v;
     }
@@ -153,6 +156,8 @@ async function сохранить() {
     профиль.birthYear = Number(ответы.birthYear) || null;
     профиль.height = Number(ответы.height) || null;
     профиль.goal = String(ответы.goal || '').trim();
+    профиль.days = Number(ответы.days) || null;
+    профиль.minutes = Number(ответы.minutes) || null;
     профиль.equipment = [...ответы.equipment];
 
     /*
@@ -200,6 +205,10 @@ async function отметитьШаг() {
 
 // ================== ШАГИ ==================
 
+/** Строка целей и обратно: в профиле это одно поле словами (§58). */
+const вСписок = (строка) => String(строка || '').split(',').map((s) => s.trim()).filter(Boolean);
+const вСтроку = (список) => список.join(', ');
+
 const чип = (подпись, активен, действие, значение) => ui.html`
     <button class="chip ${активен ? 'is-active' : ''}" data-action="${действие}" data-value="${значение}">
         ${подпись}
@@ -215,10 +224,12 @@ function приветствие() {
 }
 
 function оСебе() {
+    const цели = вСписок(ответы.goal);
+
     return ui.html`
         <p class="hint">${t('Пол, возраст и рост нужны тренеру и расчёту нагрузки. Без них программа получится для кого-то другого.')}</p>
 
-        <div class="row-links">
+        <div class="chips">
             ${чип(t('мужской'), ответы.sex === 'male', 'intro-sex', 'male')}
             ${чип(t('женский'), ответы.sex === 'female', 'intro-sex', 'female')}
         </div>
@@ -236,29 +247,73 @@ function оСебе() {
             </div>
         </div>
 
+        <!--
+            Цель — несколько сразу (Р-102): «набрать силу» и «убрать живот»
+            не спорят, их хотят вместе, и заставлять выбирать одно значит
+            получить полуправду. Выбранное собирается в ту же строку, которую
+            можно дописать словами.
+        -->
         <div class="field">
             <label for="in-goal">${t('Цель')}</label>
-            <div class="row-links">
-                ${ЦЕЛИ.map((ц) => чип(t(ц), ответы.goal === ц, 'intro-goal', ц))}
+            <div class="chips">
+                ${ЦЕЛИ.map((ц) => чип(t(ц), цели.includes(ц), 'intro-goal', ц))}
             </div>
             <input id="in-goal" type="text" value="${ответы.goal}" autocomplete="off"
                    placeholder="${t('или своими словами')}">
+        </div>
+
+        <!--
+            Сколько дней и минут человек готов тратить — рамка программы
+            (§58). Без неё тренер напишет пять дней по полтора часа тому, у
+            кого есть три по сорок минут, и программа умрёт на второй неделе.
+        -->
+        <div class="plan-row-fields">
+            <div class="field">
+                <label for="in-days">${t('Дней в неделю')}</label>
+                <input id="in-days" type="number" min="1" max="7" inputmode="numeric"
+                       placeholder="3" value="${ответы.days}">
+            </div>
+            <div class="field">
+                <label for="in-minutes">${t('Минут на тренировку')}</label>
+                <input id="in-minutes" type="number" min="5" max="300" inputmode="numeric"
+                       placeholder="60" value="${ответы.minutes}">
+            </div>
         </div>
     `;
 }
 
 function инвентарь() {
+    /*
+     * Своё дописывается рядом с готовым (Р-102). Готовые ответы покрывают
+     * частое, но не всё: у кого-то петли, у кого-то велотренажёр, а мешать
+     * может не сустав, а сменная работа. Без своего поля такой человек
+     * молча пропускает шаг.
+     */
+    const своё = (список, готовые) => список.filter((v) => !готовые.includes(v));
+
     return ui.html`
         <p class="hint">${t('Чем вы располагаете. Тренер не предложит того, чего у вас нет, а приложение не позовёт делать это в подсказках.')}</p>
 
-        <div class="row-links">
+        <div class="chips">
             ${ИНВЕНТАРЬ.map((и) => чип(t(и), ответы.equipment.includes(и), 'intro-gear', и))}
+            ${своё(ответы.equipment, ИНВЕНТАРЬ).map((и) => чип(`${и} ×`, true, 'intro-gear', и))}
+        </div>
+
+        <div class="intro-add">
+            <input id="in-gear" type="text" autocomplete="off" placeholder="${t('своё — например, петли')}">
+            <button class="btn btn-ghost btn-sm" data-action="intro-gear-add">${t('Добавить')}</button>
         </div>
 
         <p class="hint">${t('Что мешает: травма, больной сустав, что угодно ещё. Названное здесь потом можно связать с конкретными упражнениями в профиле.')}</p>
 
-        <div class="row-links">
+        <div class="chips">
             ${ОГРАНИЧЕНИЯ.map((о) => чип(t(о), ответы.limits.includes(о), 'intro-limit', о))}
+            ${своё(ответы.limits, ОГРАНИЧЕНИЯ).map((о) => чип(`${о} ×`, true, 'intro-limit', о))}
+        </div>
+
+        <div class="intro-add">
+            <input id="in-limit" type="text" autocomplete="off" placeholder="${t('своё — например, нет турника')}">
+            <button class="btn btn-ghost btn-sm" data-action="intro-limit-add">${t('Добавить')}</button>
         </div>
     `;
 }
@@ -328,6 +383,10 @@ function сводка() {
         ${строка(t('Год рождения'), ответы.birthYear, 'about')}
         ${строка(t('Рост'), рост, 'about')}
         ${строка(t('Цель'), ответы.goal, 'about')}
+        ${строка(t('Режим'), ответы.days || ответы.minutes
+            ? [ответы.days ? t('{n} дн в неделю', { n: ответы.days }) : '',
+                ответы.minutes ? t('{n} мин на тренировку', { n: ответы.minutes }) : ''].filter(Boolean).join(' · ')
+            : '', 'about')}
         ${строка(t('Инвентарь'), ответы.equipment.join(', '), 'gear')}
         ${строка(t('Ограничения'), ответы.limits.join(', '), 'gear')}
         ${строка(t('Вес тела'), вес, 'body')}
@@ -393,8 +452,13 @@ function развилка() {
             ${t('Посмотреть справочник упражнений')}
         </button>
 
+        <!--
+            Кнопка, которая просто закрывает знакомство (Р-102). Прежняя
+            «Позже, на главный экран» читалась как «отложить», а человеку
+            нужна честная точка: всё, я закончил.
+        -->
         <button class="btn btn-ghost" data-action="intro-finish" data-screen="home">
-            ${t('Позже, на главный экран')}
+            ${t('Готово — на главный экран')}
         </button>
     `;
 }
@@ -524,16 +588,29 @@ actions.on('intro-skip', async () => {
 /** Правка из сводки: возврат на нужный шаг. */
 actions.on('intro-goto', (el) => перейти(ВСЕ.indexOf(el.dataset.step)));
 
+/**
+ * Нажатие по чипу сохраняется сразу (Р-102).
+ *
+ * Ответы жили в модуле до ближайшего «далее», и закрытое посреди шага
+ * приложение теряло уже выбранное: человек возвращался к пустым чипам,
+ * хотя жал по ним минуту назад.
+ */
+async function отметить() {
+    await сохранить();
+    await app.render();
+}
+
 actions.on('intro-sex', async (el) => {
     снять();
     ответы.sex = ответы.sex === el.dataset.value ? '' : el.dataset.value;
-    await app.render();
+    await отметить();
 });
 
+/** Целей бывает несколько сразу (Р-102): они не спорят, их хотят вместе. */
 actions.on('intro-goal', async (el) => {
     снять();
-    ответы.goal = ответы.goal === el.dataset.value ? '' : el.dataset.value;
-    await app.render();
+    ответы.goal = вСтроку(переключить(вСписок(ответы.goal), el.dataset.value));
+    await отметить();
 });
 
 /** Чипы инвентаря и ограничений переключаются: нажал — есть, нажал ещё — нет. */
@@ -544,14 +621,32 @@ const переключить = (список, значение) => (список
 actions.on('intro-gear', async (el) => {
     снять();
     ответы.equipment = переключить(ответы.equipment, el.dataset.value);
-    await app.render();
+    await отметить();
 });
 
 actions.on('intro-limit', async (el) => {
     снять();
     ответы.limits = переключить(ответы.limits, el.dataset.value);
-    await app.render();
+    await отметить();
 });
+
+/** Своё — тем же списком, что и готовое: дальше оно ведёт себя как чип. */
+async function дописать(поле, ключ) {
+    снять();
+
+    const el = document.getElementById(поле);
+    const значение = el?.value.trim();
+
+    if (!значение) return;
+    if (!ответы[ключ].includes(значение)) ответы[ключ] = [...ответы[ключ], значение];
+
+    el.value = '';
+    haptics.tap();
+    await отметить();
+}
+
+actions.on('intro-gear-add', () => дописать('in-gear', 'equipment'));
+actions.on('intro-limit-add', () => дописать('in-limit', 'limits'));
 
 actions.on('intro-key-site', () => {
     window.open('https://aistudio.google.com/apikey', '_blank', 'noopener');

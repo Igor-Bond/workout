@@ -162,6 +162,80 @@ describe('Ответы доезжают', () => {
         equal(профиль.limits.map((l) => l.name), ['колено']);
     });
 
+    /*
+     * Целей бывает несколько сразу (Р-102): «набрать силу» и «убрать живот»
+     * не спорят, их хотят вместе, и выбор одного из четырёх давал полуправду.
+     */
+    it('целей можно выбрать несколько', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(1);
+
+        await press('intro-goal', { value: 'набрать силу' });
+        await press('intro-goal', { value: 'убрать живот' });
+        await вперёд(1);
+
+        equal((await dbService.getSetting(ATHLETE_KEY, null)).goal, 'набрать силу, убрать живот');
+    });
+
+    it('своё дописывается к готовым ответам', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(2);
+
+        const поле = document.createElement('input');
+        поле.id = 'in-gear';
+        поле.value = 'петли';
+        document.body.appendChild(поле);
+
+        try {
+            await press('intro-gear-add');
+        } finally {
+            поле.remove();
+        }
+
+        equal((await dbService.getSetting(ATHLETE_KEY, null)).equipment, ['петли']);
+    });
+
+    it('режим — дни и минуты — доезжает до профиля', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(1);
+
+        for (const [id, value] of [['in-days', '4'], ['in-minutes', '60']]) {
+            const поле = document.createElement('input');
+            поле.id = id;
+            поле.value = value;
+            document.body.appendChild(поле);
+        }
+
+        try {
+            await вперёд(1);
+        } finally {
+            document.getElementById('in-days')?.remove();
+            document.getElementById('in-minutes')?.remove();
+        }
+
+        const профиль = await dbService.getSetting(ATHLETE_KEY, null);
+
+        equal(профиль.days, 4);
+        equal(профиль.minutes, 60, 'без этого тренер напишет пять дней по полтора часа');
+    });
+
+    /*
+     * Ответы жили в модуле до ближайшего «далее», и закрытое посреди шага
+     * приложение теряло выбранное (Р-102).
+     */
+    it('нажатие по чипу сохраняется сразу, не дожидаясь «далее»', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(2);
+
+        await press('intro-gear', { value: 'гиря' });
+
+        equal((await dbService.getSetting(ATHLETE_KEY, null)).equipment, ['гиря']);
+    });
+
     it('нажатие по чипу второй раз его снимает', async () => {
         await сначала();
         await screen(intro);
