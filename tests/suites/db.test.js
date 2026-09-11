@@ -1203,6 +1203,47 @@ describe('Свойства при сведении', () => {
         equal(остался.group, 'Трицепс', 'своё описание важнее списка из коробки');
     });
 
+    /*
+     * Пауза, довес и единица — такое же сказанное об упражнении, как группа
+     * (Р-100). Владелец объединил «Бицепс резинка» со «Сгибанием рук с
+     * резинкой», и на следующей зарядке пауза оказалась чужой: помнилась она
+     * за исчезнувшей записью, а победителю не досталась.
+     */
+    it('пауза, довес и единица переезжают к победителю', async () => {
+        await reset();
+
+        const свой = await dbService.createExercise({ name: 'Сгибание рук с резинкой', kind: 'reps' });
+        const цель = await dbService.createExercise({ name: 'Сгибание рук', kind: 'reps' });
+
+        await dbService.updateExercise(свой.id, {
+            restSeconds: 600, defaultWeight: 20, timeUnit: 'min', bodyShare: 0.4
+        });
+
+        const { from } = await dbService.mergeExercises(свой.id, цель.id);
+        const остался = await dbService.getExercise(цель.id);
+
+        equal(from, 'Сгибание рук с резинкой');
+        equal(остался.restSeconds, 600, 'пауза упражнения обязана пережить объединение');
+        equal(остался.defaultWeight, 20);
+        equal(остался.timeUnit, 'min');
+        equal(остался.bodyShare, 0.4);
+    });
+
+    it('своё не затирается пустым у победителя', async () => {
+        await reset();
+
+        const источник = await dbService.createExercise({ name: 'Тяга', kind: 'reps' });
+        const цель = await dbService.createExercise({ name: 'Тяга резинки', kind: 'reps' });
+
+        await dbService.updateExercise(источник.id, { restSeconds: 90 });
+        await dbService.updateExercise(цель.id, { restSeconds: 300 });
+
+        await dbService.mergeExercises(источник.id, цель.id);
+
+        equal((await dbService.getExercise(цель.id)).restSeconds, 300,
+            'у победителя своё значение, и чужое его не перебивает');
+    });
+
     it('базовое не перебивает пользовательское своим видом', async () => {
         await reset();
 

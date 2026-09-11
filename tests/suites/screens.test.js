@@ -1841,6 +1841,57 @@ describe('Экран: выполнение, память паузы', () => {
             `о втором своего не сказано — работает пауза дня: ${дневная.slice(0, 200)}`);
     });
 
+    /*
+     * Поправка на плановом дне — про сегодня, а не про упражнение (Р-101).
+     * Владелец поймал это на зарядке: десятиминутная пауза планового
+     * понедельника оказалась пятью минутами отдыха посреди восьмиминутной
+     * утренней разминки, потому что кнопка «±5 с» записала её в справочник.
+     */
+    it('пауза дня не записывается в упражнение', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        session.leave();
+
+        const workout = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: ex.id, plannedSets: 6, targetReps: 50, skipped: false }]
+        });
+
+        await dbService.updateWorkout(workout.id, { restSeconds: 600 });
+        await screen(session);
+
+        await press('rest-extend');
+
+        equal((await dbService.getExercise(ex.id)).restSeconds, undefined,
+            'иначе десять минут планового дня уезжают в зарядку');
+
+        const view = await screen(session);
+        assert(has(view, '10:05'), `на сегодня поправка всё же действует: ${text(view).slice(0, 200)}`);
+    });
+
+    it('без паузы дня поправка по-прежнему помнится за упражнением', async () => {
+        const ex = await seed();
+
+        config.set('restEnabled', true);
+        config.set('restSeconds', 90);
+
+        session.leave();
+
+        await dbService.createWorkout({
+            type: 'Зарядка',
+            plan: [{ exerciseId: ex.id, plannedSets: 4, targetReps: 50, skipped: false }]
+        });
+
+        await screen(session);
+        await press('rest-extend');
+
+        equal((await dbService.getExercise(ex.id)).restSeconds, 95,
+            'Р-46 никуда не делся: сказанное о самом упражнении помнится');
+    });
+
     it('ввод во время отсчёта правит идущую паузу, а не следующую', async () => {
         const ex = await seed();
 

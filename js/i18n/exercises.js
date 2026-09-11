@@ -101,7 +101,9 @@ const EN = {
         'Становая тяга с гирей': 'Kettlebell deadlift',
         'Тяга гири в наклоне': 'Kettlebell bent-over row',
         'Жим гири стоя': 'Kettlebell overhead press',
-        'Турецкий подъём': 'Turkish get-up'
+        'Турецкий подъём': 'Turkish get-up',
+        'Отжимания Тайсона': 'Tyson push-ups',
+        'Баскетбол': 'Basketball'
     },
 
     howTo: {
@@ -175,6 +177,8 @@ const EN = {
         'Становая тяга с гирей': 'Bell between the feet, hips back, back flat. Drive with the legs, the bell travels close to the body.',
         'Тяга гири в наклоне': 'Torso hinged forward, back flat, free hand supported. Pull with the elbow back and squeeze the shoulder blade.',
         'Жим гири стоя': 'Bell racked at the shoulder, elbow tucked. Press to a straight arm without arching the lower back.',
+        'Отжимания Тайсона': 'From a pike position dive forward and down, chest almost brushing the floor, then push up into an arch on straight arms. Come back the same way, no jerking; do not let the lower back sag.',
+        'Баскетбол': 'A game, not a set: it is logged as time on court. A warm-up and ankle mobility before playing cost less than the week off that follows skipping them.',
         'Турецкий подъём': 'Slow and step by step: roll to the elbow, to the hand, bridge, sweep the knee under, stand. Eyes on the bell the whole time.'
     }
 };
@@ -263,7 +267,9 @@ const DE = {
         'Становая тяга с гирей': 'Kreuzheben mit Kettlebell',
         'Тяга гири в наклоне': 'Rudern mit Kettlebell',
         'Жим гири стоя': 'Schulterdrücken mit Kettlebell',
-        'Турецкий подъём': 'Türkisch Aufstehen'
+        'Турецкий подъём': 'Türkisch Aufstehen',
+        'Отжимания Тайсона': 'Tyson-Liegestütze',
+        'Баскетбол': 'Basketball'
     },
 
     howTo: {
@@ -337,6 +343,8 @@ const DE = {
         'Становая тяга с гирей': 'Kugel zwischen den Füßen, Becken zurück, Rücken gerade. Aus den Beinen heben, die Kugel bleibt nah am Körper.',
         'Тяга гири в наклоне': 'Oberkörper vorgebeugt, Rücken gerade, freie Hand abgestützt. Mit dem Ellbogen nach hinten ziehen, Schulterblatt zusammenführen.',
         'Жим гири стоя': 'Kugel in der Rack-Position an der Schulter, Ellbogen angelegt. Bis zum gestreckten Arm drücken, Lendenwirbelsäule nicht überstrecken.',
+        'Отжимания Тайсона': 'Aus der Hundestellung nach vorn und unten tauchen, die Brust fast am Boden, dann in die Streckung auf gestreckte Arme hochdrücken. Zurück denselben Weg, ohne Schwung; den unteren Rücken nicht durchhängen lassen.',
+        'Баскетбол': 'Ein Spiel, kein Satz: erfasst wird die Zeit auf dem Platz. Aufwärmen und Sprunggelenke mobilisieren kosten weniger als die Woche Pause danach.',
         'Турецкий подъём': 'Langsam und Schritt für Schritt: auf den Ellbogen, auf die Hand, Brücke, Knie durchziehen, aufstehen. Der Blick bleibt an der Kugel.'
     }
 };
