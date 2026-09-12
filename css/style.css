@@ -1002,7 +1002,15 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 }
 
 .inline-field input { width: 100px; padding: 8px; text-align: center; }
-.inline-field span { font-size: 0.75rem; color: var(--text-dim); }
+/*
+ * Подпись в строке — наравне со словом рядом (Р-122).
+ *
+ * Часть подписей стала настоящими label ради экранного диктора, а у label по
+ * общему правилу есть нижний отступ: в ряду, выровненном по центру, он сдвигал
+ * бы слово вверх относительно поля.
+ */
+.inline-field span,
+.inline-field label { font-size: 0.75rem; color: var(--text-dim); margin: 0; }
 
 /* Что уже сделано в этом упражнении — одной строкой вместо таблицы */
 .sess-done {
@@ -1111,7 +1119,13 @@ tr.is-record td { color: var(--accent); }
 
 .rest-label { font-size: 0.6875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
 .rest-bar strong { font-size: 1.125rem; color: var(--accent); min-width: 64px; }
-.rest-bar .chip { min-height: 32px; padding: 5px 10px; }
+/*
+ * Кнопки полосы отдыха — тоже сорок четыре точки (§31, Р-122).
+ *
+ * Было тридцать две, и три кнопки стояли в ряд: «−15 с», «+15 с»,
+ * «Пропустить». Промах по «Пропустить» обрывает паузу, и вернуть её нечем.
+ */
+.rest-bar .chip { min-height: 44px; padding: 5px 10px; }
 
 /*
  * «Пропустить» отодвинуто от «+15 с» (Р-112).
@@ -1130,6 +1144,28 @@ tr.is-record td { color: var(--accent); }
 /* Заметки (§20) */
 .note-row { margin-bottom: 14px; }
 
+/*
+ * Ссылка — цель в сорок четыре точки (§31, Р-122).
+ *
+ * Правило было записано только у ссылок в ряду кнопок, а ссылки экрана
+ * выполнения в него не попадали и оставались двадцатичетырёхточечными:
+ * «Ещё…», «＋ дополнительный вес», «＋ заметка к подходу», «считать в
+ * минутах». Между тем это самый занятый экран приложения: нажимают стоя,
+ * одной рукой, пальцами, которые после подхода дрожат.
+ *
+ * Цена промаха здесь наибольшая в приложении. «＋ заметка» стоит в четырнадцати
+ * точках над зелёной «ВЫПОЛНЕНО»: промах вниз записывает подход с тем, что
+ * было в поле, и запускает отдых. А отмена подхода лежит под «Ещё…» — то есть
+ * дорога к исправлению ошибки шла через такую же мелкую цель.
+ *
+ * Запас невидимый вдвойне: кегль подписи не тронут, а поля уходят наружу
+ * отрицательным отступом — строка занимает в разметке столько же, сколько
+ * занимала. Без этого высота карточки вырастала на полсотни точек, и на
+ * экране в 812 зелёная «ВЫПОЛНЕНО» уезжала под нижнее меню: цель выросла бы
+ * у трёх ссылок ценой главной кнопки экрана.
+ *
+ * Тот же приём применён к названию упражнения в справочнике (Р-120).
+ */
 .link-btn {
     background: none;
     border: none;
@@ -1138,7 +1174,13 @@ tr.is-record td { color: var(--accent); }
     font-size: 0.75rem;
     text-decoration: underline;
     cursor: pointer;
-    padding: 4px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 8px;
+    margin: -11px 0;
 }
 
 input.note-input {
@@ -1406,12 +1448,11 @@ table.log tr:last-child td { border-bottom: none; }
  */
 .row-links + .btn { margin-top: 10px; }
 
-.row-links .link-btn {
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 8px;
-}
+/*
+ * В ряду кнопок запас лишний: высоту ряда задают соседние кнопки, и
+ * отрицательный отступ только сдвинул бы ссылку относительно них.
+ */
+.row-links .link-btn { padding: 0 8px; margin: 0; }
 
 .link-btn.is-danger { color: var(--bad); }
 

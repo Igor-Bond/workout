@@ -967,9 +967,33 @@ actions.on('journal-add', async () => {
     await app.render();
 });
 
+/*
+ * Запись журнала убирается с вопросом (§56.2, Р-122).
+ *
+ * Убиралась молча, а ×-ы стоят столбиком, один под другим: промах вниз на
+ * несколько точек стирал соседнюю запись — не ту, которую метили.
+ *
+ * Вернуть её неоткуда. Журнал решений — это не список, который можно собрать
+ * заново из данных: это единственное место, где записано, что поменяли в
+ * программе и почему. Тем он и ценен, и тем же дорога ошибка.
+ *
+ * В заголовке — сама запись, а не «Убрать решение?»: спрашивать «точно?» без
+ * названия значит спрашивать ни о чём, и на такой вопрос отвечают «да», не
+ * читая. Прочитав чужую строку вместо своей, человек нажмёт «Отмена».
+ */
 actions.on('journal-drop', async (el) => {
-    const записи = planJournal.remove(await currentJournal(), el.dataset.id);
+    const было = await currentJournal();
+    const запись = было.find((з) => з.id === el.dataset.id);
 
-    await dbService.setSetting(JOURNAL_KEY, записи);
+    const убрать = await dialog.confirm({
+        title: t('Убрать запись?'),
+        text: запись?.text || '',
+        confirmText: t('Убрать'),
+        danger: true
+    });
+
+    if (!убрать) return;
+
+    await dbService.setSetting(JOURNAL_KEY, planJournal.remove(было, el.dataset.id));
     await app.render();
 });

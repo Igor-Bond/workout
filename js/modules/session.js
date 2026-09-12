@@ -596,7 +596,7 @@ function fields(kind, prefill, exercise = {}) {
         return ui.html`
             <input type="number" class="big-input" id="f-duration" min="0" inputmode="decimal"
                    placeholder="0" value="${value(введённое)}" data-enter="sess-done">
-            <div class="big-label">${минуты ? t('минут') : t('секунд')}</div>
+            <label class="big-label" for="f-duration">${минуты ? t('минут') : t('секунд')}</label>
 
             <!--
                 Отсчёт предлагается, но не навязывается: поле остаётся, и
@@ -620,9 +620,9 @@ function fields(kind, prefill, exercise = {}) {
         return ui.html`
             <input type="number" class="big-input" id="f-distance" min="0" inputmode="numeric"
                    placeholder="0" value="${value(prefill.distance)}" data-enter="sess-done">
-            <div class="big-label">${t('метров')}</div>
+            <label class="big-label" for="f-distance">${t('метров')}</label>
             <div class="inline-field">
-                <span>${t('время:')}</span>
+                <label for="f-duration">${t('время:')}</label>
                 <input type="number" id="f-duration" min="0" inputmode="numeric"
                        placeholder="—" value="${value(prefill.duration)}">
                 <span>${t('сек')}</span>
@@ -654,7 +654,19 @@ function fields(kind, prefill, exercise = {}) {
             <button class="step-btn" data-action="sess-reps-up" data-hold
                     aria-label="${t('На одно больше')}">+</button>
         </div>
-        <div class="big-label">${t('повторений')}</div>
+        <!--
+            Подпись поля — label, а не строка рядом (§31, Р-122).
+
+            На остальных экранах — в профиле, в плане, в знакомстве, в окнах с
+            полями — label стоит везде; единственными без него остались поля
+            того экрана, ради которого приложение и открывают. Экранный диктор
+            называл их «поле ввода», и на слух было не различить, в какое из
+            трёх набирают.
+
+            Заодно возвращается попадание: нажатие на слово «повторений»
+            выглядело подписью поля, а не вело никуда.
+        -->
+        <label class="big-label" for="f-reps">${t('повторений')}</label>
 
         <!--
             У упражнения со своим весом поле значит дополнительный вес — пояс,
@@ -685,9 +697,10 @@ function fields(kind, prefill, exercise = {}) {
             «− дополнительный вес» и «дополнительный вес:» строкой ниже.
         -->
         <div class="inline-field" id="f-weight-row" ${ui.raw(kind === 'reps' && !prefill.weight ? 'hidden' : '')}>
-            ${kind === 'reps' ? '' : ui.html`<span>${t('вес:')}</span>`}
+            ${kind === 'reps' ? '' : ui.html`<label for="f-weight">${t('вес:')}</label>`}
             <input type="number" id="f-weight" min="0" step="0.5" inputmode="decimal"
-                   placeholder="—" value="${value(prefill.weight)}">
+                   placeholder="—" value="${value(prefill.weight)}"
+                   aria-label="${kind === 'reps' ? t('дополнительный вес, кг') : t('вес, кг')}">
             <span>${t('кг')}</span>
         </div>
     `;

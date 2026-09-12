@@ -433,6 +433,8 @@ export const DE = {
     'Изменить заметку к тренировке': 'Notiz zum Training ändern',
     'На одно меньше': 'Eins weniger',
     'На одно больше': 'Eins mehr',
+    'дополнительный вес, кг': 'Zusatzgewicht, kg',
+    'вес, кг': 'Gewicht, kg',
     'повторений': 'Wiederholungen',
     'вес:': 'Gewicht:',
     'техника, самочувствие, особенности': 'Technik, Befinden, Besonderheiten',
@@ -658,6 +660,7 @@ export const DE = {
     'Доля своего веса — {доля} %.': 'Anteil des Eigengewichts — {доля} %.',
     'Убрать дополнительный вес?': 'Zusatzgewicht entfernen?',
     'В {сколько} подходах упражнения «{упражнение}» записан дополнительный вес. Он считается тоннажем — как поднятое железо. Убрать его из всех подходов?': 'In {сколько} Sätzen der Übung „{упражнение}“ ist Zusatzgewicht eingetragen. Es zählt als Tonnage — wie tatsächlich gehobenes Eisen. Aus allen Sätzen entfernen?',
+    'Убрать запись?': 'Eintrag entfernen?',
     'Убрать': 'Entfernen',
     'Дополнительный вес убран из {подходы} подходов, пересчитано тренировок: {тренировки}.': 'Zusatzgewicht aus {подходы} Sätzen entfernt; neu berechnete Trainings: {тренировки}.',
 
@@ -1349,6 +1352,7 @@ export const DE = {
     'Проверяю…': 'Prüfe…',
     'Поле пустое: вставьте ключ целиком, он начинается на AIza.': 'Das Feld ist leer: füge den ganzen Schlüssel ein, er beginnt mit AIza.',
     'Поиск по названию или группе': 'Suche nach Name oder Muskelgruppe',
+    'В работе ничего. В архиве — {n}': 'Nichts in Gebrauch. Im Archiv — {n}',
     'Ничего не нашлось.': 'Nichts gefunden.',
 
     // Ввод паузы во время идущего отсчёта (§16)

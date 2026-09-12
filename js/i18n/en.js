@@ -493,6 +493,8 @@ export const EN = {
     'Изменить заметку к тренировке': 'Edit the workout note',
     'На одно меньше': 'One less',
     'На одно больше': 'One more',
+    'дополнительный вес, кг': 'extra weight, kg',
+    'вес, кг': 'weight, kg',
     'повторений': 'reps',
     'вес:': 'weight:',
     'техника, самочувствие, особенности': 'technique, how it felt, anything notable',
@@ -718,6 +720,7 @@ export const EN = {
     'Доля своего веса — {доля} %.': 'Body-weight share — {доля}%.',
     'Убрать дополнительный вес?': 'Remove the added weight?',
     'В {сколько} подходах упражнения «{упражнение}» записан дополнительный вес. Он считается тоннажем — как поднятое железо. Убрать его из всех подходов?': 'Added weight is recorded in {сколько} sets of “{упражнение}”. It counts as tonnage — as iron actually lifted. Remove it from every set?',
+    'Убрать запись?': 'Remove this entry?',
     'Убрать': 'Remove',
     'Дополнительный вес убран из {подходы} подходов, пересчитано тренировок: {тренировки}.': 'Added weight removed from {подходы} sets; workouts recalculated: {тренировки}.',
 
@@ -1351,6 +1354,7 @@ export const EN = {
     'Проверяю…': 'Checking…',
     'Поле пустое: вставьте ключ целиком, он начинается на AIza.': 'The field is empty: paste the whole key, it starts with AIza.',
     'Поиск по названию или группе': 'Search by name or muscle group',
+    'В работе ничего. В архиве — {n}': 'Nothing in use. In the archive — {n}',
     'Ничего не нашлось.': 'Nothing found.',
 
     // Ввод паузы во время идущего отсчёта (§16)

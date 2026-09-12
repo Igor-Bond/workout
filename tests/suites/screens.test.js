@@ -2301,6 +2301,75 @@ describe('Экран: отзыв о приложении', () => {
 });
 
 /**
+ * Справочник: счёт подходов и правда про архив (§5, Р-122).
+ */
+describe('Экран: справочник, счёт и поиск', () => {
+
+    /*
+     * Удаление подхода помечает запись, а не стирает: иначе удалённое на одном
+     * устройстве вернулось бы с другого. Счёт же брал все строки подряд — и
+     * упражнение навсегда теряло право быть удалённым.
+     */
+    it('удалённые подходы в счёт упражнения не идут', async () => {
+        const ex = await seed();
+        const w = await workout(ex, [[10, 60], [8, 60]]);
+
+        equal(await dbService.countSetsOfExercise(ex.id), 2);
+
+        for (const подход of await dbService.listSets(w.id)) await dbService.deleteSet(подход.id);
+
+        equal(await dbService.countSetsOfExercise(ex.id), 0,
+            'история стёрта — значит упражнение свободно');
+    });
+
+    it('стёртая история возвращает право удалить упражнение', async () => {
+        const ex = await seed();
+        const w = await workout(ex, [[10, 60]]);
+
+        for (const подход of await dbService.listSets(w.id)) await dbService.deleteSet(подход.id);
+
+        await dbService.deleteExercise(ex.id);
+
+        equal(await dbService.getExercise(ex.id), null, 'иначе завести по ошибке — навсегда');
+    });
+
+    /*
+     * Ищут в справочнике чаще всего затерявшееся — то, что когда-то убрали.
+     * Прочитав «нет такого», человек заводит упражнение заново и разрезает
+     * историю надвое: ровно то, ради чего справочник и существует.
+     */
+    it('о найденном в архиве говорится, а не «ничего не нашлось»', async () => {
+        const ex = await seed({ name: 'Жим лёжа' });
+        await dbService.setExerciseArchived(ex.id, true);
+
+        // Поле поиска появляется только на длинном списке (§5.3)
+        for (let i = 0; i < 12; i++) {
+            await dbService.createExercise({ name: `Упражнение ${i}`, kind: 'weight', group: 'Спина' });
+        }
+
+        const view = await screen(exercises);
+
+        document.body.appendChild(view);
+
+        try {
+            const поле = view.querySelector('#ex-search');
+            поле.value = 'жим';
+            поле.dispatchEvent(new Event('input', { bubbles: true }));
+
+            await new Promise((r) => setTimeout(r, 60));
+
+            const строка = view.querySelector('#ex-nothing');
+
+            assert(!строка.hidden, 'в работе правда ничего');
+            assert(строка.textContent.includes('архив') || строка.textContent.includes('Архив'),
+                `неправда прямо над опровержением: «${строка.textContent}»`);
+        } finally {
+            view.remove();
+        }
+    });
+});
+
+/**
  * Повторения правятся без клавиатуры (§12, Р-120).
  */
 describe('Экран: выполнение, шаг повторений', () => {
