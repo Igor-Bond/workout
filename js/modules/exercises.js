@@ -54,16 +54,23 @@ function row(exercise, usage) {
                     ${used > 0 ? ui.raw(` · ${ui.esc(format.count(used, format.WORDS.set))}`) : ''}
                 </div>
             </div>
+            <!--
+                Одна кнопка вместо четырёх значков (Р-111).
+
+                Было ✎ ⇥ ⌫ × — и что делают два средних, узнать было неоткуда:
+                подпись жила во всплывающей подсказке, а на телефоне наведения
+                нет. Объединение дублей — то, ради чего справочник и задуман
+                (§5.1), — так просто не существовало для человека с телефоном.
+
+                Ряд из четырёх кнопок съедал вдобавок половину строки, и имена
+                резались на полуслове; у упражнений с историей кнопок было три,
+                поэтому ширина имени скакала между соседними строками, а самая
+                правая кнопка значила то «в архив», то «удалить навсегда».
+                Теперь место действий постоянное, а имени остаётся вся строка.
+            -->
             <div class="ex-actions">
-                <button class="icon-btn" data-action="ex-edit" data-id="${exercise.id}" title="${t('Изменить')}">✎</button>
-                <button class="icon-btn" data-action="ex-merge" data-id="${exercise.id}"
-                        title="${t('Объединить с другим')}">⇥</button>
-                ${exercise.archived
-                    ? ui.raw(`<button class="icon-btn" data-action="ex-restore" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('Вернуть из архива'))}">↩</button>`)
-                    : ui.raw(`<button class="icon-btn" data-action="ex-archive" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('В архив'))}">⌫</button>`)}
-                ${used === 0
-                    ? ui.raw(`<button class="icon-btn is-danger" data-action="ex-delete" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('Удалить'))}">×</button>`)
-                    : ''}
+                <button class="icon-btn" data-action="ex-menu" data-id="${exercise.id}"
+                        aria-label="${t('Что сделать с упражнением')}">⋯</button>
             </div>
         </div>
     `;
@@ -347,7 +354,13 @@ actions.on('ex-add', async () => {
  */
 actions.on('ex-info', async (el) => {
     const exercise = await dbService.getExercise(el.dataset.id);
-    if (!exercise) return;
+    if (exercise) await показать(exercise);
+});
+
+/**
+ * Как выполнять — описание техники и дорога к видео (§5.2).
+ */
+async function показать(exercise) {
 
     const где = [kindLabel(exercise.kind), exercise.group].filter(Boolean).join(' · ');
 
@@ -391,7 +404,7 @@ actions.on('ex-info', async (el) => {
         const query = encodeURIComponent(t('{название} упражнение техника выполнения', { название: exercise.name }));
         window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener');
     }
-});
+}
 
 /** Правка упражнения. Вызывается и карандашом, и из окна с описанием. */
 async function editExercise(exercise) {
@@ -470,6 +483,61 @@ async function editExercise(exercise) {
 }
 
 
+/**
+ * Что сделать с упражнением — списком со словами (§5, Р-111).
+ *
+ * Раньше это были четыре значка в строке. Слова вместо значков стоят одного
+ * лишнего нажатия, но снимают три беды разом: непонятные ⇥ и ⌫, обрезанное
+ * имя и разное значение у крайней правой кнопки в соседних строках.
+ *
+ * Удаление показывается всегда: у упражнения с историей оно не пропадает, а
+ * объясняет, почему его нет, — «сначала объединить или заархивировать».
+ * Исчезающая кнопка ничего не объясняет.
+ */
+actions.on('ex-menu', async (el) => {
+    const exercise = await dbService.getExercise(el.dataset.id);
+    if (!exercise) return;
+
+    const подходы = await dbService.countSetsOfExercise(exercise.id);
+
+    const выбор = await dialog.choose({
+        title: exercise.name,
+        options: [
+            { value: 'info', label: t('Как выполнять'), hint: t('Описание техники и поиск видео') },
+            { value: 'edit', label: t('Изменить'), hint: t('Название, вид, группа мышц') },
+            {
+                value: 'merge',
+                label: t('Объединить с другим'),
+                hint: t('Если это то же упражнение под другим именем — история сложится')
+            },
+            exercise.archived
+                ? { value: 'restore', label: t('Вернуть из архива') }
+                : {
+                    value: 'archive',
+                    label: t('Убрать в архив'),
+                    hint: t('Пропадёт из списков, история останется')
+                },
+            подходы > 0
+                ? { value: '', label: t('Удалить нельзя'), hint: t('На нём висит история: {n}. Объедините с другим или уберите в архив.', { n: format.count(подходы, format.WORDS.set) }) }
+                : { value: 'delete', label: t('Удалить навсегда'), danger: true }
+        ]
+    });
+
+    if (!выбор) return;
+
+    if (выбор === 'info') return показать(exercise);
+    if (выбор === 'edit') return editExercise(exercise);
+    if (выбор === 'merge') return объединить(exercise);
+
+    if (выбор === 'restore') {
+        await dbService.setExerciseArchived(exercise.id, false);
+        return app.render();
+    }
+
+    if (выбор === 'archive') return заархивировать(exercise);
+    if (выбор === 'delete') return удалить(exercise);
+});
+
 actions.on('ex-edit', async (el) => {
     const exercise = await dbService.getExercise(el.dataset.id);
     if (exercise) await editExercise(exercise);
@@ -482,8 +550,7 @@ actions.on('ex-edit', async (el) => {
  * Переименовать не выйдет — занять чужое имя нельзя, — поэтому нужно
  * отдельное действие: перенести всё в правильную запись и убрать лишнюю.
  */
-actions.on('ex-merge', async (el) => {
-    const source = await dbService.getExercise(el.dataset.id);
+async function объединить(source) {
     if (!source) return;
 
     const others = (await dbService.listExercises({ includeArchived: true }))
@@ -536,7 +603,7 @@ actions.on('ex-merge', async (el) => {
     });
 
     app.render();
-});
+}
 
 /**
  * Упражнение, которое зовёт план, убирать молча нельзя (§56.6).
@@ -559,15 +626,14 @@ async function убратьМожно(exercise, { archive = true } = {}) {
     });
 }
 
-actions.on('ex-archive', async (el) => {
-    const exercise = await dbService.getExercise(el.dataset.id);
+async function заархивировать(exercise) {
     if (!exercise) return;
 
     if (!await убратьМожно(exercise)) return;
 
     await dbService.setExerciseArchived(exercise.id, true);
     app.render();
-});
+}
 
 
 actions.on('ex-restore', async (el) => {
@@ -575,8 +641,7 @@ actions.on('ex-restore', async (el) => {
     app.render();
 });
 
-actions.on('ex-delete', async (el) => {
-    const exercise = await dbService.getExercise(el.dataset.id);
+async function удалить(exercise) {
     if (!exercise) return;
 
     if (!await убратьМожно(exercise, { archive: false })) return;
@@ -597,7 +662,7 @@ actions.on('ex-delete', async (el) => {
     }
 
     app.render();
-});
+}
 
 /**
  * Перевод базовых упражнений на текущий язык (§53).

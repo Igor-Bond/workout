@@ -23,7 +23,7 @@ import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
 import { plan } from '../../js/modules/plan.js';
 import { plan as planCore } from '../../js/core/plan.js';
-import { scale } from '../../js/services/scale.js';
+import { scale, SCALE_USER } from '../../js/services/scale.js';
 import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
@@ -931,6 +931,156 @@ describe('Экран: запись веса', () => {
 
 });
 
+
+/**
+ * Весы: разговор виден, а ошибка в номере места поправима (Р-110).
+ *
+ * Обе беды нашлись в коде, написанном в тот же день, и обе одного рода:
+ * приложение знало, что происходит, и не сказало человеку.
+ */
+describe('Экран: разговор с весами', () => {
+
+    async function снять({ ответ, место = null }) {
+        const былаФорма = dialog.form;
+        const былАлерт = dialog.alert;
+        const былоУмеет = scale.available;
+        const былоЧтение = scale.read;
+
+        const сказано = [];
+
+        scale.available = () => true;
+        scale.read = ответ;
+        dialog.form = async () => 'extra';
+        dialog.alert = async (o) => { сказано.push(o); return true; };
+
+        if (место) await dbService.setSetting(SCALE_USER, место);
+
+        try {
+            await press('body-add');
+        } finally {
+            dialog.form = былаФорма;
+            dialog.alert = былАлерт;
+            scale.available = былоУмеет;
+            scale.read = былоЧтение;
+        }
+
+        return сказано;
+    }
+
+    /*
+     * Номер места и код списывают с экрана весов на глаз. Ошибка в них была
+     * приговором: окно с полями открывалось только при пустой настройке, а
+     * стереть её было нечем — «Сбросить настройки» чистит localStorage, а
+     * номер лежит в базе.
+     */
+    it('неверный номер места забывается, чтобы его можно было ввести заново', async () => {
+        await seed();
+
+        const сказано = await снять({
+            место: { index: 3, code: 1111 },
+            ответ: async () => {
+                const беда = new Error('Весы не признали: номер места или код не тот.');
+                беда.reason = 'user';
+                throw беда;
+            }
+        });
+
+        equal(await dbService.getSetting(SCALE_USER, null), null,
+            'иначе одна описка закрывает возможность навсегда');
+        assert(сказано.some((o) => /не подошли/.test(o.text || '')), 'и человеку сказано, что делать');
+    });
+
+    /*
+     * Сон весов, разрыв связи, отказ браузера — не вина человека, и звать его
+     * править настройку там незачем.
+     */
+    it('прочие осечки настройку не трогают', async () => {
+        await seed();
+
+        await снять({
+            место: { index: 3, code: 7818 },
+            ответ: async () => { throw new Error('Весы ничего не прислали.'); }
+        });
+
+        equal((await dbService.getSetting(SCALE_USER, null))?.index, 3);
+    });
+
+    /*
+     * Окно записи открывается и с главного экрана. Строка в разметке
+     * статистики оттуда не видна вовсе, и главная просьба — «встаньте на
+     * весы» — не доходила до того, кому она сказана.
+     */
+    it('ход разговора виден полосой, а не строкой одного экрана', async () => {
+        await seed();
+
+        let полоса = null;
+
+        await снять({
+            место: { index: 3, code: 7818 },
+            ответ: async ({ onStatus }) => {
+                onStatus('Встаньте на весы');
+                полоса = document.querySelector('[data-banner="scale"]')?.textContent || '';
+                throw new Error('дальше не важно');
+            }
+        });
+
+        assert(/Встаньте на весы/.test(полоса || ''),
+            'молчащее приложение неотличимо от сломанного');
+        equal(document.querySelector('[data-banner="scale"]'), null, 'после разговора полоса убирается');
+    });
+
+});
+
+
+/**
+ * Конец отдыха не трогает набранное (Р-111).
+ *
+ * Таймер написан ровно под то, чтобы вводить во время паузы — в его шапке так
+ * и сказано: «Он никогда не блокирует ввод». А перерисовка по концу отсчёта
+ * пересобирала поля из подстановки и возвращала в них число прошлого подхода:
+ * набрал «21», замешкался с кнопкой — записалось «12».
+ */
+describe('Выполнение: конец отдыха', () => {
+
+    it('набранные повторения переживают конец паузы', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({
+            workoutId: w.id, exerciseId: ex.id, order: 0, setNumber: 1,
+            reps: 10, performedAt: Date.now()
+        });
+
+        // Экран ставится в настоящий документ: беда была в том, что его
+        // пересобирали целиком, а увидеть это можно только на живых узлах
+        const host = document.getElementById('screen');
+        const было = host.innerHTML;
+
+        config.set('restEnabled', true);
+        host.innerHTML = await session.render();
+        session.mounted?.();
+
+        try {
+            const поле = document.getElementById('f-reps');
+            assert(поле, 'поле повторений на экране есть');
+
+            поле.value = '21';
+
+            restTimer.start(60, ex.id);
+            restTimer.stop();
+
+            equal(document.getElementById('f-reps')?.value, '21',
+                'подмена приходит без нажатия, и заметить её между подходами нечем');
+            equal(document.querySelector('.rest-bar'), null, 'а полоса отдыха убирается');
+        } finally {
+            session.unmount?.();
+            host.innerHTML = было;
+            restTimer.stop();
+        }
+    });
+
+});
+
 describe('Экран: карточка упражнения', () => {
 
     it('несуществующее упражнение не роняет экран', async () => {
@@ -971,36 +1121,76 @@ describe('Экран: карточка упражнения', () => {
 
 describe('Экран: справочник', () => {
 
-    it('используемое упражнение удалить нельзя', async () => {
+    /*
+     * Действия упражнения живут в меню за одной кнопкой (Р-111), а не рядом
+     * значками. Поэтому проверяется не разметка строки, а само меню: что оно
+     * предлагает и чего не предлагает.
+     */
+    async function меню(упражнение) {
+        const былоChoose = dialog.choose;
+        let спрошено = null;
+
+        dialog.choose = async (options) => { спрошено = options; return null; };
+
+        try {
+            await press('ex-menu', { id: упражнение.id });
+        } finally {
+            dialog.choose = былоChoose;
+        }
+
+        return (спрошено?.options || []).filter(Boolean);
+    }
+
+    const значения = (пункты) => пункты.map((o) => o.value);
+
+    it('у каждого упражнения одна кнопка действий, а не ряд значков', async () => {
+        await seed();
+
+        const строка = (await screen(exercises)).querySelector('.ex-row');
+
+        assert(строка.querySelector('[data-action="ex-menu"]'), 'меню на месте');
+        equal(строка.querySelectorAll('.ex-actions button').length, 1,
+            'ряд из четырёх значков съедал половину строки и резал имена');
+    });
+
+    it('используемое упражнение удалить нельзя, но сказано почему', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60]]);
 
-        const row = (await screen(exercises)).querySelector('.ex-row');
+        const пункты = await меню(ex);
 
-        assert(!row.querySelector('[data-action="ex-delete"]'), 'удаление разорвало бы историю');
-        assert(row.querySelector('[data-action="ex-archive"]'), 'но архивировать можно');
+        assert(!значения(пункты).includes('delete'), 'удаление разорвало бы историю');
+        assert(значения(пункты).includes('archive'), 'но архивировать можно');
+        assert(пункты.some((o) => /Удалить нельзя/.test(o.label || '')),
+            'исчезающая кнопка ничего не объясняет, а строка объясняет');
     });
 
     it('неиспользованное удалить можно', async () => {
-        await seed();
-        const row = (await screen(exercises)).querySelector('.ex-row');
+        const ex = await seed();
 
-        assert(row.querySelector('[data-action="ex-delete"]'));
+        assert(значения(await меню(ex)).includes('delete'));
     });
 
-    it('объединение доступно у каждого упражнения', async () => {
-        await seed();
-        assert(hasAction(await screen(exercises), 'ex-merge'));
+    it('объединение предлагается словами, а не значком', async () => {
+        const ex = await seed();
+        const пункты = await меню(ex);
+
+        assert(значения(пункты).includes('merge'));
+        assert(пункты.some((o) => o.value === 'merge' && /то же упражнение/.test(o.hint || '')),
+            'угадать «⇥» было невозможно — теперь сказано, зачем это');
     });
 
-    it('архив показывается отдельным разделом', async () => {
+    it('архивированному предлагается вернуться, а не уйти в архив', async () => {
         const ex = await seed();
         await dbService.setExerciseArchived(ex.id, true);
 
         const view = await screen(exercises);
+        assert(has(view, 'Архив'), 'архив показывается отдельным разделом');
 
-        assert(has(view, 'Архив'));
-        assert(hasAction(view, 'ex-restore'));
+        const значки = значения(await меню(ex));
+
+        assert(значки.includes('restore'));
+        assert(!значки.includes('archive'));
     });
 });
 

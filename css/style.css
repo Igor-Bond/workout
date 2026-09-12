@@ -16,7 +16,8 @@
     --text:      #f3ede4;
     --text-dim:  #a89a8a;
     --good:      #6fae6f;
-    --bad:       #c0392b;
+    --bad:       #e5604c;
+    --bad-solid: #b3311f;
     --blue:      #5b9bd5;
     --purple:    #a87fd1;
 
@@ -497,7 +498,7 @@ p:last-child { margin-bottom: 0; }
     text-transform: none;
 }
 
-.btn-danger-solid { background: var(--bad); color: #fff; }
+.btn-danger-solid { background: var(--bad-solid); color: #fff; }
 
 /* ================== ПОЛЯ ================== */
 
@@ -658,7 +659,7 @@ input[type=checkbox] {
 }
 
 .icon-btn:active { border-color: var(--text-dim); }
-.icon-btn.is-danger { color: var(--bad); border-color: rgba(192, 57, 43, 0.4); }
+.icon-btn.is-danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); }
 
 /* Поле, не прошедшее проверку в диалоге */
 .is-invalid { border-color: var(--bad) !important; }
@@ -1660,13 +1661,13 @@ svg.heatmap { display: block; }
     border-color: color-mix(in srgb, var(--good) 55%, transparent);
 }
 
-.chip.is-done .chip-count { color: var(--good); opacity: 0.85; }
+.chip.is-done .chip-count { color: var(--good); }
 
 .chip.is-todo {
     border-color: color-mix(in srgb, var(--accent-dim) 65%, transparent);
 }
 
-.chip.is-todo .chip-count { color: var(--accent-dim); opacity: 0.9; }
+.chip.is-todo .chip-count { color: var(--accent); }
 
 /*
     Забытое упражнение (§29.1): такая же плашка, но пунктиром.
@@ -1726,9 +1727,17 @@ svg.heatmap { display: block; }
     здесь», а выбирают всё-таки по названию. Сокращённо, «12 дн»: полное
     слово удлиняло плашку так, что в ряд их вставало на одну меньше.
 */
+/*
+ * Число на плашке тусклее слова, но не прозрачностью (Р-111).
+ *
+ * Прозрачность гасила заодно и цвет состояния: у плашки «ещё не сделано»
+ * выходило 2,0 против фона — самое бледное место главного экрана. А очередь
+ * (Р-32) построена ровно затем, чтобы эти числа сравнивать глазом; сравнить
+ * можно только то, что видно.
+ */
 .chip-count {
     margin-left: 6px;
-    opacity: 0.6;
+    color: var(--text-dim);
     font-variant-numeric: tabular-nums;
 }
 
