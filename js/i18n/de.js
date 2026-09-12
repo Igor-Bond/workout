@@ -1119,6 +1119,7 @@ export const DE = {
     'Прошедшие': 'Vergangene',
     'Больше ничего не исключают. Вернуть можно одним нажатием.': 'Sie schließen nichts mehr aus. Ein Tippen holt sie zurück.',
     'Вернуть': 'Zurückholen',
+    'Убрано: {что}': 'Entfernt: {что}',
     'Ещё о себе': 'Sonst noch',
     'Что важно знать тому, кто составляет программу, и чего не видно ни в истории, ни в ограничениях.': 'Was für den wichtig ist, der das Programm schreibt, und weder im Verlauf noch in den Einschränkungen steht.',
     'например: тренируюсь вечером дома, утром зарядка': 'zum Beispiel: abends zu Hause, morgens Routine',

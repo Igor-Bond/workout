@@ -2301,6 +2301,58 @@ describe('Экран: отзыв о приложении', () => {
 });
 
 /**
+ * Убранная строка плана возвращается (§10, Р-119).
+ *
+ * ↑, ↓ и × стояли подряд через четыре пикселя, а порядок правят так: жмут ↓
+ * несколько раз подряд. Промах — и строка исчезала вместе с подходами,
+ * повторениями и весом, вписанными минуту назад.
+ */
+describe('Экран: план, возврат убранного', () => {
+
+    async function составИзДвух() {
+        const жим = await seed({ name: 'Жим лёжа' });
+        await dbService.createExercise({ name: 'Приседания', kind: 'weight', group: 'Ноги' });
+
+        await workout(жим, [[10, 60]]);
+
+        await screen(plan, ['repeat']);
+    }
+
+    it('убранное возвращается на своё место', async () => {
+        await составИзДвух();
+
+        const было = text(await screen(plan, ['repeat']));
+
+        assert(было.includes('Жим лёжа'), 'состав повтора обязан содержать жим');
+
+        await press('plan-remove', { index: '0' });
+
+        assert(!text(await screen(plan, ['repeat'])).includes('Жим лёжа'), 'убрано — значит убрано');
+
+        await press('plan-undo');
+
+        assert(text(await screen(plan, ['repeat'])).includes('Жим лёжа'), 'вернуть должно быть чем');
+
+        await screen(plan, ['template', 'нет-такого']);
+    });
+
+    it('уход с экрана снимает предложение вернуть', async () => {
+        await составИзДвух();
+        await screen(plan, ['repeat']);
+
+        await press('plan-remove', { index: '0' });
+        plan.leave();
+
+        await press('plan-undo');
+
+        assert(!text(await screen(plan, ['repeat'])).includes('Жим лёжа'),
+            'полоса ушла вместе с экраном — и возвращать ей уже нечего');
+
+        await screen(plan, ['template', 'нет-такого']);
+    });
+});
+
+/**
  * Тепловая карта отвечает пальцу, а не только курсору (§23.1, Р-118).
  *
  * Подсказка жила в <title>: на компьютере она всплывает под мышью, а на
