@@ -124,7 +124,7 @@ export const DE = {
     'Выше': 'Nach oben',
     'Ниже': 'Nach unten',
     'Последний раз: {что}': 'Letztes Mal: {что}',
-    'Вес прикинут от веса тела — поправь под себя':
+    'Вес прикинут от веса тела — поправьте под себя':
         'Gewicht aus deinem Körpergewicht geschätzt — passe es an',
     'Подставлено по чередованию — в прошлый раз было иначе':
         'Nach deinem Wechsel eingesetzt — beim letzten Mal war es anders',
@@ -357,7 +357,7 @@ export const DE = {
     'Выход не удаляет локальные данные. Незавершённая тренировка в облако не уезжает — она живёт только на этом устройстве.':
         'Abmelden löscht keine lokalen Daten. Ein nicht beendetes Training verlässt dieses Gerät nie.',
     'Резервная копия': 'Sicherungskopie',
-    'Файл на диске не зависит от облака и учётной записи — это копия, которая целиком в твоих руках.':
+    'Файл на диске не зависит от облака и учётной записи — это копия, которая целиком в ваших руках.':
         'Eine Datei hängt weder an der Cloud noch an einem Konto — diese Kopie gehört ganz dir.',
     'Выгрузить в файл': 'In eine Datei sichern',
     'Загрузить из файла': 'Aus einer Datei laden',
@@ -420,17 +420,19 @@ export const DE = {
     'Разово, кг': 'Einmalmaximum, kg',
 
     // Перевод базового справочника по просьбе (§53)
-    '{n} из базового списка стоят на другом языке. Свои названия и те, что ты правил, останутся как есть.':
+    '{n} из базового списка стоят на другом языке. Свои названия и те, что правили вы, останутся как есть.':
         '{n} aus der mitgelieferten Liste stehen in einer anderen Sprache. Eigene und von dir geänderte Namen bleiben, wie sie sind.',
     'Перевести базовые упражнения': 'Mitgelieferte Übungen übersetzen',
     'Перевести базовые упражнения?': 'Mitgelieferte Übungen übersetzen?',
-    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые ты завёл или переименовал сам, останутся как есть. История не пострадает: меняется имя, а не запись.':
+    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые вы завели или переименовали сами, останутся как есть. История не пострадает: меняется имя, а не запись.':
         'Namen und Muskelgruppen aus der mitgelieferten Liste wechseln in die aktuelle Sprache. Selbst angelegte oder umbenannte Übungen bleiben unberührt. Dein Verlauf bleibt heil: der Name ändert sich, nicht der Eintrag.',
     'Перевести': 'Übersetzen',
     'Переведено: {n}.': 'Übersetzt: {n}.',
     'Переводить оказалось нечего.': 'Es gab nichts zu übersetzen.',
     'Первый раз — ориентиров пока нет': 'Zum ersten Mal — noch nichts zum Vergleichen',
     'Изменить заметку к тренировке': 'Notiz zum Training ändern',
+    'На одно меньше': 'Eins weniger',
+    'На одно больше': 'Eins mehr',
     'повторений': 'Wiederholungen',
     'вес:': 'Gewicht:',
     'техника, самочувствие, особенности': 'Technik, Befinden, Besonderheiten',
@@ -476,7 +478,7 @@ export const DE = {
     'лучше': 'besser',
 
     // Разделы
-    'О тебе': 'Über dich',
+    'О вас': 'Über dich',
     'Первые шаги': 'Erste Schritte',
     'Что успел попробовать': 'Was du ausprobiert hast',
     'Оценки': 'Bewertungen',
@@ -520,7 +522,7 @@ export const DE = {
     'Не нашёл': 'Nicht gefunden',
     'Не открывал': 'Nicht geöffnet',
     'Что было непонятно с первого взгляда?': 'Was war auf den ersten Blick unklar?',
-    'Самое ценное во всей анкете. Непонятное — это мой недосмотр, а не твоя невнимательность.':
+    'Самое ценное во всей анкете. Непонятное — это мой недосмотр, а не ваша невнимательность.':
         'Die wertvollste Frage hier. Was unklar ist, ist mein Versäumnis, nicht deine Unaufmerksamkeit.',
     'Например: не понял, чем шаблон отличается от повтора прошлой':
         'Zum Beispiel: mir war nicht klar, was eine Vorlage vom Wiederholen unterscheidet',
@@ -723,7 +725,7 @@ export const DE = {
 
     // ================== ПРОФИЛЬ ==================
 
-    'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удали значок с домашнего экрана и добавь заново: во весь экран приложение разворачивается при установке.': 'Die App wurde im Fenstermodus installiert, deshalb bleibt die Systemleiste unten. Damit sie ganz verschwindet, entferne das Symbol vom Startbildschirm und füge es neu hinzu: Bei der Installation geht die App auf den ganzen Bildschirm.',
+    'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удалите значок с домашнего экрана и добавьте заново: во весь экран приложение разворачивается при установке.': 'Die App wurde im Fenstermodus installiert, deshalb bleibt die Systemleiste unten. Damit sie ganz verschwindet, entferne das Symbol vom Startbildschirm und füge es neu hinzu: Bei der Installation geht die App auf den ganzen Bildschirm.',
     '{сколько} в архиве': '{сколько} archiviert',
     'Открывается окно входа…': 'Anmeldefenster wird geöffnet …',
     'Первый обмен…': 'Erster Abgleich …',
@@ -820,7 +822,7 @@ export const DE = {
     'Взвешиваний': 'Wiegungen',
     'За период — от первого взвешивания к последнему: {от} → {до} кг за {дни}.': 'Im Zeitraum — von der ersten Wiegung zur letzten: {от} → {до} kg in {дни}.',
     'Последнее взвешивание — {день}.': 'Letzte Wiegung — {день}.',
-    'Нет данных — сначала проведи тренировку.': 'Keine Daten — mach zuerst ein Training.',
+    'Нет данных — сначала проведите тренировку.': 'Keine Daten — mach zuerst ein Training.',
     'Сравнивать не с чем: за всё время предыдущего периода нет.': 'Es gibt nichts zum Vergleichen: In der gesamten Historie liegt kein vorheriger Zeitraum.',
     'Лучший месяц за всё время': 'Bester Monat aller Zeiten',
     'по тоннажу {месяц} — {кг} кг': 'nach Tonnage {месяц} — {кг} kg',
@@ -932,9 +934,9 @@ export const DE = {
     'в среднем {n} за неделю': 'im Schnitt {n} pro Tag diese Woche',
     'Цель по шагам': 'Tagesziel für Schritte',
     'Шагов в день': 'Schritte pro Tag',
-    'Сколько шагов в день Вы считаете своим днём. Пусто — цели нет, шаги останутся просто числом.': 'Wie viele Schritte am Tag für Dich ein guter Tag sind. Leer heißt kein Ziel — Schritte bleiben eine bloße Zahl.',
+    'Сколько шагов в день вы считаете своим днём. Пусто — цели нет, шаги останутся просто числом.': 'Wie viele Schritte am Tag für Dich ein guter Tag sind. Leer heißt kein Ziel — Schritte bleiben eine bloße Zahl.',
     'Цель — {n} шагов в день. Она видна на главном экране рядом с сегодняшним числом.': 'Das Ziel sind {n} Schritte am Tag. Es steht auf dem Hauptbildschirm neben der heutigen Zahl.',
-    'Без цели шаги просто показываются числом. Цель нужна не приложению, а Вам: она превращает ходьбу в то, что видно сделанным.': 'Ohne Ziel sind Schritte nur eine Zahl. Das Ziel braucht nicht die App, sondern Du: es macht aus dem Gehen etwas sichtbar Erledigtes.',
+    'Без цели шаги просто показываются числом. Цель нужна не приложению, а вам: она превращает ходьбу в то, что видно сделанным.': 'Ohne Ziel sind Schritte nur eine Zahl. Das Ziel braucht nicht die App, sondern Du: es macht aus dem Gehen etwas sichtbar Erledigtes.',
     'Изменить цель': 'Ziel ändern',
     'Поставить цель': 'Ziel setzen',
     'Вес тела: {вес} кг, без изменений за период.': 'Körpergewicht: {вес} kg, unverändert im Zeitraum.',
@@ -1077,6 +1079,7 @@ export const DE = {
     'Ответ не получен: {что}': 'Keine Antwort: {что}',
     'Ответ пришёл пустым.': 'Die Antwort kam leer zurück.',
     'Запас в подходе': 'Reserve im Satz',
+    'Сколько повторений в запасе': 'Wie viele Wiederholungen bleiben in Reserve',
     'почти отказ': 'fast Versagen',
     'почти до отказа': 'fast bis zum Versagen',
     'около двух': 'etwa zwei',
@@ -1196,7 +1199,7 @@ export const DE = {
     'сервис прислал записей: {n}, но пульса и времени в них не нашлось': 'der Dienst schickte {n} Einträge, darin fanden sich aber weder Puls noch Zeiten',
     'сервис не прислал ни одной': 'der Dienst schickte keine einzige',
     'Поля, которые прислал сервис': 'Felder, die der Dienst geschickt hat',
-    'Пульс на тренировке появится, только если Вы запускаете занятие на самих часах: приложение сопоставит его с тренировкой по времени. Zepp отдаёт наружу то, что часы записали как занятие.': 'Der Puls beim Training erscheint nur, wenn du die Einheit auf der Uhr selbst startest: die App ordnet sie dann dem Training nach Zeit zu. Zepp gibt weiter, was die Uhr als Einheit aufgezeichnet hat.',
+    'Пульс на тренировке появится, только если вы запускаете занятие на самих часах: приложение сопоставит его с тренировкой по времени. Zepp отдаёт наружу то, что часы записали как занятие.': 'Der Puls beim Training erscheint nur, wenn du die Einheit auf der Uhr selbst startest: die App ordnet sie dann dem Training nach Zeit zu. Zepp gibt weiter, was die Uhr als Einheit aufgezeichnet hat.',
     'Занятия забрать не удалось.': 'Die Einheiten konnten nicht geholt werden.',
     'Восстановление:': 'Erholung:',
     'Как это связано': 'Wie das zusammenhängt',
@@ -1247,6 +1250,7 @@ export const DE = {
     '{упражнение}: два занятия подряд почти до отказа — запас потерян.': '{упражнение}: zwei Einheiten in Folge fast bis zum Versagen — die Reserve ist weg.',
     'Сон короче обычного и пульс покоя выше — неделя не для прибавки.': 'Kürzerer Schlaf als sonst und höherer Ruhepuls — keine Woche zum Zulegen.',
     'Пульс покоя выше обычного — стоит присмотреться к самочувствию.': 'Ruhepuls höher als sonst — achte auf dein Befinden.',
+    'За две недели {тренировок} при {всего} по плану, но в дни сетки попали {сделано} — сетка разошлась с вашей неделей.': 'In zwei Wochen {тренировок} bei {всего} geplanten, aber nur {сделано} an Plantagen — der Plan ist aus Ihrer Woche gelaufen.',
     'По плану за две недели сделано {сделано} из {всего} — программа идёт быстрее вас.': 'In zwei Wochen wurden {сделано} von {всего} geplanten Tagen erledigt — das Programm läuft schneller als du.',
     'План за две недели выполнен полностью — {всего} из {всего}.': 'Der Plan für zwei Wochen wurde vollständig erfüllt — {всего} von {всего}.',
     'Повторений за неделю ниже прошлой на {процент}%.': 'Wiederholungen diese Woche liegen {процент}% unter der letzten.',
@@ -1332,7 +1336,7 @@ export const DE = {
     'Полоса — подходы. Тоннаж появится, когда будет отмечен вес тела или отягощение.': 'Der Balken zeigt Sätze. Die Tonnage erscheint, sobald Körpergewicht oder Zusatzgewicht erfasst ist.',
     'Сопротивление, кг (необязательно)': 'Widerstand, kg (optional)',
     'Весы не признали': 'Die Waage hat Sie nicht erkannt',
-    'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'Platznummer oder Code passten nicht. Ich habe sie vergessen — drücken Sie erneut «Von der Waage lesen» und geben Sie sie neu ein. Die Waage zeigt beides in ihren Benutzereinstellungen.',
+    'Номер места или код не подошли. Забыли их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'Platznummer oder Code passten nicht. Ich habe sie vergessen — drücken Sie erneut «Von der Waage lesen» und geben Sie sie neu ein. Die Waage zeigt beides in ihren Benutzereinstellungen.',
     'Весы не ответили': 'Die Waage hat nicht geantwortet',
     'Отметить': 'Eintragen',
     'Где взять ключ': 'Wo du den Schlüssel bekommst',

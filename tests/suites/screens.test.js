@@ -1773,7 +1773,7 @@ describe('Экран: статистика и рекорды', () => {
 
     it('пустая база не роняет статистику', async () => {
         await seed();
-        assert(has(await screen(stats), 'сначала проведи тренировку'));
+        assert(has(await screen(stats), 'сначала проведите тренировку'));
     });
 
     it('считает показатели за период', async () => {
@@ -2297,6 +2297,46 @@ describe('Экран: отзыв о приложении', () => {
         const текст = survey.asText({ answers: {}, about: {} });
 
         equal(текст, 'Отзыв о приложении «Трекер»');
+    });
+});
+
+/**
+ * Повторения правятся без клавиатуры (§12, Р-120).
+ */
+describe('Экран: выполнение, шаг повторений', () => {
+
+    it('кнопки меняют число на единицу и ниже нуля не уходят', async () => {
+        const ex = await seed();
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 12, weight: 60, skipped: false }
+        ]});
+
+        const view = await screen(session);
+
+        assert(hasAction(view, 'sess-reps-up'), 'править повторения надо и без клавиатуры');
+        assert(hasAction(view, 'sess-reps-down'));
+
+        // Поле живёт в разметке — заводим его так же, как это делает экран
+        const поле = document.createElement('input');
+        поле.id = 'f-reps';
+        поле.type = 'number';
+        поле.value = '12';
+        document.body.appendChild(поле);
+
+        try {
+            await press('sess-reps-down');
+            equal(поле.value, '11', 'шаг на одно: поправка на пару повторений — самое частое здесь');
+
+            await press('sess-reps-up');
+            await press('sess-reps-up');
+            equal(поле.value, '13');
+
+            поле.value = '0';
+            await press('sess-reps-down');
+            equal(поле.value, '0', 'отрицательных повторений не бывает');
+        } finally {
+            поле.remove();
+        }
     });
 });
 

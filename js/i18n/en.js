@@ -125,7 +125,7 @@ export const EN = {
     'Выше': 'Move up',
     'Ниже': 'Move down',
     'Последний раз: {что}': 'Last time: {что}',
-    'Вес прикинут от веса тела — поправь под себя':
+    'Вес прикинут от веса тела — поправьте под себя':
         'Weight estimated from your body weight — adjust it',
     'Подставлено по чередованию — в прошлый раз было иначе':
         'Filled in from your alternation — last time it was different',
@@ -359,7 +359,7 @@ export const EN = {
     'Выход не удаляет локальные данные. Незавершённая тренировка в облако не уезжает — она живёт только на этом устройстве.':
         'Signing out keeps your local data. An unfinished workout never leaves this device.',
     'Резервная копия': 'Backup',
-    'Файл на диске не зависит от облака и учётной записи — это копия, которая целиком в твоих руках.':
+    'Файл на диске не зависит от облака и учётной записи — это копия, которая целиком в ваших руках.':
         'A file on disk depends on no cloud and no account — this copy is entirely yours.',
     'Выгрузить в файл': 'Save to a file',
     'Загрузить из файла': 'Load from a file',
@@ -447,7 +447,7 @@ export const EN = {
     'Полоса — подходы. Тоннаж появится, когда будет отмечен вес тела или отягощение.': 'The bar is sets. Tonnage appears once body weight or added weight is logged.',
     'Сопротивление, кг (необязательно)': 'Resistance, kg (optional)',
     'Весы не признали': 'The scale did not recognise you',
-    'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'The slot number or the code did not match. I have forgotten them — press "Read from scale" again and enter them anew. The scale shows both in its user settings.',
+    'Номер места или код не подошли. Забыли их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'The slot number or the code did not match. I have forgotten them — press "Read from scale" again and enter them anew. The scale shows both in its user settings.',
     'Весы не ответили': 'The scale did not answer',
     '{т} трен. / {п} подх.': '{т} workouts / {п} sets',
 
@@ -480,17 +480,19 @@ export const EN = {
     'Разово, кг': 'One-rep max, kg',
 
     // Перевод базового справочника по просьбе (§53)
-    '{n} из базового списка стоят на другом языке. Свои названия и те, что ты правил, останутся как есть.':
+    '{n} из базового списка стоят на другом языке. Свои названия и те, что правили вы, останутся как есть.':
         '{n} from the built-in list are in another language. Your own names, and any you edited, stay as they are.',
     'Перевести базовые упражнения': 'Translate the built-in exercises',
     'Перевести базовые упражнения?': 'Translate the built-in exercises?',
-    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые ты завёл или переименовал сам, останутся как есть. История не пострадает: меняется имя, а не запись.':
+    'Названия и группы из базового списка станут на текущем языке. Упражнения, которые вы завели или переименовали сами, останутся как есть. История не пострадает: меняется имя, а не запись.':
         'Names and muscle groups from the built-in list will switch to the current language. Exercises you created or renamed yourself stay untouched. Your history is safe: the name changes, the record does not.',
     'Перевести': 'Translate',
     'Переведено: {n}.': 'Translated: {n}.',
     'Переводить оказалось нечего.': 'There turned out to be nothing to translate.',
     'Первый раз — ориентиров пока нет': 'First time — nothing to compare with yet',
     'Изменить заметку к тренировке': 'Edit the workout note',
+    'На одно меньше': 'One less',
+    'На одно больше': 'One more',
     'повторений': 'reps',
     'вес:': 'weight:',
     'техника, самочувствие, особенности': 'technique, how it felt, anything notable',
@@ -536,7 +538,7 @@ export const EN = {
     'лучше': 'better',
 
     // Разделы
-    'О тебе': 'About you',
+    'О вас': 'About you',
     'Первые шаги': 'First steps',
     'Что успел попробовать': 'What you got to try',
     'Оценки': 'Ratings',
@@ -580,7 +582,7 @@ export const EN = {
     'Не нашёл': 'Did not find it',
     'Не открывал': 'Did not open it',
     'Что было непонятно с первого взгляда?': 'What was unclear at first glance?',
-    'Самое ценное во всей анкете. Непонятное — это мой недосмотр, а не твоя невнимательность.':
+    'Самое ценное во всей анкете. Непонятное — это мой недосмотр, а не ваша невнимательность.':
         'The most valuable question here. Anything unclear is my oversight, not your inattention.',
     'Например: не понял, чем шаблон отличается от повтора прошлой':
         'For example: I did not get how a template differs from repeating the last workout',
@@ -783,7 +785,7 @@ export const EN = {
 
     // ================== ПРОФИЛЬ ==================
 
-    'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удали значок с домашнего экрана и добавь заново: во весь экран приложение разворачивается при установке.': 'The app was installed in windowed mode, so the system bar at the bottom stays. To make it disappear for good, remove the icon from your home screen and add it again: the app goes full screen at install time.',
+    'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удалите значок с домашнего экрана и добавьте заново: во весь экран приложение разворачивается при установке.': 'The app was installed in windowed mode, so the system bar at the bottom stays. To make it disappear for good, remove the icon from your home screen and add it again: the app goes full screen at install time.',
     '{сколько} в архиве': '{сколько} archived',
     'Открывается окно входа…': 'Opening the sign-in window…',
     'Первый обмен…': 'First sync…',
@@ -880,7 +882,7 @@ export const EN = {
     'Взвешиваний': 'Weigh-ins',
     'За период — от первого взвешивания к последнему: {от} → {до} кг за {дни}.': 'Over the period — from the first weigh-in to the last: {от} → {до} kg over {дни}.',
     'Последнее взвешивание — {день}.': 'Last weigh-in — {день}.',
-    'Нет данных — сначала проведи тренировку.': 'No data — do a workout first.',
+    'Нет данных — сначала проведите тренировку.': 'No data — do a workout first.',
     'Сравнивать не с чем: за всё время предыдущего периода нет.': 'Nothing to compare with: your whole history holds no previous period.',
     'Лучший месяц за всё время': 'Best month of all time',
     'по тоннажу {месяц} — {кг} кг': 'by tonnage {месяц} — {кг} kg',
@@ -992,9 +994,9 @@ export const EN = {
     'в среднем {n} за неделю': '{n} a day on average this week',
     'Цель по шагам': 'Daily step goal',
     'Шагов в день': 'Steps a day',
-    'Сколько шагов в день Вы считаете своим днём. Пусто — цели нет, шаги останутся просто числом.': 'How many steps a day count as your day. Leave it empty for no goal — steps stay a plain number.',
+    'Сколько шагов в день вы считаете своим днём. Пусто — цели нет, шаги останутся просто числом.': 'How many steps a day count as your day. Leave it empty for no goal — steps stay a plain number.',
     'Цель — {n} шагов в день. Она видна на главном экране рядом с сегодняшним числом.': 'The goal is {n} steps a day. It shows on the main screen next to today’s count.',
-    'Без цели шаги просто показываются числом. Цель нужна не приложению, а Вам: она превращает ходьбу в то, что видно сделанным.': 'Without a goal steps are just a number. The goal is for you, not the app: it turns walking into something you can see done.',
+    'Без цели шаги просто показываются числом. Цель нужна не приложению, а вам: она превращает ходьбу в то, что видно сделанным.': 'Without a goal steps are just a number. The goal is for you, not the app: it turns walking into something you can see done.',
     'Изменить цель': 'Change the goal',
     'Поставить цель': 'Set a goal',
     'Вес тела: {вес} кг, без изменений за период.': 'Body weight: {вес} kg, unchanged over the period.',
@@ -1136,6 +1138,7 @@ export const EN = {
     'Ответ не получен: {что}': 'No answer: {что}',
     'Ответ пришёл пустым.': 'The answer came back empty.',
     'Запас в подходе': 'Reps in reserve',
+    'Сколько повторений в запасе': 'How many reps left in reserve',
     'почти отказ': 'near failure',
     'почти до отказа': 'close to failure',
     'около двух': 'about two',
@@ -1255,7 +1258,7 @@ export const EN = {
     'сервис прислал записей: {n}, но пульса и времени в них не нашлось': 'the service sent {n} records, but no heart rate or timing was found in them',
     'сервис не прислал ни одной': 'the service sent none',
     'Поля, которые прислал сервис': 'Fields the service sent',
-    'Пульс на тренировке появится, только если Вы запускаете занятие на самих часах: приложение сопоставит его с тренировкой по времени. Zepp отдаёт наружу то, что часы записали как занятие.': 'Heart rate for a workout appears only if you start the session on the watch itself: the app then matches it to your workout by time. Zepp passes on what the watch recorded as a session.',
+    'Пульс на тренировке появится, только если вы запускаете занятие на самих часах: приложение сопоставит его с тренировкой по времени. Zepp отдаёт наружу то, что часы записали как занятие.': 'Heart rate for a workout appears only if you start the session on the watch itself: the app then matches it to your workout by time. Zepp passes on what the watch recorded as a session.',
     'Занятия забрать не удалось.': 'The sessions could not be fetched.',
     'Восстановление:': 'Recovery:',
     'Как это связано': 'How it is connected',
@@ -1306,6 +1309,7 @@ export const EN = {
     '{упражнение}: два занятия подряд почти до отказа — запас потерян.': '{упражнение}: close to failure two sessions running — the reserve is gone.',
     'Сон короче обычного и пульс покоя выше — неделя не для прибавки.': 'Sleep shorter than usual and resting heart rate higher — not a week for adding load.',
     'Пульс покоя выше обычного — стоит присмотреться к самочувствию.': 'Resting heart rate higher than usual — worth watching how you feel.',
+    'За две недели {тренировок} при {всего} по плану, но в дни сетки попали {сделано} — сетка разошлась с вашей неделей.': 'Two weeks: {тренировок} against {всего} planned, but only {сделано} landed on plan days — the schedule has drifted from your week.',
     'По плану за две недели сделано {сделано} из {всего} — программа идёт быстрее вас.': 'Over two weeks {сделано} of {всего} planned days were done — the programme is moving faster than you are.',
     'План за две недели выполнен полностью — {всего} из {всего}.': 'The plan for two weeks was met in full — {всего} of {всего}.',
     'Повторений за неделю ниже прошлой на {процент}%.': 'Reps this week are {процент}% below last week.',

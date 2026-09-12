@@ -390,7 +390,7 @@ function itemRow(item, index, total, timed = false) {
                     ${item.lastLine
                         ? ui.html`<div class="plan-row-last">${t('Последний раз: {что}', { что: item.lastLine })}</div>`
                         : item.estimated
-                            ? ui.html`<div class="plan-row-last is-guess">${t('Вес прикинут от веса тела — поправь под себя')}</div>`
+                            ? ui.html`<div class="plan-row-last is-guess">${t('Вес прикинут от веса тела — поправьте под себя')}</div>`
                             : ''}
 
                     <!--

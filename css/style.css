@@ -677,6 +677,34 @@ input[type=checkbox] {
 
 .ex-main { flex: 1; min-width: 0; }
 
+/*
+ * Вся левая часть строки справочника — одна кнопка (§5.2, Р-120).
+ *
+ * Цель вырастает с двадцати точек до пятидесяти, а строка остаётся прежней
+ * высоты: поля наружу, отступ обратно. Приём в приложении уже есть — им
+ * сделан значок типа в истории.
+ */
+button.ex-main {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 7px 0;
+    margin: -7px 0;
+}
+
+/*
+ * Название внутри кнопки — блоком и полужирным: многоточие у длинного имени
+ * работает только на блочном элементе, а вес был у прежней кнопки.
+ */
+button.ex-main .ex-name { display: block; font-weight: 700; }
+
+button.ex-main:active .ex-name { color: var(--accent); }
+
 .ex-name {
     font-size: 0.875rem;
     /* Длинное название не должно распирать строку и уводить кнопки за край */
@@ -685,7 +713,7 @@ input[type=checkbox] {
     white-space: nowrap;
 }
 
-.ex-meta { font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.ex-meta { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 
 .ex-actions { display: flex; gap: 4px; flex: none; }
 
@@ -861,6 +889,43 @@ input.big-input {
 }
 
 input.big-input:focus { outline: none; border-color: var(--accent); }
+
+/*
+ * Ряд «− число +» (§12, Р-120).
+ *
+ * Кнопки по 48 точек: этим экраном пользуются стоя и мокрой рукой, и цель
+ * меньше сорока четырёх здесь особенно дорога. Переносится по строкам ради
+ * строки ошибки — она вставляется рядом с полем и в ряду стала бы третьим
+ * соседом кнопок.
+ */
+.big-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.big-row input.big-input { margin: 0; }
+
+.big-row .field-error { flex-basis: 100%; text-align: center; }
+
+.step-btn {
+    flex: none;
+    width: 48px;
+    height: 48px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.step-btn:active { border-color: var(--accent); color: var(--accent); }
 
 .big-label {
     font-size: 0.75rem;
@@ -2262,13 +2327,21 @@ button.ex-name {
     width: 100%;
     background: none;
     border: none;
-    padding: 0;
     color: var(--text);
     font-family: inherit;
     font-size: inherit;
     font-weight: 700;
     text-align: left;
     cursor: pointer;
+
+    /*
+     * Поля наружу, отступ обратно (Р-120): цель растёт с двадцати точек до
+     * тридцати шести, а строка остаётся прежней высоты. Там, где название —
+     * единственное нажимаемое в строке, промах вниз на несколько пикселей не
+     * делал ничего, и приложение выглядело зависшим.
+     */
+    padding: 8px 0;
+    margin: -8px 0;
 }
 
 button.ex-name:active { color: var(--accent); }

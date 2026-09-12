@@ -101,7 +101,7 @@ export async function observations({ now = Date.now() } = {}) {
     return progress.describe({
         reserve: запас,
         recovery: восстановление,
-        adherence: progress.adherence(дни, сделаноВ),
+        adherence: progress.adherence(дни, сделаноВ, { from: сегодня - 13 * DAY, to: сегодня }),
         volume: {
             current: повторений(сегодня - 7 * DAY, сегодня),
             previous: повторений(сегодня - 14 * DAY, сегодня - 7 * DAY)
