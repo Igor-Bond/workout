@@ -224,9 +224,9 @@ export const DE = {
     'Год': 'Jahr',
     'Всё время': 'Gesamt',
     'Общее время': 'Gesamtzeit',
-    'Подх. / трен.': 'Sätze / Training',
-    'Повт. / подх.': 'Wdh. / Satz',
-    'Средняя длит.': 'Ø Dauer',
+    'Подходов за тренировку': 'Sätze pro Training',
+    'Повторений за подход': 'Wiederholungen pro Satz',
+    'Средняя длительность': 'Durchschnittliche Dauer',
     'Изменение — к предыдущему такому же периоду.': 'Veränderung gegenüber dem gleich langen Zeitraum davor.',
     'Подходы по тренировкам': 'Sätze pro Training',
     'Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.':

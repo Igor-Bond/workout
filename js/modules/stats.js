@@ -578,9 +578,25 @@ export const stats = {
                     ${tile(t('Повторений'), String(now.reps), change.reps)}
                     ${tile(t('Тоннаж, кг'), format.decimal(now.volume, 0), change.volume)}
                     ${tile(t('Общее время'), format.duration(now.durationMs), change.durationMs)}
-                    ${tile(t('Подх. / трен.'), format.decimal(now.avgSets), change.avgSets)}
-                    ${tile(t('Повт. / подх.'), format.decimal(now.avgReps), change.avgReps)}
-                    ${tile(t('Средняя длит.'), format.duration(now.avgDuration), change.avgDuration)}
+                    <!--
+                        Слова целиком, а не обрубки капсом (§23, Р-124).
+
+                        Рядом в той же сетке стоят «ТРЕНИРОВОК», «ПОДХОДОВ»,
+                        «ПОВТОРЕНИЙ» — и тут же стояли «ПОДХ. / ТРЕН.» и
+                        «ПОВТ. / ПОДХ.»: те же самые слова, обрезанные на
+                        середине. Капс, разрядка и точки сокращения
+                        складываются в шифр, а косая черта между обрубками
+                        требует сообразить, что это деление; «ТРЕН.»
+                        одинаково читается как тренировка, тренер и тренд.
+
+                        Приложение тут же показывает, что умеет писать
+                        «ПОДХОДОВ» целиком, — экономить буквы было незачем:
+                        подпись переносится, и в колонку она встаёт двумя
+                        строками.
+                    -->
+                    ${tile(t('Подходов за тренировку'), format.decimal(now.avgSets), change.avgSets)}
+                    ${tile(t('Повторений за подход'), format.decimal(now.avgReps), change.avgReps)}
+                    ${tile(t('Средняя длительность'), format.duration(now.avgDuration), change.avgDuration)}
                 </div>
 
                 <!--
