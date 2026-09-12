@@ -1201,6 +1201,8 @@ export const DE = {
     'К плану': 'Zum Plan',
     'В ближайшие две недели план не назначает ни одной тренировки.': 'Der Plan sieht für die nächsten zwei Wochen kein einziges Training vor.',
     '{что} Поставлено занятий: {n}, остальные — нет.': '{что} Eingetragene Einheiten: {n}, die übrigen nicht.',
+    'Самый свежий замер — {день}.': 'Die neueste Messung ist {день}.',
+    'Самый свежий замер — {день}. Intervals.icu отвечает исправно, новее у него просто нет: значит молчит то, что пишет туда с часов, а не приложение.': 'Die neueste Messung ist {день}. Intervals.icu antwortet einwandfrei und hat schlicht nichts Neueres: still ist das, was von der Uhr dorthin schreibt, nicht diese App.',
     'Замеров за месяц: {n}': 'Messwerte im Monat: {n}',
     'сон — {сон}, пульс покоя — {пульс}, шаги — {шаги}': 'Schlaf — {сон}, Ruhepuls — {пульс}, Schritte — {шаги}',
     'Тренировок с часов за месяц: {n}': 'Trainings von der Uhr im Monat: {n}',

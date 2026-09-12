@@ -1260,6 +1260,8 @@ export const EN = {
     'К плану': 'To the plan',
     'В ближайшие две недели план не назначает ни одной тренировки.': 'The plan sets no training at all for the next two weeks.',
     '{что} Поставлено занятий: {n}, остальные — нет.': '{что} Sessions placed: {n}, the rest were not.',
+    'Самый свежий замер — {день}.': 'The freshest reading is {день}.',
+    'Самый свежий замер — {день}. Intervals.icu отвечает исправно, новее у него просто нет: значит молчит то, что пишет туда с часов, а не приложение.': 'The freshest reading is {день}. Intervals.icu answers fine, it simply has nothing newer: what has gone quiet is whatever writes there from the watch, not this app.',
     'Замеров за месяц: {n}': 'Measurements this month: {n}',
     'сон — {сон}, пульс покоя — {пульс}, шаги — {шаги}': 'sleep — {сон}, resting HR — {пульс}, steps — {шаги}',
     'Тренировок с часов за месяц: {n}': 'Workouts from the watch this month: {n}',

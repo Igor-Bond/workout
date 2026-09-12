@@ -3041,6 +3041,61 @@ async function положитьПлан(from, дни) {
 }
 
 /**
+ * Экран часов говорит, какое звено молчит (§62.3, Р-127).
+ *
+ * Цепочка из трёх звеньев — часы, Zepp, Intervals.icu, — и строка «Привезено
+ * сегодня» отвечает про забор, а читается как ответ про свежесть: сервис
+ * отвечает исправно, а новее восьмого сентября у него ничего нет.
+ */
+describe('Экран часов: свежесть данных', () => {
+
+    const DAY = 86400000;
+    const полночь = (ms) => new Date(new Date(ms).setHours(0, 0, 0, 0)).getTime();
+
+    async function привезено(дни) {
+        await dbService.setSetting('icuKey', 'ключ');
+        await dbService.setSetting('icuAthlete', 'i1');
+
+        await dbService.setSetting('icuWellness', {
+            at: Date.now(),
+            rows: дни.map((назад) => ({
+                date: полночь(Date.now() - назад * DAY), sleep: 25200, rhr: 52, steps: 9000
+            }))
+        });
+    }
+
+    async function прибрать() {
+        for (const ключ of ['icuWellness', 'icuKey', 'icuAthlete']) await dbService.setSetting(ключ, null);
+    }
+
+    it('свежие данные называют день и не поднимают тревоги', async () => {
+        await seed();
+        await привезено([1, 0]);
+
+        const view = await screen(watch);
+
+        assert(text(view).includes('Самый свежий замер'), 'по какой день данные — главный вопрос экрана');
+        assert(!view.querySelector('.hint.is-bad'), 'тревожиться не о чем');
+
+        await прибрать();
+    });
+
+    it('отставшие данные называют виновное звено', async () => {
+        await seed();
+        await привезено([8, 7, 6, 4]);
+
+        const view = await screen(watch);
+        const беда = view.querySelector('.hint.is-bad');
+
+        assert(беда, 'молчание четвёртый день — это новость, а не подпись');
+        assert(беда.textContent.includes('Intervals.icu отвечает'),
+            `надо назвать звено, иначе человек чинит работающее: «${беда.textContent.trim()}»`);
+
+        await прибрать();
+    });
+});
+
+/**
  * Старые данные с часов названы старыми (§62.5, Р-125).
  *
  * Найдено владельцем на живом экране: 12 сентября на главном висело «5145 из
