@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Что умеют весы по Bluetooth</title>
+<style>
+    body { font: 15px/1.55 system-ui, sans-serif; margin: 16px; max-width: 820px; }
+    button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid #888; background: #fff; }
+    button.main { background: #d9822b; border-color: #d9822b; color: #fff; }
+    pre { white-space: pre-wrap; word-break: break-all; background: #f4f4f4; padding: 12px; border-radius: 6px; font: 12px/1.45 monospace; }
+    .bad { color: #b00; }
+    .ok { color: #070; }
+    h2 { font-size: 16px; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<h1>Что умеют весы по Bluetooth</h1>
+
+<!--
+    Разовая проверка перед тем, как решать про весы (§63 не существует — это
+    ещё не замысел, а разведка).
+
+    Вопрос простой: отдают ли весы вес напрямую браузеру, или разговаривают
+    только со своим приложением. Ответить на него рассуждением нельзя. Одни
+    весы держат стандартную службу Bluetooth SIG — Weight Scale (0x181D) и
+    Body Composition (0x181B), — и тогда читать их умеет любой, включая эту
+    страницу. Другие говорят своим языком, и тогда нужен разбор протокола,
+    который кто-то уже сделал, либо своя работа на неделю.
+
+    Отличить одно от другого можно только подключившись и спросив список
+    служб. Этим страница и занимается.
+
+    Важное ограничение самого браузера: Web Bluetooth показывает лишь те
+    службы, которые названы заранее в optionalServices. Поэтому сначала
+    слушаем объявления весов — в них служба названа самими весами, — а уже
+    потом подключаемся, зная, что спрашивать. Если объявления недоступны
+    (в части сборок Chrome это за флагом), останется список известных.
+
+    Работает в Chrome на Android и на настольных системах. В Firefox и в
+    Safari Web Bluetooth нет вовсе, и это не починится со стороны страницы.
+
+    Инструмент разовый: в приложение не входит, в кэш сервис-воркера не
+    попадает, открывается руками.
+-->
+
+<p>Открывать в <b>Chrome</b> (на телефоне — с Android). Весы перед нажатием
+разбудить: встать на них или нажать кнопку, иначе они не объявляются и в
+списке не появятся.</p>
+
+<p>
+    <button class="main" id="go">Найти весы</button>
+    <button id="copy">Скопировать отчёт</button>
+</p>
+
+<pre id="out">Пока ничего.</pre>
+
+<h2>Что тут искать</h2>
+<ul>
+    <li><b>0000181d</b> — Weight Scale, стандартная служба веса. Есть — значит вес
+        читается напрямую, без разбора чужого протокола.</li>
+    <li><b>0000181b</b> — Body Composition: жир, вода, мышцы, кости.</li>
+    <li><b>0000181c</b> — User Data: рост, возраст, пол; их весам сообщают, иначе
+        состав тела они не считают.</li>
+    <li>Что-то вроде <b>0000ffe0</b> или совсем незнакомый длинный номер — свой
+        язык производителя. Читается, но не сам по себе.</li>
+</ul>
+
+<script>
+const out = document.getElementById('out');
+const строки = [];
+
+function скажи(текст) {
+    строки.push(текст);
+    out.textContent = строки.join('\n');
+}
+
+/**
+ * Службы, которые браузер согласится показать.
+ *
+ * Список нужен именно заранее: getPrimaryServices() молча пропускает всё, что
+ * в нём не названо, и весы со своей службой выглядели бы пустыми.
+ */
+const ИЗВЕСТНЫЕ = [
+    0x181d, 0x181b, 0x181c, 0x180f, 0x180a, 0x1805, 0x1800, 0x1801, 0x180d,
+    0xffe0, 0xffe5, 0xfff0, 0xfee7, 0xfee0, 0xff00,
+    '0000fee1-0000-1000-8000-00805f9b34fb',
+    '0000ffb0-0000-1000-8000-00805f9b34fb',
+    '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
+];
+
+const шестнадцать = (n) => '0x' + Number(n).toString(16).padStart(4, '0');
+
+/** Свойства характеристики словами: что с ней вообще можно делать. */
+function умеет(c) {
+    const p = c.properties || {};
+    return ['read', 'write', 'writeWithoutResponse', 'notify', 'indicate']
+        .filter((k) => p[k]).join(', ') || '—';
+}
+
+document.getElementById('copy').onclick = async () => {
+    try {
+        await navigator.clipboard.writeText(строки.join('\n'));
+        скажи('— отчёт скопирован —');
+    } catch (e) {
+        скажи('Скопировать не вышло: ' + e.message);
+    }
+};
+
+document.getElementById('go').onclick = async () => {
+    строки.length = 0;
+    скажи('Браузер: ' + navigator.userAgent);
+
+    if (!navigator.bluetooth) {
+        скажи('Web Bluetooth в этом браузере нет. Нужен Chrome (Android или настольный).');
+        return;
+    }
+
+    let device;
+
+    try {
+        device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ИЗВЕСТНЫЕ
+        });
+    } catch (e) {
+        скажи('Выбор отменён или не удался: ' + e.message);
+        return;
+    }
+
+    скажи('\nУстройство: ' + (device.name || 'без имени') + '  [' + device.id + ']');
+
+    /*
+     * Объявления весов называют службу их собственным номером — это
+     * единственный способ узнать незнакомую. Доступно не везде, поэтому
+     * осечка тут не беда: дальше пойдём по известным.
+     */
+    if (device.watchAdvertisements) {
+        try {
+            const услышано = new Promise((resolve) => {
+                device.addEventListener('advertisementreceived', (e) => resolve(e), { once: true });
+                setTimeout(() => resolve(null), 6000);
+            });
+
+            await device.watchAdvertisements();
+            const e = await услышано;
+
+            if (e) {
+                скажи('Объявленные службы: ' + ([...(e.uuids || [])].join(', ') || 'ни одной'));
+
+                for (const [id, dv] of e.manufacturerData || []) {
+                    скажи('Данные производителя ' + шестнадцать(id) + ': '
+                        + [...new Uint8Array(dv.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' '));
+                }
+            } else {
+                скажи('Объявлений не дождались за шесть секунд — весы могли уснуть.');
+            }
+        } catch (e) {
+            скажи('Объявления недоступны: ' + e.message);
+        }
+    }
+
+    try {
+        скажи('\nПодключаюсь…');
+        const gatt = await device.gatt.connect();
+
+        const службы = await gatt.getPrimaryServices();
+        скажи('Служб найдено: ' + службы.length + '\n');
+
+        for (const s of службы) {
+            скажи('Служба ' + s.uuid);
+
+            let список = [];
+            try {
+                список = await s.getCharacteristics();
+            } catch (e) {
+                скажи('   характеристики не отдались: ' + e.message);
+                continue;
+            }
+
+            for (const c of список) {
+                let хвост = '';
+
+                if (c.properties.read) {
+                    try {
+                        const v = await c.readValue();
+                        хвост = '  = ' + [...new Uint8Array(v.buffer)]
+                            .map((b) => b.toString(16).padStart(2, '0')).join(' ');
+                    } catch (e) {
+                        хвост = '  (чтение: ' + e.message + ')';
+                    }
+                }
+
+                скажи('   ' + c.uuid + '  [' + умеет(c) + ']' + хвост);
+            }
+
+            скажи('');
+        }
+
+        const весы = службы.find((s) => s.uuid.startsWith('0000181d'));
+        const состав = службы.find((s) => s.uuid.startsWith('0000181b'));
+
+        скажи(весы || состав
+            ? '✔ Стандартные службы есть: вес читается напрямую.'
+            : '✖ Стандартных служб веса нет — весы говорят своим языком.');
+
+        gatt.disconnect();
+    } catch (e) {
+        скажи('Подключение не удалось: ' + e.message);
+    }
+};
+</script>
+
+</body>
+</html>
