@@ -930,6 +930,7 @@ export const DE = {
     'Пульс покоя': 'Ruhepuls',
     'Шаги в день': 'Schritte pro Tag',
     'Пульс занятий': 'Puls im Training',
+    'Данные кончаются на {день} — новее с часов не приходило. Проверьте привязку в приложении часов.': 'Die Daten enden am {день} — von der Uhr kam nichts Neueres. Prüfen Sie die Verknüpfung in Ihrer Uhren-App.',
     'Среднее за неделю. Привезено {когда}.': 'Wochendurchschnitt. Geholt {когда}.',
 
     // Шаги с целью (§62.5)
@@ -1201,12 +1202,10 @@ export const DE = {
     'К плану': 'Zum Plan',
     'В ближайшие две недели план не назначает ни одной тренировки.': 'Der Plan sieht für die nächsten zwei Wochen kein einziges Training vor.',
     '{что} Поставлено занятий: {n}, остальные — нет.': '{что} Eingetragene Einheiten: {n}, die übrigen nicht.',
-    'Самый свежий замер — {день}. По каждой величине срок свой — строкой ниже.': 'Die neueste Messung ist {день}. Jede Größe hat ihr eigenes Datum — siehe Zeile unten.',
-    'Самого свежего замера — {день}, и это не осечка приложения: Intervals.icu отвечает, новее у него нет. Смотрите строку ниже — по каждой величине свой срок.': 'Die neueste Messung ist {день}, und das ist kein Fehler der App: Intervals.icu antwortet, es hat nur nichts Neueres. Siehe Zeile unten — jede Größe hat ihr eigenes Datum.',
     'сон': 'Schlaf',
     'пульс покоя': 'Ruhepuls',
     'шаги': 'Schritte',
-    '{имя} — {n}, по {день}': '{имя} — {n}, bis {день}',
+    '{имя} — по {день}': '{имя} — bis {день}',
     '{имя} — ни одного': '{имя} — keine',
     'Замеров за месяц: {n}': 'Messwerte im Monat: {n}',
     'Тренировок с часов за месяц: {n}': 'Trainings von der Uhr im Monat: {n}',

@@ -2926,6 +2926,10 @@ button.ex-name:active { color: var(--accent); }
 
 .plan-rule:first-of-type { border-top: none; }
 
+/* Строка, которая сообщает не порядок дел, а осечку (Р-129) */
+.plan-rule.is-bad,
+.plan-rule.is-bad .plan-day-rest { color: var(--bad); }
+
 /* Пауза дня стоит подписью под заданием, а не спорит с ним за строку */
 .plan-day-rest {
     display: block;

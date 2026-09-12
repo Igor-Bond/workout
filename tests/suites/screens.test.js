@@ -3068,28 +3068,51 @@ describe('Экран часов: свежесть данных', () => {
         for (const ключ of ['icuWellness', 'icuKey', 'icuAthlete']) await dbService.setSetting(ключ, null);
     }
 
-    it('свежие данные называют день и не поднимают тревоги', async () => {
+    /*
+     * Когда всё свежее, три даты подряд — шум на экране, куда заходят раз в
+     * месяц. Работает — одна строка со счётом (Р-129).
+     */
+    it('свежие данные не разводят подписей', async () => {
         await seed();
         await привезено([1, 0]);
 
         const view = await screen(watch);
 
-        assert(text(view).includes('Самый свежий замер'), 'по какой день данные — главный вопрос экрана');
-        assert(!view.querySelector('.hint.is-bad'), 'тревожиться не о чем');
+        assert(text(view).includes('Замеров за месяц'), 'сколько привезено — сказать надо');
+        assert(!view.querySelector('.is-bad'), 'тревожиться не о чем');
+        assert(!text(view).includes('сон — по'), 'сроки порознь нужны только когда они расходятся');
 
         await прибрать();
     });
 
-    it('отставшие данные называют виновное звено', async () => {
+    it('отставшие данные называют сроки по каждой величине', async () => {
         await seed();
         await привезено([8, 7, 6, 4]);
 
         const view = await screen(watch);
-        const беда = view.querySelector('.hint.is-bad');
+        const беда = view.querySelector('.plan-rule.is-bad');
 
         assert(беда, 'молчание четвёртый день — это новость, а не подпись');
-        assert(беда.textContent.includes('Intervals.icu отвечает'),
-            `надо назвать звено, иначе человек чинит работающее: «${беда.textContent.trim()}»`);
+        assert(беда.textContent.includes('сон —') && беда.textContent.includes('шаги —'),
+            `сроки порознь: их пишут разные выгрузки — «${беда.textContent.trim()}»`);
+
+        await прибрать();
+    });
+
+    /*
+     * Экран часов открывают раз в месяц. Привязка отваливается молча, и
+     * средние недельные стареют тихо: сказать надо там, куда смотрят.
+     */
+    it('статистика сама говорит, что данные кончились', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+        await привезено([9, 8, 7, 5]);
+
+        const view = await screen(stats);
+        const беда = view.querySelector('.hint.is-bad');
+
+        assert(беда, 'иначе неделю спустя карточка описывает позапрошлую жизнь');
+        assert(беда.textContent.includes('Данные кончаются'), беда.textContent.trim());
 
         await прибрать();
     });

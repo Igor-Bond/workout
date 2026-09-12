@@ -990,6 +990,7 @@ export const EN = {
     'Пульс покоя': 'Resting HR',
     'Шаги в день': 'Steps a day',
     'Пульс занятий': 'Session HR',
+    'Данные кончаются на {день} — новее с часов не приходило. Проверьте привязку в приложении часов.': 'The data stops at {день} — nothing newer has come from the watch. Check the link in your watch app.',
     'Среднее за неделю. Привезено {когда}.': 'Weekly average. Fetched {когда}.',
 
     // Шаги с целью (§62.5)
@@ -1260,12 +1261,10 @@ export const EN = {
     'К плану': 'To the plan',
     'В ближайшие две недели план не назначает ни одной тренировки.': 'The plan sets no training at all for the next two weeks.',
     '{что} Поставлено занятий: {n}, остальные — нет.': '{что} Sessions placed: {n}, the rest were not.',
-    'Самый свежий замер — {день}. По каждой величине срок свой — строкой ниже.': 'The freshest reading is {день}. Each measure has its own date — see the line below.',
-    'Самого свежего замера — {день}, и это не осечка приложения: Intervals.icu отвечает, новее у него нет. Смотрите строку ниже — по каждой величине свой срок.': 'The freshest reading is {день}, and this is not an app failure: Intervals.icu answers, it just has nothing newer. See the line below — each measure has its own date.',
     'сон': 'sleep',
     'пульс покоя': 'resting HR',
     'шаги': 'steps',
-    '{имя} — {n}, по {день}': '{имя} — {n}, through {день}',
+    '{имя} — по {день}': '{имя} — through {день}',
     '{имя} — ни одного': '{имя} — none',
     'Замеров за месяц: {n}': 'Measurements this month: {n}',
     'Тренировок с часов за месяц: {n}': 'Workouts from the watch this month: {n}',
