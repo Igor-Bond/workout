@@ -1314,6 +1314,15 @@ table.log tr:last-child td { border-bottom: none; }
     min-height: 44px;
 }
 
+/*
+ * Зазор между строками (Р-109).
+ *
+ * Две одинаковые панели вплотную читаются как одна: границы соседних строк
+ * совпадают в одну линию, и вес с талией выглядели слипшимися. Та же беда,
+ * что с двумя кнопками одного цвета подряд (Р-96), и лечится тем же.
+ */
+.weight-row + .weight-row { margin-top: 8px; }
+
 .weight-row:active { border-color: var(--accent); }
 
 .weight-row .w-value {

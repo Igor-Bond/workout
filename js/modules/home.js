@@ -810,6 +810,12 @@ function bodyBlock(records) {
 
     const последняяТалия = [...records].reverse().find((r) => Number(r.waist) > 0);
 
+    // Состав тела приезжает с весов и бывает не у каждого замера (§65)
+    const последнийСостав = [...records].reverse().find((r) => Number(r.body?.fat) > 0);
+
+    const поЖиру = stats.bodyChange(
+        stats.bodySeries(records.filter((r) => r.at >= Date.now() - 30 * DAY), null, 'body.fat'));
+
     return ui.html`
         <div class="section">
             <div class="section-title">${t('Вес тела')}</div>
@@ -830,6 +836,38 @@ function bodyBlock(records) {
                         ${t('талия')}${талия && талия.delta
                             ? ` · ${sign(талия.delta)}${format.weight(Math.abs(талия.delta))} ${t('см за месяц')}`
                             : ''}
+                    </span>
+                </button>
+            ` : ''}
+
+            <!--
+                Состав тела с весов (§65) — строкой под весом.
+
+                Крупным числом жир, а не вода и не мышцы: именно он отвечает
+                на вопрос, на который вес молчит. Когда человек убирает живот,
+                вес неделями стоит на месте — жир уходит, мышцы приходят, — и
+                без этой строки главный экран говорит «ничего не происходит»
+                ровно тогда, когда происходит главное.
+
+                Показывается только тому, у кого состав есть: весы умеют его
+                не всегда, а прочерк в строке — просьба, а не сведения.
+            -->
+            ${последнийСостав ? ui.html`
+                <button class="weight-row" data-action="body-add">
+                    <span class="w-value">
+                        ${format.decimal(последнийСостав.body.fat, 1)} <small>${t('% жира')}</small>
+                    </span>
+                    <span class="w-meta">
+                        ${поЖиру && поЖиру.delta
+                            ? `${sign(поЖиру.delta)}${format.decimal(Math.abs(поЖиру.delta), 1)} ${t('% за месяц')} · `
+                            : ''}${[
+                                последнийСостав.body.water
+                                    ? `${t('вода')} ${format.decimal(последнийСостав.body.water, 1)} ${t('кг')}`
+                                    : '',
+                                последнийСостав.body.muscle
+                                    ? `${t('мышцы')} ${format.decimal(последнийСостав.body.muscle, 1)} %`
+                                    : ''
+                            ].filter(Boolean).join(' · ')}
                     </span>
                 </button>
             ` : ''}

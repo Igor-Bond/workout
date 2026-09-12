@@ -483,13 +483,24 @@ export const stats = {
         return total;
     },
 
-    /** Точки графика веса тела: {at, weight}. */
+    /**
+     * Точки графика веса тела: {at, weight}.
+     *
+     * Поле берётся и вложенное — «body.fat». Состав тела приезжает с весов и
+     * живёт свободным полем внутри записи (§65), а ход у жира такой же
+     * важный, как у веса: именно он отвечает на вопрос, на который вес
+     * молчит. Городить для этого второй такой же обход было бы нечестно —
+     * одна и та же величина считалась бы двумя способами.
+     */
     bodySeries(entries = [], range = null, field = 'weight') {
+        const взять = (запись) => String(field).split('.')
+            .reduce((v, ключ) => (v === null || v === undefined ? v : v[ключ]), запись);
+
         return entries
             .filter((e) => stats.inRange(e.at, range))
-            .filter((e) => Number.isFinite(Number(e[field])) && Number(e[field]) > 0)
+            .filter((e) => Number.isFinite(Number(взять(e))) && Number(взять(e)) > 0)
             .sort((a, b) => a.at - b.at)
-            .map((e) => ({ at: e.at, weight: Number(e[field]) }));
+            .map((e) => ({ at: e.at, weight: Number(взять(e)) }));
     },
 
     /**
