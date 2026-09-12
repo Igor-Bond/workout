@@ -490,7 +490,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
      */
     const forgotten = due
         .filter((d) => names.get(d.exerciseId))
-        .map((d) => ({ name: names.get(d.exerciseId), daysSince: d.daysSince }));
+        .map((d) => ({ id: d.exerciseId, name: names.get(d.exerciseId), daysSince: d.daysSince }));
 
     /*
      * Забытых бывает много, а показывается одно. Поэтому листалка: стрелки
@@ -517,7 +517,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
     const forgottenChip = forgotten.length ? ui.html`
         <span class="chip is-draft is-wide">
             ${forgotten.length > 1 ? стрелка('prev', '&lsaquo;', t('Предыдущее')) : ''}
-            <button class="chip-main" data-action="nav-plan-due">
+            <button class="chip-main" data-action="nav-plan-due" data-id="${forgotten[место].id}">
                 ${forgotten[место].name}
                 <span class="chip-count">
                     ${t('{n} дн', { n: forgotten[место].daysSince })}${forgotten.length > 1
@@ -1045,7 +1045,21 @@ export const home = {
 
 actions.on('nav-summary', (el) => app.go('summary', el.dataset.id));
 actions.on('nav-plan-repeat', () => app.go('plan', 'repeat'));
-actions.on('nav-plan-due', () => app.go('plan', 'due'));
+/*
+ * Листалка забытого выбирает, а не только показывает (§26.2.3, Р-118).
+ *
+ * Стрелки перебирали упражнения, а нажатие вело в один и тот же состав из
+ * всего просроченного — в каком порядке соберётся, в таком и соберётся.
+ * Человек пролистывал до приседаний, нажимал и получал план, начинающийся с
+ * чего-то другого: листалка выглядела выбором и выбором не была.
+ *
+ * Состав по-прежнему собирается из всего забытого — в этом и смысл экрана, —
+ * но выбранное встаёт первым. Лишнее человек снимет; чего он не сделает, так
+ * это не найдёт в списке то, ради чего нажимал.
+ */
+actions.on('nav-plan-due', (el) => (el.dataset.id
+    ? app.go('plan', 'due', el.dataset.id)
+    : app.go('plan', 'due')));
 actions.on('home-template', (el) => app.go('plan', 'from', el.dataset.id));
 
 /**

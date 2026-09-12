@@ -245,6 +245,8 @@ export const EN = {
     'По дням недели': 'By weekday',
     'По дням': 'By day',
     'без тренировки': 'no workout',
+    'подходов за день': 'sets per day',
+    'исключено ограничением': 'excluded by a limit',
     'Объём по группам мышц': 'Volume by muscle group',
     'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список':
         'An exercise whose record has not moved in a while shows up first',

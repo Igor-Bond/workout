@@ -703,9 +703,28 @@ export const stats = {
                         ...d,
                         title: `${dates.formatDate(d.day)} — ${d.sets ? format.count(d.sets, format.WORDS.set) : t('без тренировки')}`
                     })),
-                    { months: monthLabels(heat) }
+                    { months: monthLabels(heat), action: 'stats-heat-day' }
                 )}
+
+                <!--
+                    Шкала с числами, а не «меньше — больше» (Р-118).
+
+                    Насыщенность обещала «количество подходов», но какое
+                    количество даёт какой цвет, не было сказано нигде: тёмная
+                    клетка читалась как «мало», а насколько мало — на глаз.
+                    Пороги названы, и карта из настроения становится мерой.
+                -->
+                <div class="heat-legend">
+                    <span class="heat-key heat-0"></span>0
+                    <span class="heat-key heat-1"></span>1–6
+                    <span class="heat-key heat-2"></span>7–12
+                    <span class="heat-key heat-3"></span>13–20
+                    <span class="heat-key heat-4"></span>21+
+                    <span class="heat-legend-unit">${t('подходов за день')}</span>
+                </div>
+
                 <p class="hint">${t('Насыщенность — по количеству подходов за день. Карта листается вбок и показывает всю историю, а не выбранный период.')}</p>
+                <p class="hint heat-pick" aria-live="polite"></p>
             </div>
 
             <!--
@@ -757,6 +776,25 @@ export const stats = {
 actions.on('stats-period', (el) => {
     period = el.dataset.period;
     app.render();
+});
+
+/*
+ * Нажатая клетка карты называет свой день (Р-118).
+ *
+ * Строкой под картой, а не всплывающей подсказкой: подсказка живёт под
+ * курсором, а на телефоне курсора нет. Строка же читается одинаково везде и
+ * никуда не исчезает, пока не нажали другую клетку.
+ *
+ * Правим узел, а не перерисовываем экран: перерисовка увела бы карту обратно
+ * к сегодняшнему дню, и нажатие на клетку прошлого года само отматывало бы
+ * от неё прочь.
+ */
+actions.on('stats-heat-day', (el) => {
+    const строка = document.querySelector('.heat-pick');
+    if (строка) строка.textContent = el.dataset.title || '';
+
+    for (const клетка of document.querySelectorAll('.heat.is-picked')) клетка.classList.remove('is-picked');
+    el.classList.add('is-picked');
 });
 
 actions.on('body-add', () => окноВеса());

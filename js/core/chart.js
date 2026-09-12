@@ -234,7 +234,7 @@ export const chart = {
      * Тепловая карта года: столбец — неделя, строка — день недели.
      * days — из stats.heatmap().
      */
-    heatmap(days = [], { months = [] } = {}) {
+    heatmap(days = [], { months = [], action = null } = {}) {
         if (days.length === 0) return empty();
 
         /*
@@ -257,9 +257,22 @@ export const chart = {
             const week = Math.floor(i / 7);
             const weekday = i % 7;
 
+            /*
+             * Клетка нажимается, а не только наводится (Р-118).
+             *
+             * Подсказка жила в <title>: на компьютере она всплывает под
+             * мышью, а на телефоне наведения нет вовсе — карта там была
+             * картинкой, на которую можно тыкать без единого ответа. Причём
+             * тыкают: клетки выглядят кнопками, они разного цвета и явно
+             * что-то значат.
+             */
+            const нажимается = action
+                ? ` data-action="${esc(action)}" data-title="${esc(d.title)}"`
+                : '';
+
             return ui.raw(`<rect x="${week * (cell + gap)}" y="${topOffset + weekday * (cell + gap)}"
                 width="${cell}" height="${cell}" rx="3"
-                class="heat heat-${d.level}"><title>${esc(d.title)}</title></rect>`);
+                class="heat heat-${d.level}"${нажимается}><title>${esc(d.title)}</title></rect>`);
         });
 
         const labels = months.map((m) => ui.raw(`

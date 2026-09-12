@@ -32,6 +32,7 @@ import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
+import { ATHLETE_KEY } from '../../js/modules/athlete.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
 import { sync } from '../../js/services/sync.js';
@@ -2296,6 +2297,153 @@ describe('Экран: отзыв о приложении', () => {
         const текст = survey.asText({ answers: {}, about: {} });
 
         equal(текст, 'Отзыв о приложении «Трекер»');
+    });
+});
+
+/**
+ * Тепловая карта отвечает пальцу, а не только курсору (§23.1, Р-118).
+ *
+ * Подсказка жила в <title>: на компьютере она всплывает под мышью, а на
+ * телефоне наведения нет вовсе — карта была картинкой, на которую можно
+ * тыкать без единого ответа.
+ */
+describe('Экран: статистика, карта по дням', () => {
+
+    it('клетка нажимается, а ступени названы числами', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        const view = await screen(stats);
+        const строка = text(view);
+
+        assert(hasAction(view, 'stats-heat-day'), 'на телефоне наведения нет — карта должна нажиматься');
+
+        const клетка = view.querySelector('[data-action="stats-heat-day"]');
+
+        assert(клетка.getAttribute('data-title'), 'нажатию нечего было бы показать');
+        assert(view.querySelector('.heat-pick'), 'строке ответа нужно место, иначе карта прыгает');
+
+        for (const порог of ['1–6', '7–12', '13–20', '21+']) {
+            assert(строка.includes(порог), `ступень «${порог}» не названа, и цвет читается на глаз`);
+        }
+    });
+});
+
+/**
+ * Ограничение и листалка забытого на экране плана (§58, §26.2.3, Р-118).
+ *
+ * Оба дефекта одного рода: экран плана не знал того, что знал главный.
+ * Проверять их надо именно на собранном составе — по коду оба места
+ * выглядят исправными, расходятся они только в готовом плане.
+ */
+describe('Экран: план из просроченного', () => {
+
+    const ДЕНЬ = 86400000;
+
+    /** Тренировка сразу из двух упражнений: по одиночным состав вышел бы в одно. */
+    async function вместе(a, b, at) {
+        const record = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [a, b].map((ex) => ({ exerciseId: ex.id, plannedSets: 1, targetReps: 10, weight: 60, skipped: false }))
+        });
+
+        for (const [i, ex] of [a, b].entries()) {
+            await dbService.addSet({
+                workoutId: record.id, exerciseId: ex.id,
+                order: i + 1, setNumber: 1, reps: 10, weight: 60, performedAt: at + i * 60000
+            });
+        }
+
+        await dbService.updateWorkout(record.id, { startedAt: at });
+        await dbService.finishWorkout(record.id, at + 1800000);
+    }
+
+    /**
+     * Два просроченных упражнения.
+     *
+     * По три занятия каждому: с двумя ритм ещё не сочтён, и просроченным
+     * упражнение не считается вовсе. Жиму добавлено четвёртое, поодиночке, —
+     * так у него своя давность, и порядок в составе становится проверяемым.
+     */
+    async function двое() {
+        const жим = await seed({ name: 'Жим лёжа' });
+        const присед = await dbService.createExercise({ name: 'Приседания', kind: 'weight', group: 'Ноги' });
+
+        await вместе(жим, присед, Date.now() - 50 * ДЕНЬ);
+        await вместе(жим, присед, Date.now() - 42 * ДЕНЬ);
+        await вместе(жим, присед, Date.now() - 35 * ДЕНЬ);
+        await workout(жим, [[10, 60]], { at: Date.now() - 30 * ДЕНЬ });
+
+        // Черновик плана живёт в модуле и держится за прошлый маршрут:
+        // без сброса следующая отрисовка «due» вернула бы состав прошлой проверки
+        await screen(plan, ['template', 'нет-такого']);
+
+        return { жим, присед };
+    }
+
+    it('исключённое ограничением в состав не встаёт', async () => {
+        const { присед } = await двое();
+
+        await dbService.setSetting(ATHLETE_KEY, {
+            limits: [{ id: 'l1', name: 'Колено', exclude: [присед.id] }]
+        });
+
+        const view = await screen(plan, ['due']);
+
+        assert(has(view, 'Жим лёжа'), 'непросроченное ограничением остаётся');
+        assert(!has(view, 'Приседания'), 'главный экран это исключал, а здесь оно вставало первым');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    it('выбранное на листалке стоит первым', async () => {
+        const { жим } = await двое();
+
+        const строка = text(await screen(plan, ['due', жим.id]));
+
+        assert(строка.includes('Приседания') && строка.includes('Жим лёжа'), 'состав по-прежнему из всего забытого');
+        assert(строка.indexOf('Жим лёжа') < строка.indexOf('Приседания'),
+            'без выбора он стоял бы вторым — иначе человек решит, что нажатие не сработало');
+    });
+
+    it('без выбора порядок прежний', async () => {
+        await двое();
+
+        const строка = text(await screen(plan, ['due']));
+
+        assert(строка.indexOf('Приседания') < строка.indexOf('Жим лёжа'), 'по давности: присед забыт сильнее');
+    });
+
+    it('выбор упражнения называет исключённое ограничением', async () => {
+        const { присед } = await двое();
+
+        await dbService.setSetting(ATHLETE_KEY, {
+            limits: [{ id: 'l1', name: 'Колено', exclude: [присед.id] }]
+        });
+
+        await screen(plan, ['due']);
+
+        const было = dialog.pick;
+        let спрошено = null;
+
+        dialog.pick = async (options) => { спрошено = options; return null; };
+
+        try {
+            await press('plan-add');
+        } finally {
+            dialog.pick = было;
+        }
+
+        const строки = (спрошено?.items || []);
+        const присед_ = строки.find((i) => i.label === 'Приседания');
+        const жим_ = строки.find((i) => i.label === 'Жим лёжа');
+
+        assert(присед_, 'прятать исключённое нельзя: сделать его можно и сознательно');
+        assert(присед_.hint.includes('исключено ограничением'), 'но молча оно попадёт в план по забывчивости');
+        assert(!жим_.hint.includes('исключено'), 'на всём подряд приписка ничего не значит');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+        await screen(plan, ['template', 'нет-такого']);
     });
 });
 

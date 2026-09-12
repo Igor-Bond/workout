@@ -243,6 +243,8 @@ export const DE = {
     'По дням недели': 'Nach Wochentagen',
     'По дням': 'Nach Tagen',
     'без тренировки': 'kein Training',
+    'подходов за день': 'Sätze pro Tag',
+    'исключено ограничением': 'durch Einschränkung ausgeschlossen',
     'Объём по группам мышц': 'Volumen nach Muskelgruppen',
     'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список':
         'Eine Übung, deren Rekord lange stillsteht, steht ganz oben',

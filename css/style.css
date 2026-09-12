@@ -22,6 +22,17 @@
     --purple:    #a87fd1;
 
     /*
+     * Ступени тепловой карты (Р-118).
+     *
+     * Переменными, а не числами по месту: те же цвета показывает шкала под
+     * картой, и записанные дважды они разошлись бы при первой же правке —
+     * шкала объясняла бы карту неверно, а выглядела бы объяснением.
+     */
+    --heat-1:    #3a2418;
+    --heat-2:    #6b3a1d;
+    --heat-3:    #a8501f;
+
+    /*
      * Два шрифта вместо одного.
      *
      * Раньше всё приложение было набрано Courier New — наследство версии 1.
@@ -1570,10 +1581,50 @@ svg.heatmap { display: block; }
 .heat-month { font-size: 0.625rem; }
 
 .heat { fill: var(--panel-2); stroke: var(--line); stroke-width: 0.5; }
-.heat-1 { fill: #3a2418; stroke: none; }
-.heat-2 { fill: #6b3a1d; stroke: none; }
-.heat-3 { fill: #a8501f; stroke: none; }
+.heat-1 { fill: var(--heat-1); stroke: none; }
+.heat-2 { fill: var(--heat-2); stroke: none; }
+.heat-3 { fill: var(--heat-3); stroke: none; }
 .heat-4 { fill: var(--accent); stroke: none; }
+
+/* Клетка нажимается — и говорит об этом видом (Р-118) */
+.heatmap [data-action] { cursor: pointer; }
+
+.heat.is-picked { stroke: var(--text); stroke-width: 2; }
+
+/*
+ * Шкала под картой: квадратик — и рядом, какому числу подходов он отвечает.
+ *
+ * В строку, а не таблицей: пять ступеней помещаются в ряд даже на узком
+ * экране, а не поместятся — перенесутся целыми парами.
+ */
+.heat-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin-top: 10px;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+}
+
+.heat-key {
+    width: 11px;
+    height: 11px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.heat-key.heat-0 { background: var(--panel-2); border: 1px solid var(--line); }
+.heat-key.heat-1 { background: var(--heat-1); }
+.heat-key.heat-2 { background: var(--heat-2); }
+.heat-key.heat-3 { background: var(--heat-3); }
+.heat-key.heat-4 { background: var(--accent); }
+
+/* Единица — в конец строки и отдельным словом: она одна на все пять ступеней */
+.heat-legend-unit { margin-left: 2px; }
+
+/* Строка выбранного дня держит высоту и пустой: иначе карта прыгает по нажатию */
+.heat-pick { min-height: 1.2em; }
 
 /* Лучший месяц за всё время (§23.1) */
 .best-month {

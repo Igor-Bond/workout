@@ -19,6 +19,8 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { records } from '../core/records.js';
 import { rhythm } from '../core/rhythm.js';
+import { athlete } from '../core/athlete.js';
+import { currentAthlete } from './athlete.js';
 import { estimate } from '../core/estimate.js';
 import { interval } from '../core/interval.js';
 import { kindHint, KINDS } from '../core/kinds.js';
@@ -264,7 +266,23 @@ async function build(params) {
         const все = await dbService.listExercises({ includeArchived: true });
         const архив = new Set(все.filter((e) => e.archived).map((e) => e.id));
 
-        const due = rhythm.dueExercises(entries, Date.now(), { skip: архив });
+        /*
+         * Исключённое ограничением — тоже (§58, Р-118).
+         *
+         * Главный экран ограничения исполнял, а этот их не знал вовсе — и
+         * именно исключённые упражнения просрочены сильнее всего, потому что
+         * человек их не делает. Значит, в собранный состав они вставали
+         * первыми: он нажимал на главном то, что выглядит безопасным, и через
+         * один переход получал тренировку с тем самым, от чего приложение и
+         * предупреждал.
+         *
+         * Ограничение, исполняемое на одном экране и забытое на соседнем, хуже
+         * ограничения-заметки: заметке не доверяют, а этому уже поверили.
+         */
+        const исключено = athlete.excluded(await currentAthlete());
+        const мимо = new Set([...архив, ...исключено]);
+
+        const due = rhythm.dueExercises(entries, Date.now(), { skip: мимо });
 
         const items = [];
 
@@ -284,6 +302,18 @@ async function build(params) {
                 weight: last.sets[0].weight || 0
             });
         }
+
+        /*
+         * Выбранное на листалке — первым (Р-118).
+         *
+         * Состав собирается из всего забытого, и порядок в нём — по давности.
+         * Но пришли сюда с плашки, где человек пролистал до определённого
+         * упражнения: не найдя его сверху, он решит, что нажатие не
+         * сработало, а не что оно сработало шире, чем он думал.
+         */
+        const выбран = items.findIndex((i) => i.exerciseId === id);
+
+        if (выбран > 0) items.unshift(...items.splice(выбран, 1));
 
         if (items.length) {
             return {
@@ -635,13 +665,30 @@ async function createFromPlan(name) {
 actions.on('plan-add', async () => {
     const all = await dbService.listExercises();
 
+    /*
+     * Исключённое ограничением остаётся в выборе, но названо (§58, Р-118).
+     *
+     * Прятать его нельзя: человек вправе сделать это сознательно — сегодня
+     * колено не болит, сегодня он решил. Прятать значило бы решать за него и
+     * заодно врать, что упражнения нет.
+     *
+     * А вот молчать тоже нельзя: список выглядит одинаково ровным, и в
+     * собранный план исключённое попадает наравне со всем прочим — не потому
+     * что человек передумал, а потому что забыл.
+     */
+    const исключено = athlete.excluded(await currentAthlete());
+
     const chosen = await dialog.pick({
         title: t('Добавить упражнение'),
         items: all.map((e) => ({
             value: e.id,
             label: e.name,
             group: e.group,
-            hint: [kindHint(e.kind), e.group].filter(Boolean).join(' · ')
+            hint: [
+                исключено.has(e.id) ? t('исключено ограничением') : null,
+                kindHint(e.kind),
+                e.group
+            ].filter(Boolean).join(' · ')
         })),
         groups: groupsOf(all),
         placeholder: t('Название упражнения'),
