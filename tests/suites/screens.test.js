@@ -30,6 +30,7 @@ import { exercise as exerciseCard } from '../../js/modules/exercise.js';
 import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
+import { watch } from '../../js/modules/watch.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { ATHLETE_KEY } from '../../js/modules/athlete.js';
@@ -3038,6 +3039,82 @@ async function положитьПлан(from, дни) {
 
     await dbService.setSetting('plan', { ...planCore.parse(текст), text: текст });
 }
+
+/**
+ * Вид обещает то действие, которое случится (§29.1, §61, §62, Р-123).
+ */
+describe('Вид и действие совпадают', () => {
+
+    const DAY = 86400000;
+
+    /*
+     * В одной оправе стояли две разные вещи: одна карточка заводит тренировку
+     * и уходит на выполнение, другая открывает сборку. Человек жмёт на то,
+     * что крупное и в рамке, по памяти, не читая.
+     */
+    it('рамка есть только у карточки, которая начинает тренировку сразу', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const now = Date.now();
+
+        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+
+        await положитьПлан(now - 3 * DAY, [[now, 'Bench 6 × 10']]);
+
+        const view = await screen(home);
+        const сразу = view.querySelector('.repeat-card.is-now');
+
+        assert(сразу, 'начинающая тренировку карточка обязана выглядеть по-своему');
+        equal(сразу.dataset.action, 'today-start');
+
+        for (const карточка of view.querySelectorAll('.repeat-card')) {
+            if (карточка.classList.contains('is-now')) continue;
+
+            assert(карточка.dataset.action !== 'today-start',
+                'начать сразу можно только с отмеченной карточки');
+        }
+
+        await dbService.setSetting('plan', null);
+    });
+
+    /*
+     * Приложение учит: оранжевое залитое — то самое, что надо нажать (Р-96).
+     * Когда пятен два, правило отменяется, а ярче всего оказывалось названо
+     * самое необязательное: нового плана приложение не требует.
+     */
+    it('залитая кнопка на главном одна', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const now = Date.now();
+
+        await workout(ex, [[10, 60]], { at: now - 20 * DAY });
+
+        // План, который уже кончился: появляется полоса «План кончился …»
+        await положитьПлан(now - 30 * DAY, [[now - 28 * DAY, 'Bench 6 × 10']]);
+
+        const view = await screen(home);
+        const строка = text(view);
+
+        if (строка.includes('План кончился')) {
+            const залитые = view.querySelectorAll('.btn-accent');
+
+            equal(залитые.length, 1, `ярких пятен должно быть одно, а не ${залитые.length}`);
+        }
+
+        await dbService.setSetting('plan', null);
+    });
+
+    /*
+     * Одно слово на две встречные дороги: «Занятий за месяц: 0» и ниже «К
+     * отправке занятий: 6» читается как «шесть отправил, ноль дошло».
+     */
+    it('на экране часов привезённое и уезжающее названы по-разному', async () => {
+        await seed();
+
+        const строка = text(await screen(watch));
+
+        assert(!строка.includes('Занятий за месяц'), 'привезённое — это тренировки с часов');
+        assert(!строка.includes('К отправке занятий'), 'уезжающее — это дни плана');
+    });
+});
 
 describe('Очередь и план на главном (Р-72)', () => {
 

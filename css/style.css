@@ -712,6 +712,35 @@ button.ex-main {
  */
 button.ex-main .ex-name { display: block; font-weight: 700; }
 
+/*
+ * Сводка знакомства: строка целиком — кнопка, значение переносится (Р-123).
+ *
+ * Обрезка многоточием у .ex-name нужна в справочнике, где строк семьдесят и
+ * ровный край важнее полного имени. Здесь наоборот: строк десять, и просят
+ * проверить как раз то, что обрезалось.
+ */
+.ex-name.is-wrap {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+button.ex-row.intro-sum {
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    border: none;
+    border-bottom: 1px solid var(--line);
+}
+
+.intro-sum .ex-main { display: block; }
+.intro-sum .ex-name { font-weight: 700; }
+
+/* Карандаш — знак, а не кнопка: нажимается вся строка */
+.intro-sum-mark { flex: none; color: var(--text-dim); font-size: 0.9375rem; }
+
 button.ex-main:active .ex-name { color: var(--accent); }
 
 .ex-name {
@@ -1389,15 +1418,23 @@ table.log tr:last-child td { border-bottom: none; }
 .repeat-card:active { border-color: var(--accent); }
 
 /*
+    Цвет внимания разведён на два знака (§29.1, Р-123).
+
     Первый из очереди — единственное предложение экрана, у которого есть
-    основание в цифрах, и оно обведено цветом внимания (§29.1). Рамка, а не
-    заливка: залитое пятно на экране одно, и оно отдано кнопке внизу.
+    основание в цифрах, и это отмечено цветом подписи. А рамкой отмечено
+    другое: что нажатие начнёт тренировку сразу, без второго экрана. Раньше
+    рамка стояла у обеих карточек, и одинаковые прямоугольники делали разное.
+
+    Рамка, а не заливка: залитое пятно на экране одно, и оно отдано кнопке
+    внизу (Р-96).
 */
-.repeat-card.is-queue {
+.repeat-card.is-queue .rep-label { color: var(--accent); }
+
+.repeat-card.is-now {
     border-color: var(--accent);
 }
 
-.repeat-card.is-queue .rep-label { color: var(--accent); }
+.repeat-card.is-now .rep-label { color: var(--accent); }
 
 .repeat-card .rep-label {
     display: block;
@@ -2853,3 +2890,17 @@ button.ex-name:active { color: var(--accent); }
 .note-down { border-left-color: var(--accent); }
 .note-watch { border-left-color: var(--text-dim); }
 .note-ok { border-left-color: var(--good); }
+
+/*
+ * Заголовок группы внутри шага знакомства (§61, Р-123).
+ *
+ * Обычного размера, не подписью: две группы шага — снаряды и помехи — раньше
+ * различались только серой строкой помельче, и ряд частей тела под рядом
+ * снарядов читался как «что качать».
+ */
+.intro-group {
+    font-size: 0.9375rem;
+    margin: 18px 0 0;
+}
+
+.card > .intro-group:first-child { margin-top: 0; }
