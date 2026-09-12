@@ -1100,22 +1100,34 @@ export const dbService = {
      * undefined значит «не мерили» и прежнее не стирает: человек может
      * взвеситься без ленты, и терять из-за этого прошлый замер незачем.
      */
-    async setBodyWeight({ at = Date.now(), weight, waist, note = '' }) {
+    async setBodyWeight({ at = Date.now(), weight, waist, note = '', body }) {
         const day = startOfDay(at);
         const now = Date.now();
 
         const existing = await db.bodyWeight.where('at').equals(day).first();
         const число = Number(waist) > 0 ? Number(waist) : undefined;
 
+        /*
+         * Состав тела — тоже свободное поле в той же записи (§65).
+         *
+         * Его привозят весы, и привозят вместе с весом одного утра: жир, вода
+         * и мышцы без веса не значат ничего, а вес без них — прежний вес.
+         * Пустой состав прежний не стирает, как и пустая талия: человек мог
+         * встать на весы в носках, и терять из-за этого вчерашние доли
+         * незачем.
+         */
+        const состав = body && Object.keys(body).length ? body : undefined;
+
         if (existing) {
             const правка = { weight, note, deletedAt: undefined, updatedAt: now };
             if (число !== undefined) правка.waist = число;
+            if (состав !== undefined) правка.body = состав;
 
             await db.bodyWeight.update(existing.id, правка);
             return dbService.getBodyWeightOn(day);
         }
 
-        const record = { id: newId(), at: day, weight, waist: число, note, updatedAt: now };
+        const record = { id: newId(), at: day, weight, waist: число, note, body: состав, updatedAt: now };
         await db.bodyWeight.add(record);
         return record;
     },

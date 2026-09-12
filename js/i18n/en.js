@@ -392,6 +392,18 @@ export const EN = {
     'Чтобы включить — заполнить': 'To turn it on, fill in',
     'Порядок в': 'Instructions in',
     'Отметить вес': 'Log weight',
+    'Снять с весов': 'Read from scale',
+    'Жир, %': 'Body fat, %',
+    'жир': 'fat',
+    'вода': 'water',
+    'Весы': 'Scale',
+    'Весы держат до восьми человек и без опознания молчат. Заведите себя на самих весах кнопкой SET — они покажут номер места и код сопряжения. Спрашиваем это один раз.': 'The scale holds up to eight people and says nothing until it knows who is on it. Set yourself up on the scale itself with the SET button — it will show the slot number and the pairing code. We ask for this once.',
+    'Номер места, 1–8': 'Slot number, 1–8',
+    'Код сопряжения': 'Pairing code',
+    'Снято с весов': 'Read from the scale',
+    'Вес: {кг} кг.': 'Weight: {кг} kg.',
+    'Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.': 'Fat {жир} %, water {вода} kg, muscle {мышцы} %.',
+    'Весы не ответили': 'The scale did not answer',
     '{т} трен. / {п} подх.': '{т} workouts / {п} sets',
 
     // ================== ОТЗЫВ ==================

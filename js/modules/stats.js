@@ -28,9 +28,19 @@ import { currentWellness, currentActivities } from './watch.js';
 import { recovery } from '../core/recovery.js';
 import { effort } from '../core/effort.js';
 import { ICU_STEPS_GOAL } from '../services/icu.js';
+import { scale, SCALE_USER } from '../services/scale.js';
 
 /** Выбранный период переживает уход на карточку упражнения и возврат. */
 let period = 'month';
+
+/**
+ * Что сейчас происходит с весами (§65).
+ *
+ * Разговор с устройством идёт секундами и требует от человека встать на весы
+ * и выбрать на них своё место. Молчащее приложение в эти секунды неотличимо
+ * от сломанного, и человек уходит, не дождавшись.
+ */
+let сВесов = '';
 
 /**
  * Плитка с показателем и изменением к предыдущему периоду (§23.1).
@@ -234,6 +244,15 @@ function bodyBlock(weights, range) {
                     ) : ''}
                     ${tile(t('Взвешиваний'), String(series.length))}
 
+                    <!--
+                        Жир показывается тем, у кого он есть (§65): его
+                        привозят весы, и ровно он отвечает на вопрос, на
+                        который вес молчит, — что именно уходит, пока стрелка
+                        стоит. Плитки с прочерком тут не бывает по той же
+                        причине, что и у талии.
+                    -->
+                    ${last.body?.fat ? tile(t('Жир, %'), format.decimal(last.body.fat, 1)) : ''}
+
                     ${последняяТалия ? tile(t('Талия, см'), format.weight(последняяТалия.weight)) : ''}
                     ${поТалии ? tile(
                         t('Талия за период, см'),
@@ -301,7 +320,11 @@ function bodyBlock(weights, range) {
                                             : ''}
                                     </span>
                                     <div class="ex-meta">
-                                        ${dates.formatDayLabel(r.at, Date.now(), { lower: true })}${r.note ? ` · ${r.note}` : ''}
+                                        ${dates.formatDayLabel(r.at, Date.now(), { lower: true })}${r.body?.fat
+                                            ? ` · ${t('жир')} ${format.decimal(r.body.fat, 1)} %`
+                                            : ''}${r.body?.water
+                                            ? ` · ${t('вода')} ${format.decimal(r.body.water, 1)} ${t('кг')}`
+                                            : ''}${r.note ? ` · ${r.note}` : ''}
                                     </div>
                                 </div>
                                 <div class="ex-actions">
@@ -316,9 +339,25 @@ function bodyBlock(weights, range) {
                 </details>
             ` : ui.empty(t('Вес тела не отмечался. Он нужен, чтобы подтягивания и отжимания перестали считаться нулевой нагрузкой.'))}
 
-            <button class="btn btn-ghost btn-sm" data-action="body-add">
-                ${last ? t('Отметить вес') : t('Отметить вес сегодня')}
-            </button>
+            ${сВесов ? ui.html`<p class="hint">${сВесов}</p>` : ''}
+
+            <div class="row-links">
+                <button class="btn btn-ghost btn-sm" data-action="body-add">
+                    ${last ? t('Отметить вес') : t('Отметить вес сегодня')}
+                </button>
+
+                <!--
+                    Кнопка есть только там, где браузер умеет разговаривать с
+                    устройствами (§65): в Firefox и на iPhone Web Bluetooth нет
+                    вовсе, и обещать там снятие с весов значило бы отправить
+                    человека за разочарованием.
+                -->
+                ${scale.available() ? ui.html`
+                    <button class="btn btn-ghost btn-sm" data-action="scale-read">
+                        ${t('Снять с весов')}
+                    </button>
+                ` : ''}
+            </div>
         </div>
     `;
 }
@@ -672,6 +711,75 @@ actions.on('body-add', async () => {
 
     await dbService.setBodyWeight({ weight: values.weight, waist: values.waist, note: values.note });
     app.render();
+});
+
+/**
+ * Снять вес с весов по Bluetooth (§65).
+ *
+ * Номер места и код спрашиваются один раз и живут в настройках этого
+ * устройства. Завести место самому приложение не берётся, хотя профиль это
+ * позволяет: заведённое так место не показывается на экране весов, а весы
+ * перед измерением требуют, чтобы человек ткнул в своё, — и измерение уходит
+ * в никуда. Место, заведённое кнопкой SET, весы показывают и принимают.
+ *
+ * Талию тут не спрашиваем: её мерят лентой и не каждый раз (Р-88), а
+ * дописать её к готовой записи можно правкой.
+ */
+actions.on('scale-read', async () => {
+    let свой = await dbService.getSetting(SCALE_USER, null);
+
+    if (!свой?.index) {
+        const values = await dialog.form({
+            title: t('Весы'),
+            text: t('Весы держат до восьми человек и без опознания молчат. Заведите себя на самих весах кнопкой SET — они покажут номер места и код сопряжения. Спрашиваем это один раз.'),
+            fields: [
+                { name: 'index', label: t('Номер места, 1–8'), type: 'number', required: true },
+                { name: 'code', label: t('Код сопряжения'), type: 'number', required: true }
+            ],
+            confirmText: t('Сохранить')
+        });
+
+        if (!values?.index) return;
+
+        свой = { index: Number(values.index), code: Number(values.code) };
+        await dbService.setSetting(SCALE_USER, свой);
+    }
+
+    try {
+        const { weight, body } = await scale.read({
+            index: свой.index,
+            code: свой.code,
+            onStatus: (текст) => { сВесов = текст; app.render(); }
+        });
+
+        сВесов = '';
+
+        await dbService.setBodyWeight({
+            at: weight.at || Date.now(),
+            weight: Math.round(weight.weight * 10) / 10,
+            body: scale.keep(body)
+        });
+
+        haptics.tap();
+        await app.render();
+
+        await dialog.alert({
+            title: t('Снято с весов'),
+            text: [
+                t('Вес: {кг} кг.', { кг: format.weight(weight.weight) }),
+                body?.fat ? t('Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.', {
+                    жир: format.decimal(body.fat, 1),
+                    вода: format.decimal(body.water, 1),
+                    мышцы: format.decimal(body.musclePercent, 1)
+                }) : ''
+            ].filter(Boolean).join(' ')
+        });
+    } catch (e) {
+        сВесов = '';
+        await app.render();
+
+        await dialog.alert({ title: t('Весы не ответили'), text: e.message });
+    }
 });
 
 /**

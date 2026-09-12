@@ -31,6 +31,7 @@ await import('./suites/estimate.test.js');
 await import('./suites/stats.test.js');
 await import('./suites/report.test.js');
 await import('./suites/plan.test.js');
+await import('./suites/scale.test.js');
 await import('./suites/hold.test.js');
 await import('./suites/athlete.test.js');
 await import('./suites/reserve.test.js');
