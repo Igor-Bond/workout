@@ -100,7 +100,11 @@ actions.on('tpl-copy', async (el) => {
     await dbService.saveTemplate({
         name: t('{название} (копия)', { название: source.name }),
         type: source.type,
-        items: source.items
+        items: source.items,
+
+        // Отрезки — часть шаблона наравне с составом (Р-117): табата без своих
+        // двадцати и десяти это уже не та тренировка, а копия обещает ту же
+        interval: source.interval
     });
 
     app.render();

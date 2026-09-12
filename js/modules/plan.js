@@ -770,7 +770,9 @@ actions.on('plan-start', async () => {
 
         if (!choice) return;
 
-        if (choice === 'continue') return app.go('session');
+        // Интервальная живёт на своём экране (Р-117): там отсчёт, а не поля
+        // ввода, и session про interval не знает вовсе
+        if (choice === 'continue') return app.go(active.interval ? 'interval' : 'session');
         await dbService.finishWorkout(active.id);
     }
 

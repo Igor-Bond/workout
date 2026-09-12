@@ -21,6 +21,7 @@ import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js
 import { prompt } from '../core/prompt.js';
 import { migrations } from '../services/migrations.js';
 import { plan as ядроПлана } from '../core/plan.js';
+import { estimate } from '../core/estimate.js';
 import { renameInPlan, planCalls } from './planner.js';
 
 /** Строка списка. Счётчик подходов объясняет, почему нельзя удалить. */
@@ -409,6 +410,24 @@ async function показать(exercise) {
 /** Правка упражнения. Вызывается и карандашом, и из окна с описанием. */
 async function editExercise(exercise) {
 
+    /*
+     * Довес — свойство снаряда, и ставится он здесь, а не только на
+     * выполнении (§15.2, Р-117).
+     *
+     * У резинки доля собственного веса ноль (Р-85): её тянут руками, а не
+     * поднимают себя, и нагрузка у неё внешняя. Пока сопротивление не
+     * названо, тоннажа у такой работы нет вовсе — тридцать подходов на плечи
+     * дают в статистике ноль килограммов.
+     *
+     * Сказать его можно было только вписав в поле посреди тренировки, где
+     * человек занят другим. Здесь — спокойно и один раз на снаряд.
+     *
+     * Показывается только там, где своего веса нет: у отжиманий довес это
+     * блин на спине, и «по умолчанию» ему взяться неоткуда.
+     */
+    const внешняя = estimate.shareOf({ ...exercise, kind: exercise.kind || 'weight' }) === 0
+        && (exercise.kind || 'weight') === 'reps';
+
     const values = await dialog.form({
         title: t('Изменить упражнение'),
         text: t('Переименование не разрывает историю: она привязана к записи, а не к названию.'),
@@ -416,6 +435,13 @@ async function editExercise(exercise) {
             { name: 'name', label: t('Название'), value: exercise.name, required: true },
             { name: 'kind', label: t('Вид'), type: 'select', value: exercise.kind, options: kindOptions() },
             { name: 'group', label: t('Группа мышц'), value: exercise.group || '' },
+
+            ...(внешняя ? [{
+                name: 'defaultWeight',
+                label: t('Сопротивление, кг (необязательно)'),
+                type: 'number',
+                value: exercise.defaultWeight ?? ''
+            }] : []),
 
             /*
              * Как выполнять (§50). Показывается там, где вспоминать некогда:
@@ -458,6 +484,19 @@ async function editExercise(exercise) {
 
             if (!ok) return;
         }
+    }
+
+    /*
+     * Пустое поле сопротивления значит «не названо», а не «ноль».
+     *
+     * Ноль записался бы как измеренная нулевая нагрузка, и подход с резинкой
+     * стал бы подходом без сопротивления — то есть приложение выдало бы
+     * догадку за замер.
+     */
+    if ('defaultWeight' in values) {
+        values.defaultWeight = Number(values.defaultWeight) > 0
+            ? Number(values.defaultWeight)
+            : undefined;
     }
 
     await dbService.updateExercise(exercise.id, values);

@@ -1327,6 +1327,7 @@ export const DE = {
     'т': 't',
     'Полоса — подходы: они сравнимы у всех групп. Тоннаж стоит рядом там, где его есть из чего посчитать: у резинки сопротивление неизвестно, и тоннажа у неё нет.': 'Der Balken zeigt Sätze — sie sind über alle Gruppen vergleichbar. Die Tonnage steht daneben, wo sie sich berechnen lässt: Der Widerstand eines Bandes ist unbekannt, also hat es keine Tonnage.',
     'Полоса — подходы. Тоннаж появится, когда будет отмечен вес тела или отягощение.': 'Der Balken zeigt Sätze. Die Tonnage erscheint, sobald Körpergewicht oder Zusatzgewicht erfasst ist.',
+    'Сопротивление, кг (необязательно)': 'Widerstand, kg (optional)',
     'Весы не признали': 'Die Waage hat Sie nicht erkannt',
     'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'Platznummer oder Code passten nicht. Ich habe sie vergessen — drücken Sie erneut «Von der Waage lesen» und geben Sie sie neu ein. Die Waage zeigt beides in ihren Benutzereinstellungen.',
     'Весы не ответили': 'Die Waage hat nicht geantwortet',

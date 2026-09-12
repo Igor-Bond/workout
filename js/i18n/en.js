@@ -443,6 +443,7 @@ export const EN = {
     'т': 't',
     'Полоса — подходы: они сравнимы у всех групп. Тоннаж стоит рядом там, где его есть из чего посчитать: у резинки сопротивление неизвестно, и тоннажа у неё нет.': 'The bar is sets — comparable across all groups. Tonnage stands next to it where there is something to count it from: a band’s resistance is unknown, so it has no tonnage.',
     'Полоса — подходы. Тоннаж появится, когда будет отмечен вес тела или отягощение.': 'The bar is sets. Tonnage appears once body weight or added weight is logged.',
+    'Сопротивление, кг (необязательно)': 'Resistance, kg (optional)',
     'Весы не признали': 'The scale did not recognise you',
     'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'The slot number or the code did not match. I have forgotten them — press "Read from scale" again and enter them anew. The scale shows both in its user settings.',
     'Весы не ответили': 'The scale did not answer',
