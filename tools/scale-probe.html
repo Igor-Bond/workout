@@ -3,69 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Что умеют весы по Bluetooth</title>
+<title>Весы по Bluetooth: разведка</title>
 <style>
     body { font: 15px/1.55 system-ui, sans-serif; margin: 16px; max-width: 820px; }
-    button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid #888; background: #fff; }
+    button { font: inherit; padding: 10px 16px; border-radius: 8px; border: 1px solid #888; background: #fff; margin: 0 6px 8px 0; }
     button.main { background: #d9822b; border-color: #d9822b; color: #fff; }
     pre { white-space: pre-wrap; word-break: break-all; background: #f4f4f4; padding: 12px; border-radius: 6px; font: 12px/1.45 monospace; }
-    .bad { color: #b00; }
-    .ok { color: #070; }
-    h2 { font-size: 16px; margin-top: 24px; }
+    h2 { font-size: 16px; margin-top: 26px; }
+    li { margin-bottom: 4px; }
 </style>
 </head>
 <body>
 
-<h1>Что умеют весы по Bluetooth</h1>
+<h1>Весы по Bluetooth: разведка</h1>
 
 <!--
-    Разовая проверка перед тем, как решать про весы (§63 не существует — это
-    ещё не замысел, а разведка).
+    Разовая проверка перед тем, как решать про весы.
 
-    Вопрос простой: отдают ли весы вес напрямую браузеру, или разговаривают
-    только со своим приложением. Ответить на него рассуждением нельзя. Одни
-    весы держат стандартную службу Bluetooth SIG — Weight Scale (0x181D) и
-    Body Composition (0x181B), — и тогда читать их умеет любой, включая эту
-    страницу. Другие говорят своим языком, и тогда нужен разбор протокола,
-    который кто-то уже сделал, либо своя работа на неделю.
+    Вопрос был простой: отдают ли весы вес напрямую браузеру, или разговаривают
+    только со своим приложением. Ответить на него рассуждением нельзя — отвечает
+    само устройство.
 
-    Отличить одно от другого можно только подключившись и спросив список
-    служб. Этим страница и занимается.
+    SilverCrest SBF77 ответил: стандартные службы Bluetooth SIG на месте —
+    Weight Scale (0x181D), Body Composition (0x181B) и User Data (0x181C).
+    Значит, разбирать чужой протокол не нужно, нужен обычный профиль.
 
-    Важное ограничение самого браузера: Web Bluetooth показывает лишь те
-    службы, которые названы заранее в optionalServices. Поэтому сначала
-    слушаем объявления весов — в них служба названа самими весами, — а уже
-    потом подключаемся, зная, что спрашивать. Если объявления недоступны
-    (в части сборок Chrome это за флагом), останется список известных.
+    Отсюда второй шаг. Одного списка служб мало: профиль весов требует
+    рукопожатия — весы не отдают ни одного измерения, пока не узнают, кто
+    именно на них встал. Пока это не проверено живьём, «читается напрямую»
+    остаётся обещанием, а не фактом.
 
-    Работает в Chrome на Android и на настольных системах. В Firefox и в
-    Safari Web Bluetooth нет вовсе, и это не починится со стороны страницы.
+    Первый проход это и показал: сплошное чтение всех характеристик подряд
+    весы обрывали — на User Data они отвечают только своему, опознанному
+    пользователю. Поэтому здесь читаются только безобидные службы, а за
+    измерениями идёт отдельная кнопка, которая сперва представляется.
 
     Инструмент разовый: в приложение не входит, в кэш сервис-воркера не
     попадает, открывается руками.
 -->
 
 <p>Открывать в <b>Chrome</b> (на телефоне — с Android). Весы перед нажатием
-разбудить: встать на них или нажать кнопку, иначе они не объявляются и в
-списке не появятся.</p>
+разбудить: встать на них или нажать кнопку, иначе они не объявляются.</p>
 
 <p>
-    <button class="main" id="go">Найти весы</button>
+    <button id="list">1. Какие службы есть</button>
+    <button class="main" id="read">2. Снять вес</button>
+    <button id="forget">Забыть пользователя</button>
     <button id="copy">Скопировать отчёт</button>
 </p>
 
 <pre id="out">Пока ничего.</pre>
 
-<h2>Что тут искать</h2>
-<ul>
-    <li><b>0000181d</b> — Weight Scale, стандартная служба веса. Есть — значит вес
-        читается напрямую, без разбора чужого протокола.</li>
-    <li><b>0000181b</b> — Body Composition: жир, вода, мышцы, кости.</li>
-    <li><b>0000181c</b> — User Data: рост, возраст, пол; их весам сообщают, иначе
-        состав тела они не считают.</li>
-    <li>Что-то вроде <b>0000ffe0</b> или совсем незнакомый длинный номер — свой
-        язык производителя. Читается, но не сам по себе.</li>
-</ul>
+<h2>Что означает второй шаг</h2>
+<p>Весы держат до восьми пользователей и без опознания молчат. Первый раз
+страница заводит себе место в их памяти и запоминает выданный номер;
+дальше просто представляется этим номером. <b>Встаньте на весы</b> сразу
+после нажатия — измерение приедет само.</p>
 
 <script>
 const out = document.getElementById('out');
@@ -76,27 +69,105 @@ function скажи(текст) {
     out.textContent = строки.join('\n');
 }
 
+const УСЛУГИ = [0x181d, 0x181b, 0x181c, 0x1805, 0x180f, 0x180a, 0xff00];
+
+const ВЕСЫ = 0x181d;
+const СОСТАВ = 0x181b;
+const ЧЕЛОВЕК = 0x181c;
+
+const ИЗМЕРЕНИЕ = 0x2a9d;        // Weight Measurement
+const ИЗМЕРЕНИЕ_СОСТАВА = 0x2a9c; // Body Composition Measurement
+const ПУЛЬТ = 0x2a9f;            // User Control Point
+
+/** Кто мы для весов: номер места в их памяти и код согласия. */
+const ПАМЯТЬ = 'scale-user';
+
+const читатьПамять = () => {
+    try {
+        return JSON.parse(localStorage.getItem(ПАМЯТЬ) || 'null');
+    } catch (e) {
+        return null;
+    }
+};
+
+const байты = (dv) => [...new Uint8Array(dv.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' ');
+
+/** Метка времени профиля: год, месяц, день, часы, минуты, секунды. */
+function время(dv, at) {
+    const d = new Date(dv.getUint16(at, true), dv.getUint8(at + 2) - 1, dv.getUint8(at + 3),
+        dv.getUint8(at + 4), dv.getUint8(at + 5), dv.getUint8(at + 6));
+
+    return Number.isFinite(d.getTime()) ? d.toLocaleString('ru-RU') : 'без даты';
+}
+
 /**
- * Службы, которые браузер согласится показать.
+ * Вес из Weight Measurement (0x2A9D).
  *
- * Список нужен именно заранее: getPrimaryServices() молча пропускает всё, что
- * в нём не названо, и весы со своей службой выглядели бы пустыми.
+ * Единица зависит от первого бита признаков: в килограммах шаг 5 граммов, в
+ * фунтах — сотая доля фунта. Всё остальное в записи необязательно и идёт
+ * строго в объявленном порядке — читать его можно только подряд.
  */
-const ИЗВЕСТНЫЕ = [
-    0x181d, 0x181b, 0x181c, 0x180f, 0x180a, 0x1805, 0x1800, 0x1801, 0x180d,
-    0xffe0, 0xffe5, 0xfff0, 0xfee7, 0xfee0, 0xff00,
-    '0000fee1-0000-1000-8000-00805f9b34fb',
-    '0000ffb0-0000-1000-8000-00805f9b34fb',
-    '6e400001-b5a3-f393-e0a9-e50e24dcca9e'
-];
+function разобратьВес(dv) {
+    const флаги = dv.getUint8(0);
+    const фунты = !!(флаги & 1);
 
-const шестнадцать = (n) => '0x' + Number(n).toString(16).padStart(4, '0');
+    let at = 1;
+    const сырой = dv.getUint16(at, true); at += 2;
 
-/** Свойства характеристики словами: что с ней вообще можно делать. */
-function умеет(c) {
-    const p = c.properties || {};
-    return ['read', 'write', 'writeWithoutResponse', 'notify', 'indicate']
-        .filter((k) => p[k]).join(', ') || '—';
+    const части = [фунты
+        ? (сырой * 0.01).toFixed(2) + ' фунтов'
+        : (сырой * 0.005).toFixed(3) + ' кг'];
+
+    if (флаги & 2) { части.push(время(dv, at)); at += 7; }
+    if (флаги & 4) { части.push('пользователь ' + dv.getUint8(at)); at += 1; }
+
+    if (флаги & 8) {
+        части.push('ИМТ ' + (dv.getUint16(at, true) * 0.1).toFixed(1)); at += 2;
+        части.push('рост ' + (фунты
+            ? (dv.getUint16(at, true) * 0.1).toFixed(1) + ' дюйма'
+            : (dv.getUint16(at, true) * 0.001).toFixed(3) + ' м'));
+        at += 2;
+    }
+
+    return части.join(' · ');
+}
+
+/**
+ * Состав тела из Body Composition Measurement (0x2A9C).
+ *
+ * Признаки тут двухбайтовые, и полей до тринадцати. Порядок в записи тот же,
+ * что и порядок битов, — на этом всё и держится.
+ */
+function разобратьСостав(dv) {
+    const флаги = dv.getUint16(0, true);
+    const фунты = !!(флаги & 1);
+    const масса = (v) => фунты ? (v * 0.01).toFixed(2) + ' ф' : (v * 0.005).toFixed(2) + ' кг';
+
+    let at = 2;
+    const части = [];
+
+    const жир = dv.getUint16(at, true); at += 2;
+    части.push('жир ' + (жир * 0.1).toFixed(1) + ' %');
+
+    const дальше = [
+        [2, () => { части.push(время(dv, at)); at += 7; }],
+        [4, () => { части.push('пользователь ' + dv.getUint8(at)); at += 1; }],
+        [8, () => { части.push('обмен ' + dv.getUint16(at, true) + ' кДж'); at += 2; }],
+        [16, () => { части.push('мышцы ' + (dv.getUint16(at, true) * 0.1).toFixed(1) + ' %'); at += 2; }],
+        [32, () => { части.push('мышцы ' + масса(dv.getUint16(at, true))); at += 2; }],
+        [64, () => { части.push('без жира ' + масса(dv.getUint16(at, true))); at += 2; }],
+        [128, () => { части.push('сухая масса ' + масса(dv.getUint16(at, true))); at += 2; }],
+        [256, () => { части.push('вода ' + масса(dv.getUint16(at, true))); at += 2; }],
+        [512, () => { части.push('сопротивление ' + (dv.getUint16(at, true) * 0.1).toFixed(1) + ' Ом'); at += 2; }],
+        [1024, () => { части.push('вес ' + масса(dv.getUint16(at, true))); at += 2; }],
+        [2048, () => { части.push('рост ' + dv.getUint16(at, true)); at += 2; }]
+    ];
+
+    for (const [бит, взять] of дальше) {
+        if (флаги & бит) взять();
+    }
+
+    return части.join(' · ');
 }
 
 document.getElementById('copy').onclick = async () => {
@@ -108,107 +179,204 @@ document.getElementById('copy').onclick = async () => {
     }
 };
 
-document.getElementById('go').onclick = async () => {
+document.getElementById('forget').onclick = () => {
+    localStorage.removeItem(ПАМЯТЬ);
+    скажи('Пользователь забыт: в следующий раз страница заведётся в весах заново.');
+};
+
+/** Выбрать весы и подключиться. Общее начало обоих шагов. */
+async function подключиться() {
     строки.length = 0;
     скажи('Браузер: ' + navigator.userAgent);
 
     if (!navigator.bluetooth) {
         скажи('Web Bluetooth в этом браузере нет. Нужен Chrome (Android или настольный).');
-        return;
+        return null;
     }
 
-    let device;
+    const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: УСЛУГИ
+    });
+
+    скажи('\nУстройство: ' + (device.name || 'без имени'));
+
+    device.addEventListener('gattserverdisconnected', () => скажи('\n— весы отключились —'));
+
+    const gatt = await device.gatt.connect();
+    скажи('Подключено.');
+
+    return gatt;
+}
+
+document.getElementById('list').onclick = async () => {
+    let gatt;
 
     try {
-        device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: ИЗВЕСТНЫЕ
-        });
+        gatt = await подключиться();
+        if (!gatt) return;
     } catch (e) {
-        скажи('Выбор отменён или не удался: ' + e.message);
+        скажи('Подключиться не вышло: ' + e.message);
         return;
     }
-
-    скажи('\nУстройство: ' + (device.name || 'без имени') + '  [' + device.id + ']');
 
     /*
-     * Объявления весов называют службу их собственным номером — это
-     * единственный способ узнать незнакомую. Доступно не везде, поэтому
-     * осечка тут не беда: дальше пойдём по известным.
+     * Значения читаются только у безобидных служб. На User Data весы отвечают
+     * лишь опознанному пользователю, и сплошное чтение они обрывают — вместе
+     * со всем разбором, который ещё не кончился.
      */
-    if (device.watchAdvertisements) {
-        try {
-            const услышано = new Promise((resolve) => {
-                device.addEventListener('advertisementreceived', (e) => resolve(e), { once: true });
-                setTimeout(() => resolve(null), 6000);
-            });
-
-            await device.watchAdvertisements();
-            const e = await услышано;
-
-            if (e) {
-                скажи('Объявленные службы: ' + ([...(e.uuids || [])].join(', ') || 'ни одной'));
-
-                for (const [id, dv] of e.manufacturerData || []) {
-                    скажи('Данные производителя ' + шестнадцать(id) + ': '
-                        + [...new Uint8Array(dv.buffer)].map((b) => b.toString(16).padStart(2, '0')).join(' '));
-                }
-            } else {
-                скажи('Объявлений не дождались за шесть секунд — весы могли уснуть.');
-            }
-        } catch (e) {
-            скажи('Объявления недоступны: ' + e.message);
-        }
-    }
+    const безопасные = ['0000180a', '0000180f'];
 
     try {
-        скажи('\nПодключаюсь…');
-        const gatt = await device.gatt.connect();
-
         const службы = await gatt.getPrimaryServices();
         скажи('Служб найдено: ' + службы.length + '\n');
 
         for (const s of службы) {
             скажи('Служба ' + s.uuid);
 
-            let список = [];
-            try {
-                список = await s.getCharacteristics();
-            } catch (e) {
-                скажи('   характеристики не отдались: ' + e.message);
-                continue;
-            }
+            const читать = безопасные.some((p) => s.uuid.startsWith(p));
 
-            for (const c of список) {
+            for (const c of await s.getCharacteristics()) {
                 let хвост = '';
 
-                if (c.properties.read) {
+                if (читать && c.properties.read) {
                     try {
-                        const v = await c.readValue();
-                        хвост = '  = ' + [...new Uint8Array(v.buffer)]
-                            .map((b) => b.toString(16).padStart(2, '0')).join(' ');
+                        хвост = '  = ' + байты(await c.readValue());
                     } catch (e) {
                         хвост = '  (чтение: ' + e.message + ')';
                     }
                 }
 
-                скажи('   ' + c.uuid + '  [' + умеет(c) + ']' + хвост);
+                const умеет = ['read', 'write', 'writeWithoutResponse', 'notify', 'indicate']
+                    .filter((k) => c.properties[k]).join(', ') || '—';
+
+                скажи('   ' + c.uuid + '  [' + умеет + ']' + хвост);
             }
 
             скажи('');
         }
 
-        const весы = службы.find((s) => s.uuid.startsWith('0000181d'));
-        const состав = службы.find((s) => s.uuid.startsWith('0000181b'));
+        const есть = (id) => службы.some((s) => s.uuid.startsWith('0000' + id.toString(16)));
 
-        скажи(весы || состав
-            ? '✔ Стандартные службы есть: вес читается напрямую.'
-            : '✖ Стандартных служб веса нет — весы говорят своим языком.');
+        скажи(есть(ВЕСЫ)
+            ? '✔ Weight Scale есть: вес читается стандартным профилем.'
+            : '✖ Weight Scale нет — весы говорят своим языком.');
 
-        gatt.disconnect();
+        скажи(есть(СОСТАВ) ? '✔ Body Composition есть: жир, вода, мышцы.' : '— состава тела нет');
+        скажи(есть(ЧЕЛОВЕК) ? '✔ User Data есть: весы держат несколько человек.' : '— пользователей нет');
     } catch (e) {
-        скажи('Подключение не удалось: ' + e.message);
+        скажи('Разбор оборвался: ' + e.message);
     }
+
+    gatt.disconnect();
+};
+
+document.getElementById('read').onclick = async () => {
+    let gatt;
+
+    try {
+        gatt = await подключиться();
+        if (!gatt) return;
+    } catch (e) {
+        скажи('Подключиться не вышло: ' + e.message);
+        return;
+    }
+
+    try {
+        /*
+         * Подписки ставятся до рукопожатия, а не после.
+         *
+         * Весы отдают накопленное сразу, как только узнают человека, — и то,
+         * что приехало до подписки, пропадает молча.
+         */
+        const служба = await gatt.getPrimaryService(ВЕСЫ);
+        const измерение = await служба.getCharacteristic(ИЗМЕРЕНИЕ);
+
+        измерение.addEventListener('characteristicvaluechanged', (e) => {
+            скажи('\nВЕС: ' + разобратьВес(e.target.value));
+            скажи('   сырые байты: ' + байты(e.target.value));
+        });
+
+        await измерение.startNotifications();
+        скажи('Слушаю вес.');
+
+        try {
+            const сс = await gatt.getPrimaryService(СОСТАВ);
+            const сИзм = await сс.getCharacteristic(ИЗМЕРЕНИЕ_СОСТАВА);
+
+            сИзм.addEventListener('characteristicvaluechanged', (e) => {
+                скажи('\nСОСТАВ: ' + разобратьСостав(e.target.value));
+                скажи('   сырые байты: ' + байты(e.target.value));
+            });
+
+            await сИзм.startNotifications();
+            скажи('Слушаю состав тела.');
+        } catch (e) {
+            скажи('Состав тела недоступен: ' + e.message);
+        }
+
+        const люди = await gatt.getPrimaryService(ЧЕЛОВЕК);
+        const пульт = await люди.getCharacteristic(ПУЛЬТ);
+
+        const ответ = new Promise((resolve) => {
+            пульт.addEventListener('characteristicvaluechanged', (e) => resolve(e.target.value), { once: true });
+            setTimeout(() => resolve(null), 8000);
+        });
+
+        await пульт.startNotifications();
+
+        const свой = читатьПамять();
+
+        /*
+         * Первый раз заводимся в памяти весов, дальше представляемся.
+         *
+         * Код согласия — четырёхзначное число, которое человек обычно набирает
+         * на самих весах. Здесь его выбирает страница и запоминает: набирать
+         * то, чего никто не спрашивал, незачем.
+         */
+        if (свой) {
+            скажи('\nПредставляюсь: пользователь ' + свой.index + '.');
+
+            const пакет = new Uint8Array(4);
+            пакет[0] = 0x02;
+            пакет[1] = свой.index;
+            new DataView(пакет.buffer).setUint16(2, свой.code, true);
+
+            await пульт.writeValue(пакет);
+        } else {
+            const code = 1 + Math.floor(Math.random() * 9998);
+            скажи('\nЗавожусь в памяти весов, код согласия ' + code + '.');
+
+            const пакет = new Uint8Array(3);
+            пакет[0] = 0x01;
+            new DataView(пакет.buffer).setUint16(1, code, true);
+
+            await пульт.writeValue(пакет);
+
+            const r = await ответ;
+
+            if (r && r.getUint8(0) === 0x20 && r.getUint8(2) === 0x01) {
+                const index = r.getUint8(3);
+                localStorage.setItem(ПАМЯТЬ, JSON.stringify({ index, code }));
+                скажи('Весы выдали место ' + index + ' — запомнил.');
+            } else {
+                скажи('Завестись не вышло: ' + (r ? байты(r) : 'весы не ответили'));
+                скажи('Возможно, все восемь мест заняты — освободите одно в меню SET.');
+            }
+        }
+
+        скажи('\nВстаньте на весы. Слушаю минуту…');
+
+        await new Promise((r) => setTimeout(r, 60000));
+
+        скажи('\n— минута вышла —');
+    } catch (e) {
+        скажи('Оборвалось: ' + e.message);
+    }
+
+    try {
+        gatt.disconnect();
+    } catch (e) { /* уже отключились */ }
 };
 </script>
 
