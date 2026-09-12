@@ -28,6 +28,33 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 
 /**
+ * Осечка обмена своими словами (Р-115).
+ *
+ * Раньше в окно шла строка самого Firestore: «Failed to get document because
+ * the client is offline», «Missing or insufficient permissions». Заголовок
+ * по-русски, английская техническая строка под ним — и всё.
+ *
+ * Когда обмен падает, у человека ровно один вопрос: пропали ли тренировки.
+ * Окно отвечало на вопрос разработчика. Приложение ответ знает — в самом
+ * обмене записано, что неотправленное уедет при следующей попытке, а не
+ * пропадёт, — и сказать это обязано здесь.
+ *
+ * Техническая строка остаётся под своей: она нужна, когда причина не из
+ * знакомых, и без неё разбираться было бы не с чем.
+ */
+function осечкаОбмена(сырое) {
+    const текст = String(сырое || '');
+
+    const свои = /offline|network|unavailable|failed to fetch|timeout/i.test(текст)
+        ? t('Похоже, нет связи. Записанное осталось на устройстве и уедет при следующем обмене — ничего не пропало.')
+        : /permission|unauthenticated|unauthorized|denied/i.test(текст)
+            ? t('Облако отказало в доступе. Попробуйте выйти и войти снова — записанное на устройстве цело.')
+            : t('Записанное осталось на устройстве и уедет при следующем обмене.');
+
+    return текст ? `${свои}\n\n${текст}` : свои;
+}
+
+/**
  * Докуда достаёт ползунок отдыха.
  *
  * Обычные десять минут — и дальше ровно настолько, насколько человек сам
@@ -458,7 +485,7 @@ actions.on('sync-in', async () => {
         status(t('Первый обмен…'));
         await sync.run({ silent: true });
     } catch (e) {
-        await dialog.alert({ title: t('Не удалось войти'), text: e.message });
+        await dialog.alert({ title: t('Не удалось войти'), text: осечкаОбмена(e.message) });
     }
 
     app.render();
@@ -470,7 +497,7 @@ actions.on('sync-now', async () => {
     off();
 
     if (result.error) {
-        await dialog.alert({ title: t('Обмен не прошёл'), text: result.error });
+        await dialog.alert({ title: t('Обмен не прошёл'), text: осечкаОбмена(result.error) });
     }
 
     app.render();
@@ -515,7 +542,7 @@ actions.on('backup-save', async () => {
             text: t('{файл} — тренировки, упражнения, шаблоны и вес тела.', { файл: backup.fileName(payload.exportedAt) })
         });
     } catch (e) {
-        await dialog.alert({ title: t('Не удалось выгрузить'), text: e.message });
+        await dialog.alert({ title: t('Не удалось выгрузить'), text: осечкаОбмена(e.message) });
     }
 });
 
@@ -559,7 +586,7 @@ document.addEventListener('change', async (e) => {
                 ].filter(Boolean).join(' ')
             });
         } catch (error) {
-            await dialog.alert({ title: t('Не удалось загрузить'), text: error.message });
+            await dialog.alert({ title: t('Не удалось загрузить'), text: осечкаОбмена(error.message) });
         }
 
         return app.render();
@@ -591,7 +618,7 @@ document.addEventListener('change', async (e) => {
         await backup.restore(payload, { mode });
         await dialog.alert({ title: t('Готово'), text: t('Данные загружены.') });
     } catch (error) {
-        await dialog.alert({ title: t('Не удалось загрузить'), text: error.message });
+        await dialog.alert({ title: t('Не удалось загрузить'), text: осечкаОбмена(error.message) });
     }
 
     app.render();

@@ -210,13 +210,31 @@ export const dialog = {
                 const el = backdrop.querySelector(`[name="${f.name}"]`);
                 const value = el.value.trim();
 
+                /*
+                 * Незаполненное называется по имени (Р-115).
+                 *
+                 * Красная рамка не говорит, чего не хватает, а когда полей два
+                 * — приходится угадывать. Дальтонику она не говорит ничего.
+                 */
                 if (f.required && !value) {
                     el.focus();
                     el.classList.add('is-invalid');
+                    el.setAttribute('aria-invalid', 'true');
+
+                    const поле = el.closest('.field');
+                    поле?.querySelector('.field-error')?.remove();
+
+                    const строка = document.createElement('div');
+                    строка.className = 'field-error';
+                    строка.textContent = t('Без этого не сохранить: {поле}', { поле: f.label });
+                    поле?.appendChild(строка);
+
                     return null;
                 }
 
                 el.classList.remove('is-invalid');
+                el.removeAttribute('aria-invalid');
+                el.closest('.field')?.querySelector('.field-error')?.remove();
                 values[f.name] = f.type === 'number' ? Number(value) : value;
             }
 

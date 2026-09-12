@@ -34,6 +34,7 @@ import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
+import { sync } from '../../js/services/sync.js';
 import { restTimer } from '../../js/core/timer.js';
 import { config } from '../../js/config.js';
 
@@ -1422,6 +1423,44 @@ describe('Выполнение: пропуск обратим', () => {
         } finally {
             host.innerHTML = было;
         }
+    });
+
+});
+
+
+/**
+ * Осечка обмена — своими словами (Р-115).
+ *
+ * Когда обмен падает, у человека ровно один вопрос: пропали ли тренировки.
+ * Окно отвечало на вопрос разработчика — английской строкой Firestore.
+ */
+describe('Профиль: осечка обмена', () => {
+
+    it('человеку отвечают на его вопрос, а не на вопрос разработчика', async () => {
+        await seed();
+
+        const былоAlert = dialog.alert;
+        const былSync = sync.run;
+        const сказано = [];
+
+        dialog.alert = async (o) => { сказано.push(o); return true; };
+        sync.run = async () => ({ error: 'Failed to get document because the client is offline' });
+
+        try {
+            await press('sync-now');
+            await пауза(300);
+        } finally {
+            dialog.alert = былоAlert;
+            sync.run = былSync;
+        }
+
+        const окно = сказано.find((o) => /Обмен не прошёл/.test(o.title || ''));
+
+        assert(окно, `окно показано: ${JSON.stringify(сказано).slice(0, 200)}`);
+        assert(/ничего не пропало|нет связи/.test(окно.text || ''),
+            `у человека один вопрос — пропали ли тренировки: ${окно.text}`);
+        assert(/client is offline/.test(окно.text || ''),
+            'техническая строка остаётся под своей — с ней и разбираются');
     });
 
 });

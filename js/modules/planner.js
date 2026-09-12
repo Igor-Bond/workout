@@ -478,7 +478,7 @@ export const planner = {
                     ${заводим ? ui.html`<p class="hint">${t('Спрашиваю…')}</p>` : ''}
 
                     <button class="btn btn-accent btn-sm" data-action="sheet-create" ${ui.raw(заводим ? 'disabled' : '')}>
-                        ${t('Завести все — {n}', { n: незнакомые.length })}
+                        ${заводим ? t('Завожу…') : t('Завести все — {n}', { n: незнакомые.length })}
                     </button>
                 </div>
             ` : ''}

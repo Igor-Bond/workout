@@ -1017,13 +1017,41 @@ const keyboard = {
 
 // ================== ЗАПИСЬ ПОДХОДА ==================
 
-function invalid(id) {
+/**
+ * Поле не прошло проверку (Р-115).
+ *
+ * Раньше это была только красная рамка, гаснущая через 0,8 секунды. Человек в
+ * этот момент смотрит на кнопку, а не на поле: восемьсот миллисекунд спустя
+ * единственное свидетельство того, что подход не записался, исчезало бесследно
+ * — кнопка не сработала, экран прежний, объяснения нет.
+ *
+ * Теперь рамка держится, пока в поле не начнут вписывать, и рядом стоит
+ * строка, которая говорит, чего не хватает.
+ */
+function invalid(id, сообщение = t('Впишите число')) {
     const el = document.getElementById(id);
     if (!el) return;
 
     el.focus();
     el.classList.add('is-invalid');
-    setTimeout(() => el.classList.remove('is-invalid'), 800);
+    el.setAttribute('aria-invalid', 'true');
+
+    const прежняя = el.parentElement?.querySelector('.field-error');
+    if (прежняя) прежняя.remove();
+
+    const строка = document.createElement('div');
+    строка.className = 'field-error';
+    строка.textContent = сообщение;
+    el.parentElement?.insertBefore(строка, el.nextSibling);
+
+    const снять = () => {
+        el.classList.remove('is-invalid');
+        el.removeAttribute('aria-invalid');
+        строка.remove();
+        el.removeEventListener('input', снять);
+    };
+
+    el.addEventListener('input', снять);
 }
 
 /**
