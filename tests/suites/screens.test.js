@@ -1338,6 +1338,94 @@ describe('Диалог: фокус', () => {
 
 });
 
+
+/**
+ * Ревизия, четвёртый заход (Р-114).
+ */
+describe('Статистика: объём по группам и мерки', () => {
+
+    it('карточка показывает тоннаж, а не подходы под видом объёма', async () => {
+        const ex = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+        await workout(ex, [[10, 60], [10, 60]]);
+
+        const строка = text(await screen(stats));
+
+        assert(строка.includes('Объём по группам мышц'), 'заголовок на месте');
+        const кусок = строка.slice(строка.indexOf('Объём по группам'), строка.indexOf('Объём по группам') + 120);
+
+        assert(/\d+ кг/.test(кусок),
+            `в полосе тоннаж с единицей, а не голое число подходов: ${кусок}`);
+    });
+
+    /*
+     * У того, кто занимается только своим весом и ни разу не взвешивался,
+     * тоннаж весь нулевой. Пустые полосы, названные объёмом, — враньё дважды.
+     */
+    it('без веса тела карточка честно считает подходы', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+        await workout(ex, [[10, null], [10, null]]);
+
+        assert(text(await screen(stats)).includes('Подходы по группам мышц'));
+    });
+
+    it('мерка серий названа вслух', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+
+        assert(text(await screen(stats)).includes('Серии — за всю историю'),
+            'иначе четыре плитки в ряд читаются как четыре числа за период');
+    });
+
+});
+
+/**
+ * Пропущенное упражнение возвращается в план (§14, Р-114).
+ */
+describe('Выполнение: пропуск обратим', () => {
+
+    it('пропущенное можно выбрать и вернуть', async () => {
+        const первое = await seed({ name: 'Жим', kind: 'weight' });
+        const второе = await dbService.createExercise({ name: 'Тяга', kind: 'weight' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.updateWorkout(w.id, {
+            plan: [
+                { exerciseId: первое.id, plannedSets: 3, targetReps: 10, skipped: false },
+                { exerciseId: второе.id, plannedSets: 3, targetReps: 10, skipped: false }
+            ]
+        });
+
+        const host = document.getElementById('screen');
+        const было = host.innerHTML;
+        host.innerHTML = await session.render();
+
+        try {
+            await press('sess-select', { id: первое.id });
+            await press('sess-skip');
+            await пауза(300);
+
+            const план = (await dbService.getWorkout(w.id)).plan;
+            equal(план.find((p) => p.exerciseId === первое.id).skipped, true, 'пропущено');
+
+            // Выбор пропущенного больше не отбрасывается
+            await press('sess-select', { id: первое.id });
+            host.innerHTML = await session.render();
+
+            assert(document.querySelector('[data-action="sess-unskip"]'),
+                '§14 обещает вернуться к пропущенному, и обещание должно быть чем-то обеспечено');
+
+            await press('sess-unskip');
+            await пауза(300);
+
+            const после = (await dbService.getWorkout(w.id)).plan;
+            equal(после.find((p) => p.exerciseId === первое.id).skipped, false, 'вернулось в план');
+        } finally {
+            host.innerHTML = было;
+        }
+    });
+
+});
+
 describe('Экран: карточка упражнения', () => {
 
     it('несуществующее упражнение не роняет экран', async () => {

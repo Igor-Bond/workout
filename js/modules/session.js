@@ -209,9 +209,16 @@ async function load() {
     знакомые = exercises;
     const rows = engine.progress(workout.plan, sets);
 
-    // Выбранное упражнение могло закончиться или быть пропущенным — тогда
-    // возвращаемся к подсказке движка
-    const valid = rows.some((r) => r.exerciseId === currentId && r.state !== STATE.SKIPPED);
+    /*
+     * Выбранное упражнение могло закончиться — тогда возвращаемся к подсказке
+     * движка. А вот пропущенное отбрасывать нельзя (Р-114).
+     *
+     * §14 обещает «пропустить упражнение и вернуться к нему позже», а выходило
+     * наоборот: строка оставалась в списке и нажималась, но нажатие молча
+     * показывало другое упражнение. Человек пропускал жим, потому что скамью
+     * заняли, — и вернуться к ней было нечем до конца тренировки.
+     */
+    const valid = rows.some((r) => r.exerciseId === currentId);
     if (!valid) currentId = engine.nextStep(workout.plan, sets)?.exerciseId || rows[0]?.exerciseId || null;
 
     // История нужна только по текущему упражнению: тянуть её по всем сразу
@@ -722,7 +729,16 @@ function currentCard({ workout, sets, exercises, rows }) {
             </div>
 
             <div class="sess-tools" hidden>
-                <button class="btn btn-ghost btn-sm" data-action="sess-skip">${t('Пропустить упражнение')}</button>
+                <!--
+                    У пропущенного — дорога назад, а не второй пропуск (Р-114):
+                    §14 обещает «вернуться к нему позже», и обещание должно быть
+                    чем-то обеспечено.
+                -->
+                ${row.state === STATE.SKIPPED ? ui.html`
+                    <button class="btn btn-ghost btn-sm" data-action="sess-unskip">${t('Вернуть в план')}</button>
+                ` : ui.html`
+                    <button class="btn btn-ghost btn-sm" data-action="sess-skip">${t('Пропустить упражнение')}</button>
+                `}
                 <!--
                     Кнопка живёт, пока в тренировке есть хоть один подход, а не
                     только у этого упражнения (Р-113): режимы «по кругу» и «по
@@ -1722,6 +1738,23 @@ actions.on('sess-skip', async () => {
     await dbService.updateWorkout(view.workout.id, { plan });
 
     currentId = null;   // load() подберёт следующее по подсказке движка
+    app.render();
+});
+
+/**
+ * Вернуть пропущенное в план (§14, Р-114).
+ *
+ * Пропуск — не приговор: скамью заняли, через десять минут она свободна.
+ * Обратного пути не было вовсе — `skipped` обратно в `false` не ставил ни один
+ * обработчик во всём приложении.
+ */
+actions.on('sess-unskip', async () => {
+    if (!view || !currentId) return;
+
+    const plan = view.workout.plan.map((item) =>
+        item.exerciseId === currentId ? { ...item, skipped: false } : item);
+
+    await dbService.updateWorkout(view.workout.id, { plan });
     app.render();
 });
 

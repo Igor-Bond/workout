@@ -87,7 +87,7 @@ export const chart = {
                 <text x="0" y="${y + 16}" class="chart-label">${esc(short(String(d.label), 13))}</text>
                 <rect x="${labelWidth}" y="${y + 5}" width="${barWidth}" height="13" rx="2"
                       fill="var(--accent-dim)"></rect>
-                <text x="${labelWidth + barWidth + 6}" y="${y + 16}" class="chart-value">${esc(format(d.value))}</text>
+                <text x="${labelWidth + barWidth + 6}" y="${y + 16}" class="chart-value">${esc(format(d.value, d))}</text>
             `);
         });
 
@@ -104,12 +104,21 @@ export const chart = {
      * y: вес и тоннаж — величины разного порядка, и в общем масштабе
      * рабочий вес прижался бы к нулю.
      */
-    line(series = [], { height = 160, marks = [] } = {}) {
+    line(series = [], { height = 160, marks = [], unit = '', minSpan = 0 } = {}) {
         const all = series.flatMap((s) => s.segments.flat());
         if (all.length === 0) return empty();
 
         const width = 320;
-        const padding = { top: 14, right: 8, bottom: 20, left: 8 };
+
+        /*
+         * Слева освобождается место под числа шкалы, когда они просят (Р-114).
+         *
+         * Без них глаз читает не величину, а форму — а форма всегда
+         * драматическая, потому что масштаб каждый раз подгоняется под размах
+         * ряда. У веса это прямо вредно: полкило от воды и соли выглядели
+         * обвалом у того, кто пришёл за ответом «идёт или стоит».
+         */
+        const padding = { top: 14, right: 8, bottom: 20, left: unit ? 34 : 8 };
 
         const xs = all.map((p) => p.x);
         const minX = Math.min(...xs);
@@ -118,15 +127,47 @@ export const chart = {
 
         const scaleX = (x) => padding.left + ((x - minX) / spanX) * (width - padding.left - padding.right);
 
-        const paths = series.map((s) => {
+        /** Границы шкалы первого ряда — по ним и подписываются числа. */
+        let шкала = null;
+
+        const paths = series.map((s, порядок) => {
             const values = s.segments.flat().map((p) => p.y);
             const maxY = Math.max(...values);
             const minY = Math.min(...values);
-            const spanY = (maxY - minY) || Math.max(1, maxY);
+
+            /*
+             * Размах не меньше заданного (Р-114).
+             *
+             * Ряд 92,8 → 92,6 → 93,0 растягивался на всю высоту поля, и неделя
+             * топтания на месте выглядела то обвалом, то взлётом. Величины, у
+             * которых своя естественная мерка, просят минимальный размах — и
+             * тогда топтание выглядит топтанием.
+             */
+            /*
+             * Ряд без размаха — не повод рисовать шкалу от нуля.
+             *
+             * Талия, не менявшаяся три замера, давала размах ноль, и прежний
+             * запасной вариант брал за него саму величину: шкала уезжала от 41
+             * до 163 вокруг ста двух. Плоскому ряду нужна узкая шкала, в
+             * середине которой он и ляжет.
+             */
+            const свой = maxY - minY;
+            const запасной = Math.max(1, Math.abs(maxY) * 0.1);
+
+            const размах = свой
+                ? Math.max(свой, minSpan)
+                : Math.max(minSpan || запасной, 1);
+            const середина = (maxY + minY) / 2;
 
             // Небольшой запас сверху и снизу, иначе линия липнет к краю
+            const запас = размах * 0.1;
+            const низ = середина - размах / 2 - запас;
+            const верх = середина + размах / 2 + запас;
+
+            if (порядок === 0) шкала = { низ, верх };
+
             const scaleY = (y) => height - padding.bottom
-                - ((y - minY + spanY * 0.1) / (spanY * 1.2)) * (height - padding.top - padding.bottom);
+                - ((y - низ) / (верх - низ)) * (height - padding.top - padding.bottom);
 
             const drawn = s.segments
                 .filter((segment) => segment.length > 0)
@@ -162,12 +203,29 @@ export const chart = {
                   text-anchor="${i === 0 ? 'start' : 'end'}" class="chart-label">${esc(p.label || '')}</text>
         `));
 
+        /*
+         * Два числа у края поля — верх и низ шкалы (§27, Р-114).
+         *
+         * Больше не нужно: график здесь отвечает на вопрос «идёт или стоит», а
+         * не «сколько именно» — точное число человек читает на плитке рядом.
+         * Но без границ не понять, чего стоит размах, и полкило выглядело
+         * обвалом.
+         */
+        const число = (v) => (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10)
+            .toLocaleString('ru-RU');
+
+        const шкалаПодписи = unit && шкала ? [шкала.верх, шкала.низ].map((v, i) => ui.raw(`
+            <text x="0" y="${i === 0 ? padding.top + 4 : height - padding.bottom - 3}"
+                  class="chart-label">${esc(число(v))}</text>
+        `)) : '';
+
         return ui.html`
             <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img">
                 <line x1="0" y1="${String(height - padding.bottom)}" x2="${String(width)}"
                       y2="${String(height - padding.bottom)}" stroke="var(--line)" stroke-width="1"></line>
                 ${paths}
                 ${labels}
+                ${шкалаПодписи}
             </svg>
         `;
     },

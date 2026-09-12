@@ -242,8 +242,6 @@ export const DE = {
     'Дней с тренировкой': 'Tage mit Training',
     'По дням недели': 'Nach Wochentagen',
     'По дням': 'Nach Tagen',
-    'Насыщенность — по количеству подходов за день. Карта листается вбок.':
-        'Die Färbung zeigt die Sätze pro Tag. Die Karte lässt sich seitlich scrollen.',
     'без тренировки': 'kein Training',
     'Объём по группам мышц': 'Volumen nach Muskelgruppen',
     'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список':
@@ -1311,6 +1309,14 @@ export const DE = {
     'Проверьте число': 'Prüfen Sie die Zahl',
     '{введено} — втрое больше, чем было раньше ({было}). Записать как есть?': '{введено} ist dreimal mehr als bisher ({было}). So speichern?',
     'Поправить': 'Korrigieren',
+    'Подходы по группам мышц': 'Sätze nach Muskelgruppen',
+    'Тоннаж группы и число подходов. Тоннаж считает и отягощение, и долю своего веса.': 'Tonnage der Gruppe und Anzahl der Sätze. Die Tonnage zählt Zusatzgewicht und den Anteil des Eigengewichts.',
+    'Пока считаются подходы: тоннаж появится, когда будет отмечен вес тела или отягощение.': 'Vorerst Sätze: Die Tonnage erscheint, sobald Körpergewicht oder Zusatzgewicht erfasst ist.',
+    'Серии — за всю историю. «Дней с тренировкой» — за выбранный период.': 'Serien gelten für die gesamte Historie. «Tage mit Training» für den gewählten Zeitraum.',
+    'Насыщенность — по количеству подходов за день. Карта листается вбок и показывает всю историю, а не выбранный период.': 'Sättigung nach Sätzen pro Tag. Die Karte lässt sich seitlich blättern und zeigt die gesamte Historie, nicht den gewählten Zeitraum.',
+    'Вернуть в план': 'Zurück in den Plan',
+    'В архиве': 'Im Archiv',
+    '«{название}» ушло в архив — он внизу списка, оттуда упражнение возвращается. История цела.': '«{название}» liegt jetzt im Archiv unten in der Liste; von dort lässt es sich zurückholen. Die Historie bleibt erhalten.',
     'Весы не признали': 'Die Waage hat Sie nicht erkannt',
     'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'Platznummer oder Code passten nicht. Ich habe sie vergessen — drücken Sie erneut «Von der Waage lesen» und geben Sie sie neu ein. Die Waage zeigt beides in ihren Benutzereinstellungen.',
     'Весы не ответили': 'Die Waage hat nicht geantwortet',

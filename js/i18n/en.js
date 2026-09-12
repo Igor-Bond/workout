@@ -244,8 +244,6 @@ export const EN = {
     'Дней с тренировкой': 'Days with a workout',
     'По дням недели': 'By weekday',
     'По дням': 'By day',
-    'Насыщенность — по количеству подходов за день. Карта листается вбок.':
-        'Shade shows sets per day. The map scrolls sideways.',
     'без тренировки': 'no workout',
     'Объём по группам мышц': 'Volume by muscle group',
     'Упражнение, где рекорд давно не двигался, видно сразу — с этого и начинается список':
@@ -426,6 +424,14 @@ export const EN = {
     '{введено} — втрое больше, чем было раньше ({было}). Записать как есть?': '{введено} is three times more than before ({было}). Record it as is?',
     'Записать': 'Record',
     'Поправить': 'Fix it',
+    'Подходы по группам мышц': 'Sets by muscle group',
+    'Тоннаж группы и число подходов. Тоннаж считает и отягощение, и долю своего веса.': 'Group tonnage and the number of sets. Tonnage counts both added weight and the share of your own.',
+    'Пока считаются подходы: тоннаж появится, когда будет отмечен вес тела или отягощение.': 'Sets for now: tonnage appears once body weight or added weight is logged.',
+    'Серии — за всю историю. «Дней с тренировкой» — за выбранный период.': 'Streaks cover the whole history. "Days with a workout" covers the chosen period.',
+    'Насыщенность — по количеству подходов за день. Карта листается вбок и показывает всю историю, а не выбранный период.': 'Shade by number of sets per day. The map scrolls sideways and shows the whole history, not the chosen period.',
+    'Вернуть в план': 'Put back in the plan',
+    'В архиве': 'Archived',
+    '«{название}» ушло в архив — он внизу списка, оттуда упражнение возвращается. История цела.': '"{название}" went to the archive at the bottom of the list; it can be brought back from there. The history is intact.',
     'Весы не признали': 'The scale did not recognise you',
     'Номер места или код не подошли. Забыл их — нажмите «Снять с весов» ещё раз и введите заново. Весы показывают и то и другое в настройках пользователя.': 'The slot number or the code did not match. I have forgotten them — press "Read from scale" again and enter them anew. The scale shows both in its user settings.',
     'Весы не ответили': 'The scale did not answer',
