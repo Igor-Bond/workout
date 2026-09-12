@@ -41,6 +41,23 @@ export const chart = {
         const max = Math.max(1, ...data.map((d) => d.value));
         const step = width / data.length;
 
+        /*
+         * Подпись через одну, когда столбцы теснее подписи (Р-121).
+         *
+         * Кегль подписей поднят с восьми точек до одиннадцати — на двенадцати
+         * столбцах шаг выходит 26,7 единицы, а «21.08» при таком кегле
+         * занимает около тридцати, и соседние даты сталкиваются лбами.
+         *
+         * Считается от последнего столбца, а не от первого: крайний правый —
+         * это сегодня, и он обязан быть подписан. Отсчёт от первого оставлял
+         * бы последние две подписи рядом.
+         *
+         * Так же сделаны дни недели у карты года: там подписан каждый второй
+         * по той же причине — семь подряд при такой высоте строки сливаются.
+         */
+        const шагПодписи = step < 34 ? 2 : 1;
+        const подписан = (i) => (data.length - 1 - i) % шагПодписи === 0;
+
         const bars = data.map((d, i) => {
             const barHeight = d.value > 0 ? Math.max(2, (d.value / max) * (bottom - top)) : 0;
             const x = i * step + step * 0.15;
@@ -52,8 +69,8 @@ export const chart = {
                       fill="var(${i === highlight ? '--accent' : '--accent-dim'})"></rect>
                 ${d.value > 0 ? `<text x="${x + w / 2}" y="${y - 4}" text-anchor="middle"
                       class="chart-value">${esc(format(d.value))}</text>` : ''}
-                <text x="${x + w / 2}" y="${height - 6}" text-anchor="middle"
-                      class="chart-label">${esc(short(String(d.label), maxLabel))}</text>
+                ${подписан(i) ? `<text x="${x + w / 2}" y="${height - 6}" text-anchor="middle"
+                      class="chart-label">${esc(short(String(d.label), maxLabel))}</text>` : ''}
             `);
         });
 
@@ -79,9 +96,24 @@ export const chart = {
         const height = data.length * rowHeight;
         const max = Math.max(1, ...data.map((d) => d.value));
 
+        /*
+         * Место справа отводится под самую длинную подпись (Р-121).
+         *
+         * Было сорок четыре единицы на любую — их хватало, пока подписи шли
+         * восемью точками и состояли из одного числа. С подъёмом кегля до
+         * одиннадцати и с тоннажем рядом («36 · 43 т») подпись вылезла за
+         * край картинки: svg.chart нарисован с overflow: visible, поэтому она
+         * не обрезалась, а просто оказывалась за пределами карточки.
+         *
+         * Ширина знака взята 6,2 единицы — это примерно 0,55 кегля при
+         * одиннадцати точках в системе координат шириной 320.
+         */
+        const самая = Math.max(...data.map((d) => String(format(d.value, d)).length));
+        const запас = Math.max(44, самая * 6.2 + 8);
+
         const rows = data.map((d, i) => {
             const y = i * rowHeight;
-            const barWidth = Math.max(2, (d.value / max) * (width - labelWidth - 44));
+            const barWidth = Math.max(2, (d.value / max) * (width - labelWidth - запас));
 
             return ui.raw(`
                 <text x="0" y="${y + 16}" class="chart-label">${esc(short(String(d.label), 13))}</text>

@@ -260,7 +260,7 @@ export const DE = {
     'Динамика': 'Verlauf',
     'Лучший результат': 'Bestes Ergebnis',
     'Тренировок': 'Trainings',
-    'Тоннаж — вся нагрузка: и отягощение, и собственный вес.': 'Die Tonnage ist die gesamte Last: Zusatzgewicht und der eigene Körper.',
+    'Тоннаж — сколько всего поднято: и отягощение, и собственный вес.': 'Tonnage ist alles Gehobene: Gewicht und eigener Körper.',
     'К своему весу': 'Im Verhältnis zum Körpergewicht',
     'Последний раз': 'Zuletzt',
     'Отметить в статистике': 'In der Statistik eintragen',

@@ -430,14 +430,26 @@ describe('Знакомство и чужие данные', () => {
 
 describe('Выход из знакомства', () => {
 
-    it('«пропустить настройку» закрывает его насовсем', async () => {
+    /*
+     * «Пропустить настройку» отменяла знакомство насовсем — вместе со
+     * справкой и развилкой (Р-121). А над кнопкой написано, что пропустить
+     * можно каждый вопрос. Отказ от анкеты и отказ от объяснения — разные
+     * решения, и кнопка у них должна быть разная.
+     */
+    it('«пропустить настройку» пропускает вопросы, а не объяснение', async () => {
         await сначала();
         await screen(intro);
 
         await press('intro-skip');
 
-        equal((await dbService.getSetting(INTRO_KEY, null))?.done, true);
-        equal(await нужноЗнакомство(), false);
+        const состояние = await dbService.getSetting(INTRO_KEY, null);
+
+        assert(!состояние?.done, 'знакомство не закрыто: справка и развилка впереди');
+
+        const view = await screen(intro);
+
+        assert(!text(view).includes('шаг 1 из 5'), 'вопросы позади');
+        assert(hasAction(view, 'intro-next'), 'дорога дальше осталась');
     });
 
     it('развилка закрывает знакомство и ведёт, куда выбрали', async () => {
@@ -459,9 +471,36 @@ describe('Выход из знакомства', () => {
     it('пройденное знакомство обратно не зовёт', async () => {
         await сначала();
         await screen(intro);
-        await press('intro-skip');
+        await вперёд(7);
+        await press('intro-finish', { screen: 'home' });
 
         equal(await знакомствоЖдёт(), null);
+    });
+
+    /*
+     * Номер шага сохраняется ради возврата в начатую анкету. У прошедшего он
+     * равен последнему, и кнопка «Знакомство: с чего начать» открывала не
+     * начало, а экран «Готово · Пять шагов позади» (Р-121).
+     */
+    it('пройденное открывается сначала, а не на «готово»', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(7);
+        await press('intro-finish', { screen: 'home' });
+
+        intro.leave();
+        const view = await screen(intro);
+
+        assert(text(view).includes('шаг 1 из 5'), `открылось не начало: ${text(view).slice(0, 120)}`);
+    });
+
+    it('с развилки можно вернуться назад', async () => {
+        await сначала();
+        await screen(intro);
+        await вперёд(7);
+
+        assert(hasAction(await screen(intro), 'intro-back'),
+            'заметил на развилке опечатку в росте — и некуда');
     });
 
     it('до знакомства полосы нет', async () => {

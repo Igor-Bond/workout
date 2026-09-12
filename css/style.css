@@ -339,7 +339,7 @@ p:last-child { margin-bottom: 0; }
     border-radius: var(--radius-sm);
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.03em;
     text-transform: uppercase;
     padding: 7px 2px;
@@ -396,7 +396,7 @@ p:last-child { margin-bottom: 0; }
 */
 .sub-title {
     color: var(--text-dim);
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     margin: 2px 0 8px;
@@ -426,8 +426,17 @@ p:last-child { margin-bottom: 0; }
     padding: 6px 0;
 }
 
+/*
+ * Пояснения крупнее подписей (Р-121).
+ *
+ * Подписи подняты до одиннадцати точек, и пояснения, стоявшие на тех же
+ * одиннадцати, слились с ними. А это не украшение: каждая строка объясняет
+ * себя сама, и ровно этим приложение отличается от блокнота. Объяснение,
+ * которое не хочется читать из-за кегля, всё равно что его нет — человек
+ * снова тычет наугад.
+ */
 .hint {
-    font-size: 0.6875rem;
+    font-size: 0.75rem;
     color: var(--text-dim);
     margin-top: 6px;
 }
@@ -461,7 +470,7 @@ p:last-child { margin-bottom: 0; }
 
 .stub-stage {
     display: inline-block;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent-dim);
@@ -661,7 +670,7 @@ input[type=checkbox] {
 
 .setting-text { display: block; }
 .setting-label { display: block; font-size: 0.875rem; color: var(--text); }
-.setting-hint { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.setting-hint { display: block; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
 /* ================== СПРАВОЧНИК УПРАЖНЕНИЙ ================== */
 
@@ -713,7 +722,7 @@ button.ex-main:active .ex-name { color: var(--accent); }
     white-space: nowrap;
 }
 
-.ex-meta { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.ex-meta { display: block; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
 .ex-actions { display: flex; gap: 4px; flex: none; }
 
@@ -1007,7 +1016,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 }
 
 .sess-done-label {
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -1057,7 +1066,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 
 .prog-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; }
 .prog-count { font-size: 0.875rem; font-weight: 700; color: var(--accent); }
-.prog-state { font-size: 0.625rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.prog-state { font-size: 0.6875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Прошлый и лучший результат (§15) */
 .rec-block { margin-bottom: 16px; }
@@ -1350,7 +1359,7 @@ table.log tr:last-child td { border-bottom: none; }
 
 .repeat-card .rep-label {
     display: block;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-dim);
@@ -1443,7 +1452,7 @@ table.log tr:last-child td { border-bottom: none; }
 .tiles.is-tight { grid-template-columns: repeat(3, 1fr); }
 .tiles.is-tight .tile { padding: 10px 4px; }
 .tiles.is-tight .tile strong { font-size: 1.25rem; }
-.tiles.is-tight .tile span { font-size: 0.625rem; }
+.tiles.is-tight .tile span { font-size: 0.6875rem; }
 
 /* ================== ВЕС ТЕЛА НА ГЛАВНОЙ (§25) ================== */
 
@@ -1535,7 +1544,7 @@ table.log tr:last-child td { border-bottom: none; }
 
 .cal-weekdays {
     margin-bottom: 4px;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     text-transform: uppercase;
     text-align: center;
@@ -1598,8 +1607,20 @@ td.cell-tools .icon-btn + .icon-btn { margin-left: 16px; }
 
 svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 
-.chart-value { font-size: 0.5625rem; fill: var(--text); font-weight: bold; }
-.chart-label { font-size: 0.5rem; fill: var(--text-dim); }
+/*
+ * Подписи графиков — тем же кеглем, что подписи всего остального (Р-121).
+ *
+ * Было восемь и девять точек — вдвое мельче основного текста и самое мелкое
+ * во всём приложении; вдобавок картинка шириной 320 единиц лежит в карточке
+ * шириной 313, и каждая буква ужималась ещё на два процента. Восемь точек в
+ * тридцати сантиметрах от глаз — это буква ростом меньше миллиметра.
+ *
+ * А смотрят на эти графики так же, как на плитки: с расстояния вытянутой
+ * руки, между подходами. Столбцы было видно, а чей столбец и сколько в нём —
+ * уже нет: график переставал быть графиком и оставался узором.
+ */
+.chart-value { font-size: 0.6875rem; fill: var(--text); font-weight: bold; }
+.chart-label { font-size: 0.6875rem; fill: var(--text-dim); }
 
 .chart-title {
     font-size: 0.6875rem;
@@ -1639,7 +1660,7 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 .heat-days {
     flex: none;
     padding-top: var(--heat-top);
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     color: var(--text-dim);
 }
 
@@ -1660,8 +1681,7 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 
 svg.heatmap { display: block; }
 
-/* Названия месяцев крупнее подписей осей: они стоят над сеткой */
-.heat-month { font-size: 0.625rem; }
+.heat-month { font-size: 0.6875rem; }
 
 /*
  * Обводка одна на все клетки (Р-119).
@@ -1733,13 +1753,13 @@ svg.heatmap { display: block; }
 
 .best-label {
     color: var(--accent);
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
 /* Изменение показателя к предыдущему периоду (§23.1) */
-.tile-delta { display: block; font-size: 0.625rem; margin-top: 2px; letter-spacing: 0; text-transform: none; }
+.tile-delta { display: block; font-size: 0.6875rem; margin-top: 2px; letter-spacing: 0; text-transform: none; }
 .tile-delta.is-up { color: var(--good); }
 .tile-delta.is-down { color: var(--bad); }
 
@@ -2015,7 +2035,7 @@ svg.heatmap { display: block; }
 
 .dialog-option.is-danger { border-color: var(--bad); color: var(--bad); }
 .dialog-option-label { display: block; font-size: 0.875rem; }
-.dialog-option-hint { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.dialog-option-hint { display: block; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
@@ -2198,7 +2218,7 @@ svg.heatmap { display: block; }
     text-align: center;
     border: 1px solid var(--line);
     border-radius: 4px;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
     color: var(--text-dim);
 }
 

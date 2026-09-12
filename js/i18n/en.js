@@ -262,7 +262,7 @@ export const EN = {
     'Динамика': 'Progress',
     'Лучший результат': 'Best result',
     'Тренировок': 'Workouts',
-    'Тоннаж — вся нагрузка: и отягощение, и собственный вес.': 'Tonnage is the whole load: added weight and your own body.',
+    'Тоннаж — сколько всего поднято: и отягощение, и собственный вес.': 'Tonnage is everything lifted: the weight plus your own body.',
     'К своему весу': 'Relative to body weight',
     'Последний раз': 'Last time',
     'Отметить в статистике': 'Record it in stats',
