@@ -262,6 +262,7 @@ export const EN = {
     'Динамика': 'Progress',
     'Лучший результат': 'Best result',
     'Тренировок': 'Workouts',
+    'Тоннаж — сколько всего поднято: железо плюс доля собственного веса (у отжиманий — около двух третей).': 'Tonnage is everything lifted: the iron plus a share of your own weight (about two thirds for push-ups).',
     'Тоннаж — сколько всего поднято: и отягощение, и собственный вес.': 'Tonnage is everything lifted: the weight plus your own body.',
     'К своему весу': 'Relative to body weight',
     'Последний раз': 'Last time',

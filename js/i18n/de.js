@@ -260,6 +260,7 @@ export const DE = {
     'Динамика': 'Verlauf',
     'Лучший результат': 'Bestes Ergebnis',
     'Тренировок': 'Trainings',
+    'Тоннаж — сколько всего поднято: железо плюс доля собственного веса (у отжиманий — около двух третей).': 'Tonnage ist alles Gehobene: Eisen plus ein Anteil des eigenen Gewichts (bei Liegestützen etwa zwei Drittel).',
     'Тоннаж — сколько всего поднято: и отягощение, и собственный вес.': 'Tonnage ist alles Gehobene: Gewicht und eigener Körper.',
     'К своему весу': 'Im Verhältnis zum Körpergewicht',
     'Последний раз': 'Zuletzt',
