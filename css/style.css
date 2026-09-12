@@ -91,11 +91,24 @@ html, body {
 }
 
 
+/*
+ * Размеры шрифта в rem, а не в пикселях (Р-112).
+ *
+ * Пиксель не слушает человека. Тот, кто увеличил текст в настройках телефона
+ * или браузера — а это первое, что делают в сорок с лишним, — не получал в
+ * приложении ничего: все сто сорок пять размеров были заданы намертво, и
+ * подписи в десять пикселей, без которых числа ничего не значат, оставались
+ * десятью пикселями.
+ *
+ * Один rem — это размер, назначенный самим человеком. Коробки при этом
+ * остаются в пикселях: растёт текст, а не отступы, — иначе увеличение шрифта
+ * раздувало бы экран вдвое и прятало половину под сгиб.
+ */
 body {
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-text);
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1.45;
     /* Страница не прокручивается — прокручивается содержимое каркаса (Р-70) */
     height: var(--app-height);
@@ -244,7 +257,7 @@ p:last-child { margin-bottom: 0; }
     color: var(--text-dim);
     text-align: center;
     padding: 40px 0;
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 /*
@@ -257,7 +270,7 @@ p:last-child { margin-bottom: 0; }
     padding: 40px 16px;
     text-align: center;
     color: var(--text);
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.5;
 }
 
@@ -265,7 +278,7 @@ p:last-child { margin-bottom: 0; }
 
 .boot-failed .boot-quiet {
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 0.75rem;
     word-break: break-word;
 }
 
@@ -309,7 +322,7 @@ p:last-child { margin-bottom: 0; }
     border-radius: var(--radius-sm);
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.03em;
     text-transform: uppercase;
     padding: 7px 2px;
@@ -339,11 +352,11 @@ p:last-child { margin-bottom: 0; }
 /* ================== ЗАГОЛОВКИ ЭКРАНА ================== */
 
 .screen-head { margin-bottom: 18px; }
-.screen-head h1 { font-size: 22px; }
+.screen-head h1 { font-size: 1.375rem; }
 
 .screen-sub {
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 0.75rem;
     margin-top: 4px;
 }
 
@@ -351,7 +364,7 @@ p:last-child { margin-bottom: 0; }
 
 .section-title {
     color: var(--accent);
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     margin-bottom: 10px;
@@ -366,7 +379,7 @@ p:last-child { margin-bottom: 0; }
 */
 .sub-title {
     color: var(--text-dim);
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     margin: 2px 0 8px;
@@ -383,7 +396,7 @@ p:last-child { margin-bottom: 0; }
 }
 
 .card-title {
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-dim);
@@ -392,12 +405,12 @@ p:last-child { margin-bottom: 0; }
 
 .empty-note {
     color: var(--text-dim);
-    font-size: 13px;
+    font-size: 0.8125rem;
     padding: 6px 0;
 }
 
 .hint {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     margin-top: 6px;
 }
@@ -408,7 +421,7 @@ p:last-child { margin-bottom: 0; }
     align-items: baseline;
     padding: 7px 0;
     border-bottom: 1px solid var(--line);
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 .info-row:last-of-type { border-bottom: none; }
@@ -431,7 +444,7 @@ p:last-child { margin-bottom: 0; }
 
 .stub-stage {
     display: inline-block;
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--accent-dim);
@@ -444,11 +457,11 @@ p:last-child { margin-bottom: 0; }
 .stub-title {
     color: var(--text);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 0.875rem;
     margin-bottom: 6px;
 }
 
-.stub p { font-size: 12px; }
+.stub p { font-size: 0.75rem; }
 
 /* ================== КНОПКИ ================== */
 
@@ -459,7 +472,7 @@ p:last-child { margin-bottom: 0; }
     border-radius: var(--radius-sm);
     padding: 13px 16px;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -470,7 +483,7 @@ p:last-child { margin-bottom: 0; }
 
 .btn:last-child { margin-bottom: 0; }
 
-.btn-lg { font-size: 16px; padding: 16px; }
+.btn-lg { font-size: 1rem; padding: 16px; }
 
 .btn-accent { background: var(--accent); color: #1a1310; }
 .btn-accent:active { background: var(--accent-dim); }
@@ -507,7 +520,7 @@ p:last-child { margin-bottom: 0; }
 
 label {
     display: block;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     margin-bottom: 6px;
     letter-spacing: 0.03em;
@@ -530,7 +543,7 @@ textarea {
     font-family: inherit;
     /* 16px обязательны: при меньшем размере Safari масштабирует страницу
        при фокусе в поле, и вернуть масштаб обратно нечем */
-    font-size: 16px;
+    font-size: 1rem;
     padding: 10px 12px;
 }
 
@@ -555,7 +568,7 @@ input:focus, select:focus, textarea:focus {
  * работы с приложением.
  */
 .report-text {
-    font-size: 16px;
+    font-size: 1rem;
     line-height: 1.5;
     white-space: pre;
     overflow-x: auto;
@@ -588,7 +601,7 @@ input[type=range] {
     border: none;
     padding: 0;
     font: inherit;
-    font-size: 18px;
+    font-size: 1.125rem;
     color: var(--accent);
     font-variant-numeric: tabular-nums;
     border-bottom: 1px dashed var(--accent-dim);
@@ -616,8 +629,8 @@ input[type=checkbox] {
 .setting:last-child { border-bottom: none; }
 
 .setting-text { display: block; }
-.setting-label { display: block; font-size: 14px; color: var(--text); }
-.setting-hint { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.setting-label { display: block; font-size: 0.875rem; color: var(--text); }
+.setting-hint { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 
 /* ================== СПРАВОЧНИК УПРАЖНЕНИЙ ================== */
 
@@ -634,14 +647,14 @@ input[type=checkbox] {
 .ex-main { flex: 1; min-width: 0; }
 
 .ex-name {
-    font-size: 14px;
+    font-size: 0.875rem;
     /* Длинное название не должно распирать строку и уводить кнопки за край */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.ex-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.ex-meta { font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 
 .ex-actions { display: flex; gap: 4px; flex: none; }
 
@@ -651,7 +664,7 @@ input[type=checkbox] {
     border-radius: 6px;
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 15px;
+    font-size: 0.9375rem;
     line-height: 1;
     width: 34px;
     height: 34px;
@@ -704,7 +717,7 @@ input[type=checkbox] {
  * одинаковое.
  */
 .plan-row-name {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 700;
     overflow-wrap: anywhere;
 }
@@ -733,8 +746,8 @@ input[type=checkbox] {
     margin-bottom: 14px;
 }
 
-.sess-type { font-size: 18px; font-weight: 700; }
-.sess-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.sess-type { font-size: 1.125rem; font-weight: 700; }
+.sess-meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 .sess-meta strong { color: var(--accent); }
 .sess-head .chips { margin-bottom: 0; }
 
@@ -754,7 +767,7 @@ input[type=checkbox] {
  * мелкого.
  */
 .sess-name {
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: bold;
     line-height: 1.2;
     color: var(--text);
@@ -766,7 +779,7 @@ input[type=checkbox] {
     overflow-wrap: anywhere;
 }
 
-.sess-set { font-size: 14px; color: var(--accent); margin-bottom: 16px; }
+.sess-set { font-size: 0.875rem; color: var(--accent); margin-bottom: 16px; }
 
 /*
  * Селектор начинается с input не для красоты: правило input[type=number]
@@ -782,7 +795,7 @@ input.big-input {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     margin: 0 auto 6px;
-    font-size: 44px;
+    font-size: 2.75rem;
     text-align: center;
     background: var(--panel-2);
     border: 1px solid var(--line);
@@ -794,7 +807,7 @@ input.big-input {
 input.big-input:focus { outline: none; border-color: var(--accent); }
 
 .big-label {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     letter-spacing: 0.08em;
     margin-bottom: 10px;
@@ -819,7 +832,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 }
 
 .plan-note-title { font-weight: 700; }
-.plan-note-body { font-size: 13px; color: var(--text-dim); }
+.plan-note-body { font-size: 0.8125rem; color: var(--text-dim); }
 
 .plan-note .btn { align-self: flex-start; margin-top: 6px; }
 .plan-note .row-links { margin-top: 6px; }
@@ -840,7 +853,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .hold .hold-number {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 88px;
+    font-size: 5.5rem;
     line-height: 1;
     font-weight: 700;
     color: var(--accent);
@@ -859,7 +872,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 }
 
 .inline-field input { width: 100px; padding: 8px; text-align: center; }
-.inline-field span { font-size: 12px; color: var(--text-dim); }
+.inline-field span { font-size: 0.75rem; color: var(--text-dim); }
 
 /* Что уже сделано в этом упражнении — одной строкой вместо таблицы */
 .sess-done {
@@ -869,11 +882,11 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
     flex-wrap: wrap;
     gap: 4px 8px;
     margin-top: 12px;
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 .sess-done-label {
-    font-size: 10px;
+    font-size: 0.625rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -881,7 +894,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 
 /* Изменение к прошлому разу (§15.1) */
 .sess-delta {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     margin-top: 4px;
 }
@@ -892,7 +905,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 
 .sess-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .sess-tools .btn { flex: 1; margin-bottom: 0; min-width: 150px; }
-.btn-sm { padding: 9px 12px; font-size: 13px; min-height: 38px; }
+.btn-sm { padding: 9px 12px; font-size: 0.8125rem; min-height: 38px; }
 
 /* Список упражнений с прогрессом «Бицепс 2/3» */
 .prog-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
@@ -921,9 +934,9 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .prog-row.is-skipped { opacity: 0.5; }
 .prog-row.is-extra   { border-left-color: var(--blue); }
 
-.prog-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.prog-count { font-size: 14px; font-weight: 700; color: var(--accent); }
-.prog-state { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.prog-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.875rem; }
+.prog-count { font-size: 0.875rem; font-weight: 700; color: var(--accent); }
+.prog-state { font-size: 0.625rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Прошлый и лучший результат (§15) */
 .rec-block { margin-bottom: 16px; }
@@ -934,20 +947,20 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
     align-items: baseline;
     justify-content: center;
     gap: 4px 8px;
-    font-size: 12px;
+    font-size: 0.75rem;
     padding: 3px 0;
 }
 
 .rec-label { color: var(--text-dim); }
 .rec-value { color: var(--text); font-weight: 700; }
-.rec-when { color: var(--text-dim); font-size: 11px; }
+.rec-when { color: var(--text-dim); font-size: 0.6875rem; }
 .rec-empty { color: var(--text-dim); font-style: italic; }
 
 .record-mark { color: var(--accent); }
 tr.is-record td { color: var(--accent); }
 
 .record-line {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--accent);
     margin-bottom: 8px;
 }
@@ -966,9 +979,23 @@ tr.is-record td { color: var(--accent); }
     margin-top: 10px;
 }
 
-.rest-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
-.rest-bar strong { font-size: 18px; color: var(--accent); min-width: 64px; }
+.rest-label { font-size: 0.6875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+.rest-bar strong { font-size: 1.125rem; color: var(--accent); min-width: 64px; }
 .rest-bar .chip { min-height: 32px; padding: 5px 10px; }
+
+/*
+ * «Пропустить» отодвинуто от «+15 с» (Р-112).
+ *
+ * «+15 с» жмут и удерживают по нескольку раз подряд, глядя не в экран, а в
+ * сторону, с телефоном на вытянутой руке. Восемь точек правее — и пауза, ради
+ * которой её и жали, кончилась совсем: отдых заводится только после
+ * записанного подхода, обратно его не вернуть.
+ *
+ * Тем же приёмом, что и в таблице подходов: цена ошибки у соседей разная, и
+ * расстояние между ними должно это говорить. «−15» и «+15» стоят вплотную
+ * намеренно — промах между ними стоит тридцати секунд, и они видны на табло.
+ */
+.rest-bar [data-action="rest-skip"] { margin-left: 16px; }
 
 /* Заметки (§20) */
 .note-row { margin-bottom: 14px; }
@@ -978,7 +1005,7 @@ tr.is-record td { color: var(--accent); }
     border: none;
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     text-decoration: underline;
     cursor: pointer;
     padding: 4px;
@@ -990,12 +1017,12 @@ input.note-input {
 
     /* 16px, как у всех полей: меньший размер заставляет Safari на iPhone
        масштабировать страницу при фокусе, и обратно она не возвращается */
-    font-size: 16px;
+    font-size: 1rem;
     padding: 8px 10px;
 }
 
 .note-shown {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     border-left: 2px solid var(--line);
     padding-left: 10px;
@@ -1004,23 +1031,23 @@ input.note-input {
 }
 
 tr.log-note td {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     padding-top: 0;
     padding-bottom: 8px;
 }
 
-.plan-row-last { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.plan-row-last { font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 .plan-row-last.is-guess { color: var(--accent-dim); }
 
 /* ================== ИТОГИ ================== */
 
-table.log { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.log { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
 
 table.log th {
     text-align: left;
     color: var(--text-dim);
-    font-size: 11px;
+    font-size: 0.6875rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     padding: 6px 4px;
@@ -1048,12 +1075,12 @@ table.log tr:last-child td { border-bottom: none; }
     align-items: baseline;
     gap: 10px;
     flex-wrap: wrap;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 700;
     margin-bottom: 8px;
 }
 
-.ex-block-title .sub { color: var(--text-dim); font-weight: 400; font-size: 12px; }
+.ex-block-title .sub { color: var(--text-dim); font-weight: 400; font-size: 0.75rem; }
 
 /*
  * Плитки показателей.
@@ -1080,13 +1107,13 @@ table.log tr:last-child td { border-bottom: none; }
 .tile strong {
     display: block;
     color: var(--accent);
-    font-size: 24px;
+    font-size: 1.5rem;
     line-height: 1.15;
 }
 
 .tile span {
     display: block;
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -1095,8 +1122,8 @@ table.log tr:last-child td { border-bottom: none; }
 
 /* ================== ГЛАВНЫЙ ЭКРАН ================== */
 
-.active-type { font-size: 16px; font-weight: 700; }
-.active-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; margin-bottom: 14px; }
+.active-type { font-size: 1rem; font-weight: 700; }
+.active-meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; margin-bottom: 14px; }
 
 .history-item {
     display: block;
@@ -1115,7 +1142,7 @@ table.log tr:last-child td { border-bottom: none; }
     display: flex;
     justify-content: space-between;
     gap: 10px;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     margin-bottom: 4px;
 }
@@ -1138,7 +1165,7 @@ table.log tr:last-child td { border-bottom: none; }
     margin: -3px 0;
     flex: none;
 }
-.history-item .h-stats { display: block; font-size: 13px; }
+.history-item .h-stats { display: block; font-size: 0.8125rem; }
 
 /* ================== РИТМ (§26.2) ================== */
 
@@ -1159,8 +1186,8 @@ table.log tr:last-child td { border-bottom: none; }
 .rhythm-strip.is-due     { border-left-color: var(--accent); }
 .rhythm-strip.is-overdue { border-left-color: var(--bad); }
 
-.rhythm-state  { display: block; font-size: 14px; font-weight: 700; }
-.rhythm-detail { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.rhythm-state  { display: block; font-size: 0.875rem; font-weight: 700; }
+.rhythm-detail { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 
 /* ================== НАЧАТЬ (§29) ================== */
 
@@ -1202,15 +1229,15 @@ table.log tr:last-child td { border-bottom: none; }
 
 .repeat-card .rep-label {
     display: block;
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-dim);
     margin-bottom: 5px;
 }
 
-.repeat-card .rep-names { display: block; font-size: 15px; font-weight: 700; line-height: 1.3; }
-.repeat-card .rep-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+.repeat-card .rep-names { display: block; font-size: 0.9375rem; font-weight: 700; line-height: 1.3; }
+.repeat-card .rep-meta { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 4px; }
 
 /* Второстепенные действия строкой ссылок — но с пальцевой площадью нажатия */
 /*
@@ -1274,7 +1301,7 @@ table.log tr:last-child td { border-bottom: none; }
 .wk-day {
     flex: 1;
     text-align: center;
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     background: var(--panel-2);
     border: 1px solid transparent;
@@ -1294,8 +1321,8 @@ table.log tr:last-child td { border-bottom: none; }
 /* Три плитки в ряд на телефоне: обычные 140 px переносили бы третью */
 .tiles.is-tight { grid-template-columns: repeat(3, 1fr); }
 .tiles.is-tight .tile { padding: 10px 4px; }
-.tiles.is-tight .tile strong { font-size: 20px; }
-.tiles.is-tight .tile span { font-size: 10px; }
+.tiles.is-tight .tile strong { font-size: 1.25rem; }
+.tiles.is-tight .tile span { font-size: 0.625rem; }
 
 /* ================== ВЕС ТЕЛА НА ГЛАВНОЙ (§25) ================== */
 
@@ -1328,25 +1355,25 @@ table.log tr:last-child td { border-bottom: none; }
 
 .weight-row .w-value {
     font-family: var(--font-mono);
-    font-size: 22px;
+    font-size: 1.375rem;
     font-weight: 700;
     white-space: nowrap;
 }
 
-.weight-row .w-value small { font-size: 12px; font-weight: 400; color: var(--text-dim); }
-.weight-row .w-meta { font-size: 11px; color: var(--text-dim); }
+.weight-row .w-value small { font-size: 0.75rem; font-weight: 400; color: var(--text-dim); }
+.weight-row .w-meta { font-size: 0.6875rem; color: var(--text-dim); }
 
 /* ================== ШАБЛОНЫ ================== */
 
 .tpl-head { margin-bottom: 8px; }
-.tpl-name { font-size: 16px; font-weight: 700; }
-.tpl-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-.tpl-list { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+.tpl-name { font-size: 1rem; font-weight: 700; }
+.tpl-meta { font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.tpl-list { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 14px; }
 
 /* ================== ИСТОРИЯ ================== */
 
 .hist-count {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -1355,11 +1382,11 @@ table.log tr:last-child td { border-bottom: none; }
 
 .history-item { margin-bottom: 10px; }
 .history-item:last-child { margin-bottom: 0; }
-.history-item .h-name { display: block; font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.history-item .h-name { display: block; font-size: 0.875rem; font-weight: 700; margin-bottom: 4px; }
 
 .history-item .h-note {
     display: block;
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     border-left: 2px solid var(--line);
     padding-left: 8px;
@@ -1376,7 +1403,7 @@ table.log tr:last-child td { border-bottom: none; }
     margin-bottom: 12px;
 }
 
-.cal-title { font-size: 15px; font-weight: 700; }
+.cal-title { font-size: 0.9375rem; font-weight: 700; }
 
 .cal-weekdays,
 .cal-grid {
@@ -1387,7 +1414,7 @@ table.log tr:last-child td { border-bottom: none; }
 
 .cal-weekdays {
     margin-bottom: 4px;
-    font-size: 10px;
+    font-size: 0.625rem;
     color: var(--text-dim);
     text-transform: uppercase;
     text-align: center;
@@ -1403,7 +1430,7 @@ table.log tr:last-child td { border-bottom: none; }
     border-radius: 6px;
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     cursor: pointer;
 }
 
@@ -1424,7 +1451,7 @@ table.log tr:last-child td { border-bottom: none; }
 
 .cal-summary {
     margin-top: 12px;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     text-align: center;
 }
@@ -1443,28 +1470,28 @@ td.cell-tools {
     white-space: nowrap;
 }
 
-td.cell-tools .icon-btn { width: 30px; height: 30px; font-size: 14px; }
+td.cell-tools .icon-btn { width: 30px; height: 30px; font-size: 0.875rem; }
 td.cell-tools .icon-btn + .icon-btn { margin-left: 16px; }
 
 /* ================== ГРАФИКИ (§27) ================== */
 
 svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 
-.chart-value { font-size: 9px; fill: var(--text); font-weight: bold; }
-.chart-label { font-size: 8px; fill: var(--text-dim); }
+.chart-value { font-size: 0.5625rem; fill: var(--text); font-weight: bold; }
+.chart-label { font-size: 0.5rem; fill: var(--text-dim); }
 
 .chart-title {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     margin: 16px 0 8px;
 }
 
-.chart-empty { color: var(--text-dim); font-size: 12px; padding: 14px 0; text-align: center; }
+.chart-empty { color: var(--text-dim); font-size: 0.75rem; padding: 14px 0; text-align: center; }
 
 .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
-.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-dim); }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.6875rem; color: var(--text-dim); }
 .legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .legend .dot.is-accent { background: var(--accent); }
 .legend .dot.is-blue { background: var(--blue); }
@@ -1491,7 +1518,7 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 .heat-days {
     flex: none;
     padding-top: var(--heat-top);
-    font-size: 10px;
+    font-size: 0.625rem;
     color: var(--text-dim);
 }
 
@@ -1513,7 +1540,7 @@ svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
 svg.heatmap { display: block; }
 
 /* Названия месяцев крупнее подписей осей: они стоят над сеткой */
-.heat-month { font-size: 10px; }
+.heat-month { font-size: 0.625rem; }
 
 .heat { fill: var(--panel-2); stroke: var(--line); stroke-width: 0.5; }
 .heat-1 { fill: #3a2418; stroke: none; }
@@ -1529,18 +1556,18 @@ svg.heatmap { display: block; }
     border-top: 1px solid var(--line);
     margin-top: 12px;
     padding-top: 12px;
-    font-size: 12px;
+    font-size: 0.75rem;
 }
 
 .best-label {
     color: var(--accent);
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
 /* Изменение показателя к предыдущему периоду (§23.1) */
-.tile-delta { display: block; font-size: 10px; margin-top: 2px; letter-spacing: 0; text-transform: none; }
+.tile-delta { display: block; font-size: 0.625rem; margin-top: 2px; letter-spacing: 0; text-transform: none; }
 .tile-delta.is-up { color: var(--good); }
 .tile-delta.is-down { color: var(--bad); }
 
@@ -1567,9 +1594,9 @@ svg.heatmap { display: block; }
 .pr-row.is-fresh { border-left-color: var(--accent); }
 
 .pr-main { min-width: 0; }
-.pr-name { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pr-meta { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-.pr-value { flex: none; font-size: 13px; font-weight: 700; color: var(--accent); }
+.pr-name { display: block; font-size: 0.875rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-meta { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
+.pr-value { flex: none; font-size: 0.8125rem; font-weight: 700; color: var(--accent); }
 
 /* ================== КАРТОЧКА УПРАЖНЕНИЯ ================== */
 
@@ -1579,11 +1606,11 @@ svg.heatmap { display: block; }
     gap: 12px;
     padding: 8px 0;
     border-bottom: 1px solid var(--line);
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 .ex-hist-row:last-child { border-bottom: none; }
-.ex-hist-date { flex: none; color: var(--text-dim); font-size: 12px; }
+.ex-hist-date { flex: none; color: var(--text-dim); font-size: 0.75rem; }
 .ex-hist-sets { text-align: right; }
 
 /* ================== ЧИПЫ ================== */
@@ -1601,7 +1628,7 @@ svg.heatmap { display: block; }
     border-radius: 18px;
     color: var(--text-dim);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     padding: 8px 14px;
     cursor: pointer;
     min-height: 36px;
@@ -1713,7 +1740,7 @@ svg.heatmap { display: block; }
 /* Стрелки отделены чертой: это другое действие, а не часть названия */
 .chip.is-draft .chip-arrow {
     padding: 10px 14px;
-    font-size: 18px;
+    font-size: 1.125rem;
     line-height: 1;
 }
 
@@ -1751,7 +1778,7 @@ svg.heatmap { display: block; }
     border-radius: var(--radius-sm);
     padding: 10px 12px;
     margin-bottom: 10px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1765,7 +1792,7 @@ svg.heatmap { display: block; }
     border-radius: 6px;
     padding: 8px 12px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
@@ -1795,8 +1822,8 @@ svg.heatmap { display: block; }
     padding: 18px;
 }
 
-.dialog-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-.dialog-text { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; }
+.dialog-title { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+.dialog-text { font-size: 0.8125rem; color: var(--text-dim); margin-bottom: 16px; }
 
 .dialog-options { margin-bottom: 14px; }
 
@@ -1815,8 +1842,8 @@ svg.heatmap { display: block; }
 }
 
 .dialog-option.is-danger { border-color: var(--bad); color: var(--bad); }
-.dialog-option-label { display: block; font-size: 14px; }
-.dialog-option-hint { display: block; font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.dialog-option-label { display: block; font-size: 0.875rem; }
+.dialog-option-hint { display: block; font-size: 0.6875rem; color: var(--text-dim); margin-top: 2px; }
 
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
@@ -1847,7 +1874,7 @@ svg.heatmap { display: block; }
     border-radius: 6px;
     color: var(--text);
     font-family: inherit;
-    font-size: 16px;
+    font-size: 1rem;
     padding: 10px 12px;
     margin-bottom: 10px;
 }
@@ -1895,7 +1922,7 @@ svg.heatmap { display: block; }
         align-items: center;
         gap: 8px;
         padding: 0 10px 20px;
-        font-size: 17px;
+        font-size: 1.0625rem;
         font-weight: 700;
     }
 
@@ -1906,7 +1933,7 @@ svg.heatmap { display: block; }
         flex-direction: row;
         justify-content: flex-start;
         gap: 12px;
-        font-size: 13px;
+        font-size: 0.8125rem;
         letter-spacing: 0;
         text-transform: none;
         padding: 11px 12px;
@@ -1918,7 +1945,7 @@ svg.heatmap { display: block; }
     .content > .banners,
     .content > .screen { margin: 0; }
 
-    .screen-head h1 { font-size: 26px; }
+    .screen-head h1 { font-size: 1.625rem; }
 
     /*
      * Кнопки во всю ширину колонки — как на телефоне.
@@ -1947,7 +1974,7 @@ svg.heatmap { display: block; }
     .sess-layout .card { margin-bottom: 0; }
     .sess-layout + .btn { margin-top: 16px; }
 
-    input.big-input { width: 180px; font-size: 52px; }
+    input.big-input { width: 180px; font-size: 3.25rem; }
 
     /* Поля плана шире: на широкой строке они иначе выглядят обрубками */
     .plan-row-fields { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
@@ -1999,7 +2026,7 @@ svg.heatmap { display: block; }
     text-align: center;
     border: 1px solid var(--line);
     border-radius: 4px;
-    font-size: 10px;
+    font-size: 0.625rem;
     color: var(--text-dim);
 }
 
@@ -2025,8 +2052,8 @@ svg.heatmap { display: block; }
     margin-bottom: 14px;
 }
 
-.iv-head h1 { font-size: 20px; }
-.iv-meta { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+.iv-head h1 { font-size: 1.25rem; }
+.iv-meta { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
 .iv-clock {
     background: var(--panel);
@@ -2045,7 +2072,7 @@ svg.heatmap { display: block; }
 .iv-clock.is-done  { border-left-color: var(--good); }
 
 .iv-phase {
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--text-dim);
@@ -2054,7 +2081,7 @@ svg.heatmap { display: block; }
 .iv-time {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: 68px;
+    font-size: 4.25rem;
     line-height: 1.05;
     font-weight: 700;
     margin: 6px 0 10px;
@@ -2065,19 +2092,19 @@ svg.heatmap { display: block; }
 .is-round .iv-time { color: var(--purple); }
 .is-done .iv-time  { color: var(--good); }
 
-.iv-now { font-size: 20px; font-weight: 700; }
+.iv-now { font-size: 1.25rem; font-weight: 700; }
 
 .iv-how {
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     margin: 8px auto 0;
     max-width: 32em;
 }
 
-.iv-next { font-size: 13px; color: var(--text-dim); margin-top: 10px; }
+.iv-next { font-size: 0.8125rem; color: var(--text-dim); margin-top: 10px; }
 
 .iv-where {
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-dim);
@@ -2093,7 +2120,7 @@ svg.heatmap { display: block; }
     gap: 10px;
     padding: 8px 10px;
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 .iv-row.is-now { background: var(--panel-2); color: var(--accent); font-weight: 700; }
@@ -2102,7 +2129,7 @@ svg.heatmap { display: block; }
     flex: none;
     width: 22px;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
 }
 
@@ -2110,7 +2137,7 @@ svg.heatmap { display: block; }
 
 /* На компьютере места больше — цифра крупнее, её видно от стойки */
 @media (min-width: 900px) {
-    .iv-time { font-size: 96px; }
+    .iv-time { font-size: 6rem; }
 }
 
 /*
@@ -2160,7 +2187,7 @@ button.ex-name:active { color: var(--accent); }
 
 .guide > summary {
     padding: 15px 16px;
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 700;
     cursor: pointer;
     list-style: none;
@@ -2188,7 +2215,7 @@ button.ex-name:active { color: var(--accent); }
 
 .guide-body {
     padding: 0 16px 16px;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.55;
 }
 
@@ -2197,7 +2224,7 @@ button.ex-name:active { color: var(--accent); }
 
 /* Подзаголовок внутри раздела: табата длинная и без разбивки не читается */
 .guide-sub {
-    font-size: 11px;
+    font-size: 0.6875rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--text-dim);
@@ -2231,7 +2258,7 @@ button.ex-name:active { color: var(--accent); }
     width: 20px;
     text-align: center;
     font-family: var(--font-mono);
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--accent);
     border: 1px solid var(--line);
     border-radius: 50%;
@@ -2245,7 +2272,7 @@ button.ex-name:active { color: var(--accent); }
 .guide-rows { margin-bottom: 6px; }
 
 .guide-row-name { font-weight: 700; margin-bottom: 2px; }
-.guide-row-text { color: var(--text-dim); font-size: 13px; }
+.guide-row-text { color: var(--text-dim); font-size: 0.8125rem; }
 
 /* Пример — тем же цветом, что подсказки, но с полосой слева: это не
    указание, а иллюстрация, и путать их не надо */
@@ -2253,7 +2280,7 @@ button.ex-name:active { color: var(--accent); }
     border-left: 2px solid var(--line);
     padding-left: 12px;
     color: var(--text-dim);
-    font-size: 13px;
+    font-size: 0.8125rem;
 }
 
 .guide-sound {
@@ -2281,7 +2308,7 @@ button.ex-name:active { color: var(--accent); }
 /* Незаполненное обязательное: рамка, а не текст с упрёком */
 .sv-q.is-missing { border-color: var(--accent); }
 
-.sv-label { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.sv-label { font-weight: 600; font-size: 0.875rem; margin-bottom: 8px; }
 .sv-req { color: var(--accent); }
 .sv-hint { margin: -4px 0 10px; }
 .sv-sec-hint { margin: -4px 0 10px; }
@@ -2292,13 +2319,13 @@ button.ex-name:active { color: var(--accent); }
 /* Шкала: цифры одной ширины, подписи концов по краям */
 .sv-scale { align-items: center; }
 .sv-scale .chip, .sv-scale .opt { min-width: 44px; text-align: center; }
-.sv-end { color: var(--text-dim); font-size: 11px; }
+.sv-end { color: var(--text-dim); font-size: 0.6875rem; }
 
 .sv-about { margin-top: 10px; }
 .sv-about .info-row strong { font-weight: 400; text-align: right; max-width: 60%; word-break: break-word; }
 
 .sv-failed { border-color: var(--accent); }
-.sv-failed .sv-text { margin: 10px 0; font-size: 13px; }
+.sv-failed .sv-text { margin: 10px 0; font-size: 0.8125rem; }
 
 /*
  * Кнопки выбора в анкете.
@@ -2312,7 +2339,7 @@ button.ex-name:active { color: var(--accent); }
     border-radius: 999px;
     color: var(--text);
     font-family: inherit;
-    font-size: 14px;
+    font-size: 0.875rem;
     padding: 9px 15px;
     cursor: pointer;
     min-height: 40px;
@@ -2342,14 +2369,14 @@ button.ex-name:active { color: var(--accent); }
     border: 1px solid rgba(111, 174, 111, 0.35);
     border-radius: var(--radius);
     color: var(--good);
-    font-size: 13px;
+    font-size: 0.8125rem;
     padding: 12px 14px;
     margin-bottom: 14px;
 }
 
 .saved-mark {
     flex: none;
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 700;
 }
 
@@ -2365,13 +2392,13 @@ button.ex-name:active { color: var(--accent); }
     gap: 10px;
     padding: 6px 0;
     border-bottom: 1px solid var(--line);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 .plan-day:last-child { border-bottom: none; }
 .plan-day.is-rest { color: var(--text-dim); }
 
-.plan-day-date { flex: none; width: 110px; color: var(--text-dim); font-size: 13px; }
+.plan-day-date { flex: none; width: 110px; color: var(--text-dim); font-size: 0.8125rem; }
 .plan-day-body { flex: 1; min-width: 0; }
 
 /*
@@ -2405,7 +2432,7 @@ button.ex-name:active { color: var(--accent); }
 
 .limit-row-label {
     flex: 0 0 auto;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
     letter-spacing: 0.04em;
     min-width: 76px;
@@ -2438,7 +2465,7 @@ button.ex-name:active { color: var(--accent); }
 }
 
 .reserve-label {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--text-dim);
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -2483,7 +2510,7 @@ button.ex-name:active { color: var(--accent); }
 .plan-rule {
     padding: 6px 0;
     border-top: 1px solid var(--line);
-    font-size: 14px;
+    font-size: 0.875rem;
 }
 
 .plan-rule:first-of-type { border-top: none; }
@@ -2491,7 +2518,7 @@ button.ex-name:active { color: var(--accent); }
 /* Пауза дня стоит подписью под заданием, а не спорит с ним за строку */
 .plan-day-rest {
     display: block;
-    font-size: 12px;
+    font-size: 0.75rem;
     color: var(--text-dim);
 }
 
@@ -2510,7 +2537,7 @@ button.ex-name:active { color: var(--accent); }
 
 .intro-mark {
     margin-left: 8px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;

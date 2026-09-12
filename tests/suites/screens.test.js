@@ -31,7 +31,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { surveyScreen } from '../../js/modules/survey.js';
-import { planner, putDraft } from '../../js/modules/planner.js';
+import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
 import { restTimer } from '../../js/core/timer.js';
@@ -1076,6 +1076,95 @@ describe('Выполнение: конец отдыха', () => {
             session.unmount?.();
             host.innerHTML = было;
             restTimer.stop();
+        }
+    });
+
+});
+
+
+/**
+ * Засов от второго нажатия «Выполнено» (Р-112).
+ *
+ * Номер подхода и его порядок берутся из снимка последней отрисовки, и второе
+ * нажатие, пришедшее раньше, чем закончится запись, читает тот же снимок.
+ * Лишний подход завышает тоннаж, двигает план на шаг вперёд и может подделать
+ * рекорд, а заметить его можно только пересчитав подходы в итогах.
+ */
+describe('Выполнение: два нажатия подряд', () => {
+
+    it('второе нажатие не пишет второй подход', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({
+            workoutId: w.id, exerciseId: ex.id, order: 0, setNumber: 1,
+            reps: 10, performedAt: Date.now()
+        });
+
+        const host = document.getElementById('screen');
+        const было = host.innerHTML;
+
+        host.innerHTML = await session.render();
+
+        try {
+            const поле = document.getElementById('f-reps');
+            assert(поле, 'поле повторений на экране есть');
+            поле.value = '12';
+
+            // Оба нажатия уходят до того, как первое успеет дописать
+            await Promise.all([press('sess-done'), press('sess-done')]);
+
+            const подходы = await dbService.listSets(w.id);
+
+            equal(подходы.length, 2, 'был один записанный, прибавился ровно один');
+        } finally {
+            host.innerHTML = было;
+        }
+    });
+
+});
+
+/**
+ * Ближайшие две недели — от сегодня (Р-112).
+ *
+ * Развёртка по умолчанию считается от начала плана, и карточка показывала
+ * первые две недели вместо ближайших. На шестой неделе двенадцатинедельной
+ * программы человек читает сверху «сейчас неделя 6», а под этим — дни
+ * полуторамесячной давности.
+ */
+describe('Экран: план, ближайшие две недели', () => {
+
+    const DAY = 86400000;
+
+    it('действующий план показывает дни от сегодня', async () => {
+        await seed();
+
+        const начало = Date.now() - 35 * DAY;
+        const d = new Date(начало);
+        const два = (n) => String(n).padStart(2, '0');
+
+        const текст = [
+            `С ${два(d.getDate())}.${два(d.getMonth() + 1)}.${d.getFullYear()}, 12 недель`,
+            'Пн Отжимания 6 × 20',
+            'Вт отдых', 'Ср отдых', 'Чт отдых', 'Пт отдых', 'Сб отдых', 'Вс отдых'
+        ].join('\n');
+
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+
+        try {
+            const view = await screen(planner);
+
+            const карточки = [...view.querySelectorAll('.card')];
+            const нужная = карточки.find((c) => /Ближайшие две недели/.test(c.textContent));
+
+            assert(нужная, 'карточка на месте');
+
+            const первый = нужная.querySelector('.plan-day-date')?.textContent.trim();
+
+            equal(первый, 'Сегодня',
+                'карточка подписана «ближайшие», а показывала первые две недели плана');
+        } finally {
+            await dbService.setSetting(PLAN_KEY, null);
         }
     });
 
