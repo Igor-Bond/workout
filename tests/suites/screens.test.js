@@ -23,6 +23,7 @@ import { templates } from '../../js/modules/templates.js';
 import { session } from '../../js/modules/session.js';
 import { plan } from '../../js/modules/plan.js';
 import { plan as planCore } from '../../js/core/plan.js';
+import { scale } from '../../js/services/scale.js';
 import { intervalScreen } from '../../js/modules/interval.js';
 import { summary } from '../../js/modules/summary.js';
 import { exercise as exerciseCard } from '../../js/modules/exercise.js';
@@ -811,6 +812,63 @@ describe('Экран: после утверждения плана', () => {
             putDraft('');
             await dbService.setSetting('plan', null);
         }
+    });
+
+});
+
+
+/**
+ * Весы живут в окне записи веса (Р-108).
+ *
+ * Не отдельной кнопкой на карточке: это не два дела, а два способа заполнить
+ * одно и то же поле. Отдельная кнопка заставляла бы человека решать, чем он
+ * сегодня будет взвешиваться, ещё до того, как посмотрел на поле.
+ */
+describe('Экран: запись веса', () => {
+
+    async function спроситьОкно(умеет) {
+        const былаФорма = dialog.form;
+        const былоУмеет = scale.available;
+
+        let спрошено = null;
+
+        scale.available = () => умеет;
+        dialog.form = async (options) => { спрошено = options; return null; };
+
+        try {
+            await press('body-add');
+        } finally {
+            dialog.form = былаФорма;
+            scale.available = былоУмеет;
+        }
+
+        return спрошено;
+    }
+
+    it('весы предлагаются в том же окне, что и ручной ввод', async () => {
+        await seed();
+
+        const окно = await спроситьОкно(true);
+
+        equal(окно.fields.map((f) => f.name), ['weight', 'waist', 'note']);
+        assert(окно.extra, 'кнопка весов обязана стоять рядом с полем, которое она заполняет');
+    });
+
+    /*
+     * Web Bluetooth есть только в Chrome. Обещать снятие с весов там, где его
+     * нет, значит отправить человека за разочарованием.
+     */
+    it('где браузер не умеет — кнопки нет', async () => {
+        await seed();
+
+        equal((await спроситьОкно(false)).extra, null);
+    });
+
+    it('на карточке веса отдельной кнопки весов не осталось', async () => {
+        await seed();
+
+        assert(!hasAction(await screen(stats), 'scale-read'),
+            'вход в запись и сама запись — разные вещи, и смешивать их нельзя');
     });
 
 });

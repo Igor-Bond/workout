@@ -341,23 +341,16 @@ function bodyBlock(weights, range) {
 
             ${сВесов ? ui.html`<p class="hint">${сВесов}</p>` : ''}
 
-            <div class="row-links">
-                <button class="btn btn-ghost btn-sm" data-action="body-add">
-                    ${last ? t('Отметить вес') : t('Отметить вес сегодня')}
-                </button>
-
-                <!--
-                    Кнопка есть только там, где браузер умеет разговаривать с
-                    устройствами (§65): в Firefox и на iPhone Web Bluetooth нет
-                    вовсе, и обещать там снятие с весов значило бы отправить
-                    человека за разочарованием.
-                -->
-                ${scale.available() ? ui.html`
-                    <button class="btn btn-ghost btn-sm" data-action="scale-read">
-                        ${t('Снять с весов')}
-                    </button>
-                ` : ''}
-            </div>
+            <!--
+                Кнопка одна (Р-108). Весы живут внутри окна записи, рядом с
+                полем веса: это не два дела, а два способа заполнить одно и то
+                же поле. Отдельная кнопка на карточке заставляла бы решать,
+                чем сегодня взвешиваться, ещё до того, как человек посмотрел
+                на поле, — и путала бы вход в запись с самой записью.
+            -->
+            <button class="btn btn-ghost btn-sm" data-action="body-add">
+                ${last ? t('Отметить вес') : t('Отметить вес сегодня')}
+            </button>
         </div>
     `;
 }
@@ -684,7 +677,21 @@ actions.on('stats-period', (el) => {
     app.render();
 });
 
-actions.on('body-add', async () => {
+actions.on('body-add', () => окноВеса());
+
+/**
+ * Окно записи веса — одно на оба способа (§65, Р-108).
+ *
+ * Весы стоят рядом с ручным вводом, а не отдельной кнопкой на карточке: это
+ * не два дела, а два способа заполнить одно и то же поле. Отдельная кнопка
+ * заставляла бы человека решать, чем он сегодня будет взвешиваться, ещё до
+ * того, как он посмотрел на поле.
+ *
+ * Снятое с весов возвращается в это же окно заполненным: талию мерят той же
+ * рукой и в ту же минуту (Р-88), и закрыть окно сразу после веса значило бы
+ * потребовать открыть его снова.
+ */
+async function окноВеса(сВесовВес = null) {
     const today = await dbService.getBodyWeightOn(Date.now());
     const last = today || await dbService.lastBodyWeight();
 
@@ -694,7 +701,10 @@ actions.on('body-add', async () => {
             ? t('Сегодня вес уже отмечен — новое значение заменит прежнее.')
             : t('Одна запись на день: утреннее и вечернее взвешивание в графике превратились бы в шум.'),
         fields: [
-            { name: 'weight', label: t('Вес, кг'), type: 'number', required: true, value: last?.weight ?? '' },
+            {
+                name: 'weight', label: t('Вес, кг'), type: 'number', required: true,
+                value: сВесовВес ?? last?.weight ?? ''
+            },
 
             /*
              * Талия необязательна и стоит второй (Р-88): её мерят не каждый
@@ -704,14 +714,20 @@ actions.on('body-add', async () => {
             { name: 'waist', label: t('Талия, см (необязательно)'), type: 'number', value: today?.waist ?? '' },
             { name: 'note', label: t('Заметка (необязательно)'), value: today?.note || '' }
         ],
-        confirmText: t('Сохранить')
+        confirmText: t('Сохранить'),
+
+        // Кнопки нет там, где браузер не умеет разговаривать с устройствами:
+        // в Firefox и на iPhone Web Bluetooth нет вовсе
+        extra: scale.available() ? t('Снять с весов') : null
     });
+
+    if (values === 'extra') return снятьСВесов();
 
     if (!values || !values.weight) return;
 
     await dbService.setBodyWeight({ weight: values.weight, waist: values.waist, note: values.note });
     app.render();
-});
+}
 
 /**
  * Снять вес с весов по Bluetooth (§65).
@@ -725,7 +741,7 @@ actions.on('body-add', async () => {
  * Талию тут не спрашиваем: её мерят лентой и не каждый раз (Р-88), а
  * дописать её к готовой записи можно правкой.
  */
-actions.on('scale-read', async () => {
+async function снятьСВесов() {
     let свой = await dbService.getSetting(SCALE_USER, null);
 
     if (!свой?.index) {
@@ -787,13 +803,23 @@ actions.on('scale-read', async () => {
                 }) : ''
             ].filter(Boolean).join(' ')
         });
+
+        /*
+         * Возвращаемся в то же окно с уже вписанным весом.
+         *
+         * Талию мерят той же рукой и в ту же минуту, и человек, снявший вес,
+         * стоит с лентой рядом. Закрыть окно сразу значило бы потребовать
+         * открыть его снова ради одного числа. Отказ ничего не теряет: вес
+         * уже записан.
+         */
+        await окноВеса(Math.round(последний.weight.weight * 10) / 10);
     } catch (e) {
         сВесов = '';
         await app.render();
 
         await dialog.alert({ title: t('Весы не ответили'), text: e.message });
     }
-});
+}
 
 /**
  * Правка замера (§26.3, Р-98).

@@ -112,8 +112,14 @@ export const dialog = {
      *             options: [{value, label}], required, placeholder }].
      * Возвращает объект со значениями или null, если пользователь отказался.
      * Обязательное пустое поле подсвечивается, и диалог не закрывается.
+     *
+     * extra — подпись третьей кнопки: не «сохранить» и не «отмена», а другой
+     * способ заполнить те же поля. Возвращает строку 'extra' вместо значений:
+     * окно закрылось, но человек не отказался — он выбрал другую дорогу к
+     * тому же самому. Нужно весам (§65): вес можно набрать руками, а можно
+     * снять с устройства, и это одно и то же поле.
      */
-    form({ title, text, fields, confirmText = t('Сохранить'), cancelText = t('Отмена') }) {
+    form({ title, text, fields, confirmText = t('Сохранить'), cancelText = t('Отмена'), extra = null }) {
         const controls = fields.map((f) => {
             const id = `dlg-${f.name}`;
 
@@ -166,6 +172,9 @@ export const dialog = {
                 <div class="dialog-title">${title}</div>
                 ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
                 ${controls}
+                ${extra ? ui.html`
+                    <button class="btn btn-ghost btn-sm" data-value="extra">${extra}</button>
+                ` : ''}
                 <div class="dialog-actions">
                     <button class="btn btn-ghost" data-value="">${cancelText}</button>
                     <button class="btn btn-accent" data-value="ok" data-submit data-primary>${confirmText}</button>
