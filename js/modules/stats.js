@@ -746,7 +746,7 @@ actions.on('scale-read', async () => {
     }
 
     try {
-        const { weight, body } = await scale.read({
+        const замеры = await scale.read({
             index: свой.index,
             code: свой.code,
             onStatus: (текст) => { сВесов = текст; app.render(); }
@@ -754,23 +754,36 @@ actions.on('scale-read', async () => {
 
         сВесов = '';
 
-        await dbService.setBodyWeight({
-            at: weight.at || Date.now(),
-            weight: Math.round(weight.weight * 10) / 10,
-            body: scale.keep(body)
-        });
+        /*
+         * Замеров может приехать несколько, и каждый ложится в свой день
+         * (§65). Весы держат сделанное в памяти места и отдают накопленное
+         * сразу, как только узнают человека: взвесился утром без телефона —
+         * приедет утреннее, со своей же датой.
+         */
+        for (const { weight, body } of замеры) {
+            await dbService.setBodyWeight({
+                at: weight.at || Date.now(),
+                weight: Math.round(weight.weight * 10) / 10,
+                body: scale.keep(body)
+            });
+        }
 
         haptics.tap();
         await app.render();
 
+        const последний = замеры[замеры.length - 1];
+
         await dialog.alert({
             title: t('Снято с весов'),
             text: [
-                t('Вес: {кг} кг.', { кг: format.weight(weight.weight) }),
-                body?.fat ? t('Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.', {
-                    жир: format.decimal(body.fat, 1),
-                    вода: format.decimal(body.water, 1),
-                    мышцы: format.decimal(body.musclePercent, 1)
+                замеры.length > 1
+                    ? t('Замеров принято: {n}. Последний:', { n: замеры.length })
+                    : '',
+                t('Вес: {кг} кг.', { кг: format.weight(последний.weight.weight) }),
+                последний.body?.fat ? t('Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.', {
+                    жир: format.decimal(последний.body.fat, 1),
+                    вода: format.decimal(последний.body.water, 1),
+                    мышцы: format.decimal(последний.body.musclePercent, 1)
                 }) : ''
             ].filter(Boolean).join(' ')
         });

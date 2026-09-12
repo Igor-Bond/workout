@@ -401,6 +401,7 @@ export const EN = {
     'Номер места, 1–8': 'Slot number, 1–8',
     'Код сопряжения': 'Pairing code',
     'Снято с весов': 'Read from the scale',
+    'Замеров принято: {n}. Последний:': 'Measurements taken: {n}. The latest:',
     'Вес: {кг} кг.': 'Weight: {кг} kg.',
     'Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.': 'Fat {жир} %, water {вода} kg, muscle {мышцы} %.',
     'Весы не ответили': 'The scale did not answer',

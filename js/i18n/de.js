@@ -1290,6 +1290,7 @@ export const DE = {
     'Номер места, 1–8': 'Platznummer, 1–8',
     'Код сопряжения': 'Kopplungscode',
     'Снято с весов': 'Von der Waage gelesen',
+    'Замеров принято: {n}. Последний:': 'Messungen übernommen: {n}. Die letzte:',
     'Вес: {кг} кг.': 'Gewicht: {кг} kg.',
     'Жир {жир} %, вода {вода} кг, мышцы {мышцы} %.': 'Fett {жир} %, Wasser {вода} kg, Muskeln {мышцы} %.',
     'Весы не ответили': 'Die Waage hat nicht geantwortet',
