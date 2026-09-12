@@ -29,18 +29,68 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
         // Закрываем предыдущий, чтобы не остаться с двумя затемнениями.
         if (closeCurrent) closeCurrent(defaultValue);
 
+        /*
+         * Куда вернуть фокус, когда окно закроется (Р-113).
+         *
+         * Раньше разметка просто стиралась, фокус падал на тело документа — и
+         * дальше работало правило Р-78: страница не прокручивается сама,
+         * прокручивается содержимое каркаса, а «пока фокус на теле документа,
+         * Page Down и стрелки не делают ничего». Нажал «Отмена» в любом окне —
+         * и клавиши молча перестали работать до первого касания мышью.
+         */
+        const откуда = document.activeElement;
+        const каркас = document.querySelector('.shell');
+
         host.innerHTML = `<div class="dialog-backdrop">${innerHtml}</div>`;
         const backdrop = host.firstElementChild;
 
+        /*
+         * Страница под затемнением выключается на время жизни окна.
+         *
+         * Иначе Tab из окна уходит вглубь страницы, Enter заново нажимает ту
+         * же кнопку под затемнением, и окно мигает, закрываясь и открываясь.
+         */
+        if (каркас) каркас.inert = true;
+
         const finish = (value) => {
             document.removeEventListener('keydown', onKey);
+            if (каркас) каркас.inert = false;
             host.innerHTML = '';
             closeCurrent = null;
+
+            const живой = откуда && откуда.isConnected && откуда !== document.body;
+            (живой ? откуда : document.querySelector('.content'))?.focus?.({ preventScroll: true });
+
             resolve(value);
         };
 
+        /** Всё, на что можно встать клавишей, внутри самого окна. */
+        const доступные = () => [...backdrop.querySelectorAll(
+            'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])'
+        )].filter((el) => !el.disabled && el.offsetParent !== null);
+
         const onKey = (e) => {
-            if (e.key === 'Escape') finish(defaultValue);
+            if (e.key === 'Escape') return finish(defaultValue);
+            if (e.key !== 'Tab') return;
+
+            /*
+             * Tab ходит по кругу внутри окна (Р-113): у `choose` и `pick` нет
+             * главной кнопки, фокус оставался снаружи, и варианты с клавиатуры
+             * были недостижимы вовсе — работал только отказ по Esc.
+             */
+            const список = доступные();
+            if (!список.length) return;
+
+            const первый = список[0];
+            const последний = список[список.length - 1];
+
+            if (!e.shiftKey && document.activeElement === последний) {
+                e.preventDefault();
+                первый.focus();
+            } else if (e.shiftKey && document.activeElement === первый) {
+                e.preventDefault();
+                последний.focus();
+            }
         };
 
         backdrop.addEventListener('click', (e) => {
@@ -66,8 +116,14 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
         document.addEventListener('keydown', onKey);
         closeCurrent = finish;
 
-        // Фокус на главной кнопке: с клавиатуры диалог закрывается пробелом
-        backdrop.querySelector('[data-primary]')?.focus();
+        /*
+         * Фокус на главной кнопке: с клавиатуры диалог закрывается пробелом.
+         *
+         * Главной кнопки нет у окон выбора — там нечего предлагать по
+         * умолчанию, — и фокус оставался на кнопке, открывшей окно, за
+         * затемнением. Тогда берём первое доступное внутри окна (Р-113).
+         */
+        (backdrop.querySelector('[data-primary]') || доступные()[0])?.focus();
 
         // Диалогам с живым поведением — поиском, проверкой на лету — нужен
         // доступ к своим узлам и возможность закрыться самим

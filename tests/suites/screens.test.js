@@ -1113,6 +1113,7 @@ describe('Выполнение: два нажатия подряд', () => {
 
             // Оба нажатия уходят до того, как первое успеет дописать
             await Promise.all([press('sess-done'), press('sess-done')]);
+            await пауза(400);
 
             const подходы = await dbService.listSets(w.id);
 
@@ -1166,6 +1167,173 @@ describe('Экран: план, ближайшие две недели', () => {
         } finally {
             await dbService.setSetting(PLAN_KEY, null);
         }
+    });
+
+});
+
+
+/** Путь записи подхода длиннее, чем ждёт press: база, сводка, отрисовка. */
+const пауза = (мс) => new Promise((r) => setTimeout(r, мс));
+
+/**
+ * Отмена подхода и проверка нелепого числа (Р-113).
+ */
+describe('Выполнение: отмена и проверка числа', () => {
+
+    async function наЭкран(w) {
+        const host = document.getElementById('screen');
+        const было = host.innerHTML;
+        host.innerHTML = await session.render();
+        return () => { host.innerHTML = было; };
+    }
+
+    /*
+     * В режимах «по кругу» и «по одному» приложение уводит на следующее
+     * упражнение сразу после записи — и отменять становилось нечего ровно в ту
+     * секунду, когда ошибку и замечают.
+     */
+    it('отменяется последний подход тренировки, а не текущего упражнения', async () => {
+        const первое = await seed({ name: 'Отжимания', kind: 'reps' });
+        const второе = await dbService.createExercise({ name: 'Приседания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({ workoutId: w.id, exerciseId: первое.id, order: 0, setNumber: 1, reps: 10, performedAt: Date.now() });
+
+        const вернуть = await наЭкран(w);
+        const былоConfirm = dialog.confirm;
+
+        let спрошено = null;
+        dialog.confirm = async (o) => { спрошено = o; return true; };
+
+        try {
+            // Стоим на втором упражнении, своих подходов у него нет
+            await press('sess-select', { id: второе.id });
+            await наЭкран(w);
+
+            assert(hasAction(document.getElementById('screen'), 'sess-undo')
+                || document.querySelector('[data-action="sess-undo"]'),
+                'кнопка обязана быть, пока в тренировке есть хоть один подход');
+
+            await press('sess-undo');
+            await пауза(300);
+
+            assert(/Отжимания/.test(спрошено?.text || ''),
+                `называется то, что уйдёт: ${спрошено?.text}`);
+
+            equal((await dbService.listSets(w.id)).length, 0, 'подход стёрт');
+        } finally {
+            dialog.confirm = былоConfirm;
+            вернуть();
+        }
+    });
+
+    /*
+     * Промах в поле даёт не мусор, а правдоподобное число: «128» вместо «8».
+     * Записанный подход тут же становится рекордом и ложится в тоннаж.
+     */
+    it('число втрое больше прежнего спрашивается вслух', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 0, setNumber: 1, reps: 12, performedAt: Date.now() });
+
+        const вернуть = await наЭкран(w);
+        const былоConfirm = dialog.confirm;
+
+        let спрошено = null;
+        dialog.confirm = async (o) => { спрошено = o; return false; };
+
+        try {
+            const поле = document.getElementById('f-reps');
+            assert(поле, 'поле на месте');
+            поле.value = '128';
+
+            await press('sess-done');
+            await пауза(400);
+
+            assert(спрошено, 'приложение обязано переспросить');
+            equal((await dbService.listSets(w.id)).length, 1, 'отказ ничего не записывает');
+        } finally {
+            dialog.confirm = былоConfirm;
+            вернуть();
+        }
+    });
+
+    /*
+     * Прибавка — обычное дело, и вопрос на каждый прирост был бы хуже
+     * молчания.
+     */
+    it('обычная прибавка вопросов не вызывает', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps' });
+
+        const w = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 0, setNumber: 1, reps: 12, performedAt: Date.now() });
+
+        const вернуть = await наЭкран(w);
+        const былоConfirm = dialog.confirm;
+
+        let спрошено = false;
+        dialog.confirm = async () => { спрошено = true; return true; };
+
+        try {
+            const поле = document.getElementById('f-reps');
+            поле.value = '14';
+
+            await press('sess-done');
+            await пауза(400);
+
+            equal(спрошено, false, 'четырнадцать после двенадцати — это не описка');
+            equal((await dbService.listSets(w.id)).length, 2);
+        } finally {
+            dialog.confirm = былоConfirm;
+            вернуть();
+        }
+    });
+
+});
+
+/**
+ * Окно не отпускает фокус и возвращает его, когда закрывается (Р-113).
+ */
+describe('Диалог: фокус', () => {
+
+    it('фокус входит в окно, даже если главной кнопки нет', async () => {
+        const кнопка = document.createElement('button');
+        document.body.appendChild(кнопка);
+        кнопка.focus();
+
+        const обещание = dialog.choose({
+            title: 'Проба',
+            options: [{ value: 'a', label: 'Первый' }, { value: 'b', label: 'Второй' }]
+        });
+
+        await new Promise((r) => setTimeout(r, 50));
+
+        const внутри = document.querySelector('.dialog-backdrop')?.contains(document.activeElement);
+
+        document.querySelector('.dialog-backdrop [data-value=""]')?.click();
+        await обещание;
+
+        кнопка.remove();
+
+        assert(внутри, 'иначе Tab уходит вглубь страницы, а варианты недостижимы');
+    });
+
+    it('после закрытия фокус возвращается туда, откуда окно открыли', async () => {
+        const кнопка = document.createElement('button');
+        document.body.appendChild(кнопка);
+        кнопка.focus();
+
+        const обещание = dialog.alert({ title: 'Проба', text: 'Текст' });
+        await new Promise((r) => setTimeout(r, 50));
+
+        document.querySelector('.dialog-backdrop button')?.click();
+        await обещание;
+
+        const вернулся = document.activeElement === кнопка;
+        кнопка.remove();
+
+        assert(вернулся, 'иначе фокус падает на тело документа и клавиши перестают прокручивать');
     });
 
 });
