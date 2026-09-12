@@ -934,6 +934,7 @@ export const DE = {
     // Шаги с целью (§62.5)
     'Шаги': 'Schritte',
     'из {n}': 'von {n}',
+    'Новее с часов не приезжало — {n} назад.': 'Neuere Daten von der Uhr fehlen — vor {n}.',
     'в среднем {n} за неделю': 'im Schnitt {n} pro Tag diese Woche',
     'Цель по шагам': 'Tagesziel für Schritte',
     'Шагов в день': 'Schritte pro Tag',
@@ -1380,6 +1381,7 @@ export const DE = {
     'Рост': 'Größe',
     'Талия': 'Taille',
     'ключ введён': 'Schlüssel eingetragen',
+    'Подробнее — «Профиль» → «Как пользоваться».': 'Ausführlicher — „Profil“ → „Bedienung“.',
     'Четыре вещи, и дальше приложение понятно само.': 'Vier Dinge, den Rest erklärt die App von selbst.',
     'Тренировка — это список подходов': 'Ein Training ist eine Liste von Sätzen',
     'Выбираете упражнение, вписываете повторения и вес, нажимаете «Выполнено». Каждый подход пишется сразу, и незаконченная тренировка переживает закрытие приложения.': 'Übung wählen, Wiederholungen und Gewicht eintragen, „Fertig“ drücken. Jeder Satz wird sofort gespeichert, und ein unfertiges Training übersteht das Schließen der App.',

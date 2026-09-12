@@ -994,6 +994,7 @@ export const EN = {
     // Шаги с целью (§62.5)
     'Шаги': 'Steps',
     'из {n}': 'of {n}',
+    'Новее с часов не приезжало — {n} назад.': 'Nothing newer has arrived from the watch — {n} ago.',
     'в среднем {n} за неделю': '{n} a day on average this week',
     'Цель по шагам': 'Daily step goal',
     'Шагов в день': 'Steps a day',
@@ -1382,6 +1383,7 @@ export const EN = {
     'Рост': 'Height',
     'Талия': 'Waist',
     'ключ введён': 'key entered',
+    'Подробнее — «Профиль» → «Как пользоваться».': 'More detail — “Profile” → “How to use it”.',
     'Четыре вещи, и дальше приложение понятно само.': 'Four things, and the rest of the app explains itself.',
     'Тренировка — это список подходов': 'A workout is a list of sets',
     'Выбираете упражнение, вписываете повторения и вес, нажимаете «Выполнено». Каждый подход пишется сразу, и незаконченная тренировка переживает закрытие приложения.': 'Pick an exercise, enter reps and weight, press “Done”. Every set is saved at once, and an unfinished workout survives closing the app.',
