@@ -2371,6 +2371,106 @@ describe('Экран: справочник, счёт и поиск', () => {
 });
 
 /**
+ * Ориентиры в развороте (§15, Р-131).
+ */
+describe('Экран: выполнение, разворот ориентиров', () => {
+
+    const DAY = 86400000;
+
+    /** Занятие из нескольких подходов — чтобы разбор был длинным. */
+    async function занятие(ex, повторы, назад, over = {}) {
+        const at = Date.now() - назад * DAY;
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: повторы.length, targetReps: повторы[0], skipped: false }
+        ]});
+
+        for (const [i, reps] of повторы.entries()) {
+            await dbService.addSet({
+                workoutId: w.id, exerciseId: ex.id,
+                order: i + 1, setNumber: i + 1, reps, performedAt: at + i * 60000, ...over
+            });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+    }
+
+    /*
+     * «45 повт. — 8 подходов, 40 повт. — 2 подхода, 35 повт., 30 повт.» на
+     * узком экране занимает две длинные строки и выталкивает «Выполнено» под
+     * нижнее меню. Перед подходом нужно число, а не опись сделанного.
+     */
+    it('свёрнутое называет числа, а разбор прячет', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+
+        await занятие(ex, [45, 45, 45, 40, 35, 30], 14);
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 6, targetReps: 45, skipped: false }
+        ]});
+
+        const view = await screen(session);
+        const кратко = view.querySelector('.rec-brief');
+        const разбор = view.querySelector('#rec-details');
+
+        assert(кратко, 'свёрнутая строка обязана быть');
+        assert(кратко.textContent.includes('45'), `число прошлого раза: «${кратко.textContent.trim()}»`);
+        assert(!кратко.textContent.includes('подхода'), 'опись сделанного — это уже разбор');
+
+        assert(разбор.hidden, 'по умолчанию свёрнуто: ради этого всё и затевалось');
+        assert(/подход/.test(разбор.textContent),
+            `а внутри — полный разбор: «${разбор.textContent.replace(/\s+/g, " ").trim().slice(0, 80)}»`);
+
+        // Строка нагрузки живёт снаружи: она отвечает на ввод до записи (Р-53)
+        assert(!разбор.contains(view.querySelector('#rec-extra')), 'нагрузка не прячется за шторку');
+    });
+
+    it('нажатие раскрывает и складывает обратно', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+
+        await занятие(ex, [45, 40], 14);
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 45, skipped: false }
+        ]});
+
+        const view = await screen(session);
+        document.body.appendChild(view);
+
+        try {
+            await press('sess-rec-toggle');
+            assert(!view.querySelector('#rec-details').hidden, 'нажали — раскрылось');
+
+            await press('sess-rec-toggle');
+            assert(view.querySelector('#rec-details').hidden, 'нажали ещё — сложилось');
+        } finally {
+            view.remove();
+            await press('sess-rec-toggle');
+        }
+    });
+
+    /*
+     * Совет о запасе появляется редко и прячется вместе с разбором. Молчать
+     * ему нельзя: спрятанного совета не бывает, бывает непрочитанный.
+     */
+    it('о спрятанном совете свёрнутая строка объявляет', async () => {
+        const ex = await seed({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+
+        // Два занятия подряд почти до отказа — правило срабатывает
+        await занятие(ex, [45, 40], 14, { rir: 1 });
+        await занятие(ex, [45, 40], 7, { rir: 1 });
+
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 45, skipped: false }
+        ]});
+
+        const view = await screen(session);
+
+        assert(view.querySelector('.rec-more.is-advice'), 'иначе совет не прочтут никогда');
+        assert(view.querySelector('#rec-details').textContent.includes('почти до отказа'),
+            'сам совет лежит в развороте');
+    });
+});
+
+/**
  * Полоса отдыха умещается на экране (§16, Р-130).
  *
  * Найдено владельцем на телефоне в 800 точек: отсчёт уходил под нижнее меню —

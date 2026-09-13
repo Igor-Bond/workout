@@ -3117,3 +3117,39 @@ button.ex-name:active { color: var(--accent); }
     font-size: 0.75rem;
     color: var(--bad);
 }
+
+/*
+ * Разворот ориентиров (§15, Р-131).
+ *
+ * Свёрнутая строка — кнопка во всю ширину: числа слева, приглашение справа.
+ * Приглашение окрашено, когда за ним лежит совет, а не просто разбор: совет
+ * появляется редко, и не заметить его нельзя.
+ */
+.rec-toggle {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    padding: 4px 0;
+    min-height: 44px;
+    margin: -8px 0;
+}
+
+.rec-brief { font-size: 0.9375rem; color: var(--text); }
+
+.rec-more {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-decoration: underline;
+}
+
+.rec-more.is-advice { color: var(--accent); text-decoration: none; }
+
+.rec-details { margin-top: 10px; }
