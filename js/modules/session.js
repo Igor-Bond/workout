@@ -431,9 +431,20 @@ function restBar() {
     const своё = знакомые[restTimer.exerciseId]?.restSeconds;
 
     return ui.html`
+        <!--
+            Подпись и время — одной строкой, кнопки под ними (§16, Р-130).
+
+            Всё лежало одним потоком, и полоса заворачивалась в три ряда:
+            каждый ряд с кнопкой становится высотой в сорок четыре точки, и
+            полоса уезжала под нижнее меню на экране в восемьсот точек. А
+            смотрят на неё между подходами — это единственное, ради чего экран
+            в эту минуту и нужен.
+        -->
         <div class="rest-bar">
-            <span class="rest-label">${своё ? t('Отдых для этого упражнения') : t('Отдых')}</span>
-            <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
+            <span class="rest-head">
+                <span class="rest-label">${своё ? t('Отдых для этого упражнения') : t('Отдых')}</span>
+                <strong id="rest-remaining">${format.seconds(restTimer.remaining)}</strong>
+            </span>
             <button class="chip" data-action="rest-shorten" data-hold>${t('−{n} с', { n: REST_STEP })}</button>
             <button class="chip" data-action="rest-extend" data-hold>${t('+{n} с', { n: REST_STEP })}</button>
             <button class="chip" data-action="rest-skip">${t('Пропустить')}</button>
@@ -930,6 +941,43 @@ export const session = {
 
         document.addEventListener('visibilitychange', вернулись);
         unsubscribe.push(() => document.removeEventListener('visibilitychange', вернулись));
+
+        /*
+         * Начавшийся отдых подтягивается в виду (§16, Р-130).
+         *
+         * Полоса появляется под кнопкой «Выполнено» — там, где ей и место по
+         * порядку чтения, — но на коротком экране это уже за сгибом: человек
+         * нажал и не увидел ничего. А отсчёт и есть то единственное, ради чего
+         * на экран смотрят в эту минуту.
+         *
+         * Плотнее собранная карточка (Р-130) укладывает полосу в экран в
+         * восемьсот точек впритык, но впритык — не запас: длинное название
+         * упражнения переносится на вторую строку, и запаса не остаётся.
+         *
+         * Подтягиваем, только если правда не видно, и ближайшим краем, а не в
+         * середину: дёргать экран под пальцем, когда всё и так на месте, —
+         * худшее из двух.
+         *
+         * Без behavior: 'smooth'. Плавная прокрутка молча не работает там, где
+         * система просит поменьше движения, — а «молча не работает» здесь
+         * означает, что полоса так и осталась за краем. Рывок на шесть десятков
+         * точек и без того незаметен, зато он случается всегда.
+         */
+        const показатьОтдых = () => {
+            const полоса = document.querySelector('.rest-bar');
+            if (!полоса) return;
+
+            const меню = document.querySelector('.nav')?.getBoundingClientRect().top
+                ?? window.innerHeight;
+
+            const место = полоса.getBoundingClientRect();
+
+            if (место.bottom <= меню && место.top >= 0) return;
+
+            полоса.scrollIntoView({ block: 'nearest' });
+        };
+
+        if (restTimer.running) показатьОтдых();
 
         // Полоса отдыха обновляется на месте: перерисовывать экран раз в
         // секунду означало бы вырывать фокус из поля ввода

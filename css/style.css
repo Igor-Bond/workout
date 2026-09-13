@@ -971,12 +971,12 @@ button.ex-main:active .ex-name { color: var(--accent); }
     background: rgba(255, 122, 51, 0.08);
     border: 1px solid var(--accent-dim);
     border-radius: 10px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
     overflow-wrap: anywhere;
 }
 
-.sess-set { font-size: 0.875rem; color: var(--accent); margin-bottom: 16px; }
+.sess-set { font-size: 0.875rem; color: var(--accent); margin-bottom: 10px; }
 
 /*
  * Селектор начинается с input не для красоты: правило input[type=number]
@@ -998,7 +998,7 @@ input.big-input {
     border: 1px solid var(--line);
     border-radius: var(--radius);
     color: var(--text);
-    padding: 6px 0;
+    padding: 4px 0;
 }
 
 input.big-input:focus { outline: none; border-color: var(--accent); }
@@ -1044,7 +1044,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
     font-size: 0.75rem;
     color: var(--text-dim);
     letter-spacing: 0.08em;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
 }
 
 /*
@@ -1181,7 +1181,19 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
 .prog-state { font-size: 0.6875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Прошлый и лучший результат (§15) */
-.rec-block { margin-bottom: 16px; }
+/*
+ * Карточка выполнения собрана плотнее (§12, Р-130).
+ *
+ * На экране в 800 точек полоса отдыха уходила под нижнее меню: её и не
+ * видели — а это единственное, ради чего на экран смотрят между подходами.
+ * Часть высоты добавили сами: ориентир стал крупнее (Р-125), у повторений
+ * появились кнопки (Р-120). Каждое по делу, а вместе не поместилось.
+ *
+ * Отступы срезаны, кегли не тронуты: убрать воздух между строками можно без
+ * потерь, а уменьшить то, что читают стоя у штанги, нельзя — ради этого
+ * кегли и поднимали.
+ */
+.rec-block { margin-bottom: 10px; }
 
 /*
  * Ориентир перед подходом — крупнее подписей (§15, Р-125).
@@ -1206,7 +1218,7 @@ input.big-input:focus { outline: none; border-color: var(--accent); }
     justify-content: center;
     gap: 4px 8px;
     font-size: 0.9375rem;
-    padding: 3px 0;
+    padding: 1px 0;
 }
 
 .rec-label { color: var(--text-dim); }
@@ -1224,20 +1236,42 @@ tr.is-record td { color: var(--accent); }
 }
 
 /* Полоса отдыха (§16) */
+/*
+ * Подпись отдыха — своей строкой (§16, Р-130).
+ *
+ * Полоса заворачивалась в три ряда: подпись, время и три кнопки стояли одним
+ * потоком, и каждый ряд становился высотой в кнопку — сорок четыре точки.
+ * Подпись сверху, управление под ней: рядов два, и полоса перестаёт уезжать
+ * под нижнее меню на экране в восемьсот точек.
+ */
 .rest-bar {
     display: flex;
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px 8px;
     background: var(--panel-2);
     border: 1px solid var(--accent-dim);
     border-radius: var(--radius-sm);
     padding: 8px 10px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
-.rest-label { font-size: 0.6875rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+/* Подпись и время вместе — одна строка над кнопками (Р-130) */
+.rest-head {
+    flex-basis: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.rest-label {
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
 .rest-bar strong { font-size: 1.125rem; color: var(--accent); min-width: 64px; }
 /*
  * Кнопки полосы отдыха — тоже сорок четыре точки (§31, Р-122).
@@ -1262,7 +1296,7 @@ tr.is-record td { color: var(--accent); }
 .rest-bar [data-action="rest-skip"] { margin-left: 16px; }
 
 /* Заметки (§20) */
-.note-row { margin-bottom: 14px; }
+.note-row { margin-bottom: 10px; }
 
 /*
  * Ссылка — цель в сорок четыре точки (§31, Р-122).
@@ -2867,8 +2901,8 @@ button.ex-name:active { color: var(--accent); }
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    margin: 4px 0 12px;
+    gap: 4px;
+    margin: 2px 0 8px;
 }
 
 .reserve-label {

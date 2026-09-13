@@ -2371,6 +2371,44 @@ describe('Экран: справочник, счёт и поиск', () => {
 });
 
 /**
+ * Полоса отдыха умещается на экране (§16, Р-130).
+ *
+ * Найдено владельцем на телефоне в 800 точек: отсчёт уходил под нижнее меню —
+ * то есть единственное, ради чего на экран смотрят между подходами, видно не
+ * было.
+ */
+describe('Экран: выполнение, полоса отдыха', () => {
+
+    it('подпись и время стоят своей строкой над кнопками', async () => {
+        const ex = await seed();
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 12, weight: 60, skipped: false }
+        ]});
+
+        restTimer.start(90, ex.id);
+
+        try {
+            const view = await screen(session);
+            const голова = view.querySelector('.rest-head');
+
+            assert(голова, 'иначе полоса заворачивается в три ряда по сорок четыре точки');
+            assert(голова.querySelector('.rest-label'), 'подпись — внутри головы');
+            assert(голова.querySelector('#rest-remaining'), 'и время рядом с ней, а не среди кнопок');
+
+            // Кнопки остаются снаружи головы — своим рядом
+            for (const действие of ['rest-shorten', 'rest-extend', 'rest-skip']) {
+                const кнопка = view.querySelector(`[data-action="${действие}"]`);
+
+                assert(кнопка, `кнопка ${действие} обязана быть`);
+                assert(!голова.contains(кнопка), 'кнопки идут под подписью, а не в одной строке с ней');
+            }
+        } finally {
+            restTimer.stop();
+        }
+    });
+});
+
+/**
  * Повторения правятся без клавиатуры (§12, Р-120).
  */
 describe('Экран: выполнение, шаг повторений', () => {
