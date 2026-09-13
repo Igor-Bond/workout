@@ -1234,7 +1234,6 @@ export const DE = {
     'Отвязать': 'Trennen',
     'Отвязать часы?': 'Uhr trennen?',
     'Ключ и привезённые замеры будут стёрты. История тренировок не тронется.': 'Der Schlüssel und die geholten Messwerte werden gelöscht. Der Trainingsverlauf bleibt unberührt.',
-    '{часы} ч {минуты} мин': '{часы} Std. {минуты} Min.',
     'Сон за неделю: в среднем {часы} ч {минуты} мин': 'Schlaf diese Woche: im Schnitt {часы} Std. {минуты} Min.',
     'Сон за неделю: в среднем {часы} ч {минуты} мин, оценка {оценка}': 'Schlaf diese Woche: im Schnitt {часы} Std. {минуты} Min., Bewertung {оценка}',
     'Пульс покоя: {сейчас}, обычно {база}': 'Ruhepuls: {сейчас}, sonst {база}',

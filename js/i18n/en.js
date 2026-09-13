@@ -1293,7 +1293,6 @@ export const EN = {
     'Отвязать': 'Disconnect',
     'Отвязать часы?': 'Disconnect the watch?',
     'Ключ и привезённые замеры будут стёрты. История тренировок не тронется.': 'The key and the measurements fetched will be erased. Your training history is not touched.',
-    '{часы} ч {минуты} мин': '{часы} h {минуты} min',
     'Сон за неделю: в среднем {часы} ч {минуты} мин': 'Sleep this week: {часы} h {минуты} min on average',
     'Сон за неделю: в среднем {часы} ч {минуты} мин, оценка {оценка}': 'Sleep this week: {часы} h {минуты} min on average, score {оценка}',
     'Пульс покоя: {сейчас}, обычно {база}': 'Resting heart rate: {сейчас}, usually {база}',
