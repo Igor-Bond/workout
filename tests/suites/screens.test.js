@@ -2464,7 +2464,17 @@ describe('Экран: выполнение, разворот ориентиро�
 
         const view = await screen(session);
 
-        assert(view.querySelector('.rec-more.is-advice'), 'иначе совет не прочтут никогда');
+        /*
+         * Кнопкой и глаголом, а не подписью: «есть совет» — утверждение, и
+         * что с ним делать, неясно (Р-132).
+         */
+        const кнопка = view.querySelector('.rec-advice-row .chip');
+
+        assert(кнопка, 'иначе совет не прочтут никогда');
+        equal(кнопка.tagName, 'BUTTON', 'приглашение нажать выглядит кнопкой');
+        assert(/Показать/.test(кнопка.textContent), `надпись говорит, что случится: «${кнопка.textContent.trim()}»`);
+        equal(кнопка.dataset.action, 'sess-rec-toggle');
+
         assert(view.querySelector('#rec-details').textContent.includes('почти до отказа'),
             'сам совет лежит в развороте');
     });

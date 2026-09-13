@@ -3150,6 +3150,23 @@ button.ex-name:active { color: var(--accent); }
     text-decoration: underline;
 }
 
-.rec-more.is-advice { color: var(--accent); text-decoration: none; }
+/*
+ * Кнопка совета — по центру, своей строкой (§59, Р-132).
+ *
+ * Совет появляется редко, и звать в него подписью мелким шрифтом бесполезно:
+ * человек читает «есть совет» как утверждение и не догадывается нажать.
+ * Кнопка обведена цветом внимания — это единственное место карточки, где
+ * приложению правда есть что сказать.
+ */
+.rec-advice-row {
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.chip.is-advice {
+    border-color: var(--accent);
+    color: var(--accent);
+}
 
 .rec-details { margin-top: 10px; }

@@ -424,14 +424,36 @@ function ориентиры(view, prefill) {
         best ? t('лучший {что}', { что: records.describe(best, kind) }) : ''
     ].filter(Boolean).join(' · ');
 
+    /*
+     * Совет зовётся кнопкой и словом действия (§59, Р-132).
+     *
+     * Было «есть совет» приглушённой строкой — утверждение, а не приглашение:
+     * человек читает его и не знает, что с ним делать. Нажимать на слова,
+     * похожие на подпись, не приходит в голову, и совет так и остаётся
+     * непрочитанным — то самое, чего Р-131 и обещал не допустить.
+     *
+     * Поэтому кнопка, по центру и с глаголом: «Показать совет». Нажал —
+     * «Скрыть совет», то есть надпись всё время говорит, что случится.
+     *
+     * Обычный разбор остаётся ссылкой в строке: он есть всегда, и кнопкой на
+     * каждом подходе звал бы туда, куда звать незачем.
+     */
     return ui.html`
         <button class="rec-toggle" data-action="sess-rec-toggle"
                 aria-expanded="${разборРаскрыт ? 'true' : 'false'}">
             <span class="rec-brief">${кратко}</span>
-            <span class="rec-more ${совет ? 'is-advice' : ''}">
-                ${совет ? t('есть совет') : t('подробнее')}
-            </span>
+            ${совет ? '' : ui.html`
+                <span class="rec-more">${разборРаскрыт ? t('свернуть') : t('подробнее')}</span>
+            `}
         </button>
+
+        ${совет ? ui.html`
+            <div class="rec-advice-row">
+                <button class="chip is-advice" data-action="sess-rec-toggle">
+                    ${разборРаскрыт ? t('Скрыть совет') : t('Показать совет')}
+                </button>
+            </div>
+        ` : ''}
 
         <div class="rec-details" id="rec-details" ${ui.raw(разборРаскрыт ? '' : 'hidden')}>
             ${recordsBlock(view)}
@@ -1544,20 +1566,26 @@ async function записатьПодходНабело(values) {
  * Без перерисовки: она пересобрала бы поля из подстановки и вернула в них
  * число прошлого подхода — тем же правилом живут полоса отдыха и ряд запаса.
  */
-actions.on('sess-rec-toggle', (el) => {
+actions.on('sess-rec-toggle', () => {
     const разбор = document.getElementById('rec-details');
     if (!разбор) return;
 
     разборРаскрыт = !разборРаскрыт;
-
     разбор.hidden = !разборРаскрыт;
-    el.setAttribute('aria-expanded', разборРаскрыт ? 'true' : 'false');
 
-    const подпись = el.querySelector('.rec-more');
+    /*
+     * Переписываются обе надписи, а не нажатая: разворот один, а зовут в него
+     * двое — строка ориентиров и кнопка совета. Обновив только ту, по которой
+     * попали, мы оставили бы вторую врать.
+     */
+    const строка = document.querySelector('.rec-toggle');
+    строка?.setAttribute('aria-expanded', разборРаскрыт ? 'true' : 'false');
 
-    if (подпись && !подпись.classList.contains('is-advice')) {
-        подпись.textContent = разборРаскрыт ? t('свернуть') : t('подробнее');
-    }
+    const подпись = строка?.querySelector('.rec-more');
+    if (подпись) подпись.textContent = разборРаскрыт ? t('свернуть') : t('подробнее');
+
+    const совет = document.querySelector('.rec-advice-row .chip');
+    if (совет) совет.textContent = разборРаскрыт ? t('Скрыть совет') : t('Показать совет');
 });
 
 actions.on('sess-reserve', (el) => {
