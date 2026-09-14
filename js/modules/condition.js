@@ -152,6 +152,16 @@ function разворот(ключ) {
 
     const заголовок = ряд?.title || что?.().title || '';
 
+    /*
+     * Полоса «как обычно» — только у величин, которые колеблются (Р-139).
+     *
+     * У веса, талии и жира есть направление, а не уровень: полоса по ним
+     * накрыла бы весь график и сказала бы ровно ничего. Сон, пульс покоя и
+     * недельный объём, наоборот, ходят вокруг своего уровня — и вопрос к ним
+     * именно такой: сегодняшнее число обычное или нет.
+     */
+    const полоса = ряд?.band ? calc.middleHalf(ряд.points.map((p) => p.value)) : null;
+
     return ui.html`
         <div class="cond-detail">
             ${заголовок ? ui.html`<div class="chart-title">${заголовок}</div>` : ''}
@@ -165,8 +175,13 @@ function разворот(ключ) {
             }], {
                 height: 130, scale: true,
                 minSpan: ряд.minSpan || 1,
-                floor: ряд.floor === undefined ? null : ряд.floor
+                floor: ряд.floor === undefined ? null : ряд.floor,
+                band: полоса
             }) : ''}
+
+            ${полоса ? ui.html`
+                <p class="hint">${t('Затенена ваша обычная полоса: половина всей истории лежит внутри неё. Смотреть стоит на то, что из неё вышло.')}</p>
+            ` : ''}
 
             <!--
                 Одна точка — это ещё не ход (Р-136).
@@ -304,11 +319,11 @@ function собратьРяды({ замеры, rows, профиль, рост, 
         sleep: {
             title: t('Сон'),
             points: изЧасов('sleep').map((p) => ({ at: p.at, value: Math.round(p.value / 36) / 100 })),
-            minSpan: 2, color: 'var(--blue)'
+            minSpan: 2, band: true, color: 'var(--blue)'
         },
         rhr: {
             title: t('Пульс покоя'), points: изЧасов('rhr'),
-            minSpan: 6, color: 'var(--blue)'
+            minSpan: 6, band: true, color: 'var(--blue)'
         },
 
         /*
@@ -321,7 +336,7 @@ function собратьРяды({ замеры, rows, профиль, рост, 
             points: поДням
                 .filter((r) => Number.isFinite(r.ctl) || Number.isFinite(r.atl))
                 .map((r) => ({ at: r.date, value: Math.round((r.ctl || 0) - (r.atl || 0)) })),
-            minSpan: 10, color: 'var(--blue)'
+            minSpan: 10, band: true, color: 'var(--blue)'
         },
         ctl: {
             title: t('Нагрузка за шесть недель'), points: изЧасов('ctl'),
@@ -377,7 +392,7 @@ function собратьРяды({ замеры, rows, профиль, рост, 
      */
     for (const г of группы) {
         ряды[ГРУППА + г.group] = {
-            title: t(г.group), points: г.points, minSpan: 6, floor: 0, color: 'var(--purple)'
+            title: t(г.group), points: г.points, minSpan: 6, floor: 0, band: true, color: 'var(--purple)'
         };
     }
 

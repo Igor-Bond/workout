@@ -2623,6 +2623,43 @@ describe('Экран: кондиции', () => {
         condition.leave();
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * У колеблющихся величин полоса «как обычно» отвечает на вопрос, на
+     * который линия сама по себе не отвечает: сегодняшнее число обычное или
+     * нет (Р-139). У веса её нет — там направление, а не уровень.
+     */
+    it('у пульса покоя есть обычная полоса, у веса — нет', async () => {
+        await seed();
+        await профиль();
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const полночь = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+
+        await dbService.setSetting('icuWellness', {
+            at: Date.now(),
+            rows: [7, 6, 5, 4, 3, 2, 1].map((назад, i) => ({
+                date: полночь - назад * DAY,
+                sleep: 25200, steps: 9000, rhr: 50 + i
+            }))
+        });
+
+        await press('cond-why', { key: 'rhr' });
+        const пульс = (await screen(condition)).querySelector('.cond-detail');
+
+        assert(пульс.querySelector('rect'), 'полоса рисуется прямоугольником за линией');
+        assert(text(пульс).includes('обычная полоса'), 'и сказано, что это за полоса');
+
+        await press('cond-why', { key: 'weight' });
+        const вес = (await screen(condition)).querySelector('.cond-detail');
+
+        assert(!вес.querySelector('rect'), 'у веса полоса накрыла бы весь график и не сказала бы ничего');
+
+        condition.leave();
+        for (const ключ of ['icuWellness', ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
 });
 
 /**

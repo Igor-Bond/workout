@@ -147,9 +147,13 @@ export const chart = {
      *
      * floor — дно шкалы у величин, которые ниже него не бывают: подходов за
      * неделю бывает ноль и не бывает минус два (Р-138).
+     *
+     * band — { from, to }, затенённая полоса «как у вас обычно» (Р-139).
+     * Считает её тот, кто знает величину; график только рисует.
      */
     line(series = [], {
-        height = 160, marks = [], unit = '', minSpan = 0, scale = Boolean(unit), floor = null
+        height = 160, marks = [], unit = '', minSpan = 0,
+        scale = Boolean(unit), floor = null, band = null
     } = {}) {
         const all = series.flatMap((s) => s.segments.flat());
         if (all.length === 0) return empty();
@@ -235,6 +239,20 @@ export const chart = {
             const scaleY = (y) => height - padding.bottom
                 - ((y - низ) / (верх - низ)) * (height - padding.top - padding.bottom);
 
+            /*
+             * Полоса «как обычно» — за линией, а не поверх неё (§66, Р-139).
+             *
+             * Считается она по первому ряду и рисуется только у него: полоса
+             * — это фон, на котором читается линия, а два фона друг под
+             * другом превратились бы в кашу.
+             */
+            const полоса = band && порядок === 0
+                ? `<rect x="${padding.left}" y="${scaleY(band.to)}"
+                         width="${width - padding.left - padding.right}"
+                         height="${Math.max(1, scaleY(band.from) - scaleY(band.to))}"
+                         fill="var(--line)" opacity="0.7"></rect>`
+                : '';
+
             const drawn = s.segments
                 .filter((segment) => segment.length > 0)
                 .map((segment) => {
@@ -261,7 +279,7 @@ export const chart = {
                                 ${isMark ? 'stroke="var(--bg)" stroke-width="1.5"' : ''}></circle>`;
             }).join('');
 
-            return ui.raw(drawn + dots);
+            return ui.raw(полоса + drawn + dots);
         });
 
         const labels = [all[0], all[all.length - 1]].map((p, i) => ui.raw(`
