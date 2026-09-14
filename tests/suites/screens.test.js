@@ -3666,6 +3666,44 @@ describe('Вид и действие совпадают', () => {
         assert(!строка.includes('Занятий за месяц'), 'привезённое — это тренировки с часов');
         assert(!строка.includes('К отправке занятий'), 'уезжающее — это дни плана');
     });
+
+    /*
+     * Число отвечает «дошло ли вообще», а спрашивают всегда другое: дошла ли
+     * та самая тренировка, которую вчера запустили на часах (Р-137).
+     */
+    it('привезённые тренировки названы поимённо, с пульсом и нагрузкой', async () => {
+        await seed();
+
+        const час = 3600000;
+
+        await dbService.setSetting('icuKey', 'ключ');
+        await dbService.setSetting('icuAthlete', 'i1');
+
+        await dbService.setSetting('icuActivities', {
+            at: Date.now(),
+            rows: [
+                {
+                    id: 'a1', name: 'Силовая', type: 'WeightTraining',
+                    start: Date.now() - 26 * час, end: Date.now() - 25 * час,
+                    seconds: 2880, avgHr: 112, maxHr: 146, calories: 320, load: 54
+                },
+                {
+                    id: 'a2', name: 'Прогулка', type: 'Walk',
+                    start: Date.now() - 50 * час, end: Date.now() - 49 * час,
+                    seconds: 1800, avgHr: 96, maxHr: 108, calories: 140, load: 12
+                }
+            ]
+        });
+
+        const строка = text(await screen(watch));
+
+        assert(строка.includes('Силовая'), `имя занятия — это и есть ответ: ${строка.slice(0, 200)}`);
+        assert(строка.includes('48 мин'), 'сколько длилось');
+        assert(строка.includes('пульс 112, макс 146'), 'и что от него привезено');
+        assert(строка.includes('нагрузка 54'), 'нагрузку считает сервис — её и показываем');
+
+        for (const ключ of ['icuActivities', 'icuKey', 'icuAthlete']) await dbService.setSetting(ключ, null);
+    });
 });
 
 describe('Очередь и план на главном (Р-72)', () => {
