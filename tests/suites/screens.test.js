@@ -2470,6 +2470,108 @@ describe('Экран: кондиции', () => {
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Нажатие раскрывает ход на месте, а не окном поверх экрана (Р-136).
+     *
+     * Окно приходилось закрывать, чтобы взглянуть на соседнее число, — а
+     * вопрос «куда идёт» задают всем числам подряд.
+     */
+    it('плитка раскрывается графиком, и повторное нажатие его убирает', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        await press('cond-why', { key: 'weight' });
+
+        const view = await screen(condition);
+        const разворот = view.querySelector('.cond-detail');
+
+        assert(разворот, 'разворот обязан появиться');
+        assert(разворот.querySelector('svg'), 'и в нём линия хода, а не одни слова');
+
+        const вес = [...view.querySelectorAll('.cond-tile')].find((p) => p.dataset.key === 'weight');
+        equal(вес.getAttribute('aria-expanded'), 'true');
+
+        await press('cond-why', { key: 'weight' });
+
+        assert(!(await screen(condition)).querySelector('.cond-detail'),
+            'нажатие на раскрытую плитку её закрывает — иначе разворот нечем убрать');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * «Вода» и «Мышцы» стояли под общим ключом: объяснение у них и правда
+     * одно, но ряды разные, и нажатие на мышцы показывало бы ход воды.
+     */
+    it('у каждой плитки свой ряд, даже когда объяснение общее', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({
+            at: Date.now() - 30 * DAY, weight: 94.1, body: { water: 55.1, muscle: 40.2 }
+        });
+        await dbService.setBodyWeight({ weight: 92.9, body: { water: 54.2, muscle: 41 } });
+
+        await press('cond-why', { key: 'muscle' });
+
+        const view = await screen(condition);
+
+        equal(text(view.querySelector('.cond-detail .chart-title')), 'Мышцы');
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Одна точка — это ещё не ход: линия по ней изображала бы движение там,
+     * где его не видно.
+     */
+    it('по одному замеру ход не рисуется, и об этом сказано', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        await press('cond-why', { key: 'weight' });
+
+        const view = await screen(condition);
+
+        assert(!view.querySelector('.cond-detail svg'), 'линии по одной точке не бывает');
+        assert(text(view).includes('два измерения'), 'и молчать об этом нельзя');
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Безразмерной величине шкала нужна так же, как весу (Р-114, Р-136).
+     *
+     * Отношение талии к росту живёт между 0,4 и 0,6: прежде шкала бралась
+     * только там, где названа единица измерения, а размах плоского ряда не
+     * опускался ниже единицы — поле уезжало от нуля до единицы, и линия
+     * ложилась посередине пустоты.
+     */
+    it('у отношения талии к росту шкала названа двумя разными числами', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1, waist: 103 });
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102 });
+
+        await press('cond-why', { key: 'wht' });
+
+        const view = await screen(condition);
+        const подписи = [...view.querySelectorAll('.cond-detail .chart-label')]
+            .map((n) => n.textContent.trim());
+
+        const числа = подписи.filter((s) => /^0,\d/.test(s));
+
+        equal(числа.length, 2, `шкала обязана быть подписана: ${подписи.join(' | ')}`);
+        assert(числа[0] !== числа[1], `и называть два разных края: ${числа.join(' и ')}`);
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
