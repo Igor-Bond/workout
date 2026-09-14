@@ -58,7 +58,7 @@ export const EN = {
     'ориентир — {низ}–{верх}': 'reference — {низ}–{верх}',
     'Во сколько раз нагрузка последней недели больше накопленной за шесть. Отвечает не «в форме ли я» — на это отвечает готовность рядом, — а «не слишком ли резко я прибавил»: резкая прибавка и есть лучший известный признак того, что человек вот-вот сорвётся. Ориентир 0,8–1,3 взят из работ Гэббета, где неделю делят на четыре недели, а здесь делитель шестинедельный: направление то же, точность меньше. Ниже ориентира — вы сбавили, и это тоже стоит знать.': 'How many times the last week of load exceeds the six weeks accumulated. It answers not «am I in form» — the readiness beside it does that — but «did I add too much too fast»: a sharp jump is the best known warning that someone is about to break down. The 0.8–1.3 reference comes from Gabbett, where a week is divided by four weeks; here the divisor spans six: the direction is the same, the precision is lower. Below the reference means you eased off, which is also worth knowing.',
     'Кондиции': 'Condition',
-    'Кондиции: тело, обмен, восстановление': 'Condition: body, metabolism, recovery',
+    'Кондиции и нагрузка': 'Condition and training load',
     'Коэффициент выведен из {шаги} шагов в день и {n} тренировок в неделю.': 'The factor comes from {шаги} steps a day and {n} workouts a week.',
     'Нагрузка за неделю': 'Load over a week',
     'Нагрузка за шесть недель': 'Load over six weeks',

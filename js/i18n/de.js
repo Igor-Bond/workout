@@ -57,7 +57,7 @@ export const DE = {
     'ориентир — {низ}–{верх}': 'Richtwert — {низ}–{верх}',
     'Во сколько раз нагрузка последней недели больше накопленной за шесть. Отвечает не «в форме ли я» — на это отвечает готовность рядом, — а «не слишком ли резко я прибавил»: резкая прибавка и есть лучший известный признак того, что человек вот-вот сорвётся. Ориентир 0,8–1,3 взят из работ Гэббета, где неделю делят на четыре недели, а здесь делитель шестинедельный: направление то же, точность меньше. Ниже ориентира — вы сбавили, и это тоже стоит знать.': 'Um wie viel die Last der letzten Woche die über sechs Wochen angesammelte übersteigt. Sie beantwortet nicht «bin ich in Form» — das tut die Bereitschaft daneben —, sondern «habe ich zu schnell zugelegt»: ein steiler Sprung ist das beste bekannte Warnzeichen dafür, dass jemand kurz vor dem Zusammenbruch steht. Der Richtwert 0,8–1,3 stammt von Gabbett, wo eine Woche durch vier Wochen geteilt wird; hier umfasst der Nenner sechs: die Richtung stimmt, die Genauigkeit ist geringer. Unter dem Richtwert heißt: Sie haben zurückgesteckt — auch das ist gut zu wissen.',
     'Кондиции': 'Verfassung',
-    'Кондиции: тело, обмен, восстановление': 'Verfassung: Körper, Stoffwechsel, Erholung',
+    'Кондиции и нагрузка': 'Verfassung und Belastung',
     'Коэффициент выведен из {шаги} шагов в день и {n} тренировок в неделю.': 'Der Faktor ergibt sich aus {шаги} Schritten pro Tag und {n} Trainings pro Woche.',
     'Нагрузка за неделю': 'Belastung der Woche',
     'Нагрузка за шесть недель': 'Belastung aus sechs Wochen',
