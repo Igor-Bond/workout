@@ -31,6 +31,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { watch } from '../../js/modules/watch.js';
+import { condition } from '../../js/modules/condition.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { ATHLETE_KEY } from '../../js/modules/athlete.js';
@@ -2367,6 +2368,107 @@ describe('Экран: справочник, счёт и поиск', () => {
         } finally {
             view.remove();
         }
+    });
+});
+
+/**
+ * Кондиции (§66).
+ *
+ * Единственный экран, где приложение говорит «хорошо» или «стоит посмотреть».
+ * Проверяется не арифметика — она своя, — а правило цвета: красится только то,
+ * у чего есть с чем сравнить, и основание стоит рядом с оценкой.
+ */
+describe('Экран: кондиции', () => {
+
+    const DAY = 86400000;
+
+    async function профиль(over = {}) {
+        await dbService.setSetting(ATHLETE_KEY, {
+            sex: 'male', birthYear: 1982, height: 185, goal: 'убрать живот', ...over
+        });
+    }
+
+    it('без роста и замеров честно говорит, что считать не из чего', async () => {
+        await seed();
+        await dbService.setSetting(ATHLETE_KEY, null);
+
+        const строка = text(await screen(condition));
+
+        assert(строка.includes('не из чего считать'), строка.slice(0, 200));
+    });
+
+    it('норма названа рядом с оценкой', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102 });
+
+        const view = await screen(condition);
+        const плитки = [...view.querySelectorAll('.cond-tile')];
+
+        const имт = плитки.find((p) => p.textContent.includes('Индекс массы тела'));
+
+        assert(имт, 'ИМТ обязан быть');
+        assert(имт.textContent.includes('ВОЗ'), `чья мерка — часть оценки: ${имт.textContent.trim()}`);
+        assert(имт.classList.contains('is-watch'), '27,1 выше нормы ВОЗ');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Вода и мышцы — справочные: нормы у них нет, и покрасив их, приложение
+     * изобразило бы медицинское знание, которого у него нет.
+     */
+    it('справочные величины не красятся', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102, body: { fat: 24.3, water: 54.2 } });
+
+        const view = await screen(condition);
+        const вода = [...view.querySelectorAll('.cond-tile')].find((p) => p.textContent.includes('Вода'));
+
+        assert(вода, 'вода с весов обязана быть показана');
+        assert(!вода.classList.contains('is-good') && !вода.classList.contains('is-watch'),
+            'у воды нормы нет — красить нечем');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Без цели в профиле «минус килограмм» — это и хорошо, и плохо, и решать
+     * за человека приложение не вправе.
+     */
+    it('без цели вес не красится, и об этом сказано', async () => {
+        await seed();
+        await профиль({ goal: '' });
+        await dbService.setBodyWeight({ at: Date.now() - 40 * DAY, weight: 95 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const view = await screen(condition);
+        const вес = [...view.querySelectorAll('.cond-tile')].find((p) => p.textContent.includes('Вес'));
+
+        assert(!вес.classList.contains('is-good'), 'куда «хорошо» — решает цель, а её нет');
+        assert(text(view).includes('не названа цель'), 'и молчать об этом нельзя');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Первый заход сравнивал сегодняшний замер с сегодняшним же: окно искало
+     * первый замер после границы, а свежий в него и попадал (Р-134).
+     */
+    it('месяц назад — это замер месячной давности, а не сегодняшний', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const view = await screen(condition);
+        const вес = [...view.querySelectorAll('.cond-tile')].find((p) => p.textContent.includes('Вес'));
+
+        assert(вес.textContent.includes('1,2'), `ход обязан посчитаться: ${вес.textContent.trim()}`);
+        assert(вес.classList.contains('is-good'), 'цель «убрать живот», вес вниз — это туда');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
     });
 });
 

@@ -23,6 +23,7 @@ import { stats } from './modules/stats.js';
 import { exercise } from './modules/exercise.js';
 import { exercises } from './modules/exercises.js';
 import { shares } from './modules/shares.js';
+import { condition } from './modules/condition.js';
 import { planner } from './modules/planner.js';
 import { athleteScreen } from './modules/athlete.js';
 import { coach } from './modules/coach.js';
@@ -64,7 +65,7 @@ function screens() {
             records: recordsScreen,
             profile, guide,
             survey: surveyScreen,
-            intro, watch, program
+            intro, watch, program, condition
         };
     }
 

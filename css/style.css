@@ -3170,3 +3170,88 @@ button.ex-name:active { color: var(--accent); }
 }
 
 .rec-details { margin-top: 10px; }
+
+/* ================== КОНДИЦИИ (§66) ================== */
+
+/*
+ * Плитки кондиций шире обычных: у каждой три строки — число, что это и с чем
+ * сравнивали. Последняя и есть то, ради чего экран затевался: оценка без
+ * основания читается как приговор.
+ */
+.cond-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.cond-tile {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: inherit;
+    padding: 12px 8px;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+/*
+ * Некрашеное число — цвета обычного текста (§66).
+ *
+ * Оранжевым оно быть не должно: тогда «54,2 % воды» выглядит ровно как
+ * «24,3 % жира, стоит посмотреть», и разница остаётся только в рамке. Цвет,
+ * который стоит у всех, не значит ничего — а здесь он обязан значить.
+ */
+.cond-tile strong {
+    display: block;
+    color: var(--text);
+    font-size: 1.5rem;
+    line-height: 1.15;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.cond-tile strong small {
+    font-size: 0.875rem;
+    margin-left: 3px;
+    color: var(--text-dim);
+}
+
+.cond-tile span {
+    display: block;
+    font-size: 0.6875rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
+}
+
+/*
+ * Основание — тем же кеглем, что пояснения: это не подпись к числу, а то,
+ * что делает оценку оценкой, и читать его надо не щурясь.
+ */
+.cond-tile em {
+    display: block;
+    font-size: 0.75rem;
+    font-style: normal;
+    color: var(--text-dim);
+    margin-top: 4px;
+}
+
+/*
+ * Цвет — рамкой и числом, а не заливкой.
+ *
+ * Залитая зелёная плитка среди тёмных кричит громче, чем стоит: это
+ * наблюдение, а не победа. Рамка отмечает ровно столько, сколько надо, и не
+ * спорит с единственным залитым пятном приложения — главной кнопкой.
+ */
+.cond-tile.is-good { border-color: var(--good); }
+.cond-tile.is-good strong { color: var(--good); }
+
+.cond-tile.is-watch { border-color: var(--accent-dim); }
+.cond-tile.is-watch strong { color: var(--accent); }
+
+.cond-tile:active { border-color: var(--text-dim); }
