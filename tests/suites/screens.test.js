@@ -2692,6 +2692,47 @@ describe('Экран: кондиции', () => {
         await dbService.setSetting('icuWellness', null);
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Мерка в килограммах, а не в индексах (Р-141): «27,1» не говорит
+     * ничего, «от 63 до 86 кг» говорит всё.
+     */
+    it('в развороте веса названа вилка в килограммах, а талии — пороги в сантиметрах', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1, waist: 103 });
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102 });
+
+        await press('cond-why', { key: 'weight' });
+        const вес = text((await screen(condition)).querySelector('.cond-detail'));
+
+        assert(вес.includes('63,4') && вес.includes('85,5'), `вилка для 185 см: ${вес.slice(-260)}`);
+
+        await press('cond-why', { key: 'waist' });
+        const талия = text((await screen(condition)).querySelector('.cond-detail'));
+
+        assert(талия.includes('94') && талия.includes('102'), `пороги для мужчины: ${талия.slice(-260)}`);
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Зелёный вес рядом с жёлтым индексом выглядит спором карточки с самой
+     * собой, пока не сказано, что цвет тут про ход, а не про величину.
+     */
+    it('сказано, что вес и талия покрашены по ходу, а не по величине', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const строка = text(await screen(condition));
+
+        assert(строка.includes('по ходу, а не по величине'), строка.slice(0, 300));
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
