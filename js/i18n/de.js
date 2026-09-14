@@ -32,6 +32,9 @@ export const DE = {
 
     // Единицы и подписи величин
     'кг': 'kg',
+    'норма ВОЗ — от 18,5 до 25': 'WHO-Norm — 18,5 bis 25',
+    'меньше половины роста': 'weniger als die halbe Körpergröße',
+    'для пола и возраста — от {низ} до {верх} %': 'für Geschlecht und Alter — {низ} bis {верх} %',
     'м': 'm',
     'км': 'km',
     'Вес, кг': 'Gewicht, kg',
