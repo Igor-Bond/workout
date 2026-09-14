@@ -282,17 +282,35 @@ export const stats = {
 
         const по = new Map();
 
+        /*
+         * Нынешняя неделя считается отдельно (Р-146).
+         *
+         * В средний объём она не идёт — она не дожита, — но знать о ней надо:
+         * группа, которую начали в понедельник, без этого счётчика пропадала
+         * с экрана вовсе. Ровно как пропадала брошенная, пока её не вернули.
+         */
+        const свежие = new Map();
+
         for (const set of sets) {
             const когда = set.performedAt;
-            if (!(когда >= первая) || когда >= нынешняя) continue;
+            if (!(когда >= первая)) continue;
 
             const группа = exercises[set.exerciseId]?.group || NO_GROUP;
+
+            if (когда >= нынешняя) {
+                свежие.set(группа, (свежие.get(группа) || 0) + 1);
+                continue;
+            }
+
             const неделя = stats.weekStart(когда);
 
             const запись = по.get(группа) || new Map();
             запись.set(неделя, (запись.get(неделя) || 0) + 1);
             по.set(группа, запись);
         }
+
+        // Группа только этой недели — тоже группа: заводим ей пустой ряд
+        for (const группа of свежие.keys()) if (!по.has(группа)) по.set(группа, new Map());
 
         const шкала = [];
         for (let i = 0; i < weeks; i++) шкала.push(первая + i * WEEK);
@@ -306,6 +324,7 @@ export const stats = {
                     group: группа,
                     points,
                     sets: points.reduce((с, p) => с + p.value, 0),
+                    thisWeek: свежие.get(группа) || 0,
                     perWeek: Math.round((хвост.reduce((с, p) => с + p.value, 0) / хвост.length) * 10) / 10
                 };
             })

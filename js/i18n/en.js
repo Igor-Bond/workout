@@ -72,6 +72,7 @@ export const EN = {
     'Пресс': 'Core',
     'Руки': 'Arms',
     'Спина': 'Back',
+    'на этой неделе, в счёт пойдёт с понедельника': 'this week, counted from Monday',
     'Кондиции и нагрузка': 'Condition and training load',
     'Коэффициент выведен из {шаги} шагов в день и {n} тренировок в неделю.': 'The factor comes from {шаги} steps a day and {n} workouts a week.',
     'Нагрузка за неделю': 'Load over a week',

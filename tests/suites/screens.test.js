@@ -2858,6 +2858,30 @@ describe('Экран: кондиции', () => {
         condition.leave();
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Зеркало брошенной группы: начатая в понедельник пропадала с экрана
+     * вовсе, потому что полных недель у неё ещё нет (Р-146).
+     */
+    it('группа, начатая на этой неделе, видна и не оценивается', async () => {
+        const грудь = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+        const ноги = await dbService.createExercise({ name: 'Присед', kind: 'weight', group: 'Ноги' });
+
+        await профиль();
+
+        await workout(грудь, [[10, 60]], { at: Date.now() - 10 * DAY });
+        await workout(ноги, [[10, 80], [10, 80]], { at: Date.now() });
+
+        const view = await screen(condition);
+        const нога = [...view.querySelectorAll('.cond-tile')].find((p) => p.dataset.key === 'group:Ноги');
+
+        assert(нога, `начатая группа обязана быть видна: ${text(view).slice(0, 300)}`);
+        assert(нога.textContent.includes('с понедельника'), `и объяснена: ${нога.textContent.replace(/\s+/g, ' ').trim()}`);
+        assert(!нога.classList.contains('is-watch') && !нога.classList.contains('is-good'),
+            'оценивать нечего: полных недель у неё ещё нет');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
