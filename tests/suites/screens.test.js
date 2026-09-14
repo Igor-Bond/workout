@@ -2660,6 +2660,38 @@ describe('Экран: кондиции', () => {
         condition.leave();
         for (const ключ of ['icuWellness', ATHLETE_KEY]) await dbService.setSetting(ключ, null);
     });
+
+    /*
+     * Готовность говорит, где человек сейчас, разгон — как быстро он туда
+     * шёл (Р-140). Второе из первого не прочесть: в лёгком минусе можно
+     * оказаться и спокойно, и рывком.
+     */
+    it('разгон стоит рядом с готовностью и назван своей меркой', async () => {
+        await seed();
+        await профиль();
+
+        const полночь = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+
+        await dbService.setSetting('icuWellness', {
+            at: Date.now(),
+            rows: [
+                { date: полночь - 2 * DAY, sleep: 25200, rhr: 52, ctl: 50, atl: 48 },
+                { date: полночь - DAY, sleep: 25200, rhr: 52, ctl: 50, atl: 80 }
+            ]
+        });
+
+        const view = await screen(condition);
+        const плитки = [...view.querySelectorAll('.cond-tile')];
+        const разгон = плитки.find((p) => p.dataset.key === 'ramp');
+
+        assert(разгон, `разгон обязан быть: ${text(view).slice(0, 300)}`);
+        assert(разгон.textContent.includes('1,6'), `80 к 50 — это 1,6: ${разгон.textContent.trim()}`);
+        assert(разгон.textContent.includes('ориентир'), 'мерка называется рядом');
+        assert(разгон.classList.contains('is-watch'), 'так и срываются');
+
+        await dbService.setSetting('icuWellness', null);
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
