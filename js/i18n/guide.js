@@ -129,9 +129,9 @@ const RU = {
         {
             name: 'Часы и календарь',
             blocks: [
-                { p: 'Приложение считает нагрузку, но о восстановлении не знает ничего, а программа зависит от него не меньше. Сон и пульс покоя оно забирает с часов — через Intervals.icu, потому что наружу Zepp отдаёт данные только так.' },
+                { p: 'Приложение считает нагрузку, но о восстановлении не знает ничего, а программа зависит от него не меньше. Сон и пульс покоя оно забирает с часов — через Intervals.icu, потому что наружу приложение часов отдаёт их только так.' },
                 { steps: [
-                    'В Zepp: *Профиль* → *Добавить аккаунты* → Intervals.icu.',
+                    'В приложении часов: у Zepp это *Профиль* → *Добавить аккаунты* → Intervals.icu, у HUAWEI Health — *Я* → *Настройки* → *Передача данных*.',
                     'На intervals.icu: *Settings* → *Developer* → API key. Там же номер спортсмена, он вида i123456.',
                     '*Профиль* → *Данные с часов*: вписать номер и ключ, нажать *Забрать данные*.'
                 ] },
@@ -143,6 +143,26 @@ const RU = {
                     ['План в календарь', 'Работает всегда и ни от кого не зависит. Файл на две недели, напоминание в восемь утра; уведомление телефона видно и на часах, настраивать для этого нечего.']
                 ] },
                 { hint: 'Ключ Intervals.icu, как и ключ тренера, остаётся на этом устройстве. Приложение забирает сон, пульс и шаги — и больше ничего.' }
+            ]
+        },
+        {
+            name: 'Кондиции: в каком вы состоянии',
+            blocks: [
+                { p: 'Обычная статистика отвечает, сколько вы сделали. Отдельный экран отвечает на другой вопрос — в каком вы состоянии. Дорога туда: *Статистика* → *Кондиции и нагрузка*. Заходят сюда раз в неделю, а не каждый день: вес за неделю говорит о воде и соли, а не о человеке.' },
+                { rows: [
+                    ['Тело', 'Вес, талия, отношение талии к росту, индекс массы тела, доля жира, вода и мышцы — с весов и с ленты.'],
+                    ['Обмен', 'Сколько тело тратит в покое и за сутки. Коэффициент активности приложение выводит само — из ваших шагов и тренировок, а не из опроса.'],
+                    ['Нагрузка', 'Подходов в неделю на каждую группу мышц, по полным неделям. Здесь видно перекос: что вы делаете каждую неделю, а что бросили месяц назад.'],
+                    ['Восстановление', 'Сон и пульс покоя с часов, в сравнении с вашим же месяцем.'],
+                    ['Форма', 'Что посчитал Intervals.icu: готовность и разгон. Появится, только если в занятиях был пульс, — иначе сервису нечего считать.']
+                ] },
+                { sub: 'Что значит цвет' },
+                { p: 'Зелёным и жёлтым отмечено только то, у чего есть с чем сравнить: названная норма или ваш собственный ход. Остальное стоит числом. Оценок две, а не три: «хорошо» и «стоит посмотреть». «Плохо» нет намеренно — считается всё по ленте и весам со своей погрешностью, и выносить по такому основанию приговор приложение не вправе.' },
+                { p: 'У веса и талии цвет говорит про *ход*, а не про величину: куда вы идёте. Где вы сейчас — говорят индекс массы тела и талия к росту рядом, и они вполне могут быть другого цвета. Куда «хорошо» — решает цель из профиля: минус килограмм для набирающего массу и для убирающего живот это разные новости.' },
+                { sub: 'Нажмите на любое число' },
+                { p: 'Плитка раскрывается графиком: сначала линия хода, под ней объяснение — откуда число, с чем сравнивали и насколько мерка точна. У сна, пульса покоя, готовности и недельного объёма под линией затенена ваша обычная полоса: в ней лежит половина всей истории, и смотреть стоит на то, что из неё вышло.' },
+                { hint: 'Чьи мерки. Вес и индекс массы тела — ВОЗ; талия — пороги ВОЗ по полу; доля жира — таблица по полу и возрасту (Gallagher, 2000); недельный объём — 10–20 подходов из тренировочных обзоров; разгон — 0,8–1,3 по Гэббету. Каждая названа рядом с числом, и у каждой сказано, чего она не умеет.' },
+                { hint: 'Карточки без чисел не показываются: нет замеров — нет «Тела», нет часов — нет «Восстановления». Пустых рамок с прочерками здесь не бывает.' }
             ]
         },
         {
@@ -331,9 +351,9 @@ const EN = {
         {
             name: 'Watch and calendar',
             blocks: [
-                { p: 'The app counts your load but knows nothing about recovery, and the programme depends on it just as much. It fetches sleep and resting heart rate from your watch — through Intervals.icu, because that is the only way Zepp hands data out.' },
+                { p: 'The app counts your load but knows nothing about recovery, and the programme depends on it just as much. It fetches sleep and resting heart rate from your watch — through Intervals.icu, because that is the only way the watch app hands them out.' },
                 { steps: [
-                    'In Zepp: *Profile* → *Add accounts* → Intervals.icu.',
+                    'In the watch app: Zepp has *Profile* → *Add accounts* → Intervals.icu; HUAWEI Health has *Me* → *Settings* → *Data sharing*.',
                     'On intervals.icu: *Settings* → *Developer* → API key. The athlete number is there too, in the form i123456.',
                     '*Profile* → *Data from your watch*: enter the number and the key, press *Fetch the data*.'
                 ] },
@@ -345,6 +365,26 @@ const EN = {
                     ['Plan into the calendar', 'Always works and depends on nobody. A file for two weeks with a reminder at eight in the morning; a phone notification shows on the watch too, with nothing to set up.']
                 ] },
                 { hint: 'The Intervals.icu key, like the coach key, stays on this device. The app takes sleep, heart rate and steps — and nothing else.' }
+            ]
+        },
+        {
+            name: 'Condition: how you are doing',
+            blocks: [
+                { p: 'Ordinary statistics answer how much you have done. A separate screen answers a different question — what shape you are in. The way there: *Statistics* → *Condition and training load*. This is a weekly visit, not a daily one: a week of weight tells you about water and salt, not about you.' },
+                { rows: [
+                    ['Body', 'Weight, waist, waist-to-height, body mass index, body fat, water and muscle — from the scales and the tape.'],
+                    ['Metabolism', 'What the body spends at rest and over a day. The activity factor is derived from your steps and workouts rather than asked in a questionnaire.'],
+                    ['Training load', 'Sets per week on each muscle group, counted over complete weeks. This is where a lopsided programme shows: what you do every week, and what you dropped a month ago.'],
+                    ['Recovery', 'Sleep and resting heart rate from the watch, against your own month.'],
+                    ['Form', 'What Intervals.icu computed: readiness and ramp-up. It appears only if your sessions carried heart rate — otherwise the service has nothing to count.']
+                ] },
+                { sub: 'What the colour means' },
+                { p: 'Green and amber mark only what there is something to compare against: a named norm or your own trend. The rest stands as a plain number. There are two verdicts, not three: «good» and «worth a look». «Bad» is deliberately absent — everything here is measured by tape and scales with their own error, and passing sentence on that basis is not the app\'s place.' },
+                { p: 'For weight and waist the colour is about *movement*, not level: where you are heading. Where you stand is what the body mass index and waist-to-height beside them say, and they may well be a different colour. Which direction counts as good comes from the goal in your profile: a kilo less means different things to someone gaining muscle and someone losing a belly.' },
+                { sub: 'Tap any number' },
+                { p: 'The tile opens into a chart: the line of its movement first, the explanation under it — where the number comes from, what it was compared with, and how precise the measure is. For sleep, resting heart rate, readiness and weekly volume the chart shades your usual band: half of the history lies inside it, and what matters is what falls outside.' },
+                { hint: 'Whose measures. Weight and body mass index — the WHO; waist — WHO thresholds by sex; body fat — a table by sex and age (Gallagher, 2000); weekly volume — 10–20 sets from training reviews; ramp-up — 0.8–1.3 after Gabbett. Each is named beside its number, and each says what it cannot do.' },
+                { hint: 'Cards without numbers are not shown: no measurements, no «Body»; no watch, no «Recovery». You will not find empty frames with dashes here.' }
             ]
         },
         {
@@ -533,9 +573,9 @@ const DE = {
         {
             name: 'Uhr und Kalender',
             blocks: [
-                { p: 'Die App zählt die Belastung, weiß aber nichts über die Erholung — und davon hängt das Programm nicht weniger ab. Schlaf und Ruhepuls holt sie von der Uhr, über Intervals.icu, denn nur so gibt Zepp die Daten heraus.' },
+                { p: 'Die App zählt die Belastung, weiß aber nichts über die Erholung — und davon hängt das Programm nicht weniger ab. Schlaf und Ruhepuls holt sie von der Uhr, über Intervals.icu, denn nur so gibt die Uhren-App sie heraus.' },
                 { steps: [
-                    'In Zepp: *Profil* → *Konten hinzufügen* → Intervals.icu.',
+                    'In der Uhren-App: bei Zepp *Profil* → *Konten hinzufügen* → Intervals.icu, bei HUAWEI Health *Ich* → *Einstellungen* → *Datenfreigabe*.',
                     'Auf intervals.icu: *Settings* → *Developer* → API key. Dort steht auch die Sportlernummer, in der Form i123456.',
                     '*Profil* → *Daten von der Uhr*: Nummer und Schlüssel eintragen, *Daten holen* drücken.'
                 ] },
@@ -547,6 +587,26 @@ const DE = {
                     ['Plan in den Kalender', 'Funktioniert immer und hängt von niemandem ab. Eine Datei für zwei Wochen mit Erinnerung um acht Uhr morgens; eine Telefon-Benachrichtigung sieht auch die Uhr, einzurichten ist dafür nichts.']
                 ] },
                 { hint: 'Der Intervals.icu-Schlüssel bleibt wie der Trainer-Schlüssel auf diesem Gerät. Die App holt Schlaf, Puls und Schritte — sonst nichts.' }
+            ]
+        },
+        {
+            name: 'Verfassung: wie es um dich steht',
+            blocks: [
+                { p: 'Die gewöhnliche Statistik beantwortet, wie viel du geschafft hast. Ein eigener Bildschirm beantwortet eine andere Frage — in welcher Verfassung du bist. Der Weg dorthin: *Statistik* → *Verfassung und Belastung*. Hier schaut man einmal die Woche vorbei, nicht täglich: eine Woche Gewicht erzählt von Wasser und Salz, nicht von dir.' },
+                { rows: [
+                    ['Körper', 'Gewicht, Taille, Taille zur Größe, Body-Mass-Index, Körperfett, Wasser und Muskeln — von der Waage und vom Maßband.'],
+                    ['Stoffwechsel', 'Was der Körper in Ruhe und über den Tag verbraucht. Den Aktivitätsfaktor leitet die App aus deinen Schritten und Trainings ab, statt ihn zu erfragen.'],
+                    ['Belastung', 'Sätze pro Woche auf jede Muskelgruppe, über volle Wochen gezählt. Hier zeigt sich die Schieflage: was du jede Woche machst und was du vor einem Monat liegen gelassen hast.'],
+                    ['Erholung', 'Schlaf und Ruhepuls von der Uhr, gegen deinen eigenen Monat.'],
+                    ['Form', 'Was Intervals.icu gerechnet hat: Bereitschaft und Steigerung. Erscheint nur, wenn in den Einheiten ein Puls steckte — sonst hat der Dienst nichts zu rechnen.']
+                ] },
+                { sub: 'Was die Farbe bedeutet' },
+                { p: 'Grün und Gelb markieren nur, wofür es einen Vergleich gibt: eine genannte Norm oder deinen eigenen Verlauf. Der Rest steht als bloße Zahl. Es gibt zwei Bewertungen, nicht drei: «gut» und «anschauen». «Schlecht» fehlt mit Absicht — gemessen wird mit Maßband und Waage samt ihrer Fehler, und darauf ein Urteil zu gründen steht der App nicht zu.' },
+                { p: 'Bei Gewicht und Taille spricht die Farbe vom *Verlauf*, nicht vom Stand: wohin du gehst. Wo du stehst, sagen der Body-Mass-Index und die Taille zur Größe daneben — die dürfen durchaus anders gefärbt sein. Welche Richtung gut ist, entscheidet das Ziel im Profil: ein Kilo weniger bedeutet beim Muskelaufbau etwas anderes als beim Bauchabbau.' },
+                { sub: 'Tippe auf jede Zahl' },
+                { p: 'Die Kachel klappt zu einem Diagramm auf: zuerst die Linie des Verlaufs, darunter die Erklärung — woher die Zahl kommt, womit verglichen wurde und wie genau das Maß ist. Bei Schlaf, Ruhepuls, Bereitschaft und Wochenvolumen ist dein üblicher Bereich schattiert: die Hälfte der Geschichte liegt darin, und interessant ist, was herausfällt.' },
+                { hint: 'Wessen Maße. Gewicht und Body-Mass-Index — die WHO; Taille — WHO-Schwellen nach Geschlecht; Körperfett — eine Tabelle nach Geschlecht und Alter (Gallagher, 2000); Wochenvolumen — 10–20 Sätze aus Trainingsübersichten; Steigerung — 0,8–1,3 nach Gabbett. Jedes steht neben seiner Zahl, und jedes sagt, was es nicht kann.' },
+                { hint: 'Karten ohne Zahlen werden nicht gezeigt: keine Messungen, kein «Körper»; keine Uhr, keine «Erholung». Leere Rahmen mit Strichen gibt es hier nicht.' }
             ]
         },
         {
