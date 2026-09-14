@@ -14,6 +14,7 @@
 
 import { dates } from './dates.js';
 import { ui } from './ui.js';
+import { format } from './format.js';
 import { t } from './i18n.js';
 
 const esc = ui.esc;
@@ -26,13 +27,34 @@ function empty(message = t('Нет данных за период')) {
 /** Подпись под столбцом: длинные названия обрезаются, а не наезжают друг на друга. */
 const short = (label, max) => (label.length > max ? `${label.slice(0, max - 1)}…` : label);
 
+/** Округление для имени графика: десятые у мелких величин, целое у крупных. */
+const кратко = (v) => (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10)
+    .toLocaleString('ru-RU')
+    .replace('-', '−');
+
+/**
+ * Имя графика для читалки экрана (§45, Р-143).
+ *
+ * У всех графиков стоит role="img", и без имени читалка говорит
+ * «изображение» и замолкает: для незрячего содержимое картинки пропадает
+ * целиком, а на этих картинках весь ответ и нарисован.
+ *
+ * Что именно нарисовано, график не знает — знает тот, кто его позвал, и
+ * передаёт заголовком. Остальное график досказывает сам: сколько значений, за
+ * какой срок, между какими числами. Зрячий читает это со шкалы и подписей, а
+ * в имени иначе не будет ничего.
+ */
+function имя(заголовок, описание) {
+    return esc(заголовок ? `${заголовок}. ${описание}` : описание);
+}
+
 export const chart = {
 
     /**
      * Столбчатый график. data — [{ label, value, hint }].
      * highlight — индекс столбца, который надо выделить.
      */
-    bars(data = [], { height = 150, maxLabel = 6, highlight = -1, format = String } = {}) {
+    bars(data = [], { height = 150, maxLabel = 6, highlight = -1, format = String, label = '' } = {}) {
         if (data.length === 0) return empty();
 
         const width = 320;
@@ -74,8 +96,16 @@ export const chart = {
             `);
         });
 
+        const описание = t('Столбцы: {n}, от {первый} до {последний}, наибольший {макс}.', {
+            n: data.length,
+            первый: String(data[0].label),
+            последний: String(data[data.length - 1].label),
+            макс: кратко(max)
+        });
+
         return ui.html`
-            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img">
+            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img"
+                 aria-label="${ui.raw(имя(label, описание))}">
                 <line x1="0" y1="${String(bottom)}" x2="${String(width)}" y2="${String(bottom)}"
                       stroke="var(--line)" stroke-width="1"></line>
                 ${bars}
@@ -87,7 +117,7 @@ export const chart = {
      * Горизонтальные полосы — для групп мышц и типов тренировок: названия
      * там длинные и в подпись под столбцом не помещаются.
      */
-    hbars(data = [], { format = String } = {}) {
+    hbars(data = [], { format = String, label = '' } = {}) {
         if (data.length === 0) return empty();
 
         const rowHeight = 26;
@@ -123,8 +153,15 @@ export const chart = {
             `);
         });
 
+        const первая = [...data].sort((a, b) => b.value - a.value)[0];
+
+        const описание = t('Полосы: {n}, наибольшая — {имя}, {значение}.', {
+            n: data.length, имя: String(первая.label), значение: String(format(первая.value, первая))
+        });
+
         return ui.html`
-            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img">${rows}</svg>
+            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img"
+                 aria-label="${ui.raw(имя(label, описание))}">${rows}</svg>
         `;
     },
 
@@ -153,7 +190,7 @@ export const chart = {
      */
     line(series = [], {
         height = 160, marks = [], unit = '', minSpan = 0,
-        scale = Boolean(unit), floor = null, band = null
+        scale = Boolean(unit), floor = null, band = null, label = ''
     } = {}) {
         const all = series.flatMap((s) => s.segments.flat());
         if (all.length === 0) return empty();
@@ -322,8 +359,27 @@ export const chart = {
                   class="chart-label">${esc(число(v))}</text>
         `)) : '';
 
+        /*
+         * Имя собирается по первому ряду, а не по всем.
+         *
+         * Второй ряд на этих графиках — всегда пояснение к первому: сглаженная
+         * кривая у рабочего результата, и своих чисел он не приносит. Читать
+         * вслух оба значило бы называть одну величину дважды.
+         */
+        const первый = series[0].segments.flat();
+        const значения = первый.map((p) => p.y);
+
+        const описание = t('Линия: {n} с {от} по {до}, от {низ} до {верх}.', {
+            n: format.count(первый.length, format.WORDS.value),
+            от: String(первый[0]?.label || ''),
+            до: String(первый[первый.length - 1]?.label || ''),
+            низ: кратко(Math.min(...значения)),
+            верх: кратко(Math.max(...значения))
+        });
+
         return ui.html`
-            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img">
+            <svg class="chart" viewBox="0 0 ${String(width)} ${String(height)}" role="img"
+                 aria-label="${ui.raw(имя(label, описание))}">
                 <line x1="0" y1="${String(height - padding.bottom)}" x2="${String(width)}"
                       y2="${String(height - padding.bottom)}" stroke="var(--line)" stroke-width="1"></line>
                 ${paths}
@@ -337,7 +393,7 @@ export const chart = {
      * Тепловая карта года: столбец — неделя, строка — день недели.
      * days — из stats.heatmap().
      */
-    heatmap(days = [], { months = [], action = null } = {}) {
+    heatmap(days = [], { months = [], action = null, label = '' } = {}) {
         if (days.length === 0) return empty();
 
         /*
@@ -400,7 +456,11 @@ export const chart = {
 
                 <div class="heatmap-scroll">
                     <svg class="heatmap" width="${String(width)}" height="${String(height)}"
-                         viewBox="0 0 ${String(width)} ${String(height)}" role="img">
+                         viewBox="0 0 ${String(width)} ${String(height)}" role="img"
+                         aria-label="${ui.raw(имя(label, t('Карта года: {всего}, с занятиями — {занято}.', {
+                             всего: format.count(days.length, format.WORDS.day),
+                             занято: days.filter((d) => d.level > 0).length
+                         })))}"
                         ${labels}
                         ${rects}
                     </svg>

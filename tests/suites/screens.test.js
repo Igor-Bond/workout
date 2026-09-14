@@ -2813,6 +2813,50 @@ describe('Экран: кондиции', () => {
         condition.leave();
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Строка про непроставленную группу была тупиком: человек узнавал, что
+     * часть его подходов не посчитана, и оставался с этим (Р-143).
+     */
+    it('от непроставленной группы есть дорога в справочник', async () => {
+        const грудь = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+        const без = await dbService.createExercise({ name: 'Планка', kind: 'time', group: '' });
+
+        await профиль();
+        await workout(грудь, [[10, 60]], { at: Date.now() - 10 * DAY });
+        await workout(без, [[30, 0]], { at: Date.now() - 10 * DAY });
+
+        const view = await screen(condition);
+
+        assert(text(view).includes('группа не указана'), 'сказать надо');
+        assert(view.querySelector('[data-action="nav"][data-screen="exercises"]'),
+            'и дать куда пойти');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * У графиков стоит role="img", и без имени читалка говорит
+     * «изображение» и замолкает — всё содержимое картинки пропадает (Р-143).
+     */
+    it('у графика есть имя для читалки экрана', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        condition.leave();
+        await press('cond-why', { key: 'weight' });
+
+        const svg = (await screen(condition)).querySelector('.cond-detail svg');
+        const подпись = svg?.getAttribute('aria-label') || '';
+
+        assert(подпись.includes('Вес'), `имя начинается с названия величины: «${подпись}»`);
+        assert(подпись.includes('92,9'), `и досказывает границы: «${подпись}»`);
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**

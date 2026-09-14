@@ -36,7 +36,7 @@ function точка(p, y) {
     return { x: p.at, y, key: p.workoutId, label: dates.formatShort(p.at) };
 }
 
-function resultChart(series, recordWorkoutId) {
+function resultChart(series, recordWorkoutId, подпись = '') {
     const smoothed = calc.movingAverage(series.map((p) => p.top));
 
     return chart.line([
@@ -51,7 +51,7 @@ function resultChart(series, recordWorkoutId) {
             dots: false,
             segments: [series.map((p, i) => точка(p, smoothed[i]))]
         }
-    ], { marks: recordWorkoutId ? [recordWorkoutId] : [], height: 130 });
+    ], { marks: recordWorkoutId ? [recordWorkoutId] : [], height: 130, label: подпись });
 }
 
 /**
@@ -73,7 +73,7 @@ function volumeChart(series) {
             width: 1.5,
             segments: calc.segments(series).map((seg) => seg.map((p) => точка(p, p.volume)))
         }
-    ], { height: 100 });
+    ], { height: 100, label: t('Объём за тренировку, кг') });
 }
 
 export const exercise = {
@@ -255,7 +255,7 @@ export const exercise = {
                     <div class="card-title">${t('Динамика')}</div>
 
                     <div class="chart-title">${t('Рабочий результат, {единица}', { единица: единица(series, record.kind) })}</div>
-                    ${resultChart(series, best?.workoutId)}
+                    ${resultChart(series, best?.workoutId, t('Рабочий результат, {единица}', { единица: единица(series, record.kind) }))}
                     <div class="legend">
                         <span class="legend-item"><i class="dot is-accent"></i>${t('лучший подход')}</span>
                         <span class="legend-item"><i class="dot is-dim"></i>${t('тренд')}</span>

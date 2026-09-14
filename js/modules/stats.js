@@ -327,7 +327,7 @@ function bodyBlock(weights, range) {
                         x: p.at, y: p.weight, key: String(p.at),
                         label: dates.formatShort(p.at)
                     }))]
-                }], { height: 130, unit: t('кг'), minSpan: 2 }) : ''}
+                }], { height: 130, unit: t('кг'), minSpan: 2, label: t('Вес, кг') }) : ''}
 
                 <!--
                     «За период» — величина, которую по одному числу не
@@ -358,7 +358,7 @@ function bodyBlock(weights, range) {
                             x: p.at, y: p.weight, key: `waist-${p.at}`,
                             label: dates.formatShort(p.at)
                         }))]
-                    }], { height: 110, unit: t('см'), minSpan: 4 })}
+                    }], { height: 110, unit: t('см'), minSpan: 4, label: t('Талия, см') })}
                 ` : ''}
 
                 <p class="hint">${t('Последнее взвешивание — {день}.', { день: dates.formatDayLabel(last.at, Date.now(), { lower: true }) })}</p>
@@ -691,7 +691,7 @@ export const stats = {
 
             <div class="card">
                 <div class="card-title">${t('Подходы по тренировкам')}</div>
-                ${chart.bars(recent, { maxLabel: 5 })}
+                ${chart.bars(recent, { maxLabel: 5, label: t('Подходы по тренировкам') })}
             </div>
 
             ${bodyBlock(weights, current)}
@@ -722,7 +722,7 @@ export const stats = {
                 <div class="chart-title">${t('По дням недели')}</div>
                 ${chart.bars(
                     dates.WEEKDAYS_SHORT.map((label, i) => ({ label, value: weekdays[i] })),
-                    { height: 120, maxLabel: 3 }
+                    { height: 120, maxLabel: 3, label: t('По дням недели') }
                 )}
 
                 <!--
@@ -775,7 +775,7 @@ export const stats = {
                         ...d,
                         title: `${dates.formatDate(d.day)} — ${d.sets ? format.count(d.sets, format.WORDS.set) : t('без тренировки')}`
                     })),
-                    { months: monthLabels(heat), action: 'stats-heat-day' }
+                    { months: monthLabels(heat), action: 'stats-heat-day', label: t('По дням') }
                 )}
 
                 <!--
@@ -825,7 +825,10 @@ export const stats = {
                         value: m.sets,
                         тоннаж: m.volume
                     })),
-                    { format: (v, d) => (d.тоннаж > 0 ? `${v} · ${тонны(d.тоннаж)}` : `${v}`) }
+                    {
+                        format: (v, d) => (d.тоннаж > 0 ? `${v} · ${тонны(d.тоннаж)}` : `${v}`),
+                        label: t('Подходы по группам мышц')
+                    }
                 )}
                 <p class="hint">
                     ${тоннажЕсть
