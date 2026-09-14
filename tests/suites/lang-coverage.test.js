@@ -20,6 +20,8 @@ import { describe, it, assert, equal } from '../runner.js';
 import { screen, seed, workout } from '../helpers/dom.js';
 import { inLang, leftovers, TARGETS } from '../helpers/lang.js';
 import { i18n } from '../../js/core/i18n.js';
+import { EN } from '../../js/i18n/en.js';
+import { DE } from '../../js/i18n/de.js';
 import { dbService } from '../../js/services/db.js';
 
 import { home } from '../../js/modules/home.js';
@@ -292,4 +294,44 @@ describe('Перевод базовых упражнений', () => {
             equal(await dbService.countSetsOfExercise(жим.id), былоПодходов, 'подходы остаются при упражнении');
         });
     });
+});
+
+/**
+ * Названия групп мышц (§26.1, §66, Р-145).
+ *
+ * Они переводятся не литералом, а переменной — `t(m.group)`, — и проверка
+ * «весь видимый текст проходит через перевод» их не видит: она читает код и
+ * ищет строки в кавычках. Оттого на английском и немецком экраны статистики и
+ * кондиций показывали «Спина», «Руки», «Плечи», «Ноги»: переведена была одна
+ * «Грудь».
+ *
+ * Здесь список берётся из самой поставки упражнений, а не переписывается
+ * руками: добавится в базовый список новая группа — проверка спросит перевод
+ * сама.
+ */
+describe('Группы мышц переведены', () => {
+
+    /** Все группы, какие есть в поставке базовых упражнений. */
+    async function группыПоставки() {
+        const код = await (await fetch('../js/services/migrations.js', { cache: 'no-store' })).text();
+        const найдено = new Set();
+
+        for (const m of код.matchAll(/group:\s*'([^']+)'/g)) найдено.add(m[1]);
+
+        return [...найдено];
+    }
+
+    it('в поставке есть из чего собрать список', async () => {
+        const группы = await группыПоставки();
+
+        assert(группы.length >= 5, `групп в поставке: ${группы.length} — проверка ничего не проверяет`);
+    });
+
+    for (const [язык, словарь] of Object.entries({ en: EN, de: DE })) {
+        it(`каждая группа переведена на ${язык}`, async () => {
+            const нет = (await группыПоставки()).filter((г) => !словарь[г]);
+
+            assert(нет.length === 0, `без перевода на ${язык}: ${нет.join(', ')}`);
+        });
+    }
 });

@@ -615,13 +615,13 @@ async function телоБлок({ профиль, замеры, последни
 
         wht ? плитка({
             ключ: 'wht', подпись: t('Талия к росту'),
-            значение: String(wht.value).replace('.', ','),
+            значение: format.plain(wht.value),
             state: wht.state, основание: wht.norm
         }) : '',
 
         bmi ? плитка({
             ключ: 'bmi', подпись: t('Индекс массы тела'),
-            значение: String(bmi.value).replace('.', ','),
+            значение: format.plain(bmi.value),
             state: bmi.state, основание: bmi.norm
         }) : '',
 
@@ -698,10 +698,10 @@ function обменБлок({ профиль, последний, рост, во
             ключ: 'amr', подпись: t('Суточный расход'), единица: t('ккал'),
             значение: format.decimal(расход, 0),
             state: health.СПРАВКА,
-            основание: t('активность {k}', { k: String(коэффициент).replace('.', ',') })
+            основание: t('активность {k}', { k: format.plain(коэффициент) })
         })
     ], t('Коэффициент выведен из {шаги} шагов в день и {n} тренировок в неделю.', {
-        шаги: format.decimal(шаги || 0, 0), n: String(вНеделю).replace('.', ',')
+        шаги: format.decimal(шаги || 0, 0), n: format.plain(вНеделю)
     }), '', ['bmr', 'amr']);
 }
 
@@ -756,7 +756,7 @@ function нагрузкаБлок(группы) {
         return плитка({
             ключ: ГРУППА + г.group,
             подпись: t(г.group),
-            значение: оценка ? String(оценка.value).replace('.', ',') : '0',
+            значение: оценка ? format.plain(оценка.value) : '0',
             state: оценка ? оценка.state : health.СМОТРЕТЬ,
             основание: оценка ? оценка.norm : t('{n} без единого подхода', {
                 n: format.count(тишина(г.points), format.WORDS.week)
@@ -857,7 +857,7 @@ function формаБлок(rows) {
          */
         разгон ? плитка({
             ключ: 'ramp', подпись: t('Разгон'),
-            значение: String(разгон.value).replace('.', ','),
+            значение: format.plain(разгон.value),
             state: разгон.state, основание: разгон.norm
         }) : '',
 

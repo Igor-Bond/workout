@@ -23,6 +23,7 @@
  */
 
 import { t } from './i18n.js';
+import { format } from './format.js';
 
 /**
  * Оценки. Ключи, а не подписи: подпись переводится, а цвет — нет.
@@ -266,7 +267,7 @@ export const health = {
             value: значение,
             state: значение < низ || значение > верх ? СМОТРЕТЬ : ХОРОШО,
             norm: t('ориентир — {низ}–{верх}', {
-                низ: String(низ).replace('.', ','), верх: String(верх).replace('.', ',')
+                низ: format.plain(низ), верх: format.plain(верх)
             })
         };
     },
