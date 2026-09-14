@@ -178,3 +178,33 @@ describe('Ход величины к себе же', () => {
         equal(health.trend(null, 92, { goodDirection: 'down' }), null);
     });
 });
+
+/**
+ * Ориентир недельного объёма (§66, Р-138).
+ *
+ * Единственная мерка на экране, взятая из тренировочных обзоров, а не из
+ * медицины, — и единственная, где «слишком много» такая же новость, как
+ * «слишком мало».
+ */
+describe('Недельный объём на группу мышц', () => {
+
+    it('внутри ориентира — хорошо', () => {
+        equal(health.weeklySets(12).state, health.ХОРОШО);
+        equal(health.weeklySets(10).state, health.ХОРОШО, 'нижняя граница входит');
+        equal(health.weeklySets(20).state, health.ХОРОШО, 'верхняя тоже');
+    });
+
+    it('и ниже, и выше ориентира — стоит посмотреть', () => {
+        equal(health.weeklySets(4).state, health.СМОТРЕТЬ, 'четыре подхода — почти ничего');
+        equal(health.weeklySets(28).state, health.СМОТРЕТЬ, 'двадцать восемь не окупаются усталостью');
+    });
+
+    it('мерка названа рядом с оценкой', () => {
+        assert(health.weeklySets(12).norm.includes('10'), 'иначе это приговор без разбирательства');
+    });
+
+    it('без подходов оценивать нечего', () => {
+        equal(health.weeklySets(0), null);
+        equal(health.weeklySets(null), null);
+    });
+});

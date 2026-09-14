@@ -231,6 +231,56 @@ export const stats = {
     },
 
     /**
+     * Подходы по группам мышц, разложенные по неделям (§66, Р-138).
+     *
+     * Неделя, а не месяц: ориентир недельного объёма — единственная мерка,
+     * которая у этой величины вообще есть, и считать её надо в тех же
+     * единицах, в каких она названа.
+     *
+     * Считаются только завершённые недели. Нынешняя ещё идёт, и её столбец
+     * в понедельник равен нулю: включив его, приложение показывало бы
+     * недельный провал каждое утро понедельника — и в среднем занижало бы
+     * объём ровно настолько, насколько неделя не дожита.
+     */
+    groupWeeks(sets = [], exercises = {}, { now = Date.now(), weeks = 12, tail = 4 } = {}) {
+        const WEEK = 7 * DAY;
+
+        const нынешняя = stats.weekStart(now);
+        const первая = нынешняя - weeks * WEEK;
+
+        const по = new Map();
+
+        for (const set of sets) {
+            const когда = set.performedAt;
+            if (!(когда >= первая) || когда >= нынешняя) continue;
+
+            const группа = exercises[set.exerciseId]?.group || NO_GROUP;
+            const неделя = stats.weekStart(когда);
+
+            const запись = по.get(группа) || new Map();
+            запись.set(неделя, (запись.get(неделя) || 0) + 1);
+            по.set(группа, запись);
+        }
+
+        const шкала = [];
+        for (let i = 0; i < weeks; i++) шкала.push(первая + i * WEEK);
+
+        return [...по.entries()]
+            .map(([группа, недели]) => {
+                const points = шкала.map((at) => ({ at, value: недели.get(at) || 0 }));
+                const хвост = points.slice(-tail);
+
+                return {
+                    group: группа,
+                    points,
+                    sets: points.reduce((с, p) => с + p.value, 0),
+                    perWeek: Math.round((хвост.reduce((с, p) => с + p.value, 0) / хвост.length) * 10) / 10
+                };
+            })
+            .sort((a, b) => b.perWeek - a.perWeek);
+    },
+
+    /**
      * Объём по группам мышц (§26.1).
      *
      * Считается по подходам, а не по тренировкам: одна тренировка задевает

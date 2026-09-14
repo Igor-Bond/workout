@@ -2572,6 +2572,57 @@ describe('Экран: кондиции', () => {
         condition.leave();
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Перекос — вопрос состояния, а не отчёта (Р-138). Ориентир взят из
+     * тренировочных обзоров и потому назван рядом с числом, как и все
+     * остальные мерки этого экрана.
+     */
+    it('нагрузка по группам названа с ориентиром и покрашена по нему', async () => {
+        const грудь = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+        const ноги = await dbService.createExercise({ name: 'Присед', kind: 'weight', group: 'Ноги' });
+
+        await профиль();
+
+        // Не ближе недели: нынешняя неделя ещё идёт и в счёт не входит
+        await workout(грудь, [[10, 60], [10, 60], [10, 60]], { at: Date.now() - 10 * DAY });
+        await workout(ноги, [[10, 80]], { at: Date.now() - 12 * DAY });
+
+        const view = await screen(condition);
+        const плитки = [...view.querySelectorAll('.cond-tile')];
+
+        const нога = плитки.find((p) => p.textContent.includes('Ноги'));
+
+        assert(нога, `карточка нагрузки обязана быть: ${text(view).slice(0, 300)}`);
+        assert(нога.textContent.includes('ориентир'), `мерка называется: ${нога.textContent.trim()}`);
+        assert(нога.classList.contains('is-watch'), 'один подход за месяц — это «стоит посмотреть»');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * У групп мышц ноль — это данные, а не пропуск: неделя без единого
+     * подхода на спину и есть то, ради чего на график смотрят.
+     */
+    it('в развороте группы неделя без подходов остаётся на линии', async () => {
+        const грудь = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+
+        await профиль();
+        await workout(грудь, [[10, 60]], { at: Date.now() - 10 * DAY });
+        await workout(грудь, [[10, 60]], { at: Date.now() - 24 * DAY });
+
+        await press('cond-why', { key: 'group:Грудь' });
+
+        const view = await screen(condition);
+        const разворот = view.querySelector('.cond-detail');
+
+        assert(разворот, 'плитка группы раскрывается так же, как все прочие');
+        assert(разворот.querySelector('svg'), 'и в ней линия по неделям');
+        equal(text(разворот.querySelector('.chart-title')), 'Грудь');
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
