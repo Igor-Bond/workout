@@ -2733,6 +2733,86 @@ describe('Экран: кондиции', () => {
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Карточка заведена отвечать «не забыл ли я что-нибудь». Отбор по
+     * «больше нуля подходов в неделю» выбрасывал из неё ровно забытое
+     * (Р-142).
+     */
+    it('брошенная группа остаётся на виду и называет срок', async () => {
+        const грудь = await seed({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+        const ноги = await dbService.createExercise({ name: 'Присед', kind: 'weight', group: 'Ноги' });
+
+        await профиль();
+
+        await workout(грудь, [[10, 60]], { at: Date.now() - 10 * DAY });
+        await workout(ноги, [[10, 80]], { at: Date.now() - 45 * DAY });
+
+        const view = await screen(condition);
+        const нога = [...view.querySelectorAll('.cond-tile')].find((p) => p.dataset.key === 'group:Ноги');
+
+        assert(нога, `брошенная группа обязана остаться: ${text(view).slice(0, 300)}`);
+        assert(нога.textContent.includes('без единого подхода'),
+            `и назвать срок, а не ориентир: ${нога.textContent.replace(/\s+/g, ' ').trim()}`);
+        assert(нога.classList.contains('is-watch'), 'месяц без ног — это «стоит посмотреть»');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Перерисовка читает всю таблицу подходов: на пяти годах истории это
+     * около полусекунды на каждое касание плитки (Р-142). Разворот собирается
+     * из уже посчитанных рядов, и читать для него нечего.
+     */
+    it('раскрытие плитки правит узел и базу не трогает', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        condition.leave();
+
+        const настоящий = dbService.allSets;
+        let чтений = 0;
+
+        dbService.allSets = async (...args) => {
+            чтений += 1;
+            return настоящий.call(dbService, ...args);
+        };
+
+        const место = document.createElement('div');
+
+        try {
+            место.innerHTML = String(await condition.render());
+            document.body.appendChild(место);
+
+            equal(чтений, 1, 'отрисовка читает базу — это законно');
+
+            const плитка = место.querySelector('.cond-tile[data-key="weight"]');
+
+            плитка.click();
+            await new Promise((r) => setTimeout(r, 60));
+
+            const разворот = место.querySelector('.cond-detail');
+
+            assert(разворот, 'разворот встаёт прямо в разметку');
+            assert(разворот.previousElementSibling?.classList.contains('cond-grid'),
+                'и ровно под сеткой, а не в середине ряда плиток');
+            equal(плитка.getAttribute('aria-expanded'), 'true');
+
+            плитка.click();
+            await new Promise((r) => setTimeout(r, 60));
+
+            assert(!место.querySelector('.cond-detail'), 'тем же нажатием убирается');
+            equal(чтений, 1, 'и ни одно из нажатий базу не перечитало');
+        } finally {
+            dbService.allSets = настоящий;
+            место.remove();
+        }
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**
