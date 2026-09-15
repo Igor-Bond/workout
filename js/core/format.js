@@ -32,7 +32,9 @@ const WORDS = {
     week:     { ru: ['неделя', 'недели', 'недель'],             en: ['week', 'weeks'],         de: ['Woche', 'Wochen'] },
     session:  { ru: ['занятие', 'занятия', 'занятий'],          en: ['session', 'sessions'],   de: ['Einheit', 'Einheiten'] },
     year:     { ru: ['год', 'года', 'лет'],                     en: ['year', 'years'],         de: ['Jahr', 'Jahre'] },
-    value:    { ru: ['значение', 'значения', 'значений'],       en: ['value', 'values'],       de: ['Wert', 'Werte'] }
+    value:    { ru: ['значение', 'значения', 'значений'],       en: ['value', 'values'],       de: ['Wert', 'Werte'] },
+    step:     { ru: ['шаг', 'шага', 'шагов'],                   en: ['step', 'steps'],         de: ['Schritt', 'Schritte'] },
+    time:     { ru: ['раз', 'раза', 'раз'],                     en: ['time', 'times'],         de: ['Mal', 'Mal'] }
 };
 
 export const format = {

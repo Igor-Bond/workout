@@ -96,7 +96,7 @@ async function activeBlock() {
                 <div class="active-type">${workout.type}</div>
                 <div class="active-meta">
                     ${t('начата {день} в {время}', { день: dates.formatDayLabel(workout.startedAt, Date.now(), { lower: true }), время: dates.formatTime(workout.startedAt) })}
-                    · ${t('{done} из {planned} подходов', { done: totals.done, planned: totals.planned })}
+                    · ${t('подходов: {done} из {planned}', { done: totals.done, planned: totals.planned })}
                 </div>
 
                 ${stale ? ui.html`

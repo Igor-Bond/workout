@@ -1001,7 +1001,7 @@ export const session = {
                     <div class="sess-type">${workout.type}</div>
                     <div class="sess-meta">
                         <strong id="sess-elapsed">${format.duration(Date.now() - workout.startedAt)}</strong>
-                        · ${t('{done} из {planned} подходов', { done: totals.done, planned: totals.planned })}
+                        · ${t('подходов: {done} из {planned}', { done: totals.done, planned: totals.planned })}
                     </div>
                 </div>
                 <div class="chips">
