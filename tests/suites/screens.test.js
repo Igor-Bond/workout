@@ -2577,6 +2577,39 @@ describe('Экран: кондиции', () => {
     });
 
     /*
+     * Зарядка делается каждое утро, и вместе с ней у владельца выходило 7,8
+     * «тренировок» в неделю — верхняя ступень коэффициента. Суточный расход
+     * завышался на шестьсот с лишним килокалорий (Р-154).
+     */
+    it('зарядка не поднимает коэффициент активности', async () => {
+        const ex = await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        // Две настоящие тренировки в неделю и зарядка каждый день
+        for (let i = 1; i <= 8; i++) {
+            await workout(ex, [[10, 60]], { at: Date.now() - i * 3 * DAY });
+        }
+
+        for (let i = 1; i <= 26; i++) {
+            await workout(ex, [[20, 0]], { at: Date.now() - i * DAY, type: 'Зарядка' });
+        }
+
+        const строка = text(await screen(condition));
+
+        assert(строка.includes('Зарядка сюда не входит'), 'и сказано об этом прямо');
+
+        const расход = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'amr');
+
+        assert(расход, 'плитка расхода обязана быть');
+        assert(!расход.textContent.includes('1,9'),
+            `коэффициент не должен быть верхней ступенью: ${расход.textContent.replace(/\s+/g, ' ').trim()}`);
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
      * Ход виден без нажатия (Р-153): за ним сюда и приходят, а раскрывать
      * каждую плитку ради наклона — десять нажатий на экран.
      */
