@@ -66,6 +66,9 @@ export const report = {
             // в числах
             journal: planJournal.describe(await currentJournal(), { format: (at) => dates.formatDate(at) }),
 
+            // Объявленное в профиле — на случай пустой истории (Р-147)
+            daysPerWeek: профиль?.days || null,
+
             // Профиль складывается в строки здесь: ядро не переводит и за
             // названиями упражнений в базу не ходит (§58)
             profile: athlete.describe(
@@ -74,7 +77,8 @@ export const report = {
                 {
                     male: t('мужчина'),
                     female: t('женщина'),
-                    years: t('лет'),
+                    // Слово при возрасте склоняется: «44 года», а не «44 лет» (Р-147)
+                    years: format.plural(athlete.age(профиль) || 0, format.WORDS.year),
                     cm: t('см'),
                     goal: t('Цель'),
                     days: t('дней в неделю'),
@@ -107,8 +111,13 @@ export const report = {
                     Заодно текст в поле выделяется и копируется руками там,
                     где буфер обмена недоступен: в установленном приложении
                     на iPhone так бывает.
+
+                    Имя у поля своё, а не от заголовка экрана (Р-147): читалка
+                    объявляет поле по подписи, а её не было — незрячий слышал
+                    «текстовое поле» и двадцать две строки неизвестно чего.
                 -->
-                <textarea id="report-text" class="report-text" rows="22">${текст}</textarea>
+                <textarea id="report-text" class="report-text" rows="22"
+                          aria-label="${t('Текст сводки, его можно править')}">${текст}</textarea>
 
                 <button class="btn btn-accent" data-action="report-copy">${t('Скопировать')}</button>
             </div>

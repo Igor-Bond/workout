@@ -61,7 +61,8 @@ export const report = {
     build({
         entries = [], sets = [], exercises = {}, weights = [],
         now = Date.now(), weeks = WEEKS, shareOf = () => 1, background = null,
-        profile = [], withRequest = true, catalogue = [], recovery = [], journal = []
+        profile = [], withRequest = true, catalogue = [], recovery = [], journal = [],
+        daysPerWeek = null
     } = {}) {
         const since = dates.startOfDay(now) - weeks * 7 * DAY;
 
@@ -137,7 +138,7 @@ export const report = {
             }
 
             return withRequest
-                ? [...строки, ...report.request({ свежие, weeks, now })].join('\n')
+                ? [...строки, ...report.request({ свежие, weeks, now, declared: daysPerWeek })].join('\n')
                 : строки.join('\n');
         }
 
@@ -329,7 +330,7 @@ export const report = {
          */
         if (!withRequest) return строки.join('\n');
 
-        return [...строки, ...report.request({ свежие, weeks, now })].join('\n');
+        return [...строки, ...report.request({ свежие, weeks, now, declared: daysPerWeek })].join('\n');
     },
 
     /**
@@ -342,10 +343,23 @@ export const report = {
      *
      * Числа берутся из истории, а не спрашиваются: сколько тренировок в
      * неделю человек уже делает, приложение знает лучше него самого.
+     *
+     * Но когда истории нет, знать нечего — и выдумывать нельзя (Р-147).
+     * Здесь стоял предел «не меньше единицы», и новичок, написавший в профиле
+     * «пять дней в неделю», получал сводку, которая тремя строками выше
+     * повторяла его пять, а в задании требовала один. Собеседник читает
+     * задание и составляет план на один день.
+     *
+     * Теперь при пустой истории берётся объявленное в профиле, а если и его
+     * нет — строки в задании не будет вовсе: пусть собеседник спросит сам,
+     * это честнее выдуманного числа.
      */
-    request({ свежие = [], weeks = WEEKS, now = Date.now() } = {}) {
+    request({ свежие = [], weeks = WEEKS, now = Date.now(), declared = null } = {}) {
         const дни = new Set(свежие.map((e) => dates.startOfDay(e.workout.startedAt)));
         const вНеделю = Math.round(дни.size / weeks);
+
+        const объявлено = Number(declared) > 0 ? Math.round(Number(declared)) : null;
+        const сколько = вНеделю > 0 ? вНеделю : объявлено;
 
         const завтра = new Date(now);
         завтра.setDate(завтра.getDate() + 1);
@@ -359,7 +373,7 @@ export const report = {
             }),
             '',
             t('— упражнения бери из перечисленных выше, включая те, что за период не делались; новых названий не выдумывай;'),
-            t('— тренировочных дней в неделю: {дни};', { дни: Math.max(1, вНеделю) }),
+            сколько ? t('— тренировочных дней в неделю: {дни};', { дни: сколько }) : null,
             t('— зарядку в план не включай, она идёт фоном каждый день;'),
             t('— объём чередуй: тяжёлый день — меньше подходов и больше повторений, лёгкий наоборот;'),
             t('— несколько упражнений в одном дне соединяй знаком «+»;'),
@@ -392,7 +406,10 @@ export const report = {
             t('— чем прогрессировать и когда'),
             t('— какой оставлять запас в подходе'),
             t('— что ещё важно соблюдать')
-        ];
+
+            // Пропущенная строка выбрасывается, а не оставляет пустую: в
+            // задании пустая строка значит раздел, а не отсутствие условия
+        ].filter((строка) => строка !== null);
     },
 
     /**

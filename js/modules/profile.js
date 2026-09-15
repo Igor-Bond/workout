@@ -90,7 +90,12 @@ function showRest(seconds) {
     if (label) label.textContent = format.seconds(seconds);
 
     const slider = document.getElementById('set-rest');
-    if (slider && Number(slider.value) !== seconds) slider.value = String(seconds);
+    if (!slider) return;
+
+    if (Number(slider.value) !== seconds) slider.value = String(seconds);
+
+    // Читалка произносит valuetext, а не голое число секунд (Р-147)
+    slider.setAttribute('aria-valuetext', format.seconds(seconds));
 }
 
 /** Переключатель настройки. */
@@ -347,7 +352,19 @@ export const profile = {
                                 id="rest-value">${format.seconds(rest)}</button>
                     </label>
 
+                    <!--
+                        Подпись и произносимое значение — у самого ползунка
+                        (Р-147).
+
+                        Надпись «Длительность отдыха» стоит рядом, но внутри
+                        label у неё кнопка точного значения, и ярлык
+                        достаётся кнопке: ползунок читалка объявляла как
+                        безымянный и произносила «девяносто» — число секунд,
+                        которого на экране нет, там стоит «1:30».
+                    -->
                     <input type="range" id="set-rest"
+                           aria-label="${t('Длительность отдыха')}"
+                           aria-valuetext="${format.seconds(rest)}"
                            min="${String(Math.min(SLIDER_MIN, rest))}" max="${String(restCeiling(rest))}" step="15"
                            value="${rest}" data-change="setting" data-key="restSeconds">
                 </div>

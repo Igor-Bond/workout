@@ -22,6 +22,7 @@ import { inLang, leftovers, TARGETS } from '../helpers/lang.js';
 import { i18n } from '../../js/core/i18n.js';
 import { EN } from '../../js/i18n/en.js';
 import { DE } from '../../js/i18n/de.js';
+import { deliveredGroups } from '../../js/i18n/exercises.js';
 import { dbService } from '../../js/services/db.js';
 
 import { home } from '../../js/modules/home.js';
@@ -332,6 +333,25 @@ describe('Группы мышц переведены', () => {
             const нет = (await группыПоставки()).filter((г) => !словарь[г]);
 
             assert(нет.length === 0, `без перевода на ${язык}: ${нет.join(', ')}`);
+        });
+    }
+
+    /*
+     * Группы переводятся дважды и в двух разных местах (Р-147).
+     *
+     * Поставка ставит название при первом запуске — у неё свой список
+     * (js/i18n/exercises.js). Словарь интерфейса переводит группу, пришедшую с
+     * чужого запуска, — у него свой. Списки разъехались в первый же день:
+     * «Пресс» стал «Abs» в поставке и «Core» в словаре, и один и тот же человек
+     * видел два имени одной группы — смотря откуда пришли его упражнения.
+     */
+    for (const [язык, словарь] of Object.entries({ en: EN, de: DE })) {
+        it(`словарь и поставка называют группы одинаково на ${язык}`, () => {
+            const расходятся = Object.entries(deliveredGroups(язык))
+                .filter(([ru, поставка]) => словарь[ru] && словарь[ru] !== поставка)
+                .map(([ru, поставка]) => `${ru}: словарь «${словарь[ru]}» ≠ поставка «${поставка}»`);
+
+            assert(расходятся.length === 0, расходятся.join('; '));
         });
     }
 });

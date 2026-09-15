@@ -33,6 +33,7 @@ import { app } from '../app.js';
 import { currentPlan, currentJournal, putDraft } from './planner.js';
 import { planJournal } from '../core/journal-plan.js';
 import { dates } from '../core/dates.js';
+import { format } from '../core/format.js';
 import { currentAthlete } from './athlete.js';
 import { recoveryLines } from './watch.js';
 import { observations } from '../services/howgoing.js';
@@ -106,7 +107,8 @@ async function дело() {
             {
                 male: t('мужчина'),
                 female: t('женщина'),
-                years: t('лет'),
+                // Слово при возрасте склоняется: «44 года», а не «44 лет» (Р-147)
+                years: format.plural(athlete.age(профиль) || 0, format.WORDS.year),
                 cm: t('см'),
                 goal: t('Цель'),
                 days: t('дней в неделю'),
