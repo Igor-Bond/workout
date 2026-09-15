@@ -206,6 +206,35 @@ describe('Объём', () => {
         equal(строки[0].kind, 'watch');
     });
 
+    /*
+     * Процент без обоих чисел — наблюдение без основания (Р-162). По одному
+     * «на 127 % выше» нельзя понять, сравнили ли с полной неделей или с
+     * полупустой, а это и есть первый вопрос, который человек задаёт.
+     */
+    it('проценты называют оба числа, из которых выведены', () => {
+        const строки = progress.describe({ volume: { current: 1420, previous: 625 } });
+
+        assert(строки[0].text.includes('1420'), текст(строки));
+        assert(строки[0].text.includes('625'), текст(строки));
+    });
+
+    it('редкая прошлая неделя названа прямо', () => {
+        const строки = progress.describe({
+            volume: { current: 1420, previous: 625, currentDays: 4, previousDays: 2 }
+        });
+
+        assert(строки[0].text.includes('занятий было меньше'), текст(строки));
+        assert(строки[0].text.includes('2') && строки[0].text.includes('4'), текст(строки));
+    });
+
+    it('при равном числе занятий оговорки нет', () => {
+        const строки = progress.describe({
+            volume: { current: 1420, previous: 625, currentDays: 3, previousDays: 3 }
+        });
+
+        assert(!строки[0].text.includes('занятий было меньше'), текст(строки));
+    });
+
     it('колебание в десятую часть — не событие', () => {
         equal(progress.describe({ volume: { current: 1100, previous: 1000 } }).length, 0);
     });

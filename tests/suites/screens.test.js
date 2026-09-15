@@ -2436,20 +2436,30 @@ describe('Экран: кондиции', () => {
     });
 
     /*
-     * Вода и мышцы — справочные: нормы у них нет, и покрасив их, приложение
+     * Доля мышц справочная: нормы у неё нет, и покрасив её, приложение
      * изобразило бы медицинское знание, которого у него нет.
      */
     it('справочные величины не красятся', async () => {
         await seed();
         await профиль();
-        await dbService.setBodyWeight({ weight: 92.9, waist: 102, body: { fat: 24.3, water: 54.2 } });
+        await dbService.setBodyWeight({
+            weight: 92.9, waist: 102, body: { fat: 24.3, water: 54.2, muscle: 41 }
+        });
 
-        const view = await screen(condition);
-        const вода = [...view.querySelectorAll('.cond-tile')].find((p) => p.textContent.includes('Вода'));
+        const плитки = [...(await screen(condition)).querySelectorAll('.cond-tile')];
+        const мышцы = плитки.find((p) => p.dataset.key === 'muscle');
 
-        assert(вода, 'вода с весов обязана быть показана');
-        assert(!вода.classList.contains('is-good') && !вода.classList.contains('is-watch'),
-            'у воды нормы нет — красить нечем');
+        assert(мышцы, 'доля мышц с весов обязана быть показана');
+        assert(!мышцы.classList.contains('is-good') && !мышцы.classList.contains('is-watch'),
+            'нормы у неё нет — красить нечем');
+
+        /*
+         * А воды на этом экране нет вовсе (Р-163): норм нет, толковать её
+         * приложение не берётся, и плитка стояла седьмой в карточке из семи,
+         * не говоря ничего. Число не пропало — оно на главном экране.
+         */
+        assert(!плитки.some((p) => p.dataset.key === 'water'),
+            'вода убрана с кондиций: плитка, которая ничего не говорит, отнимает внимание у тех, что говорят');
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });
@@ -3113,20 +3123,20 @@ describe('Экран: кондиции', () => {
 
         // Месяц назад вес был, а талию не мерили — сравнивать её не с чем
         await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.2 });
-        await dbService.setBodyWeight({ weight: 92.6, waist: 101, body: { water: 54.2 } });
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101, body: { muscle: 41 } });
 
         const плитки = [...(await screen(condition)).querySelectorAll('.cond-tile')];
 
         const талия = плитки.find((p) => p.dataset.key === 'waist');
-        const вода = плитки.find((p) => p.dataset.key === 'water');
+        const мышцы = плитки.find((p) => p.dataset.key === 'muscle');
 
         assert(!талия.classList.contains('is-good') && !талия.classList.contains('is-watch'),
             'красить нечем: второго замера талии нет');
         assert(талия.textContent.includes('не с чем сравнить'),
             `и сказано почему: ${талия.textContent.replace(/\s+/g, ' ').trim()}`);
 
-        assert(вода.textContent.includes('нормы нет'),
-            `у воды причина своя: ${вода.textContent.replace(/\s+/g, ' ').trim()}`);
+        assert(мышцы.textContent.includes('нормы нет'),
+            `у мышц причина своя: ${мышцы.textContent.replace(/\s+/g, ' ').trim()}`);
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });

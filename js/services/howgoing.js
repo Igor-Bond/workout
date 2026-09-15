@@ -98,13 +98,28 @@ export async function observations({ now = Date.now() } = {}) {
         .filter((s) => s.performedAt >= от && s.performedAt < до)
         .reduce((sum, s) => sum + (s.reps || 0), 0);
 
+    /*
+     * Сколько дней в окне вообще занимались (Р-162).
+     *
+     * Нужно затем, чтобы отличить прибавку от сравнения с полупустой
+     * неделей: вдвое больше повторений при вдвое большем числе занятий — это
+     * про прошлую неделю, а не про нынешнюю работу.
+     */
+    const дней = (от, до) => new Set(
+        рабочие
+            .filter((s) => s.performedAt >= от && s.performedAt < до)
+            .map((s) => dates.startOfDay(s.performedAt))
+    ).size;
+
     return progress.describe({
         reserve: запас,
         recovery: восстановление,
         adherence: progress.adherence(дни, сделаноВ, { from: сегодня - 13 * DAY, to: сегодня }),
         volume: {
             current: повторений(сегодня - 7 * DAY, сегодня),
-            previous: повторений(сегодня - 14 * DAY, сегодня - 7 * DAY)
+            previous: повторений(сегодня - 14 * DAY, сегодня - 7 * DAY),
+            currentDays: дней(сегодня - 7 * DAY, сегодня),
+            previousDays: дней(сегодня - 14 * DAY, сегодня - 7 * DAY)
         }
     });
 }
