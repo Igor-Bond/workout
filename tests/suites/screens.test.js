@@ -3217,6 +3217,103 @@ describe('Экран: кондиции', () => {
     });
 
     /*
+     * Названный дефицит — это потолок съеденного (§68, §67, Р-166).
+     *
+     * Красить сам дефицит нельзя: с утра он равен всему расходу и убывает с
+     * каждым куском, так что зелёная плитка к ужину желтела бы. Потолок ведёт
+     * себя правильно и отвечает на тот вопрос, который человек и задаёт: не
+     * «каков мой дефицит», а «сколько мне ещё можно».
+     */
+    it('названный дефицит превращается в потолок и говорит остаток', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+
+        await setGoal('deficit', 500);
+        await dbService.addIntake({ kcal: 900 });
+
+        const еда = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'intake');
+
+        assert(еда.classList.contains('is-good'), 'в пределах названного — зелёное');
+        assert(еда.textContent.includes('осталось'),
+            `и сказано, сколько ещё можно: ${еда.textContent.replace(/\s+/g, ' ').trim()}`);
+
+        // Перебрали — плитка желтеет и обратно не отыгрывает
+        await dbService.addIntake({ kcal: 2200 });
+
+        const после = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'intake');
+
+        assert(после.classList.contains('is-watch'), 'сверх названного — жёлтое');
+        assert(после.textContent.includes('больше цели'),
+            после.textContent.replace(/\s+/g, ' ').trim());
+
+        for (const ключ of [GOALS_KEY, ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
+
+    /*
+     * Без названной цели сравнивать не с чем: нормы питания, одной на всех,
+     * нет, и красить съеденное приложение не вправе.
+     */
+    it('без цели съеденное не красится', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+        await dbService.addIntake({ kcal: 900 });
+
+        const еда = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'intake');
+
+        assert(!еда.classList.contains('is-good') && !еда.classList.contains('is-watch'),
+            'красить нечем, пока цель не названа');
+        assert(!еда.textContent.includes('осталось'), еда.textContent.trim());
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Доля жира — такой же путь, как вес и талия: откуда вышли, куда идём.
+     */
+    it('цель по доле жира показывает пройденное в развороте', async () => {
+        await seed();
+        await профиль();
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94, body: { fat: 26 } });
+        await dbService.setBodyWeight({ weight: 92.6, body: { fat: 24.6 } });
+
+        await setGoal('fat', 20, 26);
+
+        condition.leave();
+        await press('cond-why', { key: 'fat' });
+
+        const разворот = text((await screen(condition)).querySelector('.cond-detail'));
+
+        assert(разворот.includes('Цель 20'), разворот.slice(0, 200));
+        assert(разворот.includes('прошли 1,4'), `пройденное впереди остатка: ${разворот.slice(0, 200)}`);
+
+        condition.leave();
+        for (const ключ of [GOALS_KEY, ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
+
+    /*
+     * Точка отсчёта есть не у всякой цели (§67, §68, Р-166). Вес, талия и
+     * доля жира — это путь; дефицит никуда не идёт, его держат.
+     */
+    it('у дефицита точки отсчёта нет, и ноль вместо неё не пишется', async () => {
+        await seed();
+        await dbService.setSetting(GOALS_KEY, null);
+
+        const цели = await setGoal('deficit', 500);
+
+        equal(цели.deficit.target, 500);
+        equal('from' in цели.deficit, false,
+            'записанный ноль читался бы как «вышли от нуля», и весь путь вышел бы пройденным');
+
+        await dbService.setSetting(GOALS_KEY, null);
+    });
+
+    /*
      * Зеркало Р-156 в разметке: список ключей у карточки постоянный, а набор
      * плиток — нет. Разворот «Дефицита» оставался раскрытым после того, как
      * убрали последнюю запись дня, — объяснение висело само по себе.

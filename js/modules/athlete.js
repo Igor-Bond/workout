@@ -64,11 +64,23 @@ export async function setGoal(metric, target, current) {
 
     if (!Number.isFinite(к) || к <= 0) delete цели[metric];
     else {
+        const прежняя = цели[metric]?.from;
+        const откуда = Number.isFinite(прежняя) ? прежняя : Number(current);
+
         цели[metric] = {
             target: к,
-            from: Number.isFinite(цели[metric]?.from) ? цели[metric].from : Number(current),
             since: цели[metric]?.since || Date.now()
         };
+
+        /*
+         * Точки отсчёта может не быть вовсе, и тогда её не пишем.
+         *
+         * `Number(undefined)` — это NaN, а `Number(null)` — ноль (Р-156), и
+         * записанный ноль читался бы дальше как «вышли от нуля»: пройденный
+         * путь вышел бы длиной во всю цель. У дефицита точки отсчёта нет по
+         * замыслу, а у веса её не бывает до первого взвешивания.
+         */
+        if (Number.isFinite(откуда)) цели[metric].from = откуда;
     }
 
     await dbService.setSetting(GOALS_KEY, цели);
@@ -222,8 +234,31 @@ export const athleteScreen = {
                     </div>
                 </div>
 
+                <div class="plan-row-fields">
+                    <div class="field">
+                        <label for="a-goal-fat">${t('Доля жира, %')}</label>
+                        <input id="a-goal-fat" type="number" min="3" max="60" step="0.1" inputmode="decimal"
+                               placeholder="${последний?.body?.fat ? format.decimal(последний.body.fat, 1) : '—'}"
+                               value="${цели.fat?.target ?? ''}"
+                               data-change="goal-field" data-key="fat">
+                    </div>
+
+                    <!--
+                        Дефицит — цель другого рода (§68). Вес и талия это
+                        путь: откуда вышли, куда идём. Дефицит никуда не идёт,
+                        его держат — и потому у него нет ни точки отсчёта, ни
+                        срока, а есть только названное число в сутки.
+                    -->
+                    <div class="field">
+                        <label for="a-goal-deficit">${t('Дефицит, ккал в день')}</label>
+                        <input id="a-goal-deficit" type="number" min="50" max="2000" step="50" inputmode="numeric"
+                               placeholder="—" value="${цели.deficit?.target ?? ''}"
+                               data-change="goal-field" data-key="deficit">
+                    </div>
+                </div>
+
                 <p class="hint">
-                    ${t('Числа необязательны. Названное число говорит приложению то, чего не скажут слова: куда хорошо, сколько уже пройдено и когда придёте своим ходом. Видно это в «Кондициях», по нажатию на плитку.')}
+                    ${t('Числа необязательны. Названное число говорит приложению то, чего не скажут слова: куда хорошо, сколько уже пройдено и когда придёте своим ходом. Видно это в «Кондициях», по нажатию на плитку. Дефицит стоит особняком: его не проходят, а держат, и по нему приложение считает, сколько вам ещё можно съесть сегодня.')}
                     ${последний ? '' : t('Пока не было ни одного замера, отсчитывать не от чего — взвесьтесь в статистике.')}
                 </p>
 
@@ -349,9 +384,21 @@ actions.onChange('goal-field', async (el) => {
     const замеры = await dbService.listBodyWeight();
     const последний = замеры[замеры.length - 1] || null;
 
-    const сейчас = el.dataset.key === 'waist' ? последний?.waist : последний?.weight;
+    /*
+     * Точка отсчёта есть не у всякой цели.
+     *
+     * Вес, талия и доля жира — это путь: откуда вышли, куда идём, где сейчас.
+     * Дефицит никуда не идёт, его держат; отсчитывать его не от чего, и
+     * выдумывать точку ради единообразия значило бы завести число, которое
+     * ничего не значит, а потом считать от него проценты.
+     */
+    const откуда = {
+        weight: последний?.weight,
+        waist: последний?.waist,
+        fat: последний?.body?.fat
+    };
 
-    await setGoal(el.dataset.key, el.value, сейчас);
+    await setGoal(el.dataset.key, el.value, откуда[el.dataset.key]);
 
     haptics.tap();
 });
