@@ -107,7 +107,25 @@ function fakeCloud() {
     return {
         state,
         ctx: { fs, db: {}, uid: 'проверка' },
+        /*
+         * `put` кладёт документ как есть — в том числе без отметки сервера.
+         * Такими были документы до того, как syncedAt появился, и обычному
+         * отбору они невидимы: на этом держится проверка «переклеймить всё».
+         */
         put: (name, record) => collection(name).set(record.id, structuredClone(record)),
+
+        /**
+         * Запись «с другого устройства» — с отметкой сервера, как её
+         * поставил бы Firestore.
+         *
+         * Нужна там, где обменов в сценарии больше одного. Без отметки
+         * документ виден только полному проходу, а граница приёма к тому
+         * времени уже сдвинулась — и чужая правка тихо не приезжала. Ловилось
+         * это не как дефект приложения, а как загадка: первый обмен работал,
+         * третий нет.
+         */
+        write: (name, record) => collection(name)
+            .set(record.id, structuredClone({ ...record, syncedAt: (serverClock += 1) })),
         get: (name, id) => collection(name).get(id),
         all: (name) => [...collection(name).values()]
     };
@@ -441,6 +459,52 @@ describe('Сквозной путь: обмен с облаком', () => {
             equal(second.sent, 0, 'менять было нечего');
             equal(cloud.state.writes, писалиПосле,
                 'и документ профиля впустую не переписывался');
+        } finally {
+            restore();
+        }
+    });
+
+    /*
+     * Съеденное ездит наравне с тренировками (§68, §39).
+     *
+     * Дневник еды заводят на телефоне за столом, а смотрят на дефицит где
+     * придётся: не уезжающий дневник — это не дневник. Проверяется обе
+     * стороны: своё уезжает, чужое приезжает, удаление доезжает тоже.
+     */
+    it('съеденное уезжает и приезжает', async () => {
+        await clean();
+        const cloud = fakeCloud();
+        const restore = connect(cloud);
+
+        try {
+            const своя = await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+
+            await sync.run({ silent: true });
+
+            const уехала = cloud.get('intake', своя.id);
+
+            assert(уехала, 'запись о еде обязана быть в облаке');
+            equal(уехала.kcal, 820);
+            equal(уехала.note, 'завтрак');
+
+            const t = Date.now();
+            const чужая = dbService.newId();
+
+            cloud.write('intake', { id: чужая, at: t - 3600000, kcal: 640, note: 'обед', updatedAt: t + 1000 });
+
+            await sync.run({ silent: true });
+
+            const дома = await dbService.listIntake();
+
+            equal(дома.length, 2, `обе записи дома: ${дома.map((r) => r.kcal).join(', ')}`);
+            assert(дома.some((r) => r.id === чужая && r.kcal === 640), 'чужая запись приехала');
+
+            // И удаление доезжает: иначе съеденное воскресало бы при каждом обмене
+            cloud.write('intake', { ...cloud.get('intake', чужая), deletedAt: t + 2000, updatedAt: t + 2000 });
+
+            await sync.run({ silent: true });
+
+            equal((await dbService.listIntake()).length, 1, 'убранное на том устройстве уходит и здесь');
         } finally {
             restore();
         }

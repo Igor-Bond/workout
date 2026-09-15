@@ -28,6 +28,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
 import { rhythm, isBackground } from '../core/rhythm.js';
+import { intake } from '../core/intake.js';
 import { stats } from '../core/stats.js';
 import { estimate } from '../core/estimate.js';
 import { format } from '../core/format.js';
@@ -927,6 +928,46 @@ async function шагиБлок() {
     `;
 }
 
+/**
+ * Съеденное за день — строкой на главном (§68).
+ *
+ * До этого дорога к записи еды шла через статистику и кондиции: три
+ * нажатия и прокрутка, а записывают её три-пять раз в день. Столько
+ * нажатий отменяют саму затею — дневник, до которого далеко, не ведут.
+ *
+ * Показывается тому, кто хоть раз записывал: тому, кто калории не считает,
+ * это была бы просьба, а не сведения, — ровно та же мерка, что у талии и
+ * шагов (Р-88, Р-89).
+ *
+ * Дефицита здесь нет намеренно. Он считается от суточного расхода, а тот —
+ * от роста, возраста, шагов и месяца тренировок; ради строки на главном
+ * это чтение половины базы. Дефицит живёт на кондициях, где уже посчитан.
+ */
+function питаниеСтрока(еда) {
+    if (!еда.length) return null;
+
+    const сегодня = intake.day(еда);
+    const среднее = intake.average(еда);
+
+    return ui.html`
+        <div class="section">
+            <div class="section-title">${t('Питание')}</div>
+
+            <button class="weight-row" data-action="intake-add">
+                <span class="w-value">
+                    ${сегодня === null ? '—' : format.decimal(сегодня, 0)} <small>${t('ккал')}</small>
+                </span>
+                <span class="w-meta">
+                    ${сегодня === null ? t('съеденное не записано') : t('сегодня')}
+                    ${среднее && среднее.days >= 2
+                        ? ` · ${t('в среднем {n} за неделю', { n: format.decimal(среднее.kcal, 0) })}`
+                        : ''}
+                </span>
+            </button>
+        </div>
+    `;
+}
+
 function bodyBlock(records) {
     if (records.length === 0) return null;
 
@@ -1013,7 +1054,7 @@ export const home = {
     nav: 'workout',
 
     async render() {
-        const [active, сводки, templates, exercises, body, подходы, объявленный, профиль, шаги] = await Promise.all([
+        const [active, сводки, templates, exercises, body, подходы, объявленный, профиль, шаги, еда] = await Promise.all([
             activeBlock(),
             dbService.listWorkoutSummaries(),
             dbService.listTemplates(),
@@ -1022,7 +1063,8 @@ export const home = {
             dbService.allSets(),
             currentPlan(),
             currentAthlete(),
-            шагиБлок()
+            шагиБлок(),
+            dbService.listIntake()
         ]);
 
         // Тоннаж — вся нагрузка, вместе с собственным весом (Р-52). Считается
@@ -1187,6 +1229,12 @@ export const home = {
                 про итог недели.
             -->
             ${bodyBlock(body) || ''}
+
+            <!--
+                Питание сразу под весом: это две стороны одного разговора, и
+                смотрят на них подряд (§68).
+            -->
+            ${питаниеСтрока(еда) || ''}
 
             ${шаги || ''}
 

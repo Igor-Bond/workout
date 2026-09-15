@@ -1594,4 +1594,10 @@ export const EN = {
     'Это оценка, а не измерение: она ошибается примерно на треть. Выберите то, что ближе к вашей тарелке.': 'This is an estimate, not a measurement: it is about a third off. Pick whichever is closest to what was on your plate.',
     'Снимок не выбран.': 'No photo chosen.',
     'Снимок не прочитался. Попробуйте другой.': 'The photo could not be read. Try another one.',
+    'Повторений за неделю выше прошлой на {процент}% — это разгон, а не успех: резкая прибавка и есть лучший известный признак скорого срыва. Ориентир — не больше половины сверху за неделю.': 'Reps this week are {процент}% above last week — that is a ramp, not a win: a sharp jump is the best known sign that a breakdown is coming. The guide is no more than half again in a week.',
+    'не с чем сравнить: замер один': 'nothing to compare with: only one measurement',
+    'за месяц без перемен': 'no change over the month',
+    '{сдвиг} — меньше погрешности': '{сдвиг} — less than the margin of error',
+    'нормы нет — только свой ход': 'no norm for it — only your own trend',
+    'съеденное не записано': 'food not recorded',
 };

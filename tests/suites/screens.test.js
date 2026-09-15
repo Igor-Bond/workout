@@ -101,6 +101,24 @@ describe('Экран: главная', () => {
         assert(!has(мало, '×'), 'множителя повторов на экране больше нет');
     });
 
+    /*
+     * Дорога к записи еды шла через статистику и кондиции — три нажатия и
+     * прокрутка, а записывают её три-пять раз в день (§68).
+     */
+    it('съеденное показывается на главном тому, кто его записывает', async () => {
+        await seed();
+
+        assert(!has(await screen(home), 'Питание'), 'без единой записи это была бы просьба, а не сведения');
+
+        await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+
+        const view = await screen(home);
+
+        assert(has(view, 'Питание'), `после записи строка есть: ${text(view).slice(0, 200)}`);
+        assert(has(view, '820'), 'и называет съеденное за сегодня');
+        assert(!!view.querySelector('[data-action="intake-add"]'), 'нажатие открывает запись, а не ведёт вглубь');
+    });
+
     /**
      * Талия и шаги на главном (Р-88, Р-89).
      *
@@ -3049,6 +3067,57 @@ describe('Экран: кондиции', () => {
         assert(нога.textContent.includes('с понедельника'), `и объяснена: ${нога.textContent.replace(/\s+/g, ' ').trim()}`);
         assert(!нога.classList.contains('is-watch') && !нога.classList.contains('is-good'),
             'оценивать нечего: полных недель у неё ещё нет');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Молчание читается как произвол (Р-158).
+     *
+     * Человек видит зелёный вес и серую талию рядом и вправе знать, чем они
+     * отличаются. Пустое место под числом этого не говорит.
+     */
+    it('некрашеная плитка называет причину, а не молчит', async () => {
+        await seed();
+        await профиль();
+
+        // Месяц назад вес был, а талию не мерили — сравнивать её не с чем
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.2 });
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101, body: { water: 54.2 } });
+
+        const плитки = [...(await screen(condition)).querySelectorAll('.cond-tile')];
+
+        const талия = плитки.find((p) => p.dataset.key === 'waist');
+        const вода = плитки.find((p) => p.dataset.key === 'water');
+
+        assert(!талия.classList.contains('is-good') && !талия.classList.contains('is-watch'),
+            'красить нечем: второго замера талии нет');
+        assert(талия.textContent.includes('не с чем сравнить'),
+            `и сказано почему: ${талия.textContent.replace(/\s+/g, ' ').trim()}`);
+
+        assert(вода.textContent.includes('нормы нет'),
+            `у воды причина своя: ${вода.textContent.replace(/\s+/g, ' ').trim()}`);
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Перемена меньше того, на что врёт сама мерка, — не перемена. Но и
+     * молчать о ней нельзя: цифра на плитке стоит, а цвета нет.
+     */
+    it('перемена меньше погрешности названа меньше погрешности', async () => {
+        await seed();
+        await профиль();
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 92.9, waist: 101.4 });
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+
+        const вес = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'weight');
+
+        assert(!вес.classList.contains('is-good'), '300 граммов — это вода, а не вес');
+        assert(вес.textContent.includes('меньше погрешности'),
+            вес.textContent.replace(/\s+/g, ' ').trim());
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });

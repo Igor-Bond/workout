@@ -1592,4 +1592,10 @@ export const DE = {
     'Это оценка, а не измерение: она ошибается примерно на треть. Выберите то, что ближе к вашей тарелке.': 'Das ist eine Schätzung, keine Messung: sie liegt um etwa ein Drittel daneben. Nimm das, was deinem Teller am nächsten kommt.',
     'Снимок не выбран.': 'Kein Foto ausgewählt.',
     'Снимок не прочитался. Попробуйте другой.': 'Das Foto ließ sich nicht lesen. Nimm ein anderes.',
+    'Повторений за неделю выше прошлой на {процент}% — это разгон, а не успех: резкая прибавка и есть лучший известный признак скорого срыва. Ориентир — не больше половины сверху за неделю.': 'Wiederholungen diese Woche liegen {процент}% über der letzten — das ist ein Sprung, kein Erfolg: eine schroffe Steigerung ist das beste bekannte Anzeichen dafür, dass es dich bald erwischt. Richtwert: höchstens die Hälfte mehr pro Woche.',
+    'не с чем сравнить: замер один': 'nichts zum Vergleichen: nur eine Messung',
+    'за месяц без перемен': 'im Monat unverändert',
+    '{сдвиг} — меньше погрешности': '{сдвиг} — weniger als die Messgenauigkeit',
+    'нормы нет — только свой ход': 'keine Norm dafür — nur dein eigener Verlauf',
+    'съеденное не записано': 'Gegessenes nicht erfasst',
 };
