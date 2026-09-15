@@ -605,6 +605,7 @@ input[type=number],
 input[type=search],
 input[type=password],
 input[type=date],
+input[type=file],
 select,
 textarea {
     width: 100%;
@@ -2266,6 +2267,45 @@ svg.heatmap { display: block; }
 
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
+
+/*
+ * Другие дороги к тем же полям — строкой над главными кнопками (§68).
+ *
+ * Строкой, а не столбцом: это равноправные способы заполнить одно и то же
+ * поле, и поставленные друг под другом во всю ширину они выглядели бы
+ * очередью действий. Одна дорога занимает строку целиком — так было у весов,
+ * и менять это незачем.
+ */
+.dialog-extra {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.dialog-extra .btn {
+    flex: 1;
+    width: auto;
+    margin-bottom: 0;
+}
+
+/*
+ * Кнопка выбора файла внутри поля.
+ *
+ * Браузер рисует её по-своему — светлой и чужой посреди тёмного окна.
+ * Приводим к общему виду; сам текст «файл не выбран» рядом оставляем: это
+ * единственное, что говорит, выбрано уже что-нибудь или нет.
+ */
+input[type=file]::file-selector-button {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.875rem;
+    padding: 6px 10px;
+    margin-right: 10px;
+    cursor: pointer;
+}
 
 /*
  * Окно выбора занимает отведённую высоту сразу, а не растёт под содержимое.

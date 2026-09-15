@@ -122,7 +122,7 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
              * заполнять то, чего ещё нет.
              */
             if (collect && btn.hasAttribute('data-collect')) {
-                return finish({ ...(collect(backdrop, { soft: true }) || {}), extra: true });
+                return finish({ ...(collect(backdrop, { soft: true }) || {}), extra: raw });
             }
 
             finish(raw === 'true' ? true : raw === 'false' ? false : raw);
@@ -184,13 +184,16 @@ export const dialog = {
      * Возвращает объект со значениями или null, если пользователь отказался.
      * Обязательное пустое поле подсвечивается, и диалог не закрывается.
      *
-     * extra — подпись третьей кнопки: не «сохранить» и не «отмена», а другой
-     * способ заполнить те же поля. Возвращает набранное с отметкой
-     * `extra: true`: окно закрылось, но человек не отказался — он выбрал
-     * другую дорогу к тому же самому, и набранное по пути обязано с ним
-     * поехать. Нужно весам (§65): вес можно набрать руками, а можно снять с
-     * устройства; и съеденному (§68): число можно вписать, а можно прикинуть
-     * по описанию, которое стоит в соседнем поле.
+     * extra — другой способ заполнить те же поля: не «сохранить» и не
+     * «отмена». Подписью — одна кнопка, списком `[{ value, label }]` —
+     * несколько. Возвращает набранное с отметкой `extra: <value>`: окно
+     * закрылось, но человек не отказался — он выбрал другую дорогу к тому же
+     * самому, и набранное по пути обязано с ним поехать.
+     *
+     * Нужно весам (§65): вес можно набрать руками, а можно снять с
+     * устройства. И съеденному (§68), где дорог сразу три: число вписывают,
+     * прикидывают по описанию из соседнего поля или по снимку — и это
+     * равноправные способы одного и того же, а не главный и запасные.
      */
     form({ title, text, fields, confirmText = t('Сохранить'), cancelText = t('Отмена'), extra = null }) {
         const controls = fields.map((f) => {
@@ -203,6 +206,10 @@ export const dialog = {
                             <option value="${o.value}" ${ui.raw(o.value === f.value ? 'selected' : '')}>${o.label}</option>
                         `)}
                     </select>`
+                : f.type === 'file'
+                ? ui.html`
+                    <input id="${id}" name="${f.name}" type="file"
+                           accept="${f.accept || 'image/*'}">`
                 : f.type === 'textarea'
                 ? ui.html`
                     <textarea id="${id}" name="${f.name}" rows="${f.rows || 4}"
@@ -223,48 +230,85 @@ export const dialog = {
         const collect = (backdrop, { soft = false } = {}) => {
             const values = {};
 
-            for (const f of fields) {
-                const el = backdrop.querySelector(`[name="${f.name}"]`);
-                const value = el.value.trim();
+            /*
+             * Незаполненное называется по имени (Р-115).
+             *
+             * Красная рамка не говорит, чего не хватает, а когда полей два —
+             * приходится угадывать. Дальтонику она не говорит ничего.
+             */
+            const ругнуться = (el, f) => {
+                el.focus();
+                el.classList.add('is-invalid');
+                el.setAttribute('aria-invalid', 'true');
 
-                /*
-                 * Незаполненное называется по имени (Р-115).
-                 *
-                 * Красная рамка не говорит, чего не хватает, а когда полей два
-                 * — приходится угадывать. Дальтонику она не говорит ничего.
-                 */
-                if (f.required && !value && !soft) {
-                    el.focus();
-                    el.classList.add('is-invalid');
-                    el.setAttribute('aria-invalid', 'true');
+                const поле = el.closest('.field');
+                поле?.querySelector('.field-error')?.remove();
 
-                    const поле = el.closest('.field');
-                    поле?.querySelector('.field-error')?.remove();
+                const строка = document.createElement('div');
+                строка.className = 'field-error';
+                строка.textContent = t('Без этого не сохранить: {поле}', { поле: f.label });
+                поле?.appendChild(строка);
 
-                    const строка = document.createElement('div');
-                    строка.className = 'field-error';
-                    строка.textContent = t('Без этого не сохранить: {поле}', { поле: f.label });
-                    поле?.appendChild(строка);
+                return null;
+            };
 
-                    return null;
-                }
-
+            const простить = (el) => {
                 el.classList.remove('is-invalid');
                 el.removeAttribute('aria-invalid');
                 el.closest('.field')?.querySelector('.field-error')?.remove();
+            };
+
+            for (const f of fields) {
+                const el = backdrop.querySelector(`[name="${f.name}"]`);
+
+                /*
+                 * У снимка значения нет вовсе: `el.value` — это выдуманный
+                 * путь вида C:\fakepath\..., придуманный браузерами ради
+                 * тайны файловой системы. Нужен сам файл (§68).
+                 */
+                if (f.type === 'file') {
+                    const файл = el.files?.[0] || null;
+
+                    if (f.required && !файл && !soft) return ругнуться(el, f);
+
+                    простить(el);
+                    values[f.name] = файл;
+                    continue;
+                }
+
+                const value = el.value.trim();
+
+                if (f.required && !value && !soft) return ругнуться(el, f);
+
+                простить(el);
                 values[f.name] = f.type === 'number' ? Number(value) : value;
             }
 
             return values;
         };
 
+        /*
+         * Одна подпись — одна кнопка, список — сколько дали.
+         *
+         * Старое написание подписью строкой осталось рабочим: у весов дорога
+         * вторая и единственная, и заворачивать её в список ради общности
+         * значило бы усложнить то место, где сложности нет.
+         */
+        const дороги = Array.isArray(extra)
+            ? extra.filter((д) => д && д.label)
+            : extra ? [{ value: 'extra', label: extra }] : [];
+
         return open(ui.html`
             <div class="dialog" role="dialog" aria-modal="true">
                 <div class="dialog-title">${title}</div>
                 ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
                 ${controls}
-                ${extra ? ui.html`
-                    <button class="btn btn-ghost btn-sm" data-value="extra" data-collect>${extra}</button>
+                ${дороги.length ? ui.html`
+                    <div class="dialog-extra">
+                        ${дороги.map((д) => ui.html`
+                            <button class="btn btn-ghost btn-sm" data-value="${д.value}" data-collect>${д.label}</button>
+                        `)}
+                    </div>
                 ` : ''}
                 <div class="dialog-actions">
                     <button class="btn btn-ghost" data-value="">${cancelText}</button>

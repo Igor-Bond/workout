@@ -66,7 +66,11 @@ export const ai = {
     ready: (key) => !!String(key || '').trim(),
 
     /**
-     * Спросить. messages — [{ role: 'user' | 'model', text }].
+     * Спросить. messages — [{ role: 'user' | 'model', text, image }].
+     *
+     * image — `{ mime, data }`, где data в основании 64 без приставки
+     * `data:`. Уменьшать снимок здесь не станем: это дело того, кто его
+     * выбрал (js/core/photo.js), а отправка обязана отправлять.
      *
      * Возвращает текст ответа или бросает с понятным сообщением: разговор —
      * не обмен данными, его провал должен быть виден сразу и словами.
@@ -80,7 +84,21 @@ export const ai = {
         const body = {
             contents: messages.map((m) => ({
                 role: m.role === 'model' ? 'model' : 'user',
-                parts: [{ text: m.text }]
+
+                /*
+                 * Снимок стоит перед словами, а не после.
+                 *
+                 * Так его и просят показывать в примерах Google, и по смыслу
+                 * это верно: сначала предмет, потом вопрос о нём. Обратный
+                 * порядок модель читает как «вот вопрос, а вот ещё зачем-то
+                 * картинка».
+                 */
+                parts: [
+                    ...(m.image?.data
+                        ? [{ inlineData: { mimeType: m.image.mime || 'image/jpeg', data: m.image.data } }]
+                        : []),
+                    { text: m.text }
+                ]
             }))
         };
 
