@@ -196,6 +196,88 @@ describe('Уборка давно удалённых записей', () => {
     });
 
     /*
+     * Свёртка давних дней (§68, Р-165).
+     *
+     * Год даёт около полутора тысяч записей о еде, а смысл у старого дня
+     * остаётся ровно один — сколько всего съедено.
+     */
+    it('давний день сворачивается в одно число', async () => {
+        await reset();
+
+        const год = Date.now() - 400 * DAY;
+        const день = new Date(new Date(год).setHours(12, 0, 0, 0)).getTime();
+
+        await dbService.addIntake({ at: день, kcal: 820, note: 'завтрак' });
+        await dbService.addIntake({ at: день + 4 * 3600000, kcal: 640, note: 'обед' });
+        await dbService.addIntake({ at: день + 8 * 3600000, kcal: 500, note: 'ужин' });
+
+        const итог = await dbService.foldIntake({ before: Date.now() - 365 * DAY });
+
+        equal(итог.days, 1);
+        equal(итог.removed, 2);
+
+        const живые = (await dbService.listIntake()).filter((r) => r.at < Date.now() - 365 * DAY);
+
+        equal(живые.length, 1, 'от дня осталась одна запись');
+        equal(живые[0].kcal, 1960, 'и она равна сумме дня');
+        equal(живые[0].note, '', 'у суммы пяти приёмов пищи нет одной заметки');
+    });
+
+    /*
+     * В сегодняшний день дописывают весь день, и два устройства переписали бы
+     * друг другу сумму. Год назад дописывать нечего — на этом свёртка и стоит.
+     */
+    it('свежие дни не трогаются', async () => {
+        await reset();
+
+        await dbService.addIntake({ kcal: 820 });
+        await dbService.addIntake({ kcal: 640 });
+
+        const итог = await dbService.foldIntake({ before: Date.now() - 365 * DAY });
+
+        equal(итог.days, 0);
+        equal((await dbService.listIntake()).length, 2, 'сегодняшний день неприкосновенен');
+    });
+
+    /*
+     * Свёртка на двух устройствах порознь обязана давать один и тот же
+     * результат: остаётся самая ранняя запись дня, с её же номером.
+     */
+    it('свёртка повторима и на второй раз ничего не меняет', async () => {
+        await reset();
+
+        const день = new Date(new Date(Date.now() - 400 * DAY).setHours(9, 0, 0, 0)).getTime();
+
+        const первая = await dbService.addIntake({ at: день, kcal: 300 });
+        await dbService.addIntake({ at: день + 3600000, kcal: 700 });
+
+        await dbService.foldIntake({ before: Date.now() - 365 * DAY });
+        const второй = await dbService.foldIntake({ before: Date.now() - 365 * DAY });
+
+        equal(второй.days, 0, 'второй проход сворачивать уже нечего');
+
+        const живые = await dbService.listIntake();
+
+        equal(живые.length, 1);
+        equal(живые[0].id, первая.id, 'остаётся самая ранняя запись — её номер знают оба устройства');
+        equal(живые[0].kcal, 1000);
+    });
+
+    it('до первого обмена не сворачиваем ничего', async () => {
+        await reset();
+
+        const день = new Date(new Date(Date.now() - 400 * DAY).setHours(9, 0, 0, 0)).getTime();
+
+        await dbService.addIntake({ at: день, kcal: 300 });
+        await dbService.addIntake({ at: день + 3600000, kcal: 700 });
+
+        equal(await dbService.foldIntake({ before: 0 }), { days: 0, removed: 0 },
+            'надгробия свёртки обязаны доехать, а до обмена ехать некуда');
+
+        equal((await dbService.listIntake()).length, 2);
+    });
+
+    /*
      * Записей о еде больше, чем всех остальных вместе: три-пять в день против
      * трёх тренировок в неделю. Забытые надгробия копились бы быстрее всего
      * именно здесь (§68).

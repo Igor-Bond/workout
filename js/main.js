@@ -321,11 +321,11 @@ async function boot() {
     // чаще раза в три часа
     сЧасов({ notSooner: ЧАСЫ_НЕ_ЧАЩЕ });
 
-    purgeOldTombstones().catch((e) => console.warn('[База] Очистка не удалась:', e));
+    суточнаяУборка().catch((e) => console.warn('[База] Очистка не удалась:', e));
 }
 
 /**
- * Уборка надгробий от давно удалённых записей (§36).
+ * Суточная уборка: надгробия и свёртка давних дней еды (§36, §68).
  *
  * Мягкое удаление оставляет запись с отметкой deletedAt, чтобы стирание
  * доехало до других устройств. Через 90 дней надгробие уже никому не нужно.
@@ -335,19 +335,34 @@ async function boot() {
  * вернётся — то есть удаление отменится само. Поэтому при включённой
  * синхронизации граница не может быть новее последнего успешного обмена,
  * а до первого обмена уборка не делается вовсе.
+ *
+ * Свёртка еды живёт здесь по той же причине и с той же оговоркой: она
+ * оставляет за собой надгробия, и они обязаны доехать.
  */
-async function purgeOldTombstones() {
+async function суточнаяУборка() {
     const DAY = 86400000;
 
     // Раз в сутки: перебирать таблицы при каждом запуске незачем
     const lastRun = Number(await dbService.getSetting('lastPurgeAt', 0));
     if (Date.now() - lastRun < DAY) return;
 
-    const ninetyDays = Date.now() - 90 * DAY;
-    const before = sync.available ? Math.min(ninetyDays, sync.getLastSync()) : ninetyDays;
+    /** Докуда можно трогать: не новее последнего успешного обмена. */
+    const докуда = (срок) => (sync.available ? Math.min(срок, sync.getLastSync()) : срок);
 
-    const removed = await dbService.purgeDeleted({ before });
+    /*
+     * Год — не «как-нибудь», а срок, за который день перестаёт читаться
+     * подробно. Ход веса смотрят месяцами, а «что именно я ел 14 месяцев
+     * назад» не спрашивает никто.
+     */
+    const свёрнуто = await dbService.foldIntake({ before: докуда(Date.now() - 365 * DAY) });
+
+    const removed = await dbService.purgeDeleted({ before: докуда(Date.now() - 90 * DAY) });
+
     await dbService.setSetting('lastPurgeAt', Date.now());
+
+    if (свёрнуто.days > 0) {
+        console.log(`[База] Свёрнуто давних дней еды: ${свёрнуто.days}, записей убрано: ${свёрнуто.removed}.`);
+    }
 
     const total = Object.values(removed).reduce((sum, n) => sum + n, 0);
     if (total > 0) console.log('[База] Убрано давно удалённых записей:', removed);
