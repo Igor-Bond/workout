@@ -33,6 +33,22 @@ const CURSOR_KEY = 'syncCursor';
  */
 const STAMPED_KEY = 'syncStamped';
 
+/**
+ * Таблицы, которые это устройство уже читало целиком (Р-160).
+ *
+ * Граница приёма одна на все таблицы, и она двигается по самому свежему,
+ * что устройство видело. Пока состав таблиц не меняется, это верно. Но
+ * стоит появиться новой — съеденному (§68), — и на устройстве, которое
+ * обменивалось раньше, граница уже стоит дальше, чем отметки у записей в
+ * ней. Обычный отбор «новее границы» не находит ничего, и новая таблица
+ * остаётся пустой навсегда: не «пока не появятся новые записи», а именно
+ * навсегда для всего, что легло в облако до обновления.
+ *
+ * Поэтому таблица, о которой это устройство раньше не знало, читается один
+ * раз целиком. Стоит это одного полного прохода по ней — и только по ней.
+ */
+const PULLED_KEY = 'syncPulled';
+
 const listeners = new Set();
 
 function emit(state, message = '') {
@@ -112,14 +128,19 @@ export const sync = {
         const appliedRecords = [];
         const seen = [];
 
+        // Таблицы, до которых это устройство ещё не добиралось целиком (Р-160)
+        const читанные = new Set(config.get(PULLED_KEY) || []);
+
         for (const name of SYNCED) {
             const { query, where, getDocs, Timestamp } = ctx.fs;
 
             const ref = sync._collection(ctx, name);
 
-            const snapshot = await getDocs(cursor > 0
-                ? query(ref, where('syncedAt', '>', Timestamp.fromMillis(cursor)))
-                : query(ref));
+            const целиком = cursor === 0 || !читанные.has(name);
+
+            const snapshot = await getDocs(целиком
+                ? query(ref)
+                : query(ref, where('syncedAt', '>', Timestamp.fromMillis(cursor))));
 
             const incoming = [];
             const workouts = [];
@@ -148,6 +169,13 @@ export const sync = {
                 await dbService.applyRemoteWorkout(workout, sets);
             }
         }
+
+        /*
+         * Отметка ставится только после того, как все таблицы прочитаны: на
+         * осечке посреди прохода новая таблица осталась бы наполовину
+         * прочитанной и больше никогда не прочлась бы целиком.
+         */
+        config.set(PULLED_KEY, [...SYNCED]);
 
         const settings = await sync.pullSettings(ctx);
 
@@ -428,5 +456,6 @@ export const sync = {
         sync.setLastSync(0);
         sync.setCursor(0);
         config.set(STAMPED_KEY, false);
+        config.set(PULLED_KEY, []);
     }
 };

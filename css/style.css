@@ -2265,6 +2265,44 @@ svg.heatmap { display: block; }
 .dialog-option-label { display: block; font-size: 0.875rem; }
 .dialog-option-hint { display: block; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
 
+/*
+ * Ожидание ответа — тремя точками (§68).
+ *
+ * Окно без кнопок: нажимать нечего, ждать недолго. Точки нужны затем, что
+ * неподвижное окно через пять секунд неотличимо от повисшего.
+ */
+.dialog-wait {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 0 2px;
+}
+
+.dialog-wait span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0.25;
+    animation: dialog-wait 1.2s infinite ease-in-out;
+}
+
+.dialog-wait span:nth-child(2) { animation-delay: 0.2s; }
+.dialog-wait span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes dialog-wait {
+    0%, 80%, 100% { opacity: 0.25; }
+    40% { opacity: 1; }
+}
+
+/*
+ * Там, где просили убрать движение, точки просто стоят: смысл окна в том,
+ * что оно есть, а не в том, что оно мигает.
+ */
+@media (prefers-reduced-motion: reduce) {
+    .dialog-wait span { animation: none; opacity: 0.6; }
+}
+
 .dialog-actions { display: flex; gap: 8px; }
 .dialog-actions .btn { margin-bottom: 0; }
 
