@@ -77,6 +77,7 @@ export const EN = {
     'Поиск по истории': 'Search the history',
     'Изменить взвешивание': 'Edit the weigh-in',
     'Убрать взвешивание': 'Remove the weigh-in',
+    'сказанное о себе и план': 'what you said about yourself, and the plan',
     'Черновик плана': 'Plan draft',
     'Вопрос тренеру': 'Question for the coach',
     'Сводка, которая уйдёт с вопросом': 'The summary that goes with the question',

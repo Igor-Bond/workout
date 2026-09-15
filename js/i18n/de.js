@@ -76,6 +76,7 @@ export const DE = {
     'Поиск по истории': 'Suche im Verlauf',
     'Изменить взвешивание': 'Wiegung ändern',
     'Убрать взвешивание': 'Wiegung entfernen',
+    'сказанное о себе и план': 'was du über dich gesagt hast, und der Plan',
     'Черновик плана': 'Planentwurf',
     'Вопрос тренеру': 'Frage an den Trainer',
     'Сводка, которая уйдёт с вопросом': 'Die Zusammenfassung, die mit der Frage geht',

@@ -9,13 +9,20 @@
 
 import { dbService } from './db.js';
 import { migrations } from './migrations.js';
-import { merge, SYNCED } from '../core/merge.js';
+import { merge, SYNCED, SYNCED_SETTINGS } from '../core/merge.js';
 import { config } from '../config.js';
 import { t } from '../core/i18n.js';
 import { format } from '../core/format.js';
 
-/** Версия формата файла. Растёт, когда меняется состав или смысл полей. */
-const FORMAT = 1;
+/**
+ * Версия формата файла. Растёт, когда меняется состав или смысл полей.
+ *
+ * 2 — в файл добавлено то, что человек сказал о себе сам: профиль, план,
+ * журнал решений и цель по шагам (Р-152). Файл второй версии старое
+ * приложение не примет и скажет обновиться — это честнее, чем принять его и
+ * молча восстановить всё, кроме человека.
+ */
+const FORMAT = 2;
 
 /** Чей это файл. Пишется при выгрузке и сверяется при загрузке — одно слово на оба места. */
 const APP = 'workout';
@@ -45,6 +52,21 @@ export const backup = {
             app: APP,
             exportedAt: Date.now(),
             data,
+
+            /*
+             * Сказанное о себе — вровень с историей (§41, Р-152).
+             *
+             * Профиль, план, журнал решений и цель по шагам лежат не в
+             * таблицах, а в настройках, и в копию не попадали вовсе.
+             * Восстановившись из файла, человек получал назад все свои
+             * подходы и ни слова о себе: ни возраста, ни цели, ни плана, ни
+             * записей о том, что и почему в программе меняли.
+             *
+             * Берутся те же строки, что уезжают в облако, и с теми же
+             * отметками времени: так у файла и у обмена одно правило, чья
+             * запись свежее.
+             */
+            state: await dbService.changedSettings(-1),
 
             // Только переносимые: длительность отдыха и режим выполнения
             // человек подбирает под себя один раз, и восстанавливать их
@@ -143,14 +165,26 @@ export const backup = {
             });
         }
 
-        return Object.entries(payload.data)
+        const части = Object.entries(payload.data)
             .map(([name, list]) => {
                 const количество = Array.isArray(list) ? list.length : 0;
                 const слово = TABLE_WORDS[name];
 
                 return слово ? format.count(количество, слово) : `${name}: ${количество}`;
-            })
-            .join(', ');
+            });
+
+        /*
+         * Про сказанное о себе говорится словами, а не числом (Р-152).
+         *
+         * «4 настройки» человеку не значат ничего: настройки — это слово из
+         * внутренностей. А восстанавливая копию поверх своих данных, он
+         * вправе знать, что вместе с историей приедут его профиль и план.
+         */
+        if (Array.isArray(payload.state) && payload.state.length) {
+            части.push(t('сказанное о себе и план'));
+        }
+
+        return части.join(', ');
     },
 
     /**
@@ -212,6 +246,20 @@ export const backup = {
         }
 
         const counts = {};
+
+        /*
+         * Сказанное о себе кладётся по тому же правилу, что и записи
+         * (Р-152): при замене — как есть, при слиянии — только если
+         * входящее свежее здешнего.
+         */
+        for (const row of Array.isArray(payload.state) ? payload.state : []) {
+            if (!row?.key || !SYNCED_SETTINGS.includes(row.key)) continue;
+
+            const local = mode === 'replace' ? null : await dbService.getSettingRow(row.key);
+            if (merge.resolve(local, row) !== 'take-remote') continue;
+
+            await dbService.applyRemoteSetting(row);
+        }
 
         for (const name of SYNCED) {
             const records = payload.data[name];

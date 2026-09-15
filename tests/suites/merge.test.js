@@ -10,6 +10,8 @@ import { describe, it, equal, assert } from '../runner.js';
 import { merge } from '../../js/core/merge.js';
 import { backup } from '../../js/services/backup.js';
 import { config } from '../../js/config.js';
+import { dbService } from '../../js/services/db.js';
+import { ATHLETE_KEY } from '../../js/modules/athlete.js';
 
 const rec = (over = {}) => ({ id: 'a', updatedAt: 100, ...over });
 
@@ -357,5 +359,95 @@ describe('Состав синхронизируемого', () => {
 
     it('вес тела синхронизируется', () => {
         assert(merge.SYNCED.includes('bodyWeight'));
+    });
+});
+
+/**
+ * Что уезжает в файл копии (§41, Р-152).
+ *
+ * Файл на диске — единственная копия, которая целиком во власти владельца:
+ * она не зависит ни от облака, ни от учётной записи. Потерять в ней что-то
+ * значит потерять насовсем, и проверяется поэтому не разбор файла, а полный
+ * оборот: собрали, стёрли всё, восстановили.
+ */
+describe('Оборот резервной копии', () => {
+
+    async function засеять() {
+        await dbService.open();
+        await dbService.wipe();
+
+        const ex = await dbService.createExercise({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: ex.id, plannedSets: 2, targetReps: 10, weight: 60, skipped: false }]
+        });
+
+        await dbService.addSet({
+            workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1,
+            reps: 10, weight: 60, performedAt: Date.now()
+        });
+
+        await dbService.finishWorkout(w.id, Date.now() + 1800000);
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102 });
+
+        await dbService.setSetting(ATHLETE_KEY, { sex: 'male', birthYear: 1982, height: 185, goal: 'убрать живот' });
+        await dbService.setSetting('plan', { text: 'Пн Жим лёжа 4 × 8' });
+        await dbService.setSetting('planJournal', [{ at: Date.now(), kind: 'note', text: 'убрал выпады' }]);
+        await dbService.setSetting('stepsGoal', 9000);
+    }
+
+    /*
+     * Сказанное о себе лежит в настройках, а не в таблицах, и в копию не
+     * попадало вовсе: человек получал назад все подходы и ни слова о себе.
+     */
+    it('профиль, план, журнал и цель по шагам переживают полный оборот', async () => {
+        await засеять();
+
+        const текст = JSON.stringify(await backup.collect());
+
+        await dbService.wipe();
+        await backup.restore(JSON.parse(текст), { mode: 'replace' });
+
+        const профиль = await dbService.getSetting(ATHLETE_KEY, null);
+
+        equal(профиль?.goal, 'убрать живот', 'цель человек писал руками — потерять её нельзя');
+        equal(профиль?.height, 185);
+
+        equal((await dbService.getSetting('plan', null))?.text, 'Пн Жим лёжа 4 × 8');
+        equal((await dbService.getSetting('planJournal', null) || []).length, 1);
+        equal(await dbService.getSetting('stepsGoal', null), 9000);
+    });
+
+    it('история и упражнения переживают его тоже', async () => {
+        await засеять();
+
+        const текст = JSON.stringify(await backup.collect());
+
+        await dbService.wipe();
+        await backup.restore(JSON.parse(текст), { mode: 'replace' });
+
+        equal((await dbService.listExercises({ includeArchived: true })).length, 1);
+        equal((await dbService.listWorkoutSummaries()).length, 1);
+        equal((await dbService.allSets()).length, 1, 'подходы едут внутри тренировки');
+        equal((await dbService.listBodyWeight()).length, 1);
+    });
+
+    /*
+     * Файл старой версии продолжает читаться: в нём просто нет раздела о
+     * себе, и восстановить оттуда нечего — но история обязана приехать.
+     */
+    it('файл первой версии читается и восстанавливается', async () => {
+        await засеять();
+
+        const старый = JSON.parse(JSON.stringify(await backup.collect()));
+        старый.format = 1;
+        delete старый.state;
+
+        await dbService.wipe();
+        await backup.restore(старый, { mode: 'replace' });
+
+        equal((await dbService.allSets()).length, 1, 'история из старого файла приезжает');
+        equal(await dbService.getSetting(ATHLETE_KEY, null), null, 'а профиля в нём и не было');
     });
 });
