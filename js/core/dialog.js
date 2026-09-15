@@ -110,6 +110,21 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
                 return finish(collected);
             }
 
+            /*
+             * Другая дорога к тем же полям уносит с собой уже набранное.
+             *
+             * Кнопка «другой способ» закрывала окно, ничего из него не
+             * забрав: человек описывал съеденное словами, жал «прикинуть» — и
+             * описание пропадало, а окно открывалось заново пустым. Набирать
+             * его второй раз на телефоне — плата не по адресу.
+             *
+             * Обязательные поля тут не проверяются: человек как раз и уходит
+             * заполнять то, чего ещё нет.
+             */
+            if (collect && btn.hasAttribute('data-collect')) {
+                return finish({ ...(collect(backdrop, { soft: true }) || {}), extra: true });
+            }
+
             finish(raw === 'true' ? true : raw === 'false' ? false : raw);
         });
 
@@ -170,10 +185,12 @@ export const dialog = {
      * Обязательное пустое поле подсвечивается, и диалог не закрывается.
      *
      * extra — подпись третьей кнопки: не «сохранить» и не «отмена», а другой
-     * способ заполнить те же поля. Возвращает строку 'extra' вместо значений:
-     * окно закрылось, но человек не отказался — он выбрал другую дорогу к
-     * тому же самому. Нужно весам (§65): вес можно набрать руками, а можно
-     * снять с устройства, и это одно и то же поле.
+     * способ заполнить те же поля. Возвращает набранное с отметкой
+     * `extra: true`: окно закрылось, но человек не отказался — он выбрал
+     * другую дорогу к тому же самому, и набранное по пути обязано с ним
+     * поехать. Нужно весам (§65): вес можно набрать руками, а можно снять с
+     * устройства; и съеденному (§68): число можно вписать, а можно прикинуть
+     * по описанию, которое стоит в соседнем поле.
      */
     form({ title, text, fields, confirmText = t('Сохранить'), cancelText = t('Отмена'), extra = null }) {
         const controls = fields.map((f) => {
@@ -203,7 +220,7 @@ export const dialog = {
             `;
         });
 
-        const collect = (backdrop) => {
+        const collect = (backdrop, { soft = false } = {}) => {
             const values = {};
 
             for (const f of fields) {
@@ -216,7 +233,7 @@ export const dialog = {
                  * Красная рамка не говорит, чего не хватает, а когда полей два
                  * — приходится угадывать. Дальтонику она не говорит ничего.
                  */
-                if (f.required && !value) {
+                if (f.required && !value && !soft) {
                     el.focus();
                     el.classList.add('is-invalid');
                     el.setAttribute('aria-invalid', 'true');
@@ -247,7 +264,7 @@ export const dialog = {
                 ${text ? ui.raw(`<div class="dialog-text">${ui.esc(text)}</div>`) : ''}
                 ${controls}
                 ${extra ? ui.html`
-                    <button class="btn btn-ghost btn-sm" data-value="extra">${extra}</button>
+                    <button class="btn btn-ghost btn-sm" data-value="extra" data-collect>${extra}</button>
                 ` : ''}
                 <div class="dialog-actions">
                     <button class="btn btn-ghost" data-value="">${cancelText}</button>

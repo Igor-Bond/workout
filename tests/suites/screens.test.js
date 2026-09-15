@@ -956,7 +956,7 @@ describe('Экран: разговор с весами', () => {
 
         scale.available = () => true;
         scale.read = ответ;
-        dialog.form = async () => 'extra';
+        dialog.form = async () => ({ extra: true });
         dialog.alert = async (o) => { сказано.push(o); return true; };
 
         if (место) await dbService.setSetting(SCALE_USER, место);

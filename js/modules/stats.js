@@ -924,7 +924,7 @@ async function окноВеса(сВесовВес = null) {
         extra: scale.available() ? t('Снять с весов') : null
     });
 
-    if (values === 'extra') return снятьСВесов();
+    if (values?.extra) return снятьСВесов();
 
     if (!values || !values.weight) return;
 
