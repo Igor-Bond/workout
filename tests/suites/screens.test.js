@@ -37,6 +37,7 @@ import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { ATHLETE_KEY } from '../../js/modules/athlete.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
+import { actions } from '../../js/core/actions.js';
 import { sync } from '../../js/services/sync.js';
 import { restTimer } from '../../js/core/timer.js';
 import { config } from '../../js/config.js';
@@ -4212,3 +4213,60 @@ describe('Главный: очередь при действующем план�
 
 });
 
+/**
+ * Живых кнопок без обработчика не бывает (§45, Р-149).
+ *
+ * Кнопка с именем, которого никто не слушает, нажимается и молчит: с виду
+ * живая, а не делает ничего. Такие уже находились глазами (Р-115) — а найти
+ * их можно и разом, сверив разметку каждого экрана со списком подписок.
+ *
+ * Проверка идёт по отрисованным экранам, а не по коду: половина имён
+ * собирается на лету — «home-forgotten-{шаг}», действие клетки карты года, —
+ * и в исходнике их не видно.
+ */
+describe('Кнопки и обработчики', () => {
+
+    const ЭКРАНЫ = [
+        ['главная', home], ['история', history], ['календарь', calendar],
+        ['статистика', stats], ['кондиции', condition], ['рекорды', recordsScreen],
+        ['шаблоны', templates], ['справочник', exercises], ['часы', watch],
+        ['профиль', profile], ['справка', guide], ['план', plan],
+        ['планировщик', planner], ['интервалы', intervalScreen]
+    ];
+
+    /*
+     * Общие действия живут в точке входа (js/main.js), а её проверки не
+     * поднимают: вместе с ней поднялось бы всё приложение — маршрутизатор,
+     * сервис-воркер, забор с часов. Поэтому они названы здесь поимённо.
+     */
+    const ИЗ_ТОЧКИ_ВХОДА = ['nav', 'install', 'reload', 'dismiss-banner'];
+
+    it('у каждой кнопки и каждого поля есть кто-то на другом конце', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60], [10, 60]]);
+        await dbService.setBodyWeight({ weight: 92.9, waist: 102 });
+
+        const подписки = actions.names();
+        подписки.click.push(...ИЗ_ТОЧКИ_ВХОДА);
+        const беда = [];
+
+        for (const [имя, экран] of ЭКРАНЫ) {
+            if (!экран?.render) continue;
+
+            let view;
+            try { view = await screen(экран); } catch { continue; }
+
+            for (const узел of view.querySelectorAll('[data-action]')) {
+                const действие = узел.dataset.action;
+                if (!подписки.click.includes(действие)) беда.push(`${имя}: нажатие «${действие}»`);
+            }
+
+            for (const узел of view.querySelectorAll('[data-change]')) {
+                const поле = узел.dataset.change;
+                if (!подписки.change.includes(поле)) беда.push(`${имя}: поле «${поле}»`);
+            }
+        }
+
+        assert(беда.length === 0, `кнопки без обработчика:\n${[...new Set(беда)].join('\n')}`);
+    });
+});

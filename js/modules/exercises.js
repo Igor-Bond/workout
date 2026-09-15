@@ -726,12 +726,6 @@ async function заархивировать(exercise) {
     });
 }
 
-
-actions.on('ex-restore', async (el) => {
-    await dbService.setExerciseArchived(el.dataset.id, false);
-    app.render();
-});
-
 async function удалить(exercise) {
     if (!exercise) return;
 

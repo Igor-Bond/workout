@@ -243,7 +243,7 @@ actions.on('hist-retype', async (el) => {
 
 // ================== ФИЛЬТРЫ ==================
 
-actions.on("hist-type", (el) => {
+actions.on('hist-type', (el) => {
     filter.type = el.dataset.type;
     resetPage();
     app.render();
@@ -298,7 +298,7 @@ actions.on('hist-exercise', async () => {
     app.render();
 });
 
-actions.on("hist-reset", () => {
+actions.on('hist-reset', () => {
     filter = { type: "all", exerciseId: null, query: "" };
     resetPage();
     app.render();

@@ -25,7 +25,6 @@ import { actions } from '../core/actions.js';
 import { beeper } from '../core/beeper.js';
 import { i18n, t } from '../core/i18n.js';
 import { guideContent } from '../i18n/guide.js';
-import { app } from '../app.js';
 
 /**
  * Выделение внутри строки: *текст* становится жирным.
@@ -129,5 +128,3 @@ export const guide = {
 actions.on('try-sound', (el) => {
     beeper.play(el.dataset.sound);
 });
-
-actions.on('nav-guide', () => app.go('guide'));
