@@ -1483,7 +1483,17 @@ export const dbService = {
         if (!Number.isFinite(before) || before <= 0) return {};
 
         const removed = {};
-        const tables = ['exercises', 'templates', 'workouts', 'sets', 'bodyWeight'];
+
+        /*
+         * Съеденное (§68) — в том же списке, и по той же причине, по которой
+         * оно попало в полную очистку: таблица синхронизируемая, значит её
+         * удаления доезжают надгробиями, значит надгробия надо убирать.
+         *
+         * Записей о еде больше, чем всех остальных вместе: три-пять в день
+         * против трёх тренировок в неделю. Забытые надгробия копились бы
+         * быстрее всего именно здесь.
+         */
+        const tables = ['exercises', 'templates', 'workouts', 'sets', 'bodyWeight', 'intake'];
 
         for (const name of tables) {
             const doomed = await db[name]

@@ -194,6 +194,27 @@ describe('Уборка давно удалённых записей', () => {
         equal(removed.workouts, 2);
         equal(removed.sets, 2);
     });
+
+    /*
+     * Записей о еде больше, чем всех остальных вместе: три-пять в день против
+     * трёх тренировок в неделю. Забытые надгробия копились бы быстрее всего
+     * именно здесь (§68).
+     */
+    it('съеденное тоже убирается', async () => {
+        await reset();
+
+        const запись = await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+
+        await db.intake.update(запись.id, {
+            deletedAt: Date.now() - 200 * DAY,
+            updatedAt: Date.now() - 200 * DAY
+        });
+
+        const removed = await dbService.purgeDeleted({ before: Date.now() - 90 * DAY });
+
+        equal(removed.intake, 1);
+        equal(await db.intake.get(запись.id), undefined, 'надгробие своё отслужило');
+    });
 });
 
 describe('Слияние упражнений', () => {
