@@ -2577,6 +2577,71 @@ describe('Экран: кондиции', () => {
     });
 
     /*
+     * Ход виден без нажатия (Р-153): за ним сюда и приходят, а раскрывать
+     * каждую плитку ради наклона — десять нажатий на экран.
+     */
+    it('в плитке есть линия хода, когда есть из чего её строить', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1 });
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const вес = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'weight');
+
+        assert(вес.querySelector('.spark'), 'линия стоит прямо в плитке');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    it('по одному замеру линии в плитке нет', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const вес = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'weight');
+
+        assert(!вес.querySelector('.spark'), 'наклон по одной точке — выдумка');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Вариабельность и оценка сна приезжали с часов и хранились, а на
+     * дашборде их не было вовсе (Р-153).
+     */
+    it('вариабельность и оценка сна показываются, когда часы их прислали', async () => {
+        await seed();
+        await профиль();
+
+        const полночь = new Date(new Date().setHours(0, 0, 0, 0)).getTime();
+
+        await dbService.setSetting('icuWellness', {
+            at: Date.now(),
+            rows: [6, 5, 4, 3, 2, 1].map((назад) => ({
+                date: полночь - назад * DAY,
+                sleep: 25200, rhr: 52, hrv: 48, steps: 9000, score: 81
+            }))
+        });
+
+        const плитки = [...(await screen(condition)).querySelectorAll('.cond-tile')];
+
+        const всп = плитки.find((p) => p.dataset.key === 'hrv');
+        const оценка = плитки.find((p) => p.dataset.key === 'score');
+
+        assert(всп, 'вариабельность хранилась и молчала');
+        assert(всп.textContent.includes('48'), всп.textContent.replace(/\s+/g, ' ').trim());
+
+        assert(оценка, 'оценка сна тоже');
+        assert(оценка.textContent.includes('81'), оценка.textContent.replace(/\s+/g, ' ').trim());
+        assert(!оценка.classList.contains('is-good') && !оценка.classList.contains('is-watch'),
+            'её считают часы по своим соображениям — красить нечем');
+
+        for (const ключ of ['icuWellness', ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
+
+    /*
      * Перекос — вопрос состояния, а не отчёта (Р-138). Ориентир взят из
      * тренировочных обзоров и потому назван рядом с числом, как и все
      * остальные мерки этого экрана.

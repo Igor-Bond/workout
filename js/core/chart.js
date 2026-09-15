@@ -114,6 +114,67 @@ export const chart = {
     },
 
     /**
+     * Спарклайн: линия без осей и подписей (§27, Р-153).
+     *
+     * Обещан в ТЗ с самого начала и до сих пор не был написан — а место ему
+     * ровно одно: под числом в плитке. Там он отвечает на единственный
+     * вопрос, «идёт или стоит», и отвечает без нажатия. Ни шкалы, ни дат у
+     * него нет намеренно: высота в двадцать точек, и любая подпись в ней
+     * нечитаема. Точные числа человек читает в развороте.
+     *
+     * Отрезки приходят готовыми, как у ломаной: пропуск дольше трёх недель
+     * рвёт линию и здесь — прямая через полгода молчания выглядела бы ходом
+     * (§25).
+     *
+     * Для читалки экрана он спрятан: число рядом и разворот под ним говорят
+     * то же самое словами, а лишний «график» в речи только мешает.
+     */
+    spark(segments = [], { height = 22, color = 'var(--accent)', floor = null } = {}) {
+        const все = segments.flat().filter((p) => Number.isFinite(p?.y));
+        if (все.length < 2) return '';
+
+        const width = 100;
+
+        const xs = все.map((p) => p.x);
+        const ys = все.map((p) => p.y);
+
+        const minX = Math.min(...xs);
+        const spanX = Math.max(...xs) - minX || 1;
+
+        const низСвой = Math.min(...ys);
+        const верхСвой = Math.max(...ys);
+
+        // Плоский ряд ложится посередине, а не прижимается к краю
+        const размах = верхСвой - низСвой || Math.max(1, Math.abs(верхСвой) * 0.1);
+
+        const запас = размах * 0.15;
+        const низ = floor === null ? низСвой - запас : Math.max(floor, низСвой - запас);
+        const верх = верхСвой + запас;
+
+        const sx = (x) => ((x - minX) / spanX) * width;
+        const sy = (y) => height - ((y - низ) / (верх - низ || 1)) * height;
+
+        const линии = segments
+            .filter((кусок) => кусок.length > 1)
+            .map((кусок) => `<path d="${кусок.map((p, i) => `${i === 0 ? 'M' : 'L'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ')}"
+                                   fill="none" stroke="${color}" stroke-width="1.5"
+                                   stroke-linecap="round" stroke-linejoin="round"></path>`)
+            .join('');
+
+        // Точка на конце: где именно человек находится сейчас
+        const конец = все[все.length - 1];
+
+        return ui.html`
+            <svg class="spark" viewBox="0 0 ${String(width)} ${String(height)}"
+                 preserveAspectRatio="none" aria-hidden="true">
+                ${ui.raw(линии)}
+                ${ui.raw(`<circle cx="${sx(конец.x).toFixed(1)}" cy="${sy(конец.y).toFixed(1)}" r="1.6"
+                                  fill="${color}" vector-effect="non-scaling-stroke"></circle>`)}
+            </svg>
+        `;
+    },
+
+    /**
      * Горизонтальные полосы — для групп мышц и типов тренировок: названия
      * там длинные и в подпись под столбцом не помещаются.
      */
