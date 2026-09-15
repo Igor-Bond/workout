@@ -75,6 +75,8 @@ export const EN = {
     'на этой неделе, в счёт пойдёт с понедельника': 'this week, counted from Monday',
     'Текст сводки, его можно править': 'Summary text, editable',
     'Поиск по истории': 'Search the history',
+    'Изменить взвешивание': 'Edit the weigh-in',
+    'Убрать взвешивание': 'Remove the weigh-in',
     'Черновик плана': 'Plan draft',
     'Вопрос тренеру': 'Question for the coach',
     'Сводка, которая уйдёт с вопросом': 'The summary that goes with the question',

@@ -112,11 +112,21 @@ export const calendar = {
 
             <div class="card">
                 <div class="cal-head">
-                    <button class="icon-btn" data-action="cal-prev" title="${t('Предыдущий месяц')}">←</button>
+                    <!--
+                        У значка имя проговаривается, а не всплывает (Р-151).
+
+                        Стрелка сама по себе читается как «стрелка влево», а
+                        подсказка в title живёт под курсором — на телефоне её
+                        нет вовсе (Р-118). Имя нужно то же, что в подсказке.
+                    -->
+                    <button class="icon-btn" data-action="cal-prev"
+                            aria-label="${t('Предыдущий месяц')}"
+                            title="${t('Предыдущий месяц')}">←</button>
                     <div class="cal-title">
                         ${dates.MONTHS_NOM[month.getMonth()]} ${String(month.getFullYear())}
                     </div>
                     <button class="icon-btn" data-action="cal-next"
+                            aria-label="${t('Следующий месяц')}"
                             ${ui.raw(offset >= 0 ? 'disabled' : '')} title="${t('Следующий месяц')}">→</button>
                 </div>
 

@@ -74,6 +74,8 @@ export const DE = {
     'на этой неделе, в счёт пойдёт с понедельника': 'diese Woche, gezählt ab Montag',
     'Текст сводки, его можно править': 'Text der Zusammenfassung, bearbeitbar',
     'Поиск по истории': 'Suche im Verlauf',
+    'Изменить взвешивание': 'Wiegung ändern',
+    'Убрать взвешивание': 'Wiegung entfernen',
     'Черновик плана': 'Planentwurf',
     'Вопрос тренеру': 'Frage an den Trainer',
     'Сводка, которая уйдёт с вопросом': 'Die Zusammenfassung, die mit der Frage geht',

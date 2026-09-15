@@ -75,9 +75,12 @@ function row(exercise, { bodyWeight, weighted, подходов }) {
             </div>
             <div class="ex-actions">
                 <button class="icon-btn" data-action="share-edit" data-id="${exercise.id}"
+                        aria-label="${t('Изменить долю')}"
                         title="${t('Изменить долю')}">✎</button>
                 ${своя
-                    ? ui.raw(`<button class="icon-btn" data-action="share-reset" data-id="${ui.esc(exercise.id)}" title="${ui.esc(t('Вернуть как в справочнике'))}">↩</button>`)
+                    ? ui.raw(`<button class="icon-btn" data-action="share-reset" data-id="${ui.esc(exercise.id)}"
+                                     aria-label="${ui.esc(t('Вернуть как в справочнике'))}"
+                                     title="${ui.esc(t('Вернуть как в справочнике'))}">↩</button>`)
                     : ''}
             </div>
         </div>

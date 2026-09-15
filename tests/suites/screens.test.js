@@ -31,6 +31,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { profile } from '../../js/modules/profile.js';
 import { guide } from '../../js/modules/guide.js';
 import { watch } from '../../js/modules/watch.js';
+import { shares } from '../../js/modules/shares.js';
 import { condition } from '../../js/modules/condition.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
@@ -4231,7 +4232,7 @@ describe('Кнопки и обработчики', () => {
         ['статистика', stats], ['кондиции', condition], ['рекорды', recordsScreen],
         ['шаблоны', templates], ['справочник', exercises], ['часы', watch],
         ['профиль', profile], ['справка', guide], ['план', plan],
-        ['планировщик', planner], ['интервалы', intervalScreen]
+        ['планировщик', planner], ['интервалы', intervalScreen], ['доли веса', shares]
     ];
 
     /*
@@ -4308,5 +4309,41 @@ describe('Кнопки и обработчики', () => {
         }
 
         assert(беда.length === 0, `поля без имени:\n${[...new Set(беда)].join('\n')}`);
+    });
+
+    /*
+     * Кнопка-значок называет себя словами (§45, Р-111, Р-151).
+     *
+     * «←», «✎», «↩» читалка произносит как «стрелка влево» и «карандаш» — то
+     * есть описывает картинку, а не действие. Подсказка в title тут не
+     * помощник: она живёт под курсором, а на телефоне курсора нет (Р-118).
+     *
+     * Ловится по имени: если всё, что у кнопки есть, — это один-два знака без
+     * единой буквы и цифры, значит имени у неё нет.
+     */
+    it('кнопка-значок названа словами, а не значком', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const беда = [];
+
+        for (const [имя, экран] of ЭКРАНЫ) {
+            if (!экран?.render) continue;
+
+            let view;
+            try { view = await screen(экран); } catch { continue; }
+
+            for (const кнопка of view.querySelectorAll('button, [role="button"]')) {
+                const текст = (кнопка.textContent || '').replace(/\s+/g, '');
+                const метка = кнопка.getAttribute('aria-label') || кнопка.getAttribute('aria-labelledby');
+
+                const значок = текст.length > 0 && текст.length <= 2 && !/[\p{L}\p{N}]/u.test(текст);
+
+                if (значок && !метка) беда.push(`${имя}: «${текст}» (${кнопка.dataset.action || кнопка.className})`);
+            }
+        }
+
+        assert(беда.length === 0, `значки без слов:\n${[...new Set(беда)].join('\n')}`);
     });
 });

@@ -389,9 +389,17 @@ function bodyBlock(weights, range) {
                                     </div>
                                 </div>
                                 <div class="ex-actions">
+                                    <!--
+                                        Значку — имя словами (Р-151): «✎» и
+                                        «×» читалка произносит как картинку, а
+                                        подсказка в title живёт под курсором,
+                                        которого на телефоне нет.
+                                    -->
                                     <button class="icon-btn" data-action="body-edit" data-id="${r.id}"
+                                            aria-label="${t('Изменить взвешивание')}"
                                             title="${t('Изменить')}">✎</button>
                                     <button class="icon-btn is-danger" data-action="body-drop" data-id="${r.id}"
+                                            aria-label="${t('Убрать взвешивание')}"
                                             title="${t('Убрать')}">×</button>
                                 </div>
                             </div>
