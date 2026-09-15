@@ -4269,4 +4269,44 @@ describe('Кнопки и обработчики', () => {
 
         assert(беда.length === 0, `кнопки без обработчика:\n${[...new Set(беда)].join('\n')}`);
     });
+
+    /*
+     * У каждого поля есть имя, и не из подсказки внутри (§45, Р-150).
+     *
+     * Читалка экрана объявляет поле по имени. Без имени незрячий слышит
+     * «текстовое поле» и гадает, что в него писать. Подсказка внутри поля
+     * именем не считается: она стоит, пока поле пусто, и исчезает от первой
+     * же буквы — то есть ровно тогда, когда человек в поле и работает.
+     *
+     * Скрытые поля пропускаются: их читалка не видит, и имя им ни к чему.
+     */
+    it('у каждого видимого поля есть имя для читалки', async () => {
+        const ex = await seed();
+        await workout(ex, [[10, 60]]);
+        await dbService.setBodyWeight({ weight: 92.9 });
+
+        const беда = [];
+
+        for (const [имя, экран] of ЭКРАНЫ) {
+            if (!экран?.render) continue;
+
+            let view;
+            try { view = await screen(экран); } catch { continue; }
+
+            for (const поле of view.querySelectorAll('input, select, textarea')) {
+                if (поле.hasAttribute('hidden') || поле.type === 'hidden') continue;
+
+                const id = поле.getAttribute('id');
+
+                const названо = поле.closest('label')
+                    || (id && view.querySelector(`label[for="${id}"]`))
+                    || поле.getAttribute('aria-label')
+                    || поле.getAttribute('aria-labelledby');
+
+                if (!названо) беда.push(`${имя}: ${поле.tagName.toLowerCase()} «${id || поле.className || поле.type}»`);
+            }
+        }
+
+        assert(беда.length === 0, `поля без имени:\n${[...new Set(беда)].join('\n')}`);
+    });
 });

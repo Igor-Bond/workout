@@ -244,6 +244,7 @@ export const athleteScreen = {
                 <p class="hint">${t('Что важно знать тому, кто составляет программу, и чего не видно ни в истории, ни в ограничениях.')}</p>
 
                 <textarea id="a-notes" class="report-text" rows="4"
+                          aria-label="${t('Ещё о себе')}"
                           placeholder="${t('например: тренируюсь вечером дома, утром зарядка')}"
                           data-change="athlete-field" data-key="notes">${профиль.notes}</textarea>
             </div>

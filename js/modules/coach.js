@@ -280,6 +280,7 @@ export const coach = {
 
             <div class="card">
                 <textarea id="coach-text" class="report-text" rows="3"
+                          aria-label="${t('Вопрос тренеру')}"
                           placeholder="${t('Например: колено стало лучше, можно усилить субботу?')}">${заготовлено}</textarea>
 
                 <div class="row-links">
@@ -306,7 +307,8 @@ export const coach = {
                     ${раскрыто ? t('Свернуть') : t('Показать целиком')}
                 </button>
 
-                ${раскрыто ? ui.html`<textarea class="report-text" rows="14" readonly>${текст}</textarea>` : ''}
+                ${раскрыто ? ui.html`<textarea class="report-text" rows="14" readonly
+                                          aria-label="${t('Сводка, которая уйдёт с вопросом')}">${текст}</textarea>` : ''}
             </div>
 
             <div class="card">

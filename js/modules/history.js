@@ -144,7 +144,13 @@ export const history = {
 
             ${entries.length === 0 ? ui.empty(t('Проведённых тренировок пока нет.')) : ui.html`
                 <div class="field">
-                    <input type="text" id="hist-search" placeholder="${t('Поиск по упражнению, типу или заметке')}"
+                    <!--
+                        Имя поля своё, а не из подсказки внутри (Р-150):
+                        подсказка исчезает от первой же буквы, то есть ровно
+                        тогда, когда в поле и работают.
+                    -->
+                    <input type="text" id="hist-search" aria-label="${t('Поиск по истории')}"
+                           placeholder="${t('Поиск по упражнению, типу или заметке')}"
                            value="${filter.query}" data-change="hist-search" autocomplete="off">
                 </div>
 

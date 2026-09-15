@@ -44,20 +44,20 @@ function option(q, value, label, on) {
 
 function control(q) {
     if (q.type === 'one') {
-        return ui.html`<div class="opts">
+        return ui.html`<div class="opts" role="group" aria-label="${t(q.label)}">
             ${q.opts.map((o) => option(q, o, t(o), values[q.id] === o))}
         </div>`;
     }
 
     if (q.type === 'many') {
         const picked = values[q.id] || [];
-        return ui.html`<div class="opts">
+        return ui.html`<div class="opts" role="group" aria-label="${t(q.label)}">
             ${q.opts.map((o) => option(q, o, t(o), picked.includes(o)))}
         </div>`;
     }
 
     if (q.type === 'scale') {
-        return ui.html`<div class="opts sv-scale">
+        return ui.html`<div class="opts sv-scale" role="group" aria-label="${t(q.label)}">
             <span class="sv-end">${t('хуже')}</span>
             ${[1, 2, 3, 4, 5].map((n) => option(q, n, String(n), values[q.id] === n))}
             <span class="sv-end">${t('лучше')}</span>
@@ -66,11 +66,13 @@ function control(q) {
 
     if (q.type === 'text') {
         return ui.html`<input type="text" data-change="sv-text" data-q="${q.id}"
+                              aria-label="${t(q.label)}"
                               value="${values[q.id] || ''}" placeholder="${t(q.placeholder || '')}"
                               autocomplete="off">`;
     }
 
     return ui.html`<textarea rows="3" data-change="sv-text" data-q="${q.id}"
+                             aria-label="${t(q.label)}"
                              placeholder="${t(q.placeholder || '')}">${values[q.id] || ''}</textarea>`;
 }
 
@@ -115,7 +117,8 @@ function failedBlock() {
         <div class="card sv-failed">
             <div class="card-title">${t('Отправить не вышло')}</div>
             <p class="hint">${outcome.failed} ${t('Ответ не пропал: скопируй текст и отправь его сообщением разработчику.')}</p>
-            <textarea class="sv-text" rows="12" readonly>${survey.asText(outcome.entry)}</textarea>
+            <textarea class="sv-text" rows="12" readonly
+                      aria-label="${t('Текст ответа')}">${survey.asText(outcome.entry)}</textarea>
             <button class="btn btn-accent" data-action="sv-copy">${t('Скопировать')}</button>
             <button class="btn btn-ghost" data-action="sv-send">${t('Попробовать отправить ещё раз')}</button>
         </div>
