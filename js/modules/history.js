@@ -251,7 +251,7 @@ actions.on('hist-type', (el) => {
 
 let searchDelay = 0;
 
-actions.onChange("hist-search", (el) => {
+actions.onChange('hist-search', (el) => {
     filter.query = el.value;
     resetPage();
     app.render();
