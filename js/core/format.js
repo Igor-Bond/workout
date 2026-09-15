@@ -34,7 +34,8 @@ const WORDS = {
     year:     { ru: ['год', 'года', 'лет'],                     en: ['year', 'years'],         de: ['Jahr', 'Jahre'] },
     value:    { ru: ['значение', 'значения', 'значений'],       en: ['value', 'values'],       de: ['Wert', 'Werte'] },
     step:     { ru: ['шаг', 'шага', 'шагов'],                   en: ['step', 'steps'],         de: ['Schritt', 'Schritte'] },
-    time:     { ru: ['раз', 'раза', 'раз'],                     en: ['time', 'times'],         de: ['Mal', 'Mal'] }
+    time:     { ru: ['раз', 'раза', 'раз'],                     en: ['time', 'times'],         de: ['Mal', 'Mal'] },
+    meal:     { ru: ['запись о еде', 'записи о еде', 'записей о еде'], en: ['food entry', 'food entries'], de: ['Essenseintrag', 'Essenseinträge'] }
 };
 
 export const format = {

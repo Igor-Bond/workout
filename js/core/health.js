@@ -24,6 +24,7 @@
 
 import { t } from './i18n.js';
 import { format } from './format.js';
+import { toNumber } from './num.js';
 
 /**
  * Оценки. Ключи, а не подписи: подпись переводится, а цвет — нет.
@@ -393,10 +394,8 @@ export const health = {
          * измениться, — и отсутствие замера прикидывалось бы падением на
          * девяносто два килограмма.
          */
-        const число = (v) => (v === null || v === undefined || v === '' ? NaN : Number(v));
-
-        const a = число(было);
-        const b = число(стало);
+        const a = toNumber(было);
+        const b = toNumber(стало);
 
         if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
 

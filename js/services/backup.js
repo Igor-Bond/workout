@@ -32,7 +32,8 @@ const TABLE_WORDS = {
     exercises:  format.WORDS.exercise,
     templates:  format.WORDS.template,
     workouts:   format.WORDS.workout,
-    bodyWeight: format.WORDS.weighIn
+    bodyWeight: format.WORDS.weighIn,
+    intake:     format.WORDS.meal
 };
 
 export const backup = {

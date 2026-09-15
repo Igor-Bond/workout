@@ -3052,6 +3052,90 @@ describe('Экран: кондиции', () => {
 
         await dbService.setSetting(ATHLETE_KEY, null);
     });
+
+    /*
+     * Питание — вторая половина разговора о весе (§68).
+     *
+     * Проверяется не арифметика съеденного (она своя), а то, как карточка
+     * ведёт себя с пустотой: день без записи обязан выглядеть пустым, а не
+     * съеденным на ноль, и дефицит обязан молчать, пока известна только
+     * одна половина.
+     */
+    it('день без записи показан пустым, а не нулём', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+
+        const view = await screen(condition);
+        const еда = [...view.querySelectorAll('.cond-tile')].find((p) => p.dataset.key === 'intake');
+
+        assert(еда, `карточка питания обязана быть: ${text(view).slice(0, 300)}`);
+        assert(еда.textContent.includes('—'), `прочерк, а не ноль: ${еда.textContent.trim()}`);
+        assert(еда.textContent.includes('не записано'), еда.textContent.trim());
+
+        assert(!еда.classList.contains('is-good') && !еда.classList.contains('is-watch'),
+            'отсутствие записи — не оценка, красить его нечем');
+
+        const дефицит = [...view.querySelectorAll('.cond-tile')].find((p) => p.dataset.key === 'deficit');
+
+        assert(!дефицит, 'расход без прихода — половина разговора, дефицитом её называть нельзя');
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    it('записанное складывается и вычитается из суточного расхода', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+
+        await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+        await dbService.addIntake({ kcal: 640, note: 'обед' });
+
+        const view = await screen(condition);
+        const плитки = [...view.querySelectorAll('.cond-tile')];
+
+        const еда = плитки.find((p) => p.dataset.key === 'intake');
+        const дефицит = плитки.find((p) => p.dataset.key === 'deficit');
+
+        assert(еда.textContent.includes('1460'), `две записи складываются: ${еда.textContent.trim()}`);
+        assert(еда.textContent.includes('2 записи о еде'), еда.textContent.trim());
+
+        assert(дефицит, 'оба числа известны — дефицит обязан быть назван');
+        assert(дефицит.textContent.includes('от расхода'),
+            `и сказано, от чего он считается: ${дефицит.textContent.trim()}`);
+
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Зеркало Р-156 в разметке: список ключей у карточки постоянный, а набор
+     * плиток — нет. Разворот «Дефицита» оставался раскрытым после того, как
+     * убрали последнюю запись дня, — объяснение висело само по себе.
+     */
+    it('разворот пропадает вместе со своей плиткой', async () => {
+        await seed();
+        await профиль();
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101 });
+
+        const запись = await dbService.addIntake({ kcal: 1460 });
+
+        condition.leave();
+        await press('cond-why', { key: 'deficit' });
+
+        assert((await screen(condition)).querySelector('.cond-detail'),
+            'пока плитка на месте, разворот раскрыт');
+
+        await dbService.deleteIntake(запись.id);
+
+        const после = await screen(condition);
+
+        assert(!после.querySelector('[data-key="deficit"]'), 'без еды дефицита нет');
+        assert(!после.querySelector('.cond-detail'),
+            'и объяснения к нему тоже: числа, о котором оно написано, на экране больше нет');
+
+        condition.leave();
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
 });
 
 /**

@@ -11,7 +11,7 @@
  */
 
 /** Таблицы, которые уезжают в облако. Настройки привязаны к устройству. */
-export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight'];
+export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight', 'intake'];
 
 /**
  * Настройки, которые едут в облако (§39.1).

@@ -79,6 +79,32 @@ db.version(3).stores({
     console.log(`[База] Миграция 3: сводка посчитана для ${byWorkout.size} тренировок.`);
 });
 
+/*
+ * Версия 4: съеденное за день (§68).
+ *
+ * Отдельной таблицей, а не полем во взвешивании: едят каждый день, а
+ * взвешиваются не каждый, и одно к другому не привязано — ровно та же
+ * причина, по которой в версии 2 отдельной таблицей стал вес тела.
+ *
+ * Поднимать версию схемы приложение до сих пор избегало: открыв базу новой
+ * версией, прежняя версия её уже не откроет, и откат ломается. Владелец
+ * решил это осознанно, зная цену: дневник еды — это записи, а записям нужна
+ * таблица, и класть их в настройки значило бы завести вторую базу внутри
+ * первой.
+ *
+ * Индексы те же, что у веса: день — чтобы собрать съеденное за дату, метка
+ * времени — чтобы запись уехала в облако.
+ */
+db.version(4).stores({
+    exercises: 'id, nameKey, kind, updatedAt',
+    templates: 'id, name, updatedAt',
+    workouts:  'id, startedAt, status, updatedAt',
+    sets:      'id, workoutId, exerciseId, performedAt, updatedAt, [workoutId+order], [exerciseId+performedAt]',
+    settings:  'key',
+    bodyWeight: 'id, at, updatedAt',
+    intake:    'id, at, updatedAt'
+});
+
 /**
  * Базовый справочник кладётся при создании базы, а не при каждом запуске:
  * иначе удалённые пользователем упражнения воскресали бы после перезагрузки.
@@ -1288,7 +1314,56 @@ export const dbService = {
         return db.settings.put({ key: row.key, value: row.value, updatedAt: row.updatedAt || 0 });
     },
 
+    // ================== СЪЕДЕННОЕ (§68) ==================
+
+    /**
+     * Записать съеденное.
+     *
+     * Хранится одно число — килокалории — и, если человек захотел, короткая
+     * заметка. Ни фотографии, ни разбора блюда: число решает человек, а
+     * заметка нужна ему самому, чтобы через месяц понять, откуда взялся
+     * день на две с половиной тысячи (§68).
+     */
+    async addIntake({ at = Date.now(), kcal, note = '' } = {}) {
+        const число = Number(kcal);
+
+        if (!Number.isFinite(число) || число <= 0) throw new Error('[База] Килокалории не названы');
+
+        const record = {
+            id: newId(),
+            at,
+            kcal: Math.round(число),
+            note: String(note || '').trim(),
+            updatedAt: Date.now()
+        };
+
+        await db.intake.add(record);
+        return record;
+    },
+
+    /** Съеденное за всю историю, по возрастанию дат. Удалённое не отдаётся. */
+    async listIntake() {
+        const rows = await db.intake.orderBy('at').toArray();
+        return rows.filter(alive);
+    },
+
+    /** Правка записи: число или заметка. */
+    async updateIntake(id, changes) {
+        await db.intake.update(id, { ...changes, updatedAt: Date.now() });
+        return db.intake.get(id);
+    },
+
+    /**
+     * Убрать запись — мягко, как и всё остальное (§36): отметка о
+     * удалении обязана доехать до других устройств, иначе запись вернётся с
+     * первым же обменом.
+     */
+    async deleteIntake(id) {
+        await db.intake.update(id, { deletedAt: Date.now(), updatedAt: Date.now() });
+    },
+
     // ================== СИНХРОНИЗАЦИЯ (§39) ==================
+
 
     /**
      * Записи, изменившиеся с указанного момента. Удалённые тоже: отметка
@@ -1431,9 +1506,16 @@ export const dbService = {
      * тренировками, и, оставшись здесь, он смешался бы с восстановленным —
      * замена перестала бы быть заменой. Дефект держался до тех пор, пока
      * очистка не понадобилась проверке экрана.
+     *
+     * Съеденное (§68) попало сюда по той же причине и в тот же день, когда
+     * появилось: таблица синхронизируемая, значит уезжает в копию, значит
+     * обязана стираться заменой.
      */
     async wipe() {
-        const tables = [db.exercises, db.templates, db.workouts, db.sets, db.bodyWeight, db.settings];
+        const tables = [
+            db.exercises, db.templates, db.workouts, db.sets,
+            db.bodyWeight, db.intake, db.settings
+        ];
 
         await db.transaction('rw', tables, async () => {
             await Promise.all(tables.map((table) => table.clear()));
