@@ -34,6 +34,48 @@ export const ATHLETE_KEY = 'athlete';
 /** Прочитать профиль. Всегда полный: хранимый мог быть частичным. */
 export const currentAthlete = async () => ядро.normalize(await dbService.getSetting(ATHLETE_KEY, null));
 
+/**
+ * Ключ цифровых целей (§67).
+ *
+ * Отдельно от профиля, а не полем в нём: профиль — это то, что человек
+ * рассказал о себе, и он меняется раз в полгода. Цель меняется тогда, когда
+ * её достигли или передумали, и у каждой своя точка отсчёта со своим днём.
+ */
+export const GOALS_KEY = 'goals';
+
+/** Цели: { вес: { target, from, since }, … }. Пустой объект, если их нет. */
+export async function currentGoals() {
+    const хранимое = await dbService.getSetting(GOALS_KEY, null);
+
+    return хранимое && typeof хранимое === 'object' && !Array.isArray(хранимое) ? хранимое : {};
+}
+
+/**
+ * Объявить цель или снять её.
+ *
+ * `from` — величина на сегодня: без неё потом не сказать, сколько пройдено, а
+ * это и есть то, ради чего цель заводят (js/core/goal.js). Меняя число цели,
+ * точку отсчёта не трогаем: человек передумал, куда идти, а не откуда вышел.
+ */
+export async function setGoal(metric, target, current) {
+    const цели = await currentGoals();
+
+    const к = Number(target);
+
+    if (!Number.isFinite(к) || к <= 0) delete цели[metric];
+    else {
+        цели[metric] = {
+            target: к,
+            from: Number.isFinite(цели[metric]?.from) ? цели[metric].from : Number(current),
+            since: цели[metric]?.since || Date.now()
+        };
+    }
+
+    await dbService.setSetting(GOALS_KEY, цели);
+
+    return цели;
+}
+
 /** Записать профиль целиком. */
 async function сохранить(профиль) {
     await dbService.setSetting(ATHLETE_KEY, профиль);
@@ -96,6 +138,10 @@ export const athleteScreen = {
         const names = await имена();
         const возраст = ядро.age(профиль);
 
+        const цели = await currentGoals();
+        const замеры = await dbService.listBodyWeight();
+        const последний = замеры[замеры.length - 1] || null;
+
         const действующие = ядро.active(профиль);
         const прошедшие = профиль.limits.filter((l) => l.healedAt);
 
@@ -151,6 +197,35 @@ export const athleteScreen = {
                            placeholder="${t('например: выносливость, не терять форму')}"
                            data-change="athlete-field" data-key="goal">
                 </div>
+
+                <!--
+                    Цифровая цель рядом со словесной, а не вместо неё (§67).
+
+                    Слова читает тренер — им он объясняет, зачем всё это. Число
+                    читает приложение: из него оно знает, куда хорошо, сколько
+                    пройдено и когда придёте. Одно другого не заменяет.
+                -->
+                <div class="plan-row-fields">
+                    <div class="field">
+                        <label for="a-goal-weight">${t('Вес, кг')}</label>
+                        <input id="a-goal-weight" type="number" min="30" max="300" step="0.1" inputmode="decimal"
+                               placeholder="${последний?.weight ? format.weight(последний.weight) : '—'}"
+                               value="${цели.weight?.target ?? ''}"
+                               data-change="goal-field" data-key="weight">
+                    </div>
+                    <div class="field">
+                        <label for="a-goal-waist">${t('Талия, см')}</label>
+                        <input id="a-goal-waist" type="number" min="40" max="200" step="0.5" inputmode="decimal"
+                               placeholder="${последний?.waist ? format.weight(последний.waist) : '—'}"
+                               value="${цели.waist?.target ?? ''}"
+                               data-change="goal-field" data-key="waist">
+                    </div>
+                </div>
+
+                <p class="hint">
+                    ${t('Числа необязательны. Названное число говорит приложению то, чего не скажут слова: куда хорошо, сколько уже пройдено и когда придёте своим ходом. Видно это в «Кондициях», по нажатию на плитку.')}
+                    ${последний ? '' : t('Пока не было ни одного замера, отсчитывать не от чего — взвесьтесь в статистике.')}
+                </p>
 
                 <div class="plan-row-fields">
                     <div class="field">
@@ -262,6 +337,25 @@ export const athleteScreen = {
  * Каждая буква означала бы запись в базу на нажатие клавиши и отправку в
  * облако следом. Профиль правят раз в месяц — ждать ухода из поля не жалко.
  */
+/**
+ * Объявить цифровую цель (§67, Р-155).
+ *
+ * Точка отсчёта берётся из последнего замера в тот момент, когда цель
+ * называют: иначе потом не сказать, сколько пройдено. Пустое поле снимает
+ * цель — отдельной кнопки «убрать» не нужно, стёртое число и значит «больше
+ * не цель».
+ */
+actions.onChange('goal-field', async (el) => {
+    const замеры = await dbService.listBodyWeight();
+    const последний = замеры[замеры.length - 1] || null;
+
+    const сейчас = el.dataset.key === 'waist' ? последний?.waist : последний?.weight;
+
+    await setGoal(el.dataset.key, el.value, сейчас);
+
+    haptics.tap();
+});
+
 actions.onChange('athlete-field', async (el) => {
     const профиль = await currentAthlete();
     const key = el.dataset.key;

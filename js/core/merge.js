@@ -32,7 +32,7 @@ export const SYNCED = ['exercises', 'templates', 'workouts', 'bodyWeight'];
  * днём — решение человека, а не свойство устройства. Ключ Intervals.icu не
  * едет и не поедет: он личный и лежит там, где его завели (§39.1).
  */
-export const SYNCED_SETTINGS = ['plan', 'athlete', 'planJournal', 'stepsGoal'];
+export const SYNCED_SETTINGS = ['plan', 'athlete', 'planJournal', 'stepsGoal', 'goals'];
 
 /**
  * Свой ли это объект — тот, что можно разобрать по ключам и собрать заново.

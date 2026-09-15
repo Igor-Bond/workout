@@ -49,6 +49,7 @@ await import('./suites/journal-plan.test.js');
 await import('./suites/kinds.test.js');
 await import('./suites/health.test.js');
 await import('./suites/chart.test.js');
+await import('./suites/goal.test.js');
 await import('./suites/docs.test.js');
 await import('./suites/journal.test.js');
 await import('./suites/guide.test.js');

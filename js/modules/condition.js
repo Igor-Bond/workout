@@ -28,7 +28,8 @@ import { actions } from '../core/actions.js';
 import { dbService } from '../services/db.js';
 import { health } from '../core/health.js';
 import { athlete } from '../core/athlete.js';
-import { currentAthlete } from './athlete.js';
+import { currentAthlete, currentGoals } from './athlete.js';
+import { goal } from '../core/goal.js';
 import { currentWellness } from './watch.js';
 import { recovery } from '../core/recovery.js';
 import { isBackground } from '../core/rhythm.js';
@@ -76,7 +77,21 @@ const ГРУППА = 'group:';
  * набирающего массу и для убирающего живот — это разные новости, и решать за
  * человека, какая из них хорошая, оно не вправе.
  */
-function куда(профиль) {
+function куда(профиль, цели = {}, последний = null) {
+    /*
+     * Цифра важнее слов (§67, Р-155).
+     *
+     * Словесная цель разбирается выражением и ошибается: «поправить спину»
+     * читается как «поправиться». Названное число не ошибается вовсе — из
+     * него направление видно точно, и спрашивать слова уже незачем.
+     */
+    const вес = цели.weight;
+
+    if (вес && Number.isFinite(вес.target) && Number.isFinite(последний?.weight)) {
+        if (вес.target < последний.weight) return 'down';
+        if (вес.target > последний.weight) return 'up';
+    }
+
     const цель = String(профиль?.goal || '').toLowerCase();
 
     const вниз = /похуд|живот|жир|сброс|сушк|вес вниз/.test(цель);
@@ -105,6 +120,14 @@ let раскрыто = null;
  * ради одной.
  */
 let РЯДЫ = {};
+
+/**
+ * Объявленные цифровые цели — на ту же отрисовку, что и ряды (§67).
+ *
+ * Лежат рядом с рядами и по той же причине: их спрашивает разворот, а он
+ * собирается глубоко внутри карточки.
+ */
+let ЦЕЛИ = {};
 
 
 /**
@@ -219,6 +242,8 @@ function разворот(ключ) {
                 <p class="hint">${t('Ход показать пока не из чего: нужно хотя бы два измерения.')}</p>
             ` : ''}
 
+            ${цельСтрокой(ключ, ряд)}
+
             ${что ? ui.html`<p class="hint">${что().text}</p>` : ''}
 
             <!--
@@ -267,6 +292,56 @@ function мерка(ключ) {
     }
 
     return '';
+}
+
+/**
+ * Что сделано и что осталось до объявленной цели (§67, Р-155).
+ *
+ * Стоит в развороте, а не на плитке: на плитке место числу и его оценке, а
+ * здесь — разговор о пути. Сначала пройденное, потом остаток: человек,
+ * снявший полтора килограмма, обязан видеть их раньше, чем оставшиеся
+ * четыре.
+ *
+ * Срок называется только там, где он честно считается. Идёте в другую
+ * сторону или стоите — приложение так и говорит, а даты не выдумывает.
+ */
+function цельСтрокой(ключ, ряд) {
+    const объявлено = ЦЕЛИ[ключ];
+    if (!объявлено || !ряд || !ряд.points.length) return '';
+
+    const сейчас = ряд.points[ряд.points.length - 1].value;
+
+    const ход = goal.progress({ from: объявлено.from, target: объявлено.target, current: сейчас });
+    if (!ход) return '';
+
+    const вНеделю = goal.pace(ряд.points);
+    const куда = goal.heading({ target: объявлено.target, current: сейчас, perWeek: вНеделю });
+
+    const срок = вНеделю === null ? null : goal.eta({
+        current: сейчас, target: объявлено.target, perWeek: вНеделю
+    });
+
+    const весь = Math.abs(объявлено.target - объявлено.from);
+    const пройдено = Math.max(0, весь - ход.left);
+
+    return ui.html`
+        <p class="hint">
+            ${ход.done
+                ? t('Цель {цель} достигнута.', { цель: format.plain(объявлено.target) })
+                : t('Цель {цель}: прошли {пройдено} из {весь}, осталось {осталось}.', {
+                    цель: format.plain(объявлено.target),
+                    пройдено: format.decimal(пройдено, 1),
+                    весь: format.decimal(весь, 1),
+                    осталось: format.decimal(ход.left, 1)
+                })}
+
+            ${ход.done ? '' : куда === 'toward' && срок
+                ? t(' Своим ходом придёте к {день}.', { день: dates.formatDate(срок) })
+                : куда === 'away'
+                    ? t(' Последний месяц идёте в другую сторону.')
+                    : t(' Пока стоите на месте — срок назвать нечем.')}
+        </p>
+    `;
 }
 
 /**
@@ -496,16 +571,17 @@ function собратьРяды({ замеры, rows, профиль, рост, 
 
 /** Всё, что экрану нужно из базы, — одним заходом. */
 async function прочитать() {
-    const [профиль, замеры, сводки, { rows }, подходы, упражнения] = await Promise.all([
+    const [профиль, замеры, сводки, { rows }, подходы, упражнения, цели] = await Promise.all([
         currentAthlete(),
         dbService.listBodyWeight(),
         dbService.listWorkoutSummaries(),
         currentWellness(),
         dbService.allSets(),
-        dbService.listExercises({ includeArchived: true })
+        dbService.listExercises({ includeArchived: true }),
+        currentGoals()
     ]);
 
-    return { профиль, замеры, сводки, rows, подходы, упражнения };
+    return { профиль, замеры, сводки, rows, подходы, упражнения, цели };
 }
 
 export const condition = {
@@ -525,13 +601,13 @@ export const condition = {
     },
 
     async render() {
-        const { профиль, замеры, сводки, rows, подходы, упражнения } = await прочитать();
+        const { профиль, замеры, сводки, rows, подходы, упражнения, цели } = await прочитать();
 
         const возраст = athlete.age(профиль);
         const рост = Number(профиль?.height) || null;
 
         const последний = замеры[замеры.length - 1] || null;
-        const цель = куда(профиль);
+        const цель = куда(профиль, цели, последний);
 
         const группы = calc.groupWeeks(
             подходы,
@@ -539,6 +615,7 @@ export const condition = {
         );
 
         ПРО = { рост, sex: профиль?.sex };
+        ЦЕЛИ = цели;
         РЯДЫ = собратьРяды({ замеры, rows, профиль, рост, возраст, группы });
 
         const тело = await телоБлок({ профиль, замеры, последний, рост, возраст, цель });

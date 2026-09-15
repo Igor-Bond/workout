@@ -35,7 +35,7 @@ import { shares } from '../../js/modules/shares.js';
 import { condition } from '../../js/modules/condition.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
-import { ATHLETE_KEY } from '../../js/modules/athlete.js';
+import { ATHLETE_KEY, setGoal, GOALS_KEY } from '../../js/modules/athlete.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
 import { actions } from '../../js/core/actions.js';
@@ -2574,6 +2574,76 @@ describe('Экран: кондиции', () => {
 
         condition.leave();
         await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Цифровая цель говорит то, чего не скажут слова (§67, Р-155).
+     */
+    it('объявленная цель показывает пройденное, остаток и срок', async () => {
+        await seed();
+        await профиль({ goal: '' });
+
+        await dbService.setBodyWeight({ at: Date.now() - 28 * DAY, weight: 94.2 });
+        await dbService.setBodyWeight({ weight: 92.6 });
+
+        await setGoal('weight', 88, 94.2);
+
+        condition.leave();
+        await press('cond-why', { key: 'weight' });
+
+        const разворот = text((await screen(condition)).querySelector('.cond-detail'));
+
+        assert(разворот.includes('прошли 1,6'), `пройденное впереди остатка: ${разворот.slice(0, 160)}`);
+        assert(разворот.includes('осталось 4,6'), разворот.slice(0, 160));
+
+        condition.leave();
+        for (const ключ of [GOALS_KEY, ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
+
+    /*
+     * Словесная цель разбирается выражением и ошибается; названное число не
+     * ошибается вовсе — из него направление видно точно.
+     */
+    it('цифра задаёт направление даже без слов в профиле', async () => {
+        await seed();
+        await профиль({ goal: '' });
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.2 });
+        await dbService.setBodyWeight({ weight: 92.6 });
+
+        await setGoal('weight', 88, 94.2);
+
+        const вес = [...(await screen(condition)).querySelectorAll('.cond-tile')]
+            .find((p) => p.dataset.key === 'weight');
+
+        assert(вес.classList.contains('is-good'),
+            'цель ниже нынешнего веса — значит вниз хорошо, и слова для этого не нужны');
+
+        for (const ключ of [GOALS_KEY, ATHLETE_KEY]) await dbService.setSetting(ключ, null);
+    });
+
+    /*
+     * Идущему в другую сторону дата не обещается: это было бы выдумкой.
+     */
+    it('обратный ход называется прямо, а срок не выдумывается', async () => {
+        await seed();
+        await профиль({ goal: '' });
+
+        await dbService.setBodyWeight({ at: Date.now() - 28 * DAY, weight: 92.0 });
+        await dbService.setBodyWeight({ weight: 93.4 });
+
+        await setGoal('weight', 88, 92.0);
+
+        condition.leave();
+        await press('cond-why', { key: 'weight' });
+
+        const разворот = text((await screen(condition)).querySelector('.cond-detail'));
+
+        assert(разворот.includes('в другую сторону'), разворот.slice(0, 160));
+        assert(!разворот.includes('придёте'), 'срока у обратного хода нет');
+
+        condition.leave();
+        for (const ключ of [GOALS_KEY, ATHLETE_KEY]) await dbService.setSetting(ключ, null);
     });
 
     /*
