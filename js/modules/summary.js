@@ -193,11 +193,44 @@ function block(b, note) {
 
             ${note ? ui.html`<p class="note-shown">${note}</p>` : ''}
 
+            <!--
+                Проставить повторения разом (§50.3).
+
+                Нужно интервальной программе: она пишет подходы сама, а
+                повторения оставляет пустыми — считать их, не трогая телефон,
+                нельзя. Проставлять их по одному значило бы открыть двадцать
+                четыре окна подряд, и на этом всё и кончалось: числа не
+                попадали в базу вовсе, а без них молчат и рекорды, и
+                подсказка темпа на самом интервальном экране.
+
+                Показывается по состоянию подходов, а не по виду тренировки:
+                обычный подход без повторений — та же дыра, просто реже.
+            -->
+            ${пустые(b) ? ui.html`
+                <button class="link-btn" data-action="summary-fill-reps" data-exercise="${b.exerciseId}">
+                    ${t('проставить повторения')}
+                </button>
+            ` : ''}
+
             <button class="link-btn" data-action="summary-note-exercise" data-exercise="${b.exerciseId}">
                 ${note ? t('изменить заметку') : t('＋ заметка к упражнению')}
             </button>
         </div>
     `;
+}
+
+/**
+ * Есть ли у упражнения подходы без повторений (§50.3).
+ *
+ * Два условия, и оба нужны. Повторения должны быть свойственны виду — у
+ * кардио их не бывает вовсе, и звать вписать их туда значило бы предложить
+ * записать несуществующее. И подходов должно быть больше одного: ради
+ * единственного открывать отдельное окно незачем, его правят на месте.
+ */
+function пустые(b) {
+    return b.sets.length > 1
+        && kindFields(b.kind).includes('reps')
+        && b.sets.some((s) => !Number.isFinite(s.reps));
 }
 
 function tile(label, value) {
@@ -479,6 +512,69 @@ actions.on('summary-edit-set', async (el) => {
 });
 
 actions.on('summary-open-exercise', (el) => app.go('exercise', el.dataset.id));
+
+/**
+ * Повторения всех подходов упражнения одним окном (§50.3).
+ *
+ * Круги в интервальной программе тем и интересны, что числа в них разные:
+ * 15, 16, 17 — это не «примерно шестнадцать», а ответ на вопрос, дошёл ли
+ * человек до предела. Поэтому не «применить ко всем», а поле на каждый круг.
+ *
+ * Пустое поле оставляет подход как был. Number('') даёт ноль (Р-134), и
+ * отличить «не заполнил» от «ноль повторений» здесь нечем — но нулевых
+ * подходов не бывает, и толковать ноль как пропуск безопасно. Стереть
+ * записанное можно правкой самого подхода, где ноль такого смысла не имеет.
+ */
+actions.on('summary-fill-reps', async (el) => {
+    const id = app.route.params[0];
+    const workout = id ? await dbService.getWorkout(id) : null;
+    if (!workout) return;
+
+    const exerciseId = el.dataset.exercise;
+
+    const sets = (await dbService.listSets(workout.id))
+        .filter((s) => s.exerciseId === exerciseId)
+        .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0));
+
+    if (sets.length === 0) return;
+
+    const exercise = await dbService.getExercise(exerciseId);
+
+    // В интервальной программе подход — это круг, и называть его надо тем
+    // словом, которое человек только что слышал и видел на отсчёте
+    const кругами = !!workout.interval;
+
+    const values = await dialog.form({
+        title: exercise?.name || t('Повторения'),
+        text: t('Числа по кругам — то, ради чего всё и считается. Пустое поле оставит подход как есть.'),
+        fields: sets.map((s, i) => ({
+            name: String(s.id),
+            label: кругами
+                ? t('Круг {n}', { n: String(i + 1) })
+                : t('Подход {n}', { n: String(i + 1) }),
+            type: 'number',
+            value: Number.isFinite(s.reps) ? String(s.reps) : ''
+        }))
+    });
+
+    if (!values) return;
+
+    for (const s of sets) {
+        const n = Number(values[String(s.id)]);
+
+        if (!Number.isFinite(n) || n <= 0 || n === s.reps) continue;
+
+        await dbService.updateSet(s.id, { reps: n });
+    }
+
+    /*
+     * Итоги пересчитываются целиком: повторения входят в объём и в тоннаж,
+     * и строка сводки, оставшаяся прежней, читалась бы как «не записалось».
+     */
+    await dbService.recomputeSummary(workout.id);
+
+    app.render();
+});
 
 actions.on('summary-note-exercise', async (el) => {
     const id = app.route.params[0];

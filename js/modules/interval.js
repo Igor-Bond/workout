@@ -16,6 +16,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { interval } from '../core/interval.js';
+import { pace } from '../core/pace.js';
 import { beeper } from '../core/beeper.js';
 import { voice } from '../core/voice.js';
 import { wakeLock } from '../core/wakelock.js';
@@ -43,6 +44,43 @@ let shownIndex = -1;
  * записанном и хранить его между запусками незачем.
  */
 let spoken = { start: null, remind: null };
+
+/**
+ * Темп прошлого раза по каждому упражнению круга (§50.3).
+ *
+ * Считается один раз на тренировку и держится здесь. Прошлая тренировка по
+ * ходу этой не меняется, а отрисовка случается на каждой смене отрезка —
+ * то есть в табате раз в десять секунд, и ходить за этим в базу означало бы
+ * шесть запросов на каждую смену ради одних и тех же чисел.
+ */
+let paces = { workoutId: null, byExercise: {} };
+
+/**
+ * Сколько подходов упражнения поднимаем, чтобы добраться до прошлого раза.
+ *
+ * Сотня: в одной интервальной тренировке подходов одного упражнения не
+ * больше тридцати (LIMITS.rounds), и сотня заведомо перекрывает текущую
+ * тренировку вместе с предыдущей.
+ */
+const ГЛУБИНА = 100;
+
+async function readPaces(workout) {
+    if (paces.workoutId === workout.id) return paces.byExercise;
+
+    const ids = [...new Set((workout.plan || []).map((i) => i.exerciseId).filter(Boolean))];
+    const out = {};
+
+    for (const id of ids) {
+        const sets = await dbService.listSetsByExercise(id, { limit: ГЛУБИНА });
+        const темп = pace.read(sets, { exclude: workout.id });
+
+        if (темп) out[id] = темп;
+    }
+
+    paces = { workoutId: workout.id, byExercise: out };
+
+    return out;
+}
 
 const PHASE = {
     lead:      { label: 'Приготовься', tone: 'is-lead' },
@@ -72,8 +110,12 @@ async function load() {
 
     const exercises = Object.fromEntries(list.map((e) => [e.id, e]));
     const phases = interval.build(workout.interval, workout.plan);
+    const paced = await readPaces(workout);
 
-    return { workout, sets, exercises, phases, run: workout.run || { state: 'idle', elapsed: 0 } };
+    return {
+        workout, sets, exercises, phases, paces: paced,
+        run: workout.run || { state: 'idle', elapsed: 0 }
+    };
 }
 
 /**
@@ -127,12 +169,19 @@ function head({ workout, phases, run }, state) {
 }
 
 /** Крупный отсчёт — единственное, что нужно видеть с вытянутой руки. */
-function clock({ exercises, phases }, state) {
+function clock({ exercises, phases, paces }, state) {
     const phase = state.phase;
     const info = PHASE[phase.kind];
 
     const exercise = phase.exerciseId ? exercises[phase.exerciseId] : null;
     const next = state.next ? exercises[state.next.exerciseId] : null;
+
+    /*
+     * Подсказка относится к тому упражнению, чьё имя стоит крупно (§50.3):
+     * во время работы это текущее, в любой паузе — следующее. Иначе в паузе
+     * человек читал бы цель того, что уже сделал.
+     */
+    const темп = paces?.[phase.exerciseId || state.next?.exerciseId];
 
     return ui.html`
         <div class="iv-clock ${info.tone}">
@@ -140,6 +189,15 @@ function clock({ exercises, phases }, state) {
             <div class="iv-time" id="iv-time">${format.seconds(state.remaining)}</div>
 
             <div class="iv-now">${exercise ? exercise.name : (next?.name || '')}</div>
+
+            <!--
+                Во время работы — одно слово с числом, в паузе — фраза
+                целиком. Двадцать секунд приседаний не оставляют времени
+                читать, а число с вытянутой руки читается и на ходу.
+            -->
+            ${темп ? (phase.kind === 'work'
+                ? ui.html`<div class="iv-aim">${pace.aim(темп)}</div>`
+                : ui.html`<p class="iv-pace">${pace.line(темп)}</p>`) : ''}
 
             ${exercise?.howTo ? ui.html`<p class="iv-how">${exercise.howTo}</p>` : ''}
 
@@ -162,11 +220,20 @@ function clock({ exercises, phases }, state) {
 }
 
 /** Список упражнений круга: где мы и что впереди. */
-function ring({ workout, exercises }, state) {
+function ring({ workout, exercises, paces }, state) {
     const items = workout.plan.filter((i) => i.exerciseId);
     if (items.length < 2) return '';
 
     const nowId = state.phase?.exerciseId || state.next?.exerciseId;
+
+    /*
+     * Цель стоит и здесь, а не только в крупной строке (§50.3).
+     *
+     * Список виден до запуска — в ту единственную минуту, когда есть время
+     * посмотреть на круг целиком и решить, тот ли он. Числа прошлого раза
+     * рядом с названиями и есть весь ответ на этот вопрос.
+     */
+    const цель = (id) => (paces?.[id] ? String(paces[id].last) : '');
 
     return ui.html`
         <div class="card">
@@ -174,9 +241,13 @@ function ring({ workout, exercises }, state) {
             ${items.map((item, i) => ui.html`
                 <div class="iv-row ${item.exerciseId === nowId ? 'is-now' : ''}">
                     <span class="iv-num">${String(i + 1)}</span>
-                    <span>${exercises[item.exerciseId]?.name || t('Упражнение')}</span>
+                    <span class="iv-name">${exercises[item.exerciseId]?.name || t('Упражнение')}</span>
+                    <span class="iv-goal">${цель(item.exerciseId)}</span>
                 </div>
             `)}
+            ${items.some((i) => paces?.[i.exerciseId]) ? ui.html`
+                <p class="hint">${t('Справа — последний круг прошлого раза. С него и начинайте.')}</p>
+            ` : ''}
         </div>
     `;
 }

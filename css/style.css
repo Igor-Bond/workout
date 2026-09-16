@@ -2644,6 +2644,28 @@ input[type=file]::file-selector-button {
     max-width: 32em;
 }
 
+/*
+ * Цель по прошлому разу (§50.3).
+ *
+ * Во время работы — крупно и цветом отрезка: это единственное, что человек
+ * успевает прочесть, не останавливаясь. В паузе — обычной подсказкой: там
+ * читают фразу, а не число.
+ */
+.iv-aim {
+    font-size: 1.125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-top: 6px;
+    color: var(--accent);
+}
+
+.iv-pace {
+    font-size: 0.8125rem;
+    color: var(--text);
+    margin: 8px auto 0;
+    max-width: 32em;
+}
+
 .iv-next { font-size: 0.8125rem; color: var(--text-dim); margin-top: 10px; }
 
 .iv-where {
@@ -2667,6 +2689,19 @@ input[type=file]::file-selector-button {
 }
 
 .iv-row.is-now { background: var(--panel-2); color: var(--accent); font-weight: 700; }
+
+/* Название занимает строку, число прошлого раза прижато вправо */
+.iv-name { flex: 1; min-width: 0; }
+
+.iv-goal {
+    flex: none;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+}
+
+.iv-row.is-now .iv-goal { color: var(--accent); }
 
 .iv-num {
     flex: none;

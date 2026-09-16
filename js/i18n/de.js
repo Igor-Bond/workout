@@ -563,6 +563,15 @@ export const DE = {
     'Подход {n} из {всего}': 'Satz {n} von {всего}',
     'дальше — {что}': 'weiter — {что}',
     'круг {n} из {всего}': 'Runde {n} von {всего}',
+    'Прошлый раз — {n}.': 'Letztes Mal — {n}.',
+    'Прошлый раз {от} → {до} — был запас. Начните с {до}.':
+        'Letztes Mal {от} → {до} — da war noch Luft. Fang bei {до} an.',
+    'Прошлый раз {от} → {до} — начали быстро. Держите {до}.':
+        'Letztes Mal {от} → {до} — zu schnell gestartet. Halte {до}.',
+    'Прошлый раз ровно {n} — держите.': 'Letztes Mal genau {n} — halte das.',
+    'держите {n}': 'halte {n}',
+    'Справа — последний круг прошлого раза. С него и начинайте.':
+        'Rechts steht die letzte Runde vom letzten Mal. Damit fängst du an.',
     'Приготовься': 'Mach dich bereit',
     'Работа': 'Arbeit',
     'Отдых между кругами': 'Pause zwischen den Runden',
@@ -895,6 +904,10 @@ export const DE = {
     'сек': 'Sek.',
     'Добавь упражнение, чтобы начать.': 'Füge eine Übung hinzu, um zu beginnen.',
     'Подход {n}': 'Satz {n}',
+    'Круг {n}': 'Runde {n}',
+    'проставить повторения': 'Wiederholungen eintragen',
+    'Числа по кругам — то, ради чего всё и считается. Пустое поле оставит подход как есть.':
+        'Die Zahlen je Runde sind der ganze Sinn der Zählerei. Ein leeres Feld lässt den Satz, wie er ist.',
     'Сделано': 'Erledigt',
     'Отменить последний подход': 'Letzten Satz rückgängig',
     'Активной тренировки нет.': 'Es läuft kein Training.',

@@ -18,6 +18,7 @@ import { describe, it, equal, assert } from '../runner.js';
 import { dbService } from '../../js/services/db.js';
 import { engine } from '../../js/core/engine.js';
 import { records } from '../../js/core/records.js';
+import { pace } from '../../js/core/pace.js';
 import { sync } from '../../js/services/sync.js';
 import { auth } from '../../js/services/auth.js';
 import { config } from '../../js/config.js';
@@ -855,5 +856,97 @@ describe('Сквозной путь: запись, выложенная позж
         } finally {
             restore();
         }
+    });
+});
+
+/*
+ * Табата: от пустых подходов до подсказки темпа (§50.3, Р-178).
+ *
+ * Дорога здесь длиннее всего, что есть в приложении, и каждый её отрезок
+ * лежит в своём модуле: интервальный экран пишет подходы без повторений,
+ * итоги дают их проставить, а следующая табата читает их обратно. По частям
+ * всё исправно и по частям же бесполезно — подсказка появляется только если
+ * дорога цела целиком.
+ */
+describe('Сквозной путь: табата подсказывает темп', () => {
+
+    /** Как пишет подходы интервальный экран: время есть, повторений нет. */
+    const кругами = async (workout, exercise, сколько) => {
+        for (let i = 1; i <= сколько; i++) {
+            await записать(workout, exercise, i, i, { duration: 20 });
+        }
+    };
+
+    it('от пустых кругов до числа на экране следующей табаты', async () => {
+        await clean();
+
+        const приседания = await dbService.createExercise({
+            name: 'Приседания', kind: 'reps', group: 'Ноги'
+        });
+
+        // ---------- первая табата ----------
+        const первая = await dbService.createWorkout({
+            type: 'Табата',
+            plan: [{ exerciseId: приседания.id, plannedSets: 3, skipped: false }]
+        });
+
+        await кругами(первая, приседания, 3);
+        await dbService.finishWorkout(первая.id);
+
+        const следующая = await dbService.createWorkout({
+            type: 'Табата',
+            plan: [{ exerciseId: приседания.id, plannedSets: 3, skipped: false }]
+        });
+
+        /*
+         * Пока числа не проставлены, подсказки нет — и это не сбой, а
+         * обычное дело: экран табаты повторений не пишет вовсе.
+         */
+        equal(
+            pace.read(await dbService.listSetsByExercise(приседания.id), { exclude: следующая.id }),
+            null,
+            'пустая подсказка хуже отсутствующей'
+        );
+
+        // ---------- итоги: числа проставлены по кругам ----------
+        const прошлые = (await dbService.listSets(первая.id))
+            .sort((a, b) => a.setNumber - b.setNumber);
+
+        equal(прошлые.length, 3);
+
+        const числа = [15, 16, 17];
+
+        for (let i = 0; i < прошлые.length; i++) {
+            await dbService.updateSet(прошлые[i].id, { reps: числа[i] });
+        }
+
+        // ---------- следующая табата читает их обратно ----------
+        const темп = pace.read(
+            await dbService.listSetsByExercise(приседания.id),
+            { exclude: следующая.id }
+        );
+
+        equal(темп.numbers, числа, 'круги пришли в том порядке, в каком были сделаны');
+        equal(темп.trend, 'rise', 'до предела не дошли ни разу');
+        equal(темп.last, 17);
+
+        assert(pace.line(темп).includes('17'), pace.line(темп));
+
+        /*
+         * И главное: свои же пустые круги подсказку не сбивают.
+         *
+         * Их пишут по ходу программы, и они те же самые — время без
+         * повторений. Отличить их от прошлых нечем, кроме тренировки, и
+         * промах здесь стоил бы подсказки ровно в тот момент, когда она
+         * нужна.
+         */
+        await кругами(следующая, приседания, 2);
+
+        const посреди = pace.read(
+            await dbService.listSetsByExercise(приседания.id),
+            { exclude: следующая.id }
+        );
+
+        equal(посреди.numbers, числа, 'подсказка смотрит на прошлый раз, а не на текущий круг');
     });
 });

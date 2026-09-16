@@ -623,6 +623,15 @@ export const EN = {
     'Подход {n} из {всего}': 'Set {n} of {всего}',
     'дальше — {что}': 'next — {что}',
     'круг {n} из {всего}': 'round {n} of {всего}',
+    'Прошлый раз — {n}.': 'Last time — {n}.',
+    'Прошлый раз {от} → {до} — был запас. Начните с {до}.':
+        'Last time {от} → {до} — you had room left. Start at {до}.',
+    'Прошлый раз {от} → {до} — начали быстро. Держите {до}.':
+        'Last time {от} → {до} — you went out fast. Hold {до}.',
+    'Прошлый раз ровно {n} — держите.': 'Last time an even {n} — hold it.',
+    'держите {n}': 'hold {n}',
+    'Справа — последний круг прошлого раза. С него и начинайте.':
+        'On the right — the last round of your previous session. Start there.',
     'Приготовься': 'Get ready',
     'Работа': 'Work',
     'Отдых между кругами': 'Rest between rounds',
@@ -955,6 +964,10 @@ export const EN = {
     'сек': 'sec',
     'Добавь упражнение, чтобы начать.': 'Add an exercise to begin.',
     'Подход {n}': 'Set {n}',
+    'Круг {n}': 'Round {n}',
+    'проставить повторения': 'fill in the reps',
+    'Числа по кругам — то, ради чего всё и считается. Пустое поле оставит подход как есть.':
+        'The per-round numbers are the whole point of counting. An empty field leaves the set as it is.',
     'Сделано': 'Done',
     'Отменить последний подход': 'Undo the last set',
     'Активной тренировки нет.': 'There is no active workout.',
