@@ -775,7 +775,19 @@ function fields(kind, prefill, exercise = {}) {
                 <input type="number" id="f-duration" min="0" inputmode="numeric"
                        placeholder="—" value="${value(prefill.duration)}">
                 <span>${t('сек')}</span>
-                <button class="link-btn" data-action="sess-hold-start">${t('Отсчёт')}</button>
+            </div>
+
+            <!--
+                Отсчёт выглядит одинаково у всех, у кого есть время (Р-176).
+
+                Сперва у кардио и своего веса он был ссылкой в строке поля — и
+                терялся: у планки на том же месте стоит крупная кнопка, и
+                человек, знающий её по планке, на других упражнениях её просто
+                не находил. Одно действие, названное одним словом, обязано и
+                выглядеть одинаково.
+            -->
+            <div class="row-links">
+                <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
             </div>
         `;
     }
@@ -891,13 +903,15 @@ function fields(kind, prefill, exercise = {}) {
                        placeholder="—" value="${value(prefill.duration)}"
                        aria-label="${t('время подхода, секунд')}">
                 <span>${t('сек')}</span>
+            </div>
 
-                <!--
-                    Отсчёт стоит в той же строке, что и поле, и прячется
-                    вместе с ней: предлагать отсчитать то, чего не назвали,
-                    незачем (Р-171).
-                -->
-                <button class="link-btn" data-action="sess-hold-start">${t('Отсчёт')}</button>
+            <!--
+                Отсчёт прячется вместе с полем времени — предлагать отсчитать
+                то, чего не назвали, незачем (Р-171), — но выглядит как у
+                планки: крупной кнопкой, а не ссылкой (Р-176).
+            -->
+            <div class="row-links" id="f-duration-hold" ${ui.raw(prefill.duration ? '' : 'hidden')}>
+                <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
             </div>
         ` : ''}
     `;
@@ -2015,6 +2029,10 @@ actions.on('sess-duration-toggle', (el) => {
 
     row.hidden = !row.hidden;
     el.textContent = row.hidden ? t('＋ время') : t('− время');
+
+    // Кнопка отсчёта живёт отдельной строкой (Р-176), но прячется той же
+    const hold = document.getElementById('f-duration-hold');
+    if (hold) hold.hidden = row.hidden;
 
     if (row.hidden) {
         if (input) input.value = '';
