@@ -54,6 +54,7 @@ await import('./suites/intake.test.js');
 await import('./suites/photo.test.js');
 await import('./suites/digest.test.js');
 await import('./suites/pace.test.js');
+await import('./suites/css.test.js');
 await import('./suites/docs.test.js');
 await import('./suites/journal.test.js');
 await import('./suites/guide.test.js');

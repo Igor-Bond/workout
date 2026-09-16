@@ -689,6 +689,10 @@ input:focus, select:focus, textarea:focus {
     line-height: 1.5;
     white-space: pre;
     overflow-x: auto;
+
+    /* Свайп вбок не уходит дальше самой сводки (Р-181) */
+    overscroll-behavior-x: contain;
+
     margin-bottom: 12px;
 }
 
@@ -1442,8 +1446,18 @@ table.log th {
 table.log td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
 table.log tr:last-child td { border-bottom: none; }
 
-/* Широкая таблица прокручивается внутри себя, а не распирает страницу */
-.table-scroll { overflow-x: auto; }
+/*
+ * Широкая таблица прокручивается внутри себя, а не распирает страницу.
+ *
+ * И не дальше себя (Р-181). Журнал подходов шире телефона всего на десяток
+ * точек: один свайп влево — и прокрутка кончилась, а жест продолжился. Дальше
+ * его подхватывает браузер и уводит по истории назад, то есть из приложения
+ * вон. Со стороны это выглядит так, будто окно уехало целиком.
+ */
+.table-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
 
 .ex-block {
     background: var(--panel);
