@@ -24,6 +24,7 @@ import { haptics } from '../core/haptics.js';
 import { observations } from '../services/howgoing.js';
 import { putQuestion } from './coach.js';
 import { app } from '../app.js';
+import { fold } from '../core/fold.js';
 import { currentWellness, currentActivities } from './watch.js';
 import { recovery } from '../core/recovery.js';
 import { effort } from '../core/effort.js';
@@ -205,7 +206,7 @@ async function часыБлок() {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">${t('С часов')}</div>
+            ${выводы.length ? fold.title('watch', t('С часов')) : ui.html`<div class="card-title">${t('С часов')}</div>`}
 
             <div class="tiles">
                 <!--
@@ -232,8 +233,26 @@ async function часыБлок() {
                     : ''}
             </div>
 
-            ${выводы.map((с) => ui.html`<div class="plan-rule">${с}</div>`)}
+            <!--
+                Сворачивается только разбор, плитки остаются (Р-168): числа
+                здесь и есть то, за чем на карточку смотрят, а слова под ними
+                читают один раз, а потом они мешают.
 
+                Без единого вывода сворачивать нечего, и заголовок остаётся
+                обычной подписью: кнопка, которая ничего не прячет, — обман.
+            -->
+            ${выводы.length
+                ? fold.body('watch', выводы.map((с) => ui.html`<div class="plan-rule">${с}</div>`))
+                : ''}
+
+            <!--
+                Строка о давности не сворачивается никогда.
+
+                Это не разбор, а предупреждение: «данные кончаются на 8
+                сентября, проверьте привязку» — ровно то, чего владелец не
+                увидел бы, свернув карточку однажды и забыв про неё. Свёртка
+                убирает лишнее, а не прячет плохие новости.
+            -->
             <p class="hint ${отстал > 1 ? 'is-bad' : ''}">
                 ${отстал > 1
                     ? t('Данные кончаются на {день} — новее с часов не приходило. Проверьте привязку в приложении часов.', {
@@ -435,8 +454,9 @@ function ходБлок(наблюдения, планЕсть) {
 
     return ui.html`
         <div class="card">
-            <div class="card-title">${t('Как идёт программа')}</div>
+            ${fold.title('howgoing', t('Как идёт программа'))}
 
+            ${fold.body('howgoing', ui.html`
             <!--
                 Кнопка рядом с наблюдением, а не одна на карточку (§63.1).
                 Спрашивают о конкретном — «запас большой третье занятие», — а
@@ -472,6 +492,7 @@ function ходБлок(наблюдения, планЕсть) {
             <p class="hint">
                 ${t('Приложение называет наблюдение и его основание — решаете вы.')}
             </p>
+            `)}
         </div>
     `;
 }

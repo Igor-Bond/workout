@@ -4700,6 +4700,77 @@ describe('Кнопки и обработчики', () => {
      */
     const ИЗ_ТОЧКИ_ВХОДА = ['nav', 'install', 'reload', 'dismiss-banner'];
 
+    /*
+     * Свёрнутый текст под заголовком (§45, Р-168).
+     *
+     * Карточек с выводами стало три, и все текстовые: вместе они дают
+     * несколько абзацев подряд в самом начале страницы, ровно там, где ищут
+     * числа.
+     */
+    it('заголовок сворачивает текст и помнит это', async () => {
+        await seed();
+
+        await dbService.setSetting(ATHLETE_KEY, {
+            sex: 'male', birthYear: 1982, height: 185, goal: 'убрать живот',
+            limits: [], equipment: []
+        });
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1, waist: 103 });
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101.5 });
+
+        config.set('folded', {});
+
+        const развёрнуто = await screen(condition);
+        const кнопка = развёрнуто.querySelector('[data-action="fold"][data-key="digest"]');
+
+        assert(кнопка, `итог обязан сворачиваться: ${text(развёрнуто).slice(0, 200)}`);
+        equal(кнопка.getAttribute('aria-expanded'), 'true', 'по умолчанию развёрнуто');
+
+        assert(кнопка.textContent.includes('Что изменилось'),
+            'кнопка названа тем же словом, что и карточка, а не значком (Р-151)');
+
+        assert(!развёрнуто.querySelector('.fold-body').classList.contains('is-folded'));
+
+        // Свернули — и это запомнилось на устройстве
+        await press('fold', { key: 'digest' });
+
+        equal(config.get('folded').digest, true);
+
+        const свёрнуто = await screen(condition);
+
+        equal(свёрнуто.querySelector('[data-action="fold"][data-key="digest"]').getAttribute('aria-expanded'), 'false',
+            'иначе это не настройка, а упражнение: сворачивать одно и то же при каждом заходе');
+
+        assert(свёрнуто.querySelector('.fold-body').classList.contains('is-folded'));
+
+        config.set('folded', {});
+        await dbService.setSetting(ATHLETE_KEY, null);
+    });
+
+    /*
+     * Свёртка убирает лишнее, а не прячет плохие новости.
+     *
+     * «Данные кончаются на 8 сентября, проверьте привязку» — это не разбор, а
+     * предупреждение, и человек, свернувший карточку однажды, не увидел бы его
+     * вовсе. Ровно с этой беды у владельца встали данные с часов.
+     */
+    it('предупреждение о давности не сворачивается', async () => {
+        await seed();
+
+        config.set('folded', { watch: true });
+
+        const view = await screen(stats);
+        const строка = [...view.querySelectorAll('.hint')]
+            .find((p) => /Привезено|Данные кончаются/.test(p.textContent));
+
+        if (строка) {
+            assert(!строка.closest('.fold-body'),
+                'строка о давности обязана остаться на виду и у свёрнутой карточки');
+        }
+
+        config.set('folded', {});
+    });
+
     it('у каждой кнопки и каждого поля есть кто-то на другом конце', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [10, 60]]);

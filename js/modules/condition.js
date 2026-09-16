@@ -29,6 +29,7 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { health } from '../core/health.js';
 import { digest } from '../core/digest.js';
+import { fold } from '../core/fold.js';
 import { athlete } from '../core/athlete.js';
 import { currentAthlete, currentGoals } from './athlete.js';
 import { goal } from '../core/goal.js';
@@ -1127,13 +1128,15 @@ function итогБлок({ цель, замеры, последний, груп
 
     return ui.html`
         <div class="card">
-            <div class="card-title">${t('Что изменилось')}</div>
+            ${fold.title('digest', t('Что изменилось'))}
 
-            ${строки.map((с) => ui.html`<div class="plan-rule note-${с.kind}">${с.text}</div>`)}
+            ${fold.body('digest', ui.html`
+                ${строки.map((с) => ui.html`<div class="plan-rule note-${с.kind}">${с.text}</div>`)}
 
-            <p class="hint">
-                ${t('Про тело и питание — здесь. Что делать с ближайшей тренировкой — в «Как идёт программа», на статистике.')}
-            </p>
+                <p class="hint">
+                    ${t('Про тело и питание — здесь. Что делать с ближайшей тренировкой — в «Как идёт программа», на статистике.')}
+                </p>
+            `)}
         </div>
     `;
 }
