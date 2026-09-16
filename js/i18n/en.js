@@ -1621,4 +1621,7 @@ export const EN = {
     'За месяц {части}.': 'Over the month {части}.',
     'Идёте, куда собирались.': 'You are going where you meant to.',
     'Это в другую сторону от цели.': 'That is the other way from your goal.',
+    '＋ время': '＋ time',
+    '− время': '− time',
+    'время подхода, секунд': 'set duration, seconds',
 };

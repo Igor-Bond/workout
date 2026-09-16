@@ -814,6 +814,21 @@ function fields(kind, prefill, exercise = {}) {
                 <button class="link-btn" data-action="sess-weight-toggle">
                     ${prefill.weight ? t('− дополнительный вес') : t('＋ дополнительный вес')}
                 </button>
+
+                <!--
+                    Время подхода — второй такой же ссылкой (§6, Р-169).
+
+                    «Тридцать секунд альпиниста» и «двадцать повторений
+                    альпиниста» — одно упражнение, а не два, и менять ему вид
+                    в справочнике ради разминки неправильно: вид решает, что
+                    записывается, а записать хочется и то и другое.
+
+                    Спрятано, как и довес: считают повторения чаще, а
+                    открытое поле с прочерком зовёт вписать в него что-нибудь.
+                -->
+                <button class="link-btn" data-action="sess-duration-toggle">
+                    ${prefill.duration ? t('− время') : t('＋ время')}
+                </button>
             </div>
         ` : ''}
 
@@ -829,6 +844,20 @@ function fields(kind, prefill, exercise = {}) {
                    aria-label="${kind === 'reps' ? t('дополнительный вес, кг') : t('вес, кг')}">
             <span>${t('кг')}</span>
         </div>
+
+        <!--
+            Подписи у поля нет по той же причине, что и у довеса (Р-53): её
+            роль играет ссылка над ним, а своя дала бы два одинаковых слова
+            подряд.
+        -->
+        ${kind === 'reps' ? ui.html`
+            <div class="inline-field" id="f-duration-row" ${ui.raw(prefill.duration ? '' : 'hidden')}>
+                <input type="number" id="f-duration" min="0" inputmode="numeric"
+                       placeholder="—" value="${value(prefill.duration)}"
+                       aria-label="${t('время подхода, секунд')}">
+                <span>${t('сек')}</span>
+            </div>
+        ` : ''}
     `;
 }
 
@@ -1413,9 +1442,29 @@ function readFields(kind, exercise = {}) {
     }
 
     const reps = num('f-reps');
-    if (reps === null || reps < 0) { invalid('f-reps'); return null; }
+    const duration = num('f-duration');
 
-    return { reps, weight: num('f-weight') || undefined };
+    /*
+     * Повторения или время — но хоть что-то (Р-169).
+     *
+     * До появления времени повторения были обязательны, и это было верно:
+     * подход своим весом без числа — не подход. Теперь у того же упражнения
+     * есть второй способ сказать, сколько сделано, и требовать оба значило
+     * бы требовать сосчитать повторения там, где человек нарочно считал
+     * секунды.
+     *
+     * Ругаемся на повторения, а не на время: повторения — обычный случай, и
+     * человек, забывший оба поля, забыл именно их.
+     */
+    const естьПовторения = reps !== null && reps >= 0;
+
+    if (!естьПовторения && !duration) { invalid('f-reps'); return null; }
+
+    return {
+        reps: естьПовторения ? reps : undefined,
+        weight: num('f-weight') || undefined,
+        duration: duration || undefined
+    };
 }
 
 actions.on('sess-done', async () => {
@@ -1873,6 +1922,27 @@ actions.on('sess-weight-toggle', (el) => {
     }
 
     refreshExtraLine();
+});
+
+/*
+ * Время подхода — такая же необязательная строка, как довес (Р-169).
+ *
+ * Свернули — значит времени нет, и поле очищается: спрятанное, но
+ * заполненное записалось бы молча (Р-53).
+ */
+actions.on('sess-duration-toggle', (el) => {
+    const row = document.getElementById('f-duration-row');
+    const input = document.getElementById('f-duration');
+    if (!row) return;
+
+    row.hidden = !row.hidden;
+    el.textContent = row.hidden ? t('＋ время') : t('− время');
+
+    if (row.hidden) {
+        if (input) input.value = '';
+    } else {
+        input?.focus();
+    }
 });
 
 actions.on('sess-note-toggle', (el) => {

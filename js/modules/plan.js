@@ -427,25 +427,43 @@ function itemRow(item, index, total, timed = false) {
                 </div>
 
                 <!--
-                    У упражнения на время цель тоже есть — только в секундах.
-                    Раньше поля не было вовсе, и планка входила в план одними
-                    подходами: «сколько держать» приходилось помнить самому.
-                    У кардио поля по-прежнему нет: там две величины сразу,
-                    время и дистанция, и задавать одну без другой бессмысленно.
+                    Повторения — там, где их считают: силовое и свой вес.
                 -->
-                ${item.kind === 'time' ? ui.html`
-                    <div class="field">
-                        <label for="p-secs-${index}">${t('Секунд')}</label>
-                        <input id="p-secs-${index}" type="number" min="0" inputmode="numeric"
-                               placeholder="—" value="${item.targetDuration ?? ''}"
-                               data-change="plan-field" data-index="${index}" data-key="targetDuration">
-                    </div>
-                ` : item.kind === 'distance' ? '' : ui.html`
+                ${item.kind === 'time' || item.kind === 'distance' ? '' : ui.html`
                     <div class="field">
                         <label for="p-reps-${index}">${t('Повторения')}</label>
                         <input id="p-reps-${index}" type="number" min="0" inputmode="numeric"
                                placeholder="—" value="${item.targetReps ?? ''}"
                                data-change="plan-field" data-index="${index}" data-key="targetReps">
+                    </div>
+                `}
+
+                <!--
+                    Секунды — у всех, кроме силового с весом (Р-169).
+
+                    Сначала поле стояло только у упражнений на время: планка
+                    входила в план одними подходами, и «сколько держать»
+                    приходилось помнить самому. У кардио его не было нарочно —
+                    «там две величины сразу, время и дистанция, и задавать
+                    одну без другой бессмысленно», — а у своего веса не было
+                    потому, что времени в подходе не было вовсе.
+
+                    Оба довода оказались неверны, и разбила их разминка.
+                    «Походить две минуты» — задание, в котором дистанция это
+                    ровно то, чего не знают; «тридцать секунд альпиниста» —
+                    обычное дело, а не подмена повторений. Задать время должен
+                    тот, кто собирает тренировку, а не тот, кто её выполняет:
+                    во время подхода набирать некогда.
+
+                    У силового с весом поля нет и не будет: жим на сорок пять
+                    секунд — это не жим.
+                -->
+                ${item.kind === 'weight' ? '' : ui.html`
+                    <div class="field">
+                        <label for="p-secs-${index}">${t('Секунд')}</label>
+                        <input id="p-secs-${index}" type="number" min="0" inputmode="numeric"
+                               placeholder="—" value="${item.targetDuration ?? ''}"
+                               data-change="plan-field" data-index="${index}" data-key="targetDuration">
                     </div>
                 `}
 

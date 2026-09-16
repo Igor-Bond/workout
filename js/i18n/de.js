@@ -1619,4 +1619,7 @@ export const DE = {
     'За месяц {части}.': 'Im Monat {части}.',
     'Идёте, куда собирались.': 'Du gehst dahin, wohin du wolltest.',
     'Это в другую сторону от цели.': 'Das ist die andere Richtung, weg vom Ziel.',
+    '＋ время': '＋ Zeit',
+    '− время': '− Zeit',
+    'время подхода, секунд': 'Satzdauer, Sekunden',
 };

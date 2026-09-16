@@ -4771,6 +4771,79 @@ describe('Кнопки и обработчики', () => {
         config.set('folded', {});
     });
 
+    /*
+     * Время подхода у своего веса (§6, Р-169).
+     *
+     * «Тридцать секунд альпиниста» и «двадцать повторений альпиниста» — одно
+     * упражнение, а не два. До этого записать первое было нечем: у вида
+     * «свой вес» полей было два, повторения и довес.
+     */
+    it('у своего веса есть время, а у силового с весом — нет', async () => {
+        const свой = await seed({ name: 'Альпинист', kind: 'reps', group: 'Всё тело' });
+        const железо = await dbService.createExercise({ name: 'Жим лёжа', kind: 'weight', group: 'Грудь' });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: свой.id, plannedSets: 3, targetDuration: 30, skipped: false },
+                { exerciseId: железо.id, plannedSets: 3, targetReps: 8, weight: 60, skipped: false }
+            ]
+        });
+
+        const view = await screen(session);
+
+        assert(view.querySelector('[data-action="sess-duration-toggle"]'),
+            `у своего веса время обязано быть: ${text(view).slice(0, 200)}`);
+
+        const поле = view.querySelector('#f-duration-row');
+
+        assert(поле, 'и поле под него');
+        assert(!поле.hidden, 'план назвал тридцать секунд — поле открыто, а не спрятано');
+        equal(view.querySelector('#f-duration')?.value, '30', 'и число уже стоит в нём');
+
+        await dbService.deleteWorkout(w.id);
+    });
+
+    /*
+     * Время задаёт тот, кто собирает тренировку, а не тот, кто её выполняет:
+     * во время подхода набирать некогда (Р-169).
+     */
+    it('секунды задаются в плане у всего, кроме силового с весом', async () => {
+        await seed();
+
+        const виды = [
+            { name: 'Ходьба тест', kind: 'distance', секунды: true, повторения: false },
+            { name: 'Планка тест', kind: 'time', секунды: true, повторения: false },
+            { name: 'Альпинист тест', kind: 'reps', секунды: true, повторения: true },
+            { name: 'Жим тест', kind: 'weight', секунды: false, повторения: true }
+        ];
+
+        for (const вид of виды) {
+            await screen(plan, ['template', 'нет-такого']);
+            await screen(plan);
+
+            const ex = await dbService.createExercise({ name: вид.name, kind: вид.kind, group: 'Всё тело' });
+
+            const было = dialog.pick;
+            dialog.pick = async () => ex.id;
+
+            try {
+                await press('plan-add');
+            } finally {
+                dialog.pick = было;
+            }
+
+            const подписи = [...(await screen(plan)).querySelectorAll('.plan-row label')]
+                .map((l) => l.textContent.trim());
+
+            equal(подписи.includes('Секунд'), вид.секунды, `${вид.name}: ${подписи.join(', ')}`);
+            equal(подписи.includes('Повторения'), вид.повторения, `${вид.name}: ${подписи.join(', ')}`);
+        }
+
+        // Черновик живёт в модуле и переживает смену экрана — пересобираем пустым
+        await screen(plan, ['template', 'нет-такого']);
+    });
+
     it('у каждой кнопки и каждого поля есть кто-то на другом конце', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [10, 60]]);
