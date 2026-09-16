@@ -176,7 +176,7 @@ const RU = {
                     'Выбери готовый набор или задай своё: работа, отдых, кругов, отдых между кругами.',
                     'Добавь упражнения. Подходы и вес у них не спрашиваются — длительность задана отрезками, одна на всю программу. Под карточкой видно, сколько всего получится подходов и минут.',
                     '*Начать* — откроется экран программы: крупный отсчёт, текущее упражнение и предупреждение о следующем.',
-                    'Дальше только слушать. *Пауза*, *Пропустить отрезок* и *Закончить* есть, но нужны редко.'
+                    'Дальше только слушать. *Пауза* и *Пропустить отрезок* есть, но нужны редко, а *Завершить тренировку* стоит внизу — там же, где и на обычной тренировке.'
                 ] },
                 { hint: 'Упражнения нужны такие, где вес не при чём: бёрпи, альпинист, прыжки, планка, скручивания, бег на месте. В справочнике они уже есть — ищите в группах «Всё тело» и «Кардио». Что делать руками и ногами, написано у каждого упражнения: нажмите на его название в справочнике.' },
                 { sub: 'Сигналы' },
@@ -398,7 +398,7 @@ const EN = {
                     'Pick a ready-made set or enter your own: work, rest, rounds, rest between rounds.',
                     'Add exercises. They are not asked for sets or weight — the length comes from the intervals, one for the whole program. Under the card you see how many sets and minutes it adds up to.',
                     '*Start* opens the program screen: a large countdown, the current exercise and a warning about the next one.',
-                    'From there, just listen. *Pause*, *Skip interval* and *Finish* exist but are rarely needed.'
+                    'From there, just listen. *Pause* and *Skip interval* exist but are rarely needed, and *Finish workout* sits at the bottom — the same place as in a regular workout.'
                 ] },
                 { hint: 'You want exercises where weight is beside the point: burpees, mountain climbers, jumps, planks, crunches, running in place. They are already in the catalogue — look in the “Full body” and “Cardio” groups. What to do with your arms and legs is written on each exercise: tap its name in the catalogue.' },
                 { sub: 'Sounds' },
@@ -620,7 +620,7 @@ const DE = {
                     'Wähle einen fertigen Satz oder trage eigene Werte ein: Arbeit, Pause, Runden, Pause zwischen den Runden.',
                     'Füge Übungen hinzu. Nach Sätzen und Gewicht wird nicht gefragt — die Dauer kommt aus den Intervallen und gilt für das ganze Programm. Unter der Karte siehst du, wie viele Sätze und Minuten zusammenkommen.',
                     '*Starten* öffnet den Programmbildschirm: großer Countdown, aktuelle Übung und Hinweis auf die nächste.',
-                    'Danach nur noch zuhören. *Pause*, *Intervall überspringen* und *Beenden* gibt es, sie werden aber selten gebraucht.'
+                    'Danach nur noch zuhören. *Pause* und *Intervall überspringen* gibt es, sie werden aber selten gebraucht, und *Training beenden* steht unten — genau wie im normalen Training.'
                 ] },
                 { hint: 'Du brauchst Übungen, bei denen Gewicht keine Rolle spielt: Burpees, Bergsteiger, Sprünge, Planke, Crunches, Laufen auf der Stelle. Im Katalog sind sie schon da — schau in den Gruppen „Ganzkörper“ und „Cardio“. Was Arme und Beine tun sollen, steht bei jeder Übung: tippe im Katalog auf ihren Namen.' },
                 { sub: 'Signale' },

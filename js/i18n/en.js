@@ -635,7 +635,6 @@ export const EN = {
     'Приготовься': 'Get ready',
     'Работа': 'Work',
     'Отдых между кругами': 'Rest between rounds',
-    'Закончить': 'Finish',
     'Программа': 'Program',
     'изменить заметку': 'edit note',
     '＋ заметка к упражнению': '＋ note for this exercise',

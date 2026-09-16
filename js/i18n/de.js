@@ -575,7 +575,6 @@ export const DE = {
     'Приготовься': 'Mach dich bereit',
     'Работа': 'Arbeit',
     'Отдых между кругами': 'Pause zwischen den Runden',
-    'Закончить': 'Beenden',
     'Программа': 'Programm',
     'изменить заметку': 'Notiz ändern',
     '＋ заметка к упражнению': '＋ Notiz zur Übung',

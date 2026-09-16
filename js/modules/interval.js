@@ -185,6 +185,14 @@ function head({ workout, phases, run }, state) {
     const total = interval.total(phases);
     const работа = interval.workCount(phases);
 
+    /*
+     * Завершения здесь нет — оно внизу, кнопкой во всю ширину (Р-180).
+     *
+     * Стояло ссылкой в углу заголовка, мелко и не там, где его ищут: на
+     * экране выполнения то же действие — крупная кнопка под всем содержимым,
+     * и называется оно полными словами. Одно действие в двух режимах не
+     * должно ни выглядеть по-разному, ни зваться по-разному.
+     */
     return ui.html`
         <div class="iv-head">
             <div>
@@ -193,7 +201,6 @@ function head({ workout, phases, run }, state) {
                     ${format.count(работа, format.WORDS.set)} · ${t('всего {время}', { время: format.seconds(total) })}
                 </div>
             </div>
-            <button class="link-btn" data-action="iv-finish">${t('Закончить')}</button>
         </div>
     `;
 }
@@ -406,6 +413,16 @@ export const intervalScreen = {
             ` : ''}
 
             ${ring(view, state)}
+
+            <!--
+                Завершение — там же и того же вида, что на экране выполнения
+                (Р-180): кнопкой во всю ширину под всем содержимым и полными
+                словами. Внизу оно намеренно: посреди программы его ищут
+                редко, а «Пауза» стоит наверху, у самого отсчёта.
+            -->
+            <button class="btn btn-ghost" data-action="iv-finish">
+                ${t('Завершить тренировку')}
+            </button>
         `;
     }
 };
