@@ -949,4 +949,69 @@ describe('Сквозной путь: табата подсказывает те�
 
         equal(посреди.numbers, числа, 'подсказка смотрит на прошлый раз, а не на текущий круг');
     });
+
+    /*
+     * Силовая тренировка между двумя табатами подсказку не подменяет.
+     *
+     * Приседания живут и в программе, и в табате, и числа у них там разные
+     * по существу: в подходе их делают до отказа с паузой в три минуты, а в
+     * табате — сколько успел за двадцать секунд. Подставить одно вместо
+     * другого значит дать недостижимую цель и сослаться на прошлый раз,
+     * которого не было.
+     *
+     * Отбор идёт по тренировке, а не по подходу: по самому подходу отличить
+     * их нечем — и там и там повторения.
+     */
+    it('силовая тренировка того же упражнения в счёт не идёт', async () => {
+        await clean();
+
+        const приседания = await dbService.createExercise({
+            name: 'Приседания', kind: 'reps', group: 'Ноги'
+        });
+
+        const план = [{ exerciseId: приседания.id, plannedSets: 3, skipped: false }];
+
+        // Табата: три круга по двадцать секунд
+        const табата = await dbService.createWorkout({ type: 'Табата', plan: план });
+
+        for (const [i, reps] of [15, 16, 17].entries()) {
+            await записать(табата, приседания, i + 1, i + 1, { duration: 20, reps });
+        }
+
+        await dbService.updateWorkout(табата.id, {
+            interval: { work: 20, rest: 10, rounds: 3, roundRest: 60, lead: 10 }
+        });
+        await dbService.finishWorkout(табата.id);
+
+        // Силовая — позже и с совсем другими числами
+        const силовая = await dbService.createWorkout({ type: 'Силовая', plan: план });
+
+        for (const [i, reps] of [40, 38, 35].entries()) {
+            await записать(силовая, приседания, i + 1, i + 1, { reps });
+        }
+
+        await dbService.finishWorkout(силовая.id);
+
+        const сегодня = await dbService.createWorkout({ type: 'Табата', plan: план });
+
+        const все = await dbService.listSetsByExercise(приседания.id);
+
+        // Отбор — тот же, что делает экран: только интервальные тренировки
+        const свои = [];
+
+        for (const s of все) {
+            const w = await dbService.getWorkout(s.workoutId);
+            if (s.workoutId !== сегодня.id && w?.interval) свои.push(s);
+        }
+
+        const темп = pace.read(свои, { exclude: сегодня.id });
+
+        equal(темп.numbers, [15, 16, 17], 'цель берётся у прошлой табаты, а не у ближайшей тренировки');
+
+        equal(
+            pace.read(все, { exclude: сегодня.id }).numbers,
+            [40, 38, 35],
+            'а без отбора взялась бы силовая — ради этого отбор и нужен'
+        );
+    });
 });

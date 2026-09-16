@@ -70,9 +70,39 @@ async function readPaces(workout) {
     const ids = [...new Set((workout.plan || []).map((i) => i.exerciseId).filter(Boolean))];
     const out = {};
 
+    /*
+     * Сравнивать можно только с интервальной тренировкой.
+     *
+     * Приседания живут и в программе, и в табате, и числа у них там разные
+     * по существу: в подходе их делают до отказа с паузой в три минуты, а
+     * здесь — сколько успел за двадцать секунд. Подставить одно вместо
+     * другого значило бы дать заведомо недостижимую цель и объяснить её
+     * ссылкой на прошлый раз, которого не было.
+     *
+     * Ответ знает сама тренировка, а не подход, поэтому спрашиваем её.
+     * Память общая на все упражнения круга: тренировки у них одни и те же.
+     */
+    const интервальные = new Map();
+
+    const своя = async (workoutId) => {
+        if (!интервальные.has(workoutId)) {
+            const w = await dbService.getWorkout(workoutId);
+            интервальные.set(workoutId, !!w?.interval);
+        }
+
+        return интервальные.get(workoutId);
+    };
+
     for (const id of ids) {
-        const sets = await dbService.listSetsByExercise(id, { limit: ГЛУБИНА });
-        const темп = pace.read(sets, { exclude: workout.id });
+        const все = await dbService.listSetsByExercise(id, { limit: ГЛУБИНА });
+
+        const подходящие = [];
+
+        for (const s of все) {
+            if (s.workoutId !== workout.id && await своя(s.workoutId)) подходящие.push(s);
+        }
+
+        const темп = pace.read(подходящие, { exclude: workout.id });
 
         if (темп) out[id] = темп;
     }
