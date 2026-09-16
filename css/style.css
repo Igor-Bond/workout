@@ -664,6 +664,44 @@ textarea {
        при фокусе в поле, и вернуть масштаб обратно нечем */
     font-size: 1rem;
     padding: 10px 12px;
+
+    /*
+     * Высота строки названа, а не отдана браузеру (Р-187).
+     *
+     * При `normal` её считает каждый вид поля по-своему: у списка строка
+     * выходит выше, чем у поля ввода, и рядом они стоят разной высоты —
+     * четыре точки на глаз видны, а в ряду из трёх полей выпирает одно.
+     *
+     * Множителем, а не пикселями: размер шрифта человек задаёт сам (Р-112), и
+     * высота обязана расти вместе с ним.
+     */
+    line-height: 1.25;
+}
+
+/*
+ * Список рисуем сами (Р-187).
+ *
+ * У родного списка своя высота, и `line-height` ей не указ: рядом с полем
+ * ввода он всё равно выше на три точки. В ряду из трёх полей это видно сразу
+ * — одно выпирает. `appearance: none` снимает родные размеры, и дальше
+ * высоту задают те же отступы, что и у поля ввода.
+ *
+ * Уголок нарисован тут же: сняв родной вид, мы сняли и его, а список без
+ * уголка не отличить от поля, в которое можно печатать.
+ */
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a89a8a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+    padding-right: 32px;
+}
+
+.plan-row-fields select {
+    background-position: right 10px center;
+    padding-right: 26px;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -686,7 +724,10 @@ input:focus, select:focus, textarea:focus {
  */
 .report-text {
     font-size: 1rem;
+
+    /* Просторнее, чем у остальных полей: это текст, а не одно число */
     line-height: 1.5;
+
     white-space: pre;
     overflow-x: auto;
 
@@ -977,7 +1018,20 @@ button.ex-main:active .ex-name { color: var(--accent); }
 }
 
 .plan-row-fields .field { margin-bottom: 0; }
-.plan-row-fields input { padding: 8px 10px; }
+
+/*
+ * Плотный отступ — всем полям ряда, а не только `input` (Р-187).
+ *
+ * Правило называло один тег, а в ряду стоят и списки: в «Кто вы» пол выбирают
+ * списком, год и рост набирают. Список оставался при общем отступе и был на
+ * шесть точек выше соседей — ряд из трёх полей с одним выпирающим.
+ *
+ * Перечислены теги, а не `> *`: в поле лежит ещё и подпись, и ей этот отступ
+ * ни к чему.
+ */
+.plan-row-fields input,
+.plan-row-fields select,
+.plan-row-fields textarea { padding: 8px 10px; }
 
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 

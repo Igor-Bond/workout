@@ -215,11 +215,19 @@ export const athleteScreen = {
             <div class="card">
                 <div class="card-title">${t('Рамки')}</div>
 
-                <div class="field">
-                    <label for="a-goal">${t('Цель')}</label>
-                    <input id="a-goal" type="text" value="${профиль.goal}" autocomplete="off"
-                           placeholder="${t('например: выносливость, не терять форму')}"
-                           data-change="athlete-field" data-key="goal">
+                <!--
+                    В ряду, хотя поле одно (Р-187). Ряд задаёт полям свою,
+                    плотную высоту, и одиночное поле рядом с ним оказывалось
+                    на четыре точки выше — в одной карточке два роста окон.
+                    Ряд из одного поля занимает всю ширину, как и занимал.
+                -->
+                <div class="plan-row-fields">
+                    <div class="field">
+                        <label for="a-goal">${t('Цель')}</label>
+                        <input id="a-goal" type="text" value="${профиль.goal}" autocomplete="off"
+                               placeholder="${t('например: выносливость, не терять форму')}"
+                               data-change="athlete-field" data-key="goal">
+                    </div>
                 </div>
 
                 <!--
