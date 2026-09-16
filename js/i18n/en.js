@@ -1624,4 +1624,6 @@ export const EN = {
     '＋ время': '＋ time',
     '− время': '− time',
     'время подхода, секунд': 'set duration, seconds',
+    'Между подходами, с': 'Between sets, s',
+    'Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.': 'Leave empty for the app setting, currently {n} s. In circuit mode the pause between sets is also the pause between exercises, and a round ends when every exercise has been through.',
 };

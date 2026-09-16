@@ -49,6 +49,26 @@ export async function press(action, dataset = {}) {
     btn.remove();
 }
 
+/**
+ * Вписать в поле так, как это делает пользователь.
+ *
+ * Тем же делегированием, что и `press`: обработчики правки подписаны на
+ * документ, и достать их можно только настоящим событием.
+ */
+export async function change(name, value, dataset = {}) {
+    const field = document.createElement('input');
+
+    field.dataset.change = name;
+    Object.assign(field.dataset, dataset);
+    field.value = String(value);
+
+    document.body.appendChild(field);
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+
+    await new Promise((r) => setTimeout(r, 80));
+    field.remove();
+}
+
 /** Чистая база с одним упражнением — основа для большинства проверок. */
 export async function seed({ name = 'Жим лёжа', kind = 'weight', group = 'Грудь' } = {}) {
     await dbService.open();

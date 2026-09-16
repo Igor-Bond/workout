@@ -1622,4 +1622,6 @@ export const DE = {
     '＋ время': '＋ Zeit',
     '− время': '− Zeit',
     'время подхода, секунд': 'Satzdauer, Sekunden',
+    'Между подходами, с': 'Zwischen Sätzen, s',
+    'Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.': 'Leer heißt: wie in den Einstellungen, derzeit {n} s. Im Zirkelmodus ist die Pause zwischen Sätzen zugleich die Pause zwischen Übungen, und eine Runde endet, wenn alle Übungen durch sind.',
 };

@@ -11,7 +11,7 @@
  */
 
 import { describe, it, equal, assert } from '../runner.js';
-import { screen, text, hasAction, press, seed, workout } from '../helpers/dom.js';
+import { screen, text, hasAction, press, change, seed, workout } from '../helpers/dom.js';
 import { app } from '../../js/app.js';
 
 import { home } from '../../js/modules/home.js';
@@ -4841,6 +4841,48 @@ describe('Кнопки и обработчики', () => {
         }
 
         // Черновик живёт в модуле и переживает смену экрана — пересобираем пустым
+        await screen(plan, ['template', 'нет-такого']);
+    });
+
+    /*
+     * Паузы задаются при сборе (§16.1, Р-170).
+     *
+     * Отдых жил одной настройкой на всё приложение, и поправить его можно
+     * было только во время самой тренировки — лезть в профиль, стоя между
+     * подходами.
+     */
+    it('паузы задаются в сборке и переезжают на тренировку', async () => {
+        const ex = await seed();
+
+        await screen(plan, ['template', 'нет-такого']);
+        await screen(plan);
+
+        const было = dialog.pick;
+        dialog.pick = async () => ex.id;
+
+        try {
+            await press('plan-add');
+        } finally {
+            dialog.pick = было;
+        }
+
+        const view = await screen(plan);
+        const подписи = [...view.querySelectorAll('label')].map((l) => l.textContent.trim());
+
+        assert(подписи.includes('Между подходами, с'), подписи.join(', '));
+        assert(подписи.includes('Между кругами, с'), подписи.join(', '));
+
+        await change('plan-rest', 30, { key: 'rest' });
+        await change('plan-rest', 120, { key: 'roundRest' });
+
+        await press('plan-start');
+
+        const w = await dbService.getActiveWorkout();
+
+        equal(w.restSeconds, 30, 'пауза между подходами уехала на тренировку');
+        equal(w.roundRest, 120, 'и пауза между кругами');
+
+        await dbService.finishWorkout(w.id);
         await screen(plan, ['template', 'нет-такого']);
     });
 

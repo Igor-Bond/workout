@@ -25,6 +25,7 @@ import { estimate } from '../core/estimate.js';
 import { interval } from '../core/interval.js';
 import { kindHint, KINDS } from '../core/kinds.js';
 import { format } from '../core/format.js';
+import { config } from '../config.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 
@@ -381,6 +382,49 @@ function intervalCard() {
     `;
 }
 
+/**
+ * Паузы тренировки — задаются при сборе (§16.1, Р-170).
+ *
+ * Отдых жил одной настройкой на всё приложение, и поправить его можно было
+ * только во время самой тренировки: лезть в профиль, стоя между подходами.
+ * У интервальной программы такие поля есть с самого начала (§50), и довод
+ * там тот же — во время работы набирать некогда.
+ *
+ * Пустое поле значит «как обычно»: подсказкой стоит нынешняя общая
+ * настройка, и не тронув полей человек получает прежнее поведение.
+ *
+ * Круг здесь — проход по всем упражнениям плана, и бывает он только в
+ * круговом режиме. Поле показывается всё равно: спрятанное по чужой
+ * настройке, оно заставило бы гадать, куда делось.
+ */
+function restCard() {
+    const общая = config.get('restSeconds');
+
+    const поле = (key, label) => ui.html`
+        <div class="field">
+            <label for="pr-${key}">${label}</label>
+            <input id="pr-${key}" type="number" min="5" max="3600" inputmode="numeric"
+                   placeholder="${String(общая)}" value="${draft[key] ?? ''}"
+                   data-change="plan-rest" data-key="${key}">
+        </div>
+    `;
+
+    return ui.html`
+        <div class="card">
+            <div class="card-title">${t('Отдых')}</div>
+
+            <div class="plan-row-fields">
+                ${поле('rest', t('Между подходами, с'))}
+                ${поле('roundRest', t('Между кругами, с'))}
+            </div>
+
+            <p class="hint">
+                ${t('Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.', { n: общая })}
+            </p>
+        </div>
+    `;
+}
+
 function itemRow(item, index, total, timed = false) {
     return ui.html`
         <div class="plan-row">
@@ -538,7 +582,7 @@ export const plan = {
                 ` : ''}
             </div>
 
-            ${timed ? intervalCard() : ''}
+            ${timed ? intervalCard() : restCard()}
 
             <div class="card">
                 <div class="card-title">${t('Упражнения — {n}', { n: draft.items.length })}</div>
@@ -605,6 +649,16 @@ const toItems = () => draft.items.map((item) => ({
 actions.on('plan-type', (el) => {
     draft.type = el.dataset.type;
     app.render();
+});
+
+/*
+ * Паузы черновика. Пустое поле снимает своё значение: «как обычно» — это не
+ * ноль, а отсутствие числа, и ноль записался бы отключённым отдыхом.
+ */
+actions.onChange('plan-rest', (el) => {
+    const seconds = Math.round(Number(el.value));
+
+    draft[el.dataset.key] = Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
 });
 
 actions.on('plan-preset', (el) => {
@@ -903,6 +957,20 @@ actions.on('plan-start', async () => {
         templateId: draft.templateId,
         plan: toItems().map((item) => ({ ...item, skipped: false }))
     });
+
+    /*
+     * Паузы переезжают на тренировку свободными полями (§16.1).
+     *
+     * Только заданные: undefined внутри записи доезжал до облака и ронял
+     * весь обмен (Р-97), а ноль означал бы отключённый отдых вместо «как
+     * обычно».
+     */
+    const паузы = {};
+
+    if (draft.rest > 0) паузы.restSeconds = draft.rest;
+    if (draft.roundRest > 0) паузы.roundRest = draft.roundRest;
+
+    if (Object.keys(паузы).length) await dbService.updateWorkout(workout.id, паузы);
 
     // Интервальная тренировка идёт на своём экране: там нет полей ввода,
     // потому что вводить между отрезками нечего и некогда (§50)

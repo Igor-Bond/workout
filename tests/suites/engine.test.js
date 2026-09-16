@@ -152,6 +152,49 @@ describe('Подсказка следующего шага', () => {
     });
 });
 
+/*
+ * Круг в обычной тренировке — проход по всем упражнениям плана (§16.1,
+ * Р-170). По нему считается своя пауза, названная при сборе.
+ */
+describe('Конец круга', () => {
+
+    const план = [
+        { exerciseId: 'A', plannedSets: 3 },
+        { exerciseId: 'B', plannedSets: 3 },
+        { exerciseId: 'C', plannedSets: 3 }
+    ];
+
+    const подходы = (...ids) => ids.map((id, i) => ({ exerciseId: id, order: i + 1 }));
+
+    it('круг кончается на последнем упражнении плана', () => {
+        equal(engine.closesRound(план, подходы('A'), 'A'), false);
+        equal(engine.closesRound(план, подходы('A', 'B'), 'B'), false);
+        equal(engine.closesRound(план, подходы('A', 'B', 'C'), 'C'), true);
+    });
+
+    it('и на каждом следующем круге тоже', () => {
+        equal(engine.closesRound(план, подходы('A', 'B', 'C', 'A', 'B', 'C'), 'C'), true);
+    });
+
+    /*
+     * Когда незакрытым осталось одно упражнение, выбор возвращается к нему
+     * же — и каждый подход считался бы концом круга, хотя кругов больше нет.
+     */
+    it('одно упражнение — кругов нет', () => {
+        equal(engine.closesRound([{ exerciseId: 'A', plannedSets: 5 }], подходы('A'), 'A'), false);
+    });
+
+    it('план закрыт — круга нет: отдыхать уже не перед чем', () => {
+        const один = [{ exerciseId: 'A', plannedSets: 1 }, { exerciseId: 'B', plannedSets: 1 }];
+
+        equal(engine.closesRound(один, подходы('A', 'B'), 'B'), false);
+    });
+
+    it('упражнения нет в плане — его добавили по ходу', () => {
+        equal(engine.closesRound(план, подходы('A'), 'Я'), false);
+    });
+});
+
 describe('Номера следующего подхода', () => {
 
     it('сквозной номер продолжает тренировку', () => {
