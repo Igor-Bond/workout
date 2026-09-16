@@ -626,7 +626,8 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 -->
                 <button class="repeat-card is-now" data-action="today-start"
                         data-day="${JSON.stringify(поПлану.items || [поПлану])}"
-                        data-rest="${поПлану.rest || ''}">
+                        data-rest="${поПлану.rest || ''}"
+                        data-round="${поПлану.roundRest || ''}">
                     <span class="rep-label">${t('Сегодня по плану — начать')}</span>
                     <span class="rep-names">${планНазвания(поПлану)}</span>
                     <span class="rep-meta">${планОбъём(поПлану)}</span>
@@ -1290,6 +1291,7 @@ actions.on('today-start', async (el) => {
     if (!задание.length) return app.render();
 
     const пауза = Number(el.dataset.rest) || 0;
+    const кругПауза = Number(el.dataset.round) || 0;
 
     /*
      * Упражнения может не оказаться — и это обычный случай, а не сбой.
@@ -1374,7 +1376,20 @@ actions.on('today-start', async (el) => {
      * запоминать её за упражнением неверно: одно и то же упражнение стоит в
      * днях с разной паузой.
      */
-    if (пауза > 0) await dbService.updateWorkout(workout.id, { restSeconds: пауза });
+    /*
+     * Паузы дня из плана переезжают на тренировку (§56.2, §16.1).
+     *
+     * Свободными полями у тренировки: у шестисетового дня пауза десять минут,
+     * у двенадцатисетового пять — это свойство дня, а не упражнения и не
+     * приложения. Пауза круга — тем же порядком: до неё круг в плане
+     * записывали приёмом, а теперь он назван прямо (Р-173).
+     */
+    const паузы = {};
+
+    if (пауза > 0) паузы.restSeconds = пауза;
+    if (кругПауза > 0) паузы.roundRest = кругПауза;
+
+    if (Object.keys(паузы).length) await dbService.updateWorkout(workout.id, паузы);
 
     app.go(workout.interval ? 'interval' : 'session');
 });
