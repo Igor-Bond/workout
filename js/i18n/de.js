@@ -1559,7 +1559,8 @@ export const DE = {
     'Съедено сегодня': 'Heute gegessen',
     'не записано': 'nicht erfasst',
     'Дефицит': 'Defizit',
-    'от расхода {расход}': 'von {расход} Verbrauch',
+    'от расхода {расход}; за день убывает — цвет у съеденного':
+        'von {расход} Verbrauch; über den Tag schrumpft er — die Farbe steht beim Gegessenen',
     'В среднем за день': 'Im Schnitt pro Tag',
     'дней с записями: {n} из {of}': 'Tage mit Einträgen: {n} von {of}',
     'Записать съеденное': 'Gegessenes erfassen',
@@ -1573,7 +1574,8 @@ export const DE = {
     'например, 650': 'zum Beispiel 650',
     'Число уйдёт из сегодняшнего счёта и из среднего за неделю.': 'Die Zahl verschwindet aus der heutigen Summe und aus dem Wochenschnitt.',
     'Столько вы записали за сегодня. Число называете вы, и это главное правило здесь: приложение его складывает, но не проверяет и не выводит само — оценка калорийности по описанию блюда ошибается на треть, и выдавать такую оценку за факт оно не станет. Нормы питания, одной на всех, нет, поэтому число не красится: смотреть надо не на него, а на дефицит рядом и на вес через месяц.': 'So viel hast du für heute erfasst. Die Zahl nennst du, und das ist hier die Hauptregel: die App addiert sie, prüft sie aber nicht und ermittelt sie nicht selbst — eine Kalorienschätzung nach der Beschreibung eines Gerichts liegt um ein Drittel daneben, und als Tatsache gibt sie das nicht aus. Eine Ernährungsnorm für alle gibt es nicht, deshalb wird die Zahl nicht farbig markiert: schau nicht auf sie, sondern auf das Defizit daneben und auf dein Gewicht in einem Monat.',
-    'Суточный расход минус съеденное. Больше нуля — вы потратили больше, чем съели. Число оценочное с обеих сторон: расход выведен по грубым ступеням коэффициента активности, а приход — по вашей же памяти. Поэтому дефицит не красится и на один день не смотрится вовсе; его смысл — в среднем за недели, и проверяется он единственным честным способом: весами.': 'Tagesverbrauch minus Gegessenes. Über null heißt: du hast mehr verbraucht als gegessen. Die Zahl ist auf beiden Seiten geschätzt — der Verbrauch stammt aus den groben Stufen des Aktivitätsfaktors, die Aufnahme aus deinem Gedächtnis. Deshalb wird das Defizit nicht farbig markiert und ein einzelner Tag sagt gar nichts; sein Sinn liegt im Wochenschnitt, und geprüft wird es auf dem einzig ehrlichen Weg — auf der Waage.',
+    'Суточный расход минус съеденное. Больше нуля — вы потратили больше, чем съели. Цвета здесь нет по двум причинам сразу. Во-первых, за день дефицит только убывает: с утра он равен всему расходу, к ужину тает, и зелёная плитка желтела бы у вас на глазах, хотя вы всё делаете верно. Цвет поэтому стоит на съеденном — оно растёт в одну сторону, и «в пределах» там не отыграешь назад. Во-вторых, число оценочное с обеих сторон: расход выведен по грубым ступеням коэффициента активности, а приход — по вашей же памяти. Смысл дефицита — в среднем за недели, и проверяется он единственным честным способом: весами.':
+        'Tagesverbrauch minus Gegessenes. Über null heißt: du hast mehr verbraucht als gegessen. Farbe gibt es hier aus zwei Gründen nicht. Erstens schrumpft das Defizit über den Tag: morgens entspricht es dem ganzen Verbrauch, bis zum Abendessen schmilzt es dahin, und eine grüne Kachel würde vor deinen Augen gelb, obwohl du alles richtig machst. Deshalb steht die Farbe beim Gegessenen — das wächst nur in eine Richtung, und „im Rahmen“ lässt sich dort nicht zurücknehmen. Zweitens ist die Zahl auf beiden Seiten geschätzt: der Verbrauch kommt aus groben Aktivitätsstufen, die Aufnahme aus deinem Gedächtnis. Das Defizit sagt etwas über Wochen im Mittel, und geprüft wird es auf die einzige ehrliche Weise: mit der Waage.',
     'Что съели — словами': 'Was du gegessen hast — in Worten',
     'тарелка борща и два куска хлеба': 'ein Teller Suppe und zwei Scheiben Brot',
     'Прикинуть по описанию': 'Nach Beschreibung schätzen',
