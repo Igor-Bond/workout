@@ -1601,6 +1601,8 @@ export const EN = {
     'Снимок не выбран.': 'No photo chosen.',
     'Снимок не прочитался. Попробуйте другой.': 'The photo could not be read. Try another one.',
     'не с чем сравнить: замер один': 'nothing to compare with: only one measurement',
+    'единственный замер, {день}': 'the only measurement, {день}',
+    '{ход} · замер {день}': '{ход} · measured {день}',
     'за месяц без перемен': 'no change over the month',
     '{сдвиг} — меньше погрешности': '{сдвиг} — less than the margin of error',
     'нормы нет — только свой ход': 'no norm for it — only your own trend',
