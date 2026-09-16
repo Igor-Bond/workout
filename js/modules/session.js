@@ -713,96 +713,108 @@ function шагВремени(exercise) {
     return вМинутах(exercise) ? МИНУТА : 1;
 }
 
-/** Поля ввода зависят от вида упражнения (§6). */
+/**
+ * Поля ввода зависят от вида упражнения (§6).
+ *
+ * Разведены по видам намеренно (Р-177). Одной лентой в две сотни строк они
+ * стоили двух дефектов подряд: отсчёт, добавленный своему весу, не заметил
+ * кардио этажом выше (Р-174), а крупная кнопка планки — что у соседей она
+ * стала ссылкой (Р-176). Рядом друг с другом такие расхождения видно сразу.
+ *
+ * Пока идёт отсчёт, полей нет вовсе ни у кого, кроме силового (§57): держать
+ * планку и печатать одновременно нельзя, и поле на этом месте только
+ * предлагало бы соврать. Вместо него — то самое число, ради которого всё и
+ * затевалось, крупно.
+ */
 function fields(kind, prefill, exercise = {}) {
     const value = (v) => (v === null || v === undefined ? '' : v);
 
-    if (kind === 'time') {
-        /*
-         * Пока идёт отсчёт, поля ввода нет вовсе (§57).
-         *
-         * Держать планку и печатать одновременно нельзя, и поле на этом
-         * месте только предлагало бы соврать. Вместо него — то самое число,
-         * ради которого всё и затевалось, крупно.
-         */
-        if (отсчёт?.exerciseId === currentId) return holdBlock();
+    if (kind !== 'weight' && отсчёт?.exerciseId === currentId) return holdBlock();
 
-        const минуты = вМинутах(exercise);
-        const введённое = prefill.duration === null || prefill.duration === undefined
-            ? null
-            : (минуты ? Math.round((prefill.duration / МИНУТА) * 10) / 10 : prefill.duration);
+    if (kind === 'time') return полеВремени(prefill, exercise, value);
+    if (kind === 'distance') return полеКардио(prefill, value);
 
-        return ui.html`
-            <input type="number" class="big-input" id="f-duration" min="0" inputmode="decimal"
-                   placeholder="0" value="${value(введённое)}" data-enter="sess-done">
-            <label class="big-label" for="f-duration">${минуты ? t('минут') : t('секунд')}</label>
+    return полеПовторений(kind, prefill, value);
+}
 
-            <!--
-                Отсчёт предлагается, но не навязывается: поле остаётся, и
-                вписать число руками можно по-прежнему. Секундомер без цели
-                тоже нужен — планку «до отказа» никакой целью не описать.
+/**
+ * Упражнение на время (§6, §57).
+ *
+ * Отсчёт здесь — главный способ ввода, и стоит он крупной кнопкой. Поле рядом
+ * остаётся: секундомер без цели тоже нужен, а планку «до отказа» никакой
+ * целью не описать.
+ */
+function полеВремени(prefill, exercise, value) {
+    const минуты = вМинутах(exercise);
+    const введённое = prefill.duration === null || prefill.duration === undefined
+        ? null
+        : (минуты ? Math.round((prefill.duration / МИНУТА) * 10) / 10 : prefill.duration);
 
-                Занятие на час отсчётом не меряют вовсе — его записывают по
-                факту, одним числом (Р-87). Поэтому рядом переключатель
-                единицы: он же и говорит, в чём приложение сейчас считает.
-            -->
-            <div class="row-links">
-                <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
-                <button class="link-btn" data-action="sess-time-unit">
-                    ${минуты ? t('считать в секундах') : t('считать в минутах')}
-                </button>
-            </div>
-        `;
-    }
+    return ui.html`
+        <input type="number" class="big-input" id="f-duration" min="0" inputmode="decimal"
+               placeholder="0" value="${value(введённое)}" data-enter="sess-done">
+        <label class="big-label" for="f-duration">${минуты ? t('минут') : t('секунд')}</label>
 
-    if (kind === 'distance') {
-        /*
-         * Ходьба на две минуты отсчитывается так же, как планка (Р-174).
-         *
-         * Время у кардио было всегда, а отсчёта не было: он достался сперва
-         * упражнениям на время, потом своему весу — и оба раза кардио
-         * пропустили. Разницы между «две минуты ходьбы» и «двадцать секунд
-         * планки» для отсчёта нет никакой.
-         */
-        if (отсчёт?.exerciseId === currentId) return holdBlock();
+        <!--
+            Отсчёт предлагается, но не навязывается: поле остаётся, и
+            вписать число руками можно по-прежнему. Секундомер без цели
+            тоже нужен — планку «до отказа» никакой целью не описать.
 
-        return ui.html`
-            <input type="number" class="big-input" id="f-distance" min="0" inputmode="numeric"
-                   placeholder="0" value="${value(prefill.distance)}" data-enter="sess-done">
-            <label class="big-label" for="f-distance">${t('метров')}</label>
-            <div class="inline-field">
-                <label for="f-duration">${t('время:')}</label>
-                <input type="number" id="f-duration" min="0" inputmode="numeric"
-                       placeholder="—" value="${value(prefill.duration)}">
-                <span>${t('сек')}</span>
-            </div>
+            Занятие на час отсчётом не меряют вовсе — его записывают по
+            факту, одним числом (Р-87). Поэтому рядом переключатель
+            единицы: он же и говорит, в чём приложение сейчас считает.
+        -->
+        <div class="row-links">
+            <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
+            <button class="link-btn" data-action="sess-time-unit">
+                ${минуты ? t('считать в секундах') : t('считать в минутах')}
+            </button>
+        </div>
+    `;
+}
 
-            <!--
-                Отсчёт выглядит одинаково у всех, у кого есть время (Р-176).
+/**
+ * Кардио (§6).
+ *
+ * Две величины сразу — метры и время, — и сохранить подход можно с любой
+ * одной: «походил две минуты» такая же запись, как «прошёл километр».
+ */
+function полеКардио(prefill, value) {
+    return ui.html`
+        <input type="number" class="big-input" id="f-distance" min="0" inputmode="numeric"
+               placeholder="0" value="${value(prefill.distance)}" data-enter="sess-done">
+        <label class="big-label" for="f-distance">${t('метров')}</label>
+        <div class="inline-field">
+            <label for="f-duration">${t('время:')}</label>
+            <input type="number" id="f-duration" min="0" inputmode="numeric"
+                   placeholder="—" value="${value(prefill.duration)}">
+            <span>${t('сек')}</span>
+        </div>
 
-                Сперва у кардио и своего веса он был ссылкой в строке поля — и
-                терялся: у планки на том же месте стоит крупная кнопка, и
-                человек, знающий её по планке, на других упражнениях её просто
-                не находил. Одно действие, названное одним словом, обязано и
-                выглядеть одинаково.
-            -->
-            <div class="row-links">
-                <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
-            </div>
-        `;
-    }
+        <!--
+            Отсчёт выглядит одинаково у всех, у кого есть время (Р-176).
 
-    /*
-     * Отсчёт идёт и у своего веса, когда названо время (§57, Р-171).
-     *
-     * «Если пишу только время — будет идти обратный отсчёт?» — вопрос
-     * владельца, и ответ обязан быть «да»: тридцать секунд альпиниста
-     * отсчитывать по своим часам, стоя в упоре лёжа, невозможно. Разница с
-     * упражнением на время только в том, где отсчёт предлагается: там он
-     * главный способ, здесь — второй, рядом с полем.
-     */
-    if (kind === 'reps' && отсчёт?.exerciseId === currentId) return holdBlock();
+            Сперва у кардио и своего веса он был ссылкой в строке поля — и
+            терялся: у планки на том же месте стоит крупная кнопка, и
+            человек, знающий её по планке, на других упражнениях её просто
+            не находил. Одно действие, названное одним словом, обязано и
+            выглядеть одинаково.
+        -->
+        <div class="row-links">
+            <button class="btn btn-accent" data-action="sess-hold-start">${t('Отсчёт')}</button>
+        </div>
+    `;
+}
 
+/**
+ * Силовое и свой вес (§6).
+ *
+ * Повторения крупно, остальное — необязательными строками за ссылками: довес
+ * надевают редко (Р-53), время называют не всегда (Р-169). Открытое поле с
+ * прочерком зовёт вписать в него что-нибудь, и именно так в довес попадали
+ * числа, которые потом считались железом.
+ */
+function полеПовторений(kind, prefill, value) {
     return ui.html`
         <!--
             Повторения правятся и без клавиатуры (§12, Р-120).
