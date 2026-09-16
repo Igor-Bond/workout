@@ -4886,6 +4886,83 @@ describe('Кнопки и обработчики', () => {
         await screen(plan, ['template', 'нет-такого']);
     });
 
+    /*
+     * Паузы — часть шаблона наравне с отрезками (§16.1, Р-172).
+     *
+     * Владелец: «вбиваю числа и нажимаю сохранить шаблон. При следующем
+     * редактировании там уже пустые поля».
+     */
+    it('паузы помнятся шаблоном', async () => {
+        const ex = await seed();
+
+        await screen(plan, ['template', 'нет-такого']);
+        await screen(plan);
+
+        const было = dialog.pick;
+        dialog.pick = async () => ex.id;
+
+        try {
+            await press('plan-add');
+        } finally {
+            dialog.pick = было;
+        }
+
+        await change('plan-rest', 15, { key: 'rest' });
+        await change('plan-rest', 90, { key: 'roundRest' });
+
+        const былаФорма = dialog.form;
+        const былАлерт = dialog.alert;
+
+        dialog.form = async () => ({ name: 'Круговая проба' });
+        dialog.alert = async () => true;
+
+        try {
+            await press('plan-as-template');
+        } finally {
+            dialog.form = былаФорма;
+            dialog.alert = былАлерт;
+        }
+
+        const шаблон = (await dbService.listTemplates()).find((t) => t.name === 'Круговая проба');
+
+        assert(шаблон, 'шаблон обязан сохраниться');
+        equal(шаблон.rest, 15, 'и запомнить паузу между подходами');
+        equal(шаблон.roundRest, 90, 'и паузу между кругами');
+
+        // Открыли заново — числа на месте, а не пустота
+        const снова = await screen(plan, ['template', шаблон.id]);
+        const поля = [...снова.querySelectorAll('[data-change="plan-rest"]')]
+            .map((el) => [el.dataset.key, el.value]);
+
+        equal(поля, [['rest', '15'], ['roundRest', '90']], 'поля открываются заполненными');
+
+        await screen(plan, ['template', 'нет-такого']);
+    });
+
+    /*
+     * Повтор повторяет тренировку целиком, а не один её состав (Р-172).
+     */
+    it('повтор тренировки возвращает её паузы', async () => {
+        const ex = await seed();
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: ex.id, plannedSets: 2, skipped: false }]
+        });
+
+        await dbService.updateWorkout(w.id, { restSeconds: 25, roundRest: 75 });
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 10 });
+        await dbService.finishWorkout(w.id);
+
+        const view = await screen(plan, ['repeat', w.id]);
+        const поля = [...view.querySelectorAll('[data-change="plan-rest"]')]
+            .map((el) => [el.dataset.key, el.value]);
+
+        equal(поля, [['rest', '25'], ['roundRest', '75']], 'паузы того дня возвращаются');
+
+        await screen(plan, ['template', 'нет-такого']);
+    });
+
     it('у каждой кнопки и каждого поля есть кто-то на другом конце', async () => {
         const ex = await seed();
         await workout(ex, [[10, 60], [10, 60]]);

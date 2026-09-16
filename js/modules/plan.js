@@ -200,6 +200,12 @@ async function build(params) {
                 type: typeKey(template.type) || 'Своё',
                 customType: typeKey(template.type) ? '' : template.type,
                 interval: template.interval || undefined,
+
+                // Паузы шаблона возвращаются в поля: иначе «сохранить» их
+                // запоминает, а «открыть» показывает пустоту (Р-172)
+                rest: template.rest || undefined,
+                roundRest: template.roundRest || undefined,
+
                 items: await decorate(template.items)
             };
         }
@@ -247,6 +253,17 @@ async function build(params) {
                 name: '',
                 type: typeKey(last.type) || 'Своё',
                 customType: typeKey(last.type) ? '' : last.type,
+
+                /*
+                 * Повтор повторяет тренировку целиком, а не один её состав
+                 * (Р-172). Отрезки табаты и паузы круговой — такая же часть
+                 * того дня, как список упражнений: без них «повторить
+                 * прошлую» отдавало прежние упражнения с чужими числами.
+                 */
+                interval: last.interval || undefined,
+                rest: last.restSeconds || undefined,
+                roundRest: last.roundRest || undefined,
+
                 items: await decorate(items)
             };
         }
@@ -899,7 +916,11 @@ actions.on('plan-save-template', async () => {
 
         // Отрезки — часть шаблона наравне с составом: табата без своих
         // двадцати и десяти это уже не та тренировка (§50)
-        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined
+        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined,
+
+        // И паузы по той же мерке (§16.1, Р-172)
+        rest: draft.rest || null,
+        roundRest: draft.roundRest || null
     });
 
     reset();
@@ -919,7 +940,9 @@ actions.on('plan-as-template', async () => {
         name: values.name,
         type: typeLabel(),
         items: toItems(),
-        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined
+        interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined,
+        rest: draft.rest || null,
+        roundRest: draft.roundRest || null
     });
 
     await dialog.alert({ title: t('Шаблон сохранён'), text: t('«{имя}» теперь в списке шаблонов.', { имя: values.name }) });

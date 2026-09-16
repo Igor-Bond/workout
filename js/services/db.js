@@ -1107,15 +1107,30 @@ export const dbService = {
      * внутри записи как есть: схема их не описывает, и версию базы поднимать
      * ради них не нужно — старая версия просто не заметит поля.
      */
-    async saveTemplate({ id, name, type = 'Тренировка', items = [], interval = null }) {
+    async saveTemplate({
+        id, name, type = 'Тренировка', items = [], interval = null,
+        rest = null, roundRest = null
+    }) {
         const now = Date.now();
 
+        /*
+         * Паузы — часть шаблона наравне с отрезками (§16.1, Р-172).
+         *
+         * Круговая тренировка без своих пятнадцати секунд между подходами и
+         * полутора минут между кругами — это уже не та тренировка, ровно как
+         * табата без своих двадцати и десяти.
+         *
+         * Нулём, а не пустотой: `undefined` в записи Dexie не стирает поле, и
+         * снятая пауза осталась бы в шаблоне навсегда.
+         */
+        const поля = { name, type, items, interval, rest, roundRest, updatedAt: now };
+
         if (id) {
-            await db.templates.update(id, { name, type, items, interval, updatedAt: now });
+            await db.templates.update(id, поля);
             return dbService.getTemplate(id);
         }
 
-        const record = { id: newId(), name, type, items, interval, updatedAt: now };
+        const record = { id: newId(), ...поля };
         await db.templates.add(record);
         return record;
     },
