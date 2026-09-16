@@ -22,6 +22,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { athlete as ядро } from '../core/athlete.js';
+import { ICU_STEPS_GOAL } from '../services/icu.js';
 import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
 import { format } from '../core/format.js';
@@ -154,6 +155,17 @@ export const athleteScreen = {
         const замеры = await dbService.listBodyWeight();
         const последний = замеры[замеры.length - 1] || null;
 
+        /*
+         * Цель по шагам лежит своим ключом, а не в целях (Р-185).
+         *
+         * Её читают часы, главный экран и статистика, и она давно уходит в
+         * облако под своим именем. Переселить её в `goals` ради стройности
+         * значило бы сломать обмен у того, кто её уже поставил, — ровно то,
+         * чего делать нельзя (§35). Показывается она здесь, а хранится где
+         * лежала.
+         */
+        const шаги = await dbService.getSetting(ICU_STEPS_GOAL, 0);
+
         const действующие = ядро.active(профиль);
         const прошедшие = профиль.limits.filter((l) => l.healedAt);
 
@@ -217,6 +229,13 @@ export const athleteScreen = {
                     читает приложение: из него оно знает, куда хорошо, сколько
                     пройдено и когда придёте. Одно другого не заменяет.
                 -->
+                <!--
+                    Цели сгруппированы по своей природе, а не по счёту в ряду
+                    (Р-185). Первый ряд — путь: откуда вышли, куда идём, и у
+                    каждого числа есть точка отсчёта со своим днём. Второй —
+                    то, что не проходят, а держат каждый день: ни срока, ни
+                    начала у них нет, есть только названное число в сутки.
+                -->
                 <div class="plan-row-fields">
                     <div class="field">
                         <label for="a-goal-weight">${t('Вес, кг')}</label>
@@ -232,9 +251,6 @@ export const athleteScreen = {
                                value="${цели.waist?.target ?? ''}"
                                data-change="goal-field" data-key="waist">
                     </div>
-                </div>
-
-                <div class="plan-row-fields">
                     <div class="field">
                         <label for="a-goal-fat">${t('Доля жира, %')}</label>
                         <input id="a-goal-fat" type="number" min="3" max="60" step="0.1" inputmode="decimal"
@@ -242,23 +258,34 @@ export const athleteScreen = {
                                value="${цели.fat?.target ?? ''}"
                                data-change="goal-field" data-key="fat">
                     </div>
+                </div>
 
-                    <!--
-                        Дефицит — цель другого рода (§68). Вес и талия это
-                        путь: откуда вышли, куда идём. Дефицит никуда не идёт,
-                        его держат — и потому у него нет ни точки отсчёта, ни
-                        срока, а есть только названное число в сутки.
-                    -->
+                <div class="plan-row-fields">
                     <div class="field">
                         <label for="a-goal-deficit">${t('Дефицит, ккал в день')}</label>
                         <input id="a-goal-deficit" type="number" min="50" max="2000" step="50" inputmode="numeric"
                                placeholder="—" value="${цели.deficit?.target ?? ''}"
                                data-change="goal-field" data-key="deficit">
                     </div>
+
+                    <!--
+                        Шаги стоят тут же, хотя хранятся отдельным ключом
+                        (Р-185). Место цели — среди целей: до сих пор её
+                        ставили окошком с главного экрана и с «Часов», и
+                        человек, пришедший расставить цели, её здесь не
+                        находил. Окошки остались — короткая дорога с того
+                        экрана, где число и видно, — но пишут они то же самое.
+                    -->
+                    <div class="field">
+                        <label for="a-goal-steps">${t('Шагов в день')}</label>
+                        <input id="a-goal-steps" type="number" min="0" max="100000" step="500" inputmode="numeric"
+                               placeholder="—" value="${шаги || ''}"
+                               data-change="steps-goal-field">
+                    </div>
                 </div>
 
                 <p class="hint">
-                    ${t('Числа необязательны. Названное число говорит приложению то, чего не скажут слова: куда хорошо, сколько уже пройдено и когда придёте своим ходом. Видно это в «Кондициях», по нажатию на плитку. Дефицит стоит особняком: его не проходят, а держат, и по нему приложение считает, сколько вам ещё можно съесть сегодня.')}
+                    ${t('Числа необязательны. Названное число говорит приложению то, чего не скажут слова: куда хорошо, сколько уже пройдено и когда придёте своим ходом. Видно это в «Кондициях», по нажатию на плитку. Дефицит и шаги стоят особняком: их не проходят, а держат каждый день. По дефициту приложение считает, сколько вам ещё можно съесть сегодня, а шаги сверяет с тем, что пришло с часов.')}
                     ${последний ? '' : t('Пока не было ни одного замера, отсчитывать не от чего — взвесьтесь в статистике.')}
                 </p>
 
@@ -399,6 +426,26 @@ actions.onChange('goal-field', async (el) => {
     };
 
     await setGoal(el.dataset.key, el.value, откуда[el.dataset.key]);
+
+    haptics.tap();
+});
+
+/**
+ * Цель по шагам — своим ключом (§62.5, Р-185).
+ *
+ * Отдельным обработчиком, а не через `setGoal`: у остальных целей есть точка
+ * отсчёта и день, с которого её считают, а у шагов нет ни того ни другого —
+ * это просто число, с которым сверяют вчерашний день. И хранится она там же,
+ * где лежала: её читают часы, главный экран и статистика, и она уже уходит в
+ * облако под своим именем.
+ *
+ * Пусто и ноль значат одно — цели нет. Убрать её человек должен уметь так же
+ * легко, как поставить.
+ */
+actions.onChange('steps-goal-field', async (el) => {
+    const цель = Math.max(0, Math.round(Number(el.value) || 0));
+
+    await dbService.setSetting(ICU_STEPS_GOAL, цель);
 
     haptics.tap();
 });

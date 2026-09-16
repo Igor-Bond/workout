@@ -21,6 +21,7 @@ import { наТелефоне, самопроверка, опустить, ТЕ�
 import { seed, workout } from '../helpers/dom.js';
 import { dbService } from '../../js/services/db.js';
 import { config } from '../../js/config.js';
+import { ICU_STEPS_GOAL } from '../../js/services/icu.js';
 
 import { home } from '../../js/modules/home.js';
 import { history } from '../../js/modules/history.js';
@@ -33,6 +34,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { recordsScreen } from '../../js/modules/records.js';
 import { templates } from '../../js/modules/templates.js';
 import { profile } from '../../js/modules/profile.js';
+import { athleteScreen } from '../../js/modules/athlete.js';
 
 /** Заметка такой длины, какую пишет разбор фотографии (§68). */
 const ДЛИННАЯ = '0.5 светлого нефильтрованного, орешки криспы 100 гр, мороженое в вафельном стаканчике';
@@ -99,6 +101,18 @@ describe(`Вёрстка на ширине ${ТЕЛЕФОН}`, () => {
         await seed();
 
         await проверить(profile);
+    });
+
+    /*
+     * «Рамки» — самый плотный ряд полей в приложении: три числа в строку
+     * (Р-185). На узком экране он и обязан переноситься, а не распирать.
+     */
+    it('о себе с целями и ограничениями', async () => {
+        await seed();
+
+        await dbService.setSetting(ICU_STEPS_GOAL, 12000);
+
+        await проверить(athleteScreen);
     });
 
     /*
