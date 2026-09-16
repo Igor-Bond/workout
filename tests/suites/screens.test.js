@@ -4808,6 +4808,33 @@ describe('Кнопки и обработчики', () => {
      * Время задаёт тот, кто собирает тренировку, а не тот, кто её выполняет:
      * во время подхода набирать некогда (Р-169).
      */
+    /*
+     * Отсчёт у кардио (§57, Р-174).
+     *
+     * Он достался сперва упражнениям на время, потом своему весу — и оба раза
+     * кардио пропустили. Разницы между «две минуты ходьбы» и «двадцать секунд
+     * планки» для отсчёта нет никакой.
+     */
+    it('у кардио с названным временем есть отсчёт', async () => {
+        await seed();
+
+        const ex = await dbService.createExercise({ name: 'Ходьба тест', kind: 'distance', group: 'Кардио' });
+
+        const w = await dbService.createWorkout({
+            type: 'Кардио',
+            plan: [{ exerciseId: ex.id, plannedSets: 1, targetDuration: 120, skipped: false }]
+        });
+
+        const view = await screen(session);
+
+        assert(view.querySelector('[data-action="sess-hold-start"]'),
+            `отсчёт обязан быть: ${text(view).slice(0, 200)}`);
+
+        equal(view.querySelector('#f-duration')?.value, '120', 'и время из плана уже стоит');
+
+        await dbService.deleteWorkout(w.id);
+    });
+
     it('секунды задаются в плане у всего, кроме силового с весом', async () => {
         await seed();
 

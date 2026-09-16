@@ -756,6 +756,16 @@ function fields(kind, prefill, exercise = {}) {
     }
 
     if (kind === 'distance') {
+        /*
+         * Ходьба на две минуты отсчитывается так же, как планка (Р-174).
+         *
+         * Время у кардио было всегда, а отсчёта не было: он достался сперва
+         * упражнениям на время, потом своему весу — и оба раза кардио
+         * пропустили. Разницы между «две минуты ходьбы» и «двадцать секунд
+         * планки» для отсчёта нет никакой.
+         */
+        if (отсчёт?.exerciseId === currentId) return holdBlock();
+
         return ui.html`
             <input type="number" class="big-input" id="f-distance" min="0" inputmode="numeric"
                    placeholder="0" value="${value(prefill.distance)}" data-enter="sess-done">
@@ -765,6 +775,7 @@ function fields(kind, prefill, exercise = {}) {
                 <input type="number" id="f-duration" min="0" inputmode="numeric"
                        placeholder="—" value="${value(prefill.duration)}">
                 <span>${t('сек')}</span>
+                <button class="link-btn" data-action="sess-hold-start">${t('Отсчёт')}</button>
             </div>
         `;
     }
@@ -1716,7 +1727,27 @@ actions.on('sess-hold-start', () => {
     const вписано = Number(document.getElementById('f-duration')?.value) || 0;
     const target = hold.clamp(вписано * шагВремени(знакомые[currentId]));
 
-    отсчёт = { exerciseId: currentId, target, startedAt: Date.now() };
+    /*
+     * Что уже набрано в соседних полях — снимается сейчас, а не в конце
+     * (Р-174).
+     *
+     * На время отсчёта поля со страницы уходят: держать планку и печатать
+     * одновременно нельзя, и на их месте стоит крупное число. Значит к концу
+     * читать уже нечего, а прочитать надо: у кардио рядом стоят метры, у
+     * своего веса — повторения и довес, и записать подход одной длительностью
+     * значило бы стереть их молча.
+     */
+    const поле = (id) => {
+        const v = Number(document.getElementById(id)?.value);
+        return Number.isFinite(v) && v > 0 ? v : undefined;
+    };
+
+    отсчёт = {
+        exerciseId: currentId,
+        target,
+        startedAt: Date.now(),
+        рядом: { reps: поле('f-reps'), weight: поле('f-weight'), distance: поле('f-distance') }
+    };
 
     // Выкладывается из обработчика нажатия: без нажатия браузер звук не
     // разрешит, и вся очередь окажется беззвучной (§50.1)
@@ -1735,13 +1766,23 @@ actions.on('sess-hold-stop', async () => {
     if (!отсчёт) return;
 
     const состояние = hold.at(отсчёт.target, (Date.now() - отсчёт.startedAt) / 1000);
+    const значения = отсчитанное(состояние.worked);
 
     снятьОтсчёт();
 
     if (состояние.phase === 'lead' || состояние.worked < 1) return app.render();
 
-    await записатьПодход({ duration: состояние.worked });
+    await записатьПодход(значения);
 });
+
+/**
+ * Что записать по концу отсчёта: длительность и всё, что было набрано рядом.
+ *
+ * Снималось оно в начале (Р-174): к концу полей на странице уже нет.
+ */
+function отсчитанное(worked) {
+    return { ...(отсчёт?.рядом || {}), duration: worked };
+}
 
 /**
  * Тик отсчёта: обновляет число на месте и сам записывает подход в конце.
@@ -1756,8 +1797,10 @@ async function тикОтсчёта() {
     const состояние = hold.at(отсчёт.target, (Date.now() - отсчёт.startedAt) / 1000);
 
     if (состояние.phase === 'done') {
+        const значения = отсчитанное(состояние.worked);
+
         снятьОтсчёт();
-        await записатьПодход({ duration: состояние.worked });
+        await записатьПодход(значения);
         return;
     }
 
