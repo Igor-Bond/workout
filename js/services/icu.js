@@ -117,35 +117,6 @@ export const icu = {
         return response.status === 204 ? null : response.json().catch(() => null);
     },
 
-    /** Запланированное в сервисе за отрезок: нужно, чтобы убрать своё прежнее. */
-    async events({ key, athlete, oldest, newest } = {}) {
-        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
-
-        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events`
-            + `?oldest=${oldest}&newest=${newest}`;
-
-        const data = await icu.get(url, key);
-
-        return Array.isArray(data) ? data : [];
-    },
-
-    /** Поставить занятие в план сервиса. */
-    async addEvent({ key, athlete, event } = {}) {
-        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
-
-        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events`;
-
-        return icu.send(url, key, { method: 'POST', body: event });
-    },
-
-    /** Убрать занятие из плана сервиса. */
-    async removeEvent({ key, athlete, id } = {}) {
-        if (!icu.ready(key, athlete)) throw new Error(t('Часы не привязаны.'));
-
-        const url = `${ENDPOINT}/${encodeURIComponent(String(athlete).trim())}/events/${encodeURIComponent(id)}`;
-
-        return icu.send(url, key, { method: 'DELETE' });
-    },
 
     /** Адрес конца сервиса за последние days дней. */
     url(athlete, path, { days = 28, now = Date.now() } = {}) {
@@ -304,7 +275,6 @@ export const ICU_KEY = 'icuKey';
 export const ICU_ATHLETE = 'icuAthlete';
 
 /** Когда и сколько занятий плана уехало на часы (§62.4). */
-export const ICU_PUSH = 'icuPlanPush';
 
 /** Под этими ключами лежит привезённое — чтобы не ходить в сеть за каждым показом. */
 export const ICU_DATA = 'icuWellness';

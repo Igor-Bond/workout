@@ -19,12 +19,9 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS, ICU_PUSH, ICU_STEPS_GOAL } from '../services/icu.js';
+import { icu, ICU_KEY, ICU_ATHLETE, ICU_DATA, ICU_ACTS, ICU_STEPS_GOAL } from '../services/icu.js';
 import { recovery } from '../core/recovery.js';
 import { effort } from '../core/effort.js';
-import { schedule } from '../core/schedule.js';
-import { pushPlan } from '../services/watchplan.js';
-import { currentPlan } from './planner.js';
 import { haptics } from '../core/haptics.js';
 import { dates } from '../core/dates.js';
 import { format } from '../core/format.js';
@@ -33,9 +30,6 @@ import { app } from '../app.js';
 
 /** Идёт ли обращение прямо сейчас: вторую кнопку нажимать нельзя. */
 let ждём = false;
-
-/** Идёт ли отправка плана на часы: она дольше забора и о ней надо сказать. */
-let шлём = false;
 
 /** Последняя осечка: показывается вместо данных и не мешает попробовать снова. */
 let ошибка = '';
@@ -289,103 +283,17 @@ export async function recoveryLines({ now = Date.now() } = {}) {
 }
 
 
-/**
- * План на часы (§62.4): обратный ход цепочки.
- *
- * Стоит после привезённого, а не перед: сперва то, что приложение получает,
- * потом то, что отдаёт. Порядок читается сам собой и объясняет, почему обмен
- * двусторонний.
- */
-function планБлок(план, занятия, отправка) {
-    const осталось = schedule.left(отправка?.at);
-
-    return ui.html`
-        <div class="card">
-            <div class="card-title">${t('План на часы')}</div>
-
-            <p class="hint">
-                ${t('Intervals.icu отдаёт запланированное на часы — у Zepp это «Загружать плановые тренировки», у HUAWEI Health приём плана идёт через ту же привязку. Уехавший план виден на запястье в тот момент, когда он нужен.')}
-            </p>
-
-            <!--
-                Про модели сказано прямо (§62.4). Intervals.icu отдаёт
-                плановые тренировки не всем часам: у Amazfit это на сегодня
-                только T-Rex 3 Pro, у Huawei — только бег, ходьба и походы.
-                Человек, чьи часы в список не попали, иначе будет искать
-                поломку у себя и не найдёт: отправка проходит, а на часах
-                пусто.
-            -->
-            <p class="hint">
-                ${t('Не все часы это принимают, и не всё целиком: Amazfit — пока только T-Rex 3 Pro, Huawei — только бег, ходьбу и походы, и только ближайшее занятие, а не все отправленные. Силовой день на запястье не попадёт ни у тех, ни у других. Если там пусто, дело в этом, а не в отправке: берите план в календарь телефона — он ложится на любые часы уведомлением.')}
-            </p>
-
-
-            ${план ? ui.html`
-                <div class="plan-rule">
-                    ${t('К отправке дней плана: {n}', { n: занятия.length })}
-                    <span class="plan-day-rest">${t('на ближайшие две недели, дни отдыха не отправляются')}</span>
-                </div>
-
-                <!--
-                    Список уезжающего — не украшение, а единственный способ
-                    сверить (§62.4). Что показано на самих часах, приложение
-                    не знает и знать не может; человек сверяет сам, и сверять
-                    ему надо с датами и названиями, а не с числом «четыре».
-                -->
-                ${занятия.map((з) => ui.html`
-                    <div class="plan-day">
-                        <span class="plan-day-date">${dates.formatDayLabel(з.date)}</span>
-                        <span class="plan-day-body">${з.name}</span>
-                    </div>
-                `)}
-
-
-                ${отправка?.at ? ui.html`
-                    <p class="hint">
-                        ${t('Отправлено {когда}: {n}. Повторная отправка сначала убирает своё прежнее.', {
-                            когда: dates.formatDayLabel(отправка.at, Date.now(), { lower: true }),
-                            n: отправка.count
-                        })}
-                    </p>
-
-                    <!--
-                        Край отправленного уезжает в прошлое сам собой, и часы
-                        об этом не скажут: они просто перестанут показывать
-                        занятия, и человек решит, что план кончился (§62.4).
-                    -->
-                    ${осталось !== null && осталось <= 3 ? ui.html`
-                        <p class="hint">
-                            ${осталось > 0
-                                ? t('Отправленного хватит ещё на {n} — пора отправить снова.', { n: format.count(осталось, format.WORDS.day) })
-                                : t('Отправленное кончилось: часы уже не знают, что сегодня по плану.')}
-                        </p>
-                    ` : ''}
-                ` : ''}
-
-                <button class="btn btn-accent" data-action="watch-push" ${ui.raw(шлём || !занятия.length ? 'disabled' : '')}>
-                    ${шлём ? t('Отправляю…') : t('Отправить план на часы')}
-                </button>
-            ` : ui.html`
-                <p class="hint">${t('Плана нет — отправлять нечего.')}</p>
-                <button class="btn btn-ghost btn-sm" data-action="nav" data-screen="planner">${t('К плану')}</button>
-            `}
-        </div>
-    `;
-}
-
 export const watch = {
 
     title: 'Данные с часов',
     nav: 'profile',
 
     async render() {
-        const [key, athlete, хранимое, занятия, план, отправка, цельШагов] = await Promise.all([
+        const [key, athlete, хранимое, занятия, цельШагов] = await Promise.all([
             dbService.getSetting(ICU_KEY, ''),
             dbService.getSetting(ICU_ATHLETE, ''),
             currentWellness(),
             сведенияОЗанятиях(),
-            currentPlan(),
-            dbService.getSetting(ICU_PUSH, null),
             dbService.getSetting(ICU_STEPS_GOAL, 0)
         ]);
 
@@ -483,22 +391,6 @@ export const watch = {
                     ${цельШагов > 0 ? t('Изменить цель') : t('Поставить цель')}
                 </button>
             </div>
-
-            <!--
-                План на часы свёрнут (Р-92): путь необязательный и работает не
-                у всех — Amazfit принимает его только на T-Rex 3 Pro, Huawei
-                только бегом и ходьбой. Разворачивает его тот, кому он нужен;
-                остальным он занимал половину экрана рассказом о том, чего у
-                них не будет.
-            -->
-            ${привязаны ? ui.html`
-                <details class="guide">
-                    <summary>${t('Отправить план на часы (необязательно)')}</summary>
-                    <div class="guide-body">
-                        ${планБлок(план, schedule.build(план, { rules: план?.rules || [] }), отправка)}
-                    </div>
-                </details>
-            ` : ''}
 
             <button class="btn btn-ghost" data-action="nav" data-screen="profile">${t('← В профиль')}</button>
         `;
@@ -659,22 +551,6 @@ actions.on('watch-forget', async () => {
     await dbService.setSetting(ICU_ACTS, null);
 
     haptics.tap();
-    await app.render();
-});
-
-actions.on('watch-push', async () => {
-    if (шлём) return;
-
-    шлём = true;
-    ошибка = '';
-    await app.render();
-
-    const итог = await pushPlan(await currentPlan());
-
-    ошибка = итог.error;
-    if (итог.placed) haptics.tap();
-
-    шлём = false;
     await app.render();
 });
 
