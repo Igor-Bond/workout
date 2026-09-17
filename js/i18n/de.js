@@ -1644,4 +1644,30 @@ export const DE = {
     'Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.': 'Leer heißt: wie in den Einstellungen, derzeit {n} s. Im Zirkelmodus ist die Pause zwischen Sätzen zugleich die Pause zwischen Übungen, und eine Runde endet, wenn alle Übungen durch sind.',
     'Повторений за неделю {сейчас} против {прошлой} — на {процент}% больше. Это разгон, а не успех: резкая прибавка и есть лучший известный признак скорого срыва. Черту в половину сверху провело приложение — точного числа для пары соседних недель в исследованиях нет.': 'Wiederholungen diese Woche: {сейчас} gegenüber {прошлой} in der letzten — {процент}% mehr. Das ist ein Sprung, kein Erfolg: eine schroffe Steigerung ist das beste bekannte Anzeichen dafür, dass es dich bald erwischt. Die Grenze bei der Hälfte mehr hat die App gezogen — für zwei benachbarte Wochen gibt es in der Forschung keine genaue Zahl.',
     'Месяц держите потолок, а вес стоит. Значит числа не сходятся: либо суточный расход посчитан выше вашего, либо съедено записано не всё. Верить тут стоит весам.': 'Du hältst seit einem Monat die Obergrenze, und dein Gewicht steht. Dann stimmen die Zahlen nicht: entweder ist der Tagesverbrauch höher angesetzt als deiner, oder es wurde nicht alles Gegessene erfasst. Glauben solltest du hier der Waage.',
+
+    // Виды занятий с часов (§62.2)
+    'Велосипед': 'Radfahren',
+    'Велотренажёр': 'Indoor-Radfahren',
+    'Бег': 'Laufen',
+    'Бег по тропам': 'Trailrunning',
+    'Беговая дорожка': 'Laufband',
+    'Ходьба': 'Gehen',
+    'Поход': 'Wandern',
+    'Плавание': 'Schwimmen',
+    'Йога': 'Yoga',
+    'Эллипс': 'Crosstrainer',
+    'Гребля': 'Rudern',
+    'Кроссфит': 'CrossFit',
+    'Интервальная': 'Intervalle',
+    'Футбол': 'Fußball',
+    'Баскетбол': 'Basketball',
+    'Теннис': 'Tennis',
+    'Прочее': 'Sonstiges',
+    'Без вида': 'Ohne Art',
+    '{вид} {n} %': '{вид} {n} %',
+    'Нагрузка за неделю {всего}: {доли}': 'Belastung der Woche {всего}: {доли}',
+    'Из чего сложилась нагрузка последней недели: всего {n}. Это доли занятий между собой, а не арифметика разгона — его Intervals.icu считает скользящими средними.':
+        'Woraus sich die Belastung der letzten Woche zusammensetzt: insgesamt {n}. Das sind die Anteile der Einheiten zueinander, nicht die Rechnung hinter dem Anstieg — die macht Intervals.icu mit gleitenden Mitteln.',
+    'Ещё {n} без нагрузки — часы её не прислали, и в долях их нет.':
+        'Dazu {n} ohne Belastung — die Uhr hat sie nicht geschickt, in den Anteilen stehen sie nicht.',
 };

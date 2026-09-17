@@ -21,7 +21,7 @@ import { наТелефоне, самопроверка, опустить, ТЕ�
 import { seed, workout } from '../helpers/dom.js';
 import { dbService } from '../../js/services/db.js';
 import { config } from '../../js/config.js';
-import { ICU_STEPS_GOAL } from '../../js/services/icu.js';
+import { ICU_STEPS_GOAL, ICU_ACTS, ICU_DATA } from '../../js/services/icu.js';
 
 import { home } from '../../js/modules/home.js';
 import { history } from '../../js/modules/history.js';
@@ -137,6 +137,27 @@ describe(`Вёрстка на ширине ${ТЕЛЕФОН}`, () => {
 
         await dbService.addIntake({ kcal: 810 });
         await dbService.addIntake({ kcal: 950, note: ДЛИННАЯ });
+
+        /*
+         * Полосы разбора нагрузки — самая узкая строка экрана (Р-188): имя
+         * вида, полоса и доля в один ряд на 375 точках.
+         */
+        const ДЕНЬ = 86400000;
+        const занятие = (n, type, load) => ({
+            id: `a${n}`, name: type, type,
+            start: Date.now() - n * ДЕНЬ, end: Date.now() - n * ДЕНЬ + 3600000,
+            seconds: 3600, avgHr: 128, maxHr: 165, calories: 520, load
+        });
+
+        await dbService.setSetting(ICU_ACTS, { at: Date.now(), rows: [
+            занятие(1, 'Basketball', 96),
+            занятие(2, 'WeightTraining', 41),
+            занятие(3, 'Бег по пересечённой местности зимой', 18)
+        ]});
+
+        await dbService.setSetting(ICU_DATA, { at: Date.now(), rows: [
+            { date: Date.now() - ДЕНЬ, ctl: 47, atl: 66, sleepSecs: 25200, restingHr: 54 }
+        ]});
 
         await проверить(condition);
     });

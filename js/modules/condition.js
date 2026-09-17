@@ -37,7 +37,8 @@ import { intake } from '../core/intake.js';
 import { prompt } from '../core/prompt.js';
 import { photo } from '../core/photo.js';
 import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
-import { currentWellness } from './watch.js';
+import { currentWellness, currentActivities } from './watch.js';
+import { effort } from '../core/effort.js';
 import { recovery } from '../core/recovery.js';
 import { isBackground } from '../core/rhythm.js';
 import { chart } from '../core/chart.js';
@@ -654,18 +655,19 @@ function собратьРяды({ замеры, rows, профиль, рост, 
 
 /** Всё, что экрану нужно из базы, — одним заходом. */
 async function прочитать() {
-    const [профиль, замеры, сводки, { rows }, подходы, упражнения, цели, еда] = await Promise.all([
+    const [профиль, замеры, сводки, { rows }, занятия, подходы, упражнения, цели, еда] = await Promise.all([
         currentAthlete(),
         dbService.listBodyWeight(),
         dbService.listWorkoutSummaries(),
         currentWellness(),
+        currentActivities(),
         dbService.allSets(),
         dbService.listExercises({ includeArchived: true }),
         currentGoals(),
         dbService.listIntake()
     ]);
 
-    return { профиль, замеры, сводки, rows, подходы, упражнения, цели, еда };
+    return { профиль, замеры, сводки, rows, занятия, подходы, упражнения, цели, еда };
 }
 
 export const condition = {
@@ -685,7 +687,7 @@ export const condition = {
     },
 
     async render() {
-        const { профиль, замеры, сводки, rows, подходы, упражнения, цели, еда } = await прочитать();
+        const { профиль, замеры, сводки, rows, занятия, подходы, упражнения, цели, еда } = await прочитать();
 
         const возраст = athlete.age(профиль);
         const рост = Number(профиль?.height) || null;
@@ -720,7 +722,7 @@ export const condition = {
         const питание = питаниеБлок({ еда, расход: траты?.расход || null });
         const нагрузка = нагрузкаБлок(группы);
         const восстановление = восстановлениеБлок(rows);
-        const форма = формаБлок(rows);
+        const форма = формаБлок(rows, занятия);
 
         if (!тело && !обмен && !питание && !нагрузка && !восстановление && !форма) {
             return ui.html`
@@ -1364,7 +1366,48 @@ function восстановлениеБлок(rows) {
 }
 
 /** Форма: то, что считает Intervals.icu. */
-function формаБлок(rows) {
+/**
+ * Из чего сложилась нагрузка недели (§62.2, Р-188).
+ *
+ * Разгон отвечает «не слишком ли резко прибавил». Когда он выходит за
+ * ориентир, следующий вопрос один — что именно его разогнало, — и одно число
+ * на него не отвечает. Полосы отвечают: видно с одного взгляда, чья это была
+ * неделя.
+ *
+ * Доли, а не сами нагрузки, стоят крупно: число «312» не значит ничего без
+ * прошлой недели, а «баскетбол — половина» значит сразу.
+ */
+function разборНагрузки(занятия) {
+    const разбор = effort.byType(занятия);
+
+    // Один вид — это не разбор, а то же самое число другими словами
+    if (!разбор || разбор.rows.length < 2) return '';
+
+    return ui.html`
+        <div class="load-split">
+            ${разбор.rows.map((р) => ui.html`
+                <div class="load-row">
+                    <span class="load-name">${effort.typeName(р.type)}</span>
+                    <span class="load-bar">
+                        <i style="width: ${String(р.share)}%"></i>
+                    </span>
+                    <span class="load-share">${String(р.share)}%</span>
+                </div>
+            `)}
+
+            <p class="hint">
+                ${t('Из чего сложилась нагрузка последней недели: всего {n}. Это доли занятий между собой, а не арифметика разгона — его Intervals.icu считает скользящими средними.', { n: String(разбор.total) })}
+                ${разбор.missing
+                    ? t('Ещё {n} без нагрузки — часы её не прислали, и в долях их нет.', {
+                        n: format.count(разбор.missing, format.WORDS.session)
+                    })
+                    : ''}
+            </p>
+        </div>
+    `;
+}
+
+function формаБлок(rows, занятия) {
     const свежие = [...rows].filter((r) => r.ctl || r.atl).sort((a, b) => a.date - b.date);
     const последняя = свежие[свежие.length - 1];
 
@@ -1411,7 +1454,8 @@ function формаБлок(rows) {
         })
     ].filter(Boolean),
         t('Считает Intervals.icu по занятиям с часов.'), '',
-        ['form', 'ramp', 'ctl', 'atl']);
+        ['form', 'ramp', 'ctl', 'atl'],
+        разборНагрузки(занятия));
 }
 
 /**

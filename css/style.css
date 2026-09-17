@@ -3524,6 +3524,54 @@ button.ex-name:active { color: var(--accent); }
 .cond-detail .chart-title { margin-top: 0; }
 
 /*
+ * Из чего сложилась нагрузка недели — полосами (§62.2, Р-188).
+ *
+ * Полоса, а не одни числа: вопрос к этому разбору не «сколько», а «чья это
+ * была неделя», и доля отвечает на него быстрее любого числа — глазом, без
+ * сравнения цифр между собой.
+ *
+ * Имя слева нужной ширины, доля справа — своей: иначе полосы у разных видов
+ * начинались бы в разных местах, и сравнивать пришлось бы не длину, а концы.
+ */
+.load-split { margin-top: 10px; }
+
+.load-row {
+    display: grid;
+    grid-template-columns: minmax(64px, 6.5em) 1fr 2.6em;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.load-name {
+    font-size: 0.8125rem;
+
+    /* Длинное имя вида не двигает полосу, а переносится в своей колонке */
+    overflow-wrap: anywhere;
+}
+
+.load-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--panel-2);
+    overflow: hidden;
+}
+
+.load-bar i {
+    display: block;
+    height: 100%;
+    background: var(--accent);
+}
+
+.load-share {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-align: right;
+}
+
+/*
  * Записи о еде за день — строкой кнопок под «Записать» (§68).
  *
  * Мелкими и вторым рядом: это не содержание карточки, а способ поправить

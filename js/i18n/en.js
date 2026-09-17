@@ -1646,4 +1646,30 @@ export const EN = {
     'Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.': 'Leave empty for the app setting, currently {n} s. In circuit mode the pause between sets is also the pause between exercises, and a round ends when every exercise has been through.',
     'Повторений за неделю {сейчас} против {прошлой} — на {процент}% больше. Это разгон, а не успех: резкая прибавка и есть лучший известный признак скорого срыва. Черту в половину сверху провело приложение — точного числа для пары соседних недель в исследованиях нет.': 'Reps this week: {сейчас} against {прошлой} last week — {процент}% more. That is a ramp, not a win: a sharp jump is the best known sign that a breakdown is coming. The half-again line was drawn by the app — research has no exact figure for two neighbouring weeks.',
     'Месяц держите потолок, а вес стоит. Значит числа не сходятся: либо суточный расход посчитан выше вашего, либо съедено записано не всё. Верить тут стоит весам.': 'You have held the ceiling for a month and your weight has not moved. So the numbers do not add up: either the daily expenditure is figured higher than yours, or not everything eaten was recorded. Here it is the scales that should be believed.',
+
+    // Виды занятий с часов (§62.2)
+    'Велосипед': 'Cycling',
+    'Велотренажёр': 'Indoor cycling',
+    'Бег': 'Running',
+    'Бег по тропам': 'Trail running',
+    'Беговая дорожка': 'Treadmill',
+    'Ходьба': 'Walking',
+    'Поход': 'Hiking',
+    'Плавание': 'Swimming',
+    'Йога': 'Yoga',
+    'Эллипс': 'Elliptical',
+    'Гребля': 'Rowing',
+    'Кроссфит': 'CrossFit',
+    'Интервальная': 'Intervals',
+    'Футбол': 'Football',
+    'Баскетбол': 'Basketball',
+    'Теннис': 'Tennis',
+    'Прочее': 'Other',
+    'Без вида': 'No type',
+    '{вид} {n} %': '{вид} {n} %',
+    'Нагрузка за неделю {всего}: {доли}': 'Load for the week {всего}: {доли}',
+    'Из чего сложилась нагрузка последней недели: всего {n}. Это доли занятий между собой, а не арифметика разгона — его Intervals.icu считает скользящими средними.':
+        'What the last week’s load is made of: {n} in total. These are the sessions’ shares relative to each other, not the ramp’s arithmetic — Intervals.icu works that one out with rolling averages.',
+    'Ещё {n} без нагрузки — часы её не прислали, и в долях их нет.':
+        'Another {n} with no load — the watch did not send it, and they are not in the shares.',
 };

@@ -268,3 +268,92 @@ describe('Вариабельность пульса', () => {
     });
 
 });
+
+/**
+ * Из чего сложилась нагрузка недели (§62.2, Р-188).
+ *
+ * Разгон отвечает «не слишком ли резко прибавил», а разбор — «кто именно
+ * разогнал». Проверяется тут не арифметика долей (она в одну строку), а то,
+ * на чём такой разбор врёт: занятия без нагрузки, чужая неделя, один вид.
+ */
+describe('Нагрузка недели по видам', () => {
+
+    const ЧАС = 3600000;
+
+    const с = (start, type, load) => ({
+        id: `a${start}${type}`, name: type, type,
+        start, end: start + ЧАС, seconds: 3600,
+        avgHr: 130, maxHr: 160, calories: 400, load
+    });
+
+    it('доли считаются от суммы недели и выстроены по убыванию', () => {
+        const разбор = effort.byType([
+            с(NOW - DAY, 'Basketball', 100),
+            с(NOW - 2 * DAY, 'WeightTraining', 60),
+            с(NOW - 3 * DAY, 'Walk', 40),
+            с(NOW - 4 * DAY, 'Basketball', 50)
+        ], { now: NOW });
+
+        equal(разбор.total, 250);
+        equal(разбор.rows.map((р) => р.type), ['Basketball', 'WeightTraining', 'Walk']);
+        equal(разбор.rows[0].load, 150);
+        equal(разбор.rows[0].share, 60);
+        equal(разбор.rows[0].count, 2, 'два занятия одного вида складываются в одну строку');
+    });
+
+    /*
+     * Ноль в сумме занизил бы долю своего вида молча. Названное «ещё столько
+     * без нагрузки» человек взвесит сам.
+     */
+    it('занятия без нагрузки не считаются нулём, а пересчитываются отдельно', () => {
+        const разбор = effort.byType([
+            с(NOW - DAY, 'Basketball', 100),
+            с(NOW - 2 * DAY, 'Walk', null),
+            с(NOW - 3 * DAY, 'Walk', undefined)
+        ], { now: NOW });
+
+        equal(разбор.total, 100);
+        equal(разбор.missing, 2);
+        equal(разбор.rows.length, 1, 'ходьбы без нагрузки в долях нет вовсе');
+    });
+
+    it('чужая неделя в счёт не идёт', () => {
+        const разбор = effort.byType([
+            с(NOW - DAY, 'Basketball', 100),
+            с(NOW - 30 * DAY, 'Basketball', 900)
+        ], { now: NOW });
+
+        equal(разбор.total, 100);
+    });
+
+    it('без нагрузок разбора нет', () => {
+        equal(effort.byType([], { now: NOW }), null);
+        equal(effort.byType([с(NOW - DAY, 'Walk', null)], { now: NOW }), null);
+    });
+
+    it('вид называется по-русски, незнакомый — как пришёл', () => {
+        equal(effort.typeName('WeightTraining'), 'Силовая');
+        equal(effort.typeName('Weight Training'), 'Силовая', 'сервис пишет вид и с пробелом');
+        equal(effort.typeName('basketball'), 'Баскетбол');
+        equal(effort.typeName('Padel'), 'Padel', 'выдумывать перевод неизвестному незачем');
+    });
+
+    /*
+     * Один вид — это не разбор, а то же число другими словами, и в сводке
+     * такая строка только занимает место.
+     */
+    it('сводка называет доли, когда видов больше одного', () => {
+        const один = effort.describe([с(NOW - DAY, 'Basketball', 100)], { now: NOW });
+        const двое = effort.describe([
+            с(NOW - DAY, 'Basketball', 100),
+            с(NOW - 2 * DAY, 'WeightTraining', 100)
+        ], { now: NOW });
+
+        assert(!один.some((s) => s.includes('Нагрузка за неделю')), один.join(' | '));
+
+        const строка = двое.find((s) => s.includes('Нагрузка за неделю'));
+
+        assert(строка, двое.join(' | '));
+        assert(строка.includes('Баскетбол 50 %') && строка.includes('Силовая 50 %'), строка);
+    });
+});
