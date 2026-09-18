@@ -1172,7 +1172,6 @@ export const DE = {
     'Показать целиком': 'Alles anzeigen',
     'Настройки разговора': 'Einstellungen des Gesprächs',
     'Модель': 'Modell',
-    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую.': 'Google ändert seine Modellauswahl häufiger, als diese App Versionen bekommt. Antwortet eines nicht mehr, trag ein anderes ein.',
     'Забыть ключ': 'Schlüssel vergessen',
     'Забыть ключ?': 'Schlüssel vergessen?',
     'Разговор перестанет работать, пока не вставите ключ снова. Сам ключ в Google останется.': 'Das Gespräch funktioniert nicht mehr, bis du wieder einen Schlüssel einfügst. Der Schlüssel selbst bleibt bei Google.',
@@ -1656,4 +1655,29 @@ export const DE = {
         'Woraus sich die Belastung der letzten Woche zusammensetzt: insgesamt {n}. Das sind die Anteile der Einheiten zueinander, nicht die Rechnung hinter dem Anstieg — die macht Intervals.icu mit gleitenden Mitteln.',
     'Ещё {n} без нагрузки — часы её не прислали, и в долях их нет.':
         'Dazu {n} ohne Belastung — die Uhr hat sie nicht geschickt, in den Anteilen stehen sie nicht.',
+
+    // Окна ожидания и проверка ключа (§60.2, Р-192)
+    'Проверяю ключ': 'Schlüssel wird geprüft',
+    'Спрашиваю у Google, какие модели этот ключ вправе спрашивать. Обычно ответ приходит за пару секунд.':
+        'Ich frage Google, welche Modelle dieser Schlüssel abfragen darf. Die Antwort kommt meist in ein paar Sekunden.',
+    'Ключ принят, но ни одной отвечающей модели Google по нему не даёт. Проверьте, что у проекта включён доступ к Gemini API.':
+        'Der Schlüssel funktioniert, aber Google gibt dafür kein antwortendes Modell heraus. Prüfe, ob im Projekt die Gemini-API aktiviert ist.',
+    'Ключ принят. Модель «{было}» Google больше не предлагает — выбрана «{стало}». Поменять можно в настройках разговора.':
+        'Schlüssel übernommen. Das Modell „{было}“ bietet Google nicht mehr an — gewählt wurde „{стало}“. Ändern kannst du das in den Gesprächseinstellungen.',
+    'Снимаю с весов': 'Ich lese die Waage aus',
+    'Ищу весы рядом.': 'Ich suche die Waage in der Nähe.',
+    'Забираю с часов': 'Ich hole von der Uhr',
+    'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
+        'Ich frage Intervals.icu nach einem Monat Messwerte und Einheiten. Die Antwort kommt meist in ein paar Sekunden.',
+    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую или спросите у Google, что он предлагает сейчас.':
+        'Google ändert seine Modellpalette öfter, als diese App Versionen bekommt. Antwortet eines nicht mehr, trag ein anderes ein — oder frag Google, was es gerade anbietet.',
+    'Подобрать модель': 'Modell suchen',
+    'Спрашиваю Google': 'Ich frage Google',
+    'Какие модели этот ключ вправе спрашивать.':
+        'Welche Modelle dieser Schlüssel abfragen darf.',
+    'Отвечающих моделей нет': 'Keine antwortenden Modelle',
+    'Столько моделей Google предлагает по вашему ключу. Сейчас записана «{модель}».':
+        'So viele Modelle bietet Google für deinen Schlüssel an. Eingetragen ist derzeit „{модель}“.',
+    'приложение выбрало бы эту': 'die App würde dieses wählen',
+    'записана сейчас': 'derzeit eingetragen',
 };

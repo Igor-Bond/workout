@@ -1231,7 +1231,6 @@ export const EN = {
     'Показать целиком': 'Show it all',
     'Настройки разговора': 'Conversation settings',
     'Модель': 'Model',
-    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую.': 'Google changes its line-up of models more often than this app ships versions. If one stops answering, type another.',
     'Забыть ключ': 'Forget the key',
     'Забыть ключ?': 'Forget the key?',
     'Разговор перестанет работать, пока не вставите ключ снова. Сам ключ в Google останется.': 'The conversation stops working until you paste a key again. The key itself stays in Google.',
@@ -1658,4 +1657,29 @@ export const EN = {
         'What the last week’s load is made of: {n} in total. These are the sessions’ shares relative to each other, not the ramp’s arithmetic — Intervals.icu works that one out with rolling averages.',
     'Ещё {n} без нагрузки — часы её не прислали, и в долях их нет.':
         'Another {n} with no load — the watch did not send it, and they are not in the shares.',
+
+    // Окна ожидания и проверка ключа (§60.2, Р-192)
+    'Проверяю ключ': 'Checking the key',
+    'Спрашиваю у Google, какие модели этот ключ вправе спрашивать. Обычно ответ приходит за пару секунд.':
+        'Asking Google which models this key is allowed to query. The answer usually comes within a couple of seconds.',
+    'Ключ принят, но ни одной отвечающей модели Google по нему не даёт. Проверьте, что у проекта включён доступ к Gemini API.':
+        'The key works, but Google offers no answering model for it. Check that the project has the Gemini API enabled.',
+    'Ключ принят. Модель «{было}» Google больше не предлагает — выбрана «{стало}». Поменять можно в настройках разговора.':
+        'Key accepted. Google no longer offers the model “{было}” — “{стало}” was chosen instead. You can change it in the conversation settings.',
+    'Снимаю с весов': 'Reading the scale',
+    'Ищу весы рядом.': 'Looking for the scale nearby.',
+    'Забираю с часов': 'Fetching from the watch',
+    'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
+        'Asking Intervals.icu for a month of measurements and sessions. The answer usually comes within a few seconds.',
+    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую или спросите у Google, что он предлагает сейчас.':
+        'Google changes its line-up of models more often than this app ships versions. If one stops answering, type another — or ask Google what it offers right now.',
+    'Подобрать модель': 'Find a model',
+    'Спрашиваю Google': 'Asking Google',
+    'Какие модели этот ключ вправе спрашивать.':
+        'Which models this key is allowed to query.',
+    'Отвечающих моделей нет': 'No answering models',
+    'Столько моделей Google предлагает по вашему ключу. Сейчас записана «{модель}».':
+        'These are the models Google offers for your key. “{модель}” is written down at the moment.',
+    'приложение выбрало бы эту': 'the app would pick this one',
+    'записана сейчас': 'written down now',
 };
