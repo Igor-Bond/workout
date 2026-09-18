@@ -34,6 +34,7 @@ import { exercises } from '../../js/modules/exercises.js';
 import { recordsScreen } from '../../js/modules/records.js';
 import { templates } from '../../js/modules/templates.js';
 import { profile } from '../../js/modules/profile.js';
+import { auth } from '../../js/services/auth.js';
 import { athleteScreen } from '../../js/modules/athlete.js';
 
 /** Заметка такой длины, какую пишет разбор фотографии (§68). */
@@ -109,6 +110,37 @@ describe(`Вёрстка на ширине ${ТЕЛЕФОН}`, () => {
         await seed();
 
         await проверить(profile);
+    });
+
+    /*
+     * Адрес почты приходит извне и бывает какой угодно длины (Р-194).
+     *
+     * Это единственная строка приложения, которой человек не назначал длину:
+     * ни название упражнения, ни заметку он не может сделать длиннее, чем
+     * набрал, а почту ему выдали. Семьдесят знаков без единого пробела
+     * распирали карточку синхронизации на две сотни точек.
+     */
+    it('профиль с длинным адресом почты', async () => {
+        await seed();
+
+        const настоящий = Object.getOwnPropertyDescriptor(auth, 'isSignedIn');
+        const былПользователь = Object.getOwnPropertyDescriptor(auth, 'user');
+        const былаНастройка = auth.isConfigured;
+
+        Object.defineProperty(auth, 'isSignedIn', { get: () => true, configurable: true });
+        Object.defineProperty(auth, 'user', {
+            get: () => ({ email: 'aleksandr.konstantinovich.testirovshchik@bolshayakompaniya.example.com' }),
+            configurable: true
+        });
+        auth.isConfigured = () => true;
+
+        try {
+            await проверить(profile);
+        } finally {
+            Object.defineProperty(auth, 'isSignedIn', настоящий);
+            Object.defineProperty(auth, 'user', былПользователь);
+            auth.isConfigured = былаНастройка;
+        }
     });
 
     /*

@@ -1181,9 +1181,6 @@ export const DE = {
     'Что бы ты поправил в моей нынешней программе и почему?': 'Was würdest du an meinem jetzigen Programm ändern und warum?',
     'Программа скоро кончится. Что делать дальше — что оставить, что менять?': 'Das Programm endet bald. Wie weiter — was bleibt, was ändert sich?',
     'Ключ не принят. Проверьте, что скопирован он целиком.': 'Der Schlüssel wurde nicht angenommen. Prüfe, ob du ihn vollständig kopiert hast.',
-    'Запрос не принят: {что}': 'Anfrage abgelehnt: {что}',
-    'Доступ запрещён. Возможно, ключ ограничен другим адресом или модель недоступна в вашей стране.': 'Zugriff verweigert. Vielleicht ist der Schlüssel auf eine andere Adresse beschränkt oder das Modell in deinem Land nicht verfügbar.',
-    'Модель «{модель}» не найдена. Впишите другую в настройках разговора.': 'Modell „{модель}“ nicht gefunden. Trag in den Einstellungen ein anderes ein.',
     'Слишком часто. Google просит подождать.': 'Zu häufig. Google bittet um Geduld.',
     'Google ответил ошибкой. Попробуйте ещё раз.': 'Google hat mit einem Fehler geantwortet. Versuch es noch einmal.',
     'Не удалось получить ответ.': 'Es kam keine Antwort.',
@@ -1680,4 +1677,19 @@ export const DE = {
         'So viele Modelle bietet Google für deinen Schlüssel an. Eingetragen ist derzeit „{модель}“.',
     'приложение выбрало бы эту': 'die App würde dieses wählen',
     'записана сейчас': 'derzeit eingetragen',
+    '{своими} Google говорит так: «{ответ}»':
+        '{своими} Google sagt dazu: „{ответ}“',
+    '{своими} Код ответа {код}.': '{своими} Antwortcode {код}.',
+    'Запрос не принят.': 'Die Anfrage wurde nicht angenommen.',
+    'Доступ запрещён. Возможно, ключ ограничен другим адресом, модель недоступна в вашей стране или у проекта не включён Gemini API.':
+        'Zugriff verweigert. Der Schlüssel ist vielleicht auf eine andere Adresse beschränkt, das Modell in deinem Land nicht verfügbar, oder im Projekt ist die Gemini-API nicht aktiviert.',
+    'Модель «{модель}» не найдена. Нажмите «Подобрать модель» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.':
+        'Modell „{модель}“ wurde nicht gefunden. Tippe in den Gesprächseinstellungen auf „Modell suchen“ — die App fragt Google, was es gerade anbietet.',
+    'Ключ годится. Пробую задать вопрос моделью «{модель}».':
+        'Der Schlüssel passt. Ich versuche eine Frage mit dem Modell „{модель}“.',
+    'Спрашиваю тренера': 'Ich frage den Trainer',
+    'Ушло дело целиком: кондиции, ограничения и программа. Программа на восемь недель считается дольше короткого ответа — бывает до минуты.':
+        'Die ganze Akte ist unterwegs: Verfassung, Einschränkungen und Programm. Ein Achtwochenprogramm dauert länger als eine kurze Antwort — bis zu einer Minute.',
+    'Ушёл вопрос и вся переписка. Обычно ответ приходит за несколько секунд.':
+        'Die Frage und der ganze Verlauf sind unterwegs. Die Antwort kommt meist in ein paar Sekunden.',
 };

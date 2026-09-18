@@ -1240,9 +1240,6 @@ export const EN = {
     'Что бы ты поправил в моей нынешней программе и почему?': 'What would you change in my current programme, and why?',
     'Программа скоро кончится. Что делать дальше — что оставить, что менять?': 'The programme ends soon. What next — what to keep, what to change?',
     'Ключ не принят. Проверьте, что скопирован он целиком.': 'The key was not accepted. Check that you copied all of it.',
-    'Запрос не принят: {что}': 'Request rejected: {что}',
-    'Доступ запрещён. Возможно, ключ ограничен другим адресом или модель недоступна в вашей стране.': 'Access denied. The key may be restricted to another address, or the model may be unavailable in your country.',
-    'Модель «{модель}» не найдена. Впишите другую в настройках разговора.': 'Model “{модель}” was not found. Type another one in the conversation settings.',
     'Слишком часто. Google просит подождать.': 'Too often. Google asks you to wait.',
     'Google ответил ошибкой. Попробуйте ещё раз.': 'Google returned an error. Try again.',
     'Не удалось получить ответ.': 'Could not get an answer.',
@@ -1682,4 +1679,19 @@ export const EN = {
         'These are the models Google offers for your key. “{модель}” is written down at the moment.',
     'приложение выбрало бы эту': 'the app would pick this one',
     'записана сейчас': 'written down now',
+    '{своими} Google говорит так: «{ответ}»':
+        '{своими} Google puts it this way: “{ответ}”',
+    '{своими} Код ответа {код}.': '{своими} Response code {код}.',
+    'Запрос не принят.': 'The request was not accepted.',
+    'Доступ запрещён. Возможно, ключ ограничен другим адресом, модель недоступна в вашей стране или у проекта не включён Gemini API.':
+        'Access denied. The key may be restricted to another address, the model may not be available in your country, or the project may not have the Gemini API enabled.',
+    'Модель «{модель}» не найдена. Нажмите «Подобрать модель» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.':
+        'Model “{модель}” was not found. Tap “Find a model” in the conversation settings — the app will ask Google what it offers right now.',
+    'Ключ годится. Пробую задать вопрос моделью «{модель}».':
+        'The key works. Trying a question with the model “{модель}”.',
+    'Спрашиваю тренера': 'Asking the coach',
+    'Ушло дело целиком: кондиции, ограничения и программа. Программа на восемь недель считается дольше короткого ответа — бывает до минуты.':
+        'The whole case has gone: condition, limits and the programme. An eight-week programme takes longer than a short answer — up to a minute.',
+    'Ушёл вопрос и вся переписка. Обычно ответ приходит за несколько секунд.':
+        'The question and the whole conversation have gone. The answer usually comes within a few seconds.',
 };
