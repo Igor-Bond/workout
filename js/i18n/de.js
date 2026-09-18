@@ -1692,4 +1692,7 @@ export const DE = {
     'Обновить список': 'Liste aktualisieren',
     'Модель «{было}» Google больше не предлагает — выбрана «{стало}».':
         'Das Modell „{было}“ bietet Google nicht mehr an — gewählt wurde „{стало}“.',
+    'Столько моделей Google предлагает по вашему ключу.':
+        'So viele Modelle bietet Google für deinen Schlüssel an.',
+    'записана сейчас': 'derzeit eingetragen',
 };

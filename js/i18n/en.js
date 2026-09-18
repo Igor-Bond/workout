@@ -1694,4 +1694,7 @@ export const EN = {
     'Обновить список': 'Refresh the list',
     'Модель «{было}» Google больше не предлагает — выбрана «{стало}».':
         'Google no longer offers the model “{было}” — “{стало}” was chosen instead.',
+    'Столько моделей Google предлагает по вашему ключу.':
+        'These are the models Google offers for your key.',
+    'записана сейчас': 'written down now',
 };

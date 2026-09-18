@@ -36,6 +36,12 @@ import { condition } from '../../js/modules/condition.js';
 import { surveyScreen } from '../../js/modules/survey.js';
 import { planner, putDraft, PLAN_KEY } from '../../js/modules/planner.js';
 import { ATHLETE_KEY, setGoal, GOALS_KEY } from '../../js/modules/athlete.js';
+import { athleteScreen } from '../../js/modules/athlete.js';
+import { coach } from '../../js/modules/coach.js';
+import { intro } from '../../js/modules/intro.js';
+import { program } from '../../js/modules/program.js';
+import { report } from '../../js/modules/report.js';
+import { KEY_SETTING, MODELS_SETTING } from '../../js/services/ai.js';
 import { survey } from '../../js/core/survey.js';
 import { dialog } from '../../js/core/dialog.js';
 import { actions } from '../../js/core/actions.js';
@@ -4694,7 +4700,12 @@ describe('Кнопки и обработчики', () => {
         ['статистика', stats], ['кондиции', condition], ['рекорды', recordsScreen],
         ['шаблоны', templates], ['справочник', exercises], ['часы', watch],
         ['профиль', profile], ['справка', guide], ['план', plan],
-        ['планировщик', planner], ['интервалы', intervalScreen], ['доли веса', shares]
+        ['планировщик', planner], ['интервалы', intervalScreen], ['доли веса', shares],
+
+        // Пять экранов, которых в обходах не было вовсе (Р-199): ни мёртвая
+        // кнопка, ни безымянный значок на них не ловились
+        ['о себе', athleteScreen], ['тренер', coach], ['знакомство', intro],
+        ['программа и тренер', program], ['сводка', report]
     ];
 
     /*
@@ -5097,5 +5108,185 @@ describe('Кнопки и обработчики', () => {
         }
 
         assert(беда.length === 0, `значки без слов:\n${[...new Set(беда)].join('\n')}`);
+    });
+});
+
+/**
+ * Пять экранов, которых не было ни в одной проверке (§45, Р-199).
+ *
+ * Ревизия по просьбе владельца нашла их разом: «О себе», «Тренер»,
+ * «Знакомство», «Программа и тренер» и «Сводка» не поднимались ни здесь, ни в
+ * замере вёрстки. Их не обходили даже общие проверки — та, что ищет мёртвые
+ * кнопки, и та, что требует слов у значков; первая же, дотянувшись до
+ * «Тренера», нашла поле с именем действия, которого больше нет.
+ *
+ * Проверяется у каждого то, ради чего он существует, и то состояние, которое
+ * легче всего забыть.
+ */
+describe('Экран: о себе', () => {
+
+    it('цифровые цели стоят рядом со словесной', async () => {
+        await seed();
+
+        const view = await screen(athleteScreen);
+
+        assert(view.querySelector('#a-goal'), 'словесная цель');
+
+        for (const поле of ['a-goal-weight', 'a-goal-waist', 'a-goal-fat', 'a-goal-deficit', 'a-goal-steps']) {
+            assert(view.querySelector(`#${поле}`), `нет поля ${поле}`);
+        }
+    });
+
+    /*
+     * Шаги лежат своим ключом, а не в целях (Р-185): их читают часы, главный
+     * экран и статистика. Показываются среди целей, хранятся где лежали.
+     */
+    it('цель по шагам показывается и записывается своим ключом', async () => {
+        await seed();
+        await dbService.setSetting('stepsGoal', 8000);
+
+        const view = await screen(athleteScreen);
+
+        equal(view.querySelector('#a-goal-steps')?.value, '8000');
+
+        await change('steps-goal-field', '10500');
+        equal(await dbService.getSetting('stepsGoal', 0), 10500);
+
+        await change('steps-goal-field', '');
+        equal(await dbService.getSetting('stepsGoal', -1), 0, 'пусто значит «цели нет»');
+    });
+
+    it('названное ограничение показывает, что оно убирает', async () => {
+        const e = await seed({ name: 'Приседания' });
+
+        await dbService.setSetting(ATHLETE_KEY, {
+            sex: 'male', birthYear: 1982, height: 185, goal: '',
+            equipment: [], limits: [{ name: 'колено', exclude: [e.id] }]
+        });
+
+        const view = await screen(athleteScreen);
+
+        assert(text(view).includes('колено'), text(view).slice(0, 200));
+        assert(text(view).includes('Приседания'), 'человек должен видеть последствие своего слова');
+    });
+});
+
+describe('Экран: тренер', () => {
+
+    it('без ключа объясняет, где его взять, и не обещает разговора', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, '');
+
+        const view = await screen(coach);
+
+        assert(hasAction(view, 'coach-key-save'), 'кнопка проверки ключа');
+        assert(hasAction(view, 'coach-key-site'), 'дорога к ключам Google');
+        assert(!hasAction(view, 'coach-ask'), 'спрашивать нечем — и не предлагаем');
+    });
+
+    it('с ключом предлагает готовые вопросы и поле', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+        const view = await screen(coach);
+
+        assert(hasAction(view, 'coach-preset'), 'готовые вопросы');
+        assert(hasAction(view, 'coach-forget'), 'ключ можно забыть');
+    });
+
+    /*
+     * Список моделей показывается своим окном, а не родным (Р-200): родное
+     * открывается средствами телефона и выглядит чужим.
+     */
+    it('модель выбирается своим окном, пока список есть', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+        await dbService.setSetting(MODELS_SETTING, {
+            at: Date.now(), names: ['gemini-2.5-flash', 'gemini-2.5-pro']
+        });
+
+        const view = await screen(coach);
+
+        assert(hasAction(view, 'coach-model-pick'), 'выбор своим окном');
+        equal(view.querySelector('select#ai-model'), null, 'родного списка здесь быть не должно');
+    });
+
+    it('без списка остаётся поле для ввода руками', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+        await dbService.setSetting(MODELS_SETTING, null);
+
+        const view = await screen(coach);
+
+        assert(view.querySelector('input#ai-model'), 'сети может не быть — запасной ход обязателен');
+    });
+});
+
+describe('Экран: программа и тренер', () => {
+
+    /*
+     * Экран — список дорог, и каждая обязана вести куда-то. Пустая строка
+     * здесь незаметна: она выглядит точно так же, как рабочая.
+     */
+    it('все пять дорог названы и ведут на свои экраны', async () => {
+        await seed();
+
+        const view = await screen(program);
+        const куда = [...view.querySelectorAll('[data-action="nav"]')].map((b) => b.dataset.screen);
+
+        for (const экран of ['athlete', 'planner', 'report', 'coach', 'watch']) {
+            assert(куда.includes(экран), `нет дороги на «${экран}»: ${куда.join(', ')}`);
+        }
+    });
+});
+
+describe('Экран: сводка для тренера', () => {
+
+    it('на пустой базе не пустует, а объясняет', async () => {
+        await seed();
+
+        const view = await screen(report);
+
+        assert(text(view).length > 40, 'сводка без истории — тоже сводка');
+        assert(hasAction(view, 'report-copy'), 'копировать нечем — незачем и показывать');
+    });
+
+    it('называет сделанное и справочник целиком', async () => {
+        const e = await seed({ name: 'Жим лёжа' });
+        await workout(e, [[10, 60], [8, 62.5]]);
+
+        await dbService.createExercise({ name: 'Тяга резинки', kind: 'reps', group: 'Спина' });
+
+        const поле = (await screen(report)).querySelector('.report-text');
+        const текст = поле?.value || поле?.textContent || '';
+
+        assert(текст.includes('Жим лёжа'), текст.slice(0, 300));
+        assert(текст.includes('Тяга резинки'),
+            'справочник уходит целиком: иначе подзабытое упражнение в план не попадёт никогда');
+    });
+});
+
+describe('Экран: знакомство', () => {
+
+    it('начинается приветствием и считает шаги', async () => {
+        await seed();
+        await dbService.setSetting('intro', null);
+
+        const view = await screen(intro);
+
+        assert(text(view).includes('1 из 5'), text(view).slice(0, 160));
+        assert(hasAction(view, 'intro-next') || hasAction(view, 'intro-start'),
+            'шаг обязан куда-то вести');
+    });
+
+    /*
+     * Пропустить можно всё знакомство целиком: спрашивать у человека
+     * согласия на разговор о себе и не давать отказаться — не разговор.
+     */
+    it('знакомство можно пропустить', async () => {
+        await seed();
+        await dbService.setSetting('intro', null);
+
+        assert(hasAction(await screen(intro), 'intro-skip'), 'отказ обязан быть на виду');
     });
 });

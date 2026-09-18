@@ -291,8 +291,14 @@ export const coach = {
 
                     <div class="field">
                         <label for="ai-key">${t('Ключ')}</label>
+                        <!--
+                            Без data-change (Р-199): обработчик у поля убрали,
+                            когда сохранение переехало на кнопку, а имя в
+                            разметке осталось — поле, обещающее действие,
+                            которого нет.
+                        -->
                         <input id="ai-key" type="password" autocomplete="off" spellcheck="false"
-                               placeholder="AIza…" data-change="coach-key">
+                               placeholder="AIza…">
                     </div>
 
                     <!--
@@ -394,8 +400,14 @@ export const coach = {
 
                     Названия моделей человек знать не обязан: их придумывает
                     Google и меняет когда хочет. Приложение спрашивает список
-                    само — при вводе ключа и раз в сутки в стороне, — и
-                    показывает его выбором, отметив ту, которую выбрало бы.
+                    само — при вводе ключа и раз в сутки в стороне.
+
+                    Показывается он своим окном выбора, а не родным списком
+                    (Р-200). Родной открывается средствами телефона: выглядит
+                    чужим, живёт по своим правилам и на Android рисуется
+                    поверх приложения белым по светлому. Окно выбора в
+                    приложении одно на всё — тем же оно должно быть и здесь.
+                    Ровно так уже решено у выбора языка.
 
                     Поле ввода остаётся запасным ходом: список приходит по
                     сети, а сети может не быть, и остаться без единого способа
@@ -403,17 +415,10 @@ export const coach = {
                 -->
                 ${список.length ? ui.html`
                     <div class="field">
-                        <label for="ai-model">${t('Модель')}</label>
-                        <select id="ai-model" data-change="coach-model">
-                            ${список.map((имя) => ui.html`
-                                <option value="${имя}" ${ui.raw(имя === model ? 'selected' : '')}>
-                                    ${имя}${имя === ai.pick(список) ? ` — ${t('советуем')}` : ''}
-                                </option>
-                            `)}
-                            ${список.includes(model) ? '' : ui.html`
-                                <option value="${model}" selected>${model} — ${t('Google её не предлагает')}</option>
-                            `}
-                        </select>
+                        <label>${t('Модель')}</label>
+                        <button class="btn btn-ghost" data-action="coach-model-pick">
+                            ${model}${список.includes(model) ? '' : ` — ${t('Google её не предлагает')}`}
+                        </button>
                     </div>
                 ` : ui.html`
                     <div class="field">
@@ -646,6 +651,47 @@ actions.on('coach-models', async () => {
  * Один обработчик на оба: пока список не привезён, поле остаётся полем
  * ввода, и человек не должен оказаться без единого способа назвать модель.
  */
+/**
+ * Выбор модели — своим окном (§60.3, Р-200).
+ *
+ * Список уже привезён и лежит в памяти: окно открывается сразу, без обращения
+ * к сети. Обновить его — отдельная кнопка рядом, и это разные дела: выбрать
+ * из известного и сходить спросить заново.
+ */
+actions.on('coach-model-pick', async () => {
+    const список = (await dbService.getSetting(MODELS_SETTING, null))?.names || [];
+    if (!список.length) return;
+
+    const записанная = (await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL)) || DEFAULT_MODEL;
+    const советуем = ai.pick(список);
+
+    /*
+     * Советуемая первой: человек почти всегда соглашается с первой строкой, и
+     * она обязана быть той же, которую приложение выбрало бы само.
+     */
+    const порядок = [советуем, ...список.filter((имя) => имя !== советуем)];
+
+    const выбор = await dialog.choose({
+        title: t('Модель'),
+        text: t('Столько моделей Google предлагает по вашему ключу.'),
+        options: порядок.map((имя) => ({
+            value: имя,
+            label: имя,
+            hint: имя === советуем ? t('советуем')
+                : имя === записанная ? t('записана сейчас')
+                : null
+        }))
+    });
+
+    if (!выбор) return;
+
+    await dbService.setSetting(MODEL_SETTING, выбор);
+    принято = '';
+    haptics.tap();
+
+    await app.render();
+});
+
 actions.onChange('coach-model', async (el) => {
     await dbService.setSetting(MODEL_SETTING, el.value.trim() || DEFAULT_MODEL);
 });
