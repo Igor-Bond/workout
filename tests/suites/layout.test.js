@@ -21,7 +21,7 @@ import { наТелефоне, самопроверка, опустить, ТЕ�
 import { seed, workout } from '../helpers/dom.js';
 import { dbService } from '../../js/services/db.js';
 import { config } from '../../js/config.js';
-import { ICU_STEPS_GOAL, ICU_ACTS, ICU_DATA } from '../../js/services/icu.js';
+import { ICU_STEPS_GOAL, ICU_ACTS, ICU_DATA, ICU_KEY, ICU_ATHLETE } from '../../js/services/icu.js';
 
 import { home } from '../../js/modules/home.js';
 import { history } from '../../js/modules/history.js';
@@ -36,6 +36,17 @@ import { templates } from '../../js/modules/templates.js';
 import { profile } from '../../js/modules/profile.js';
 import { auth } from '../../js/services/auth.js';
 import { athleteScreen } from '../../js/modules/athlete.js';
+import { calendar } from '../../js/modules/calendar.js';
+import { coach } from '../../js/modules/coach.js';
+import { exercise } from '../../js/modules/exercise.js';
+import { guide } from '../../js/modules/guide.js';
+import { planner } from '../../js/modules/planner.js';
+import { program } from '../../js/modules/program.js';
+import { report } from '../../js/modules/report.js';
+import { shares } from '../../js/modules/shares.js';
+import { surveyScreen } from '../../js/modules/survey.js';
+import { watch } from '../../js/modules/watch.js';
+import { intro } from '../../js/modules/intro.js';
 
 /** Заметка такой длины, какую пишет разбор фотографии (§68). */
 const ДЛИННАЯ = '0.5 светлого нефильтрованного, орешки криспы 100 гр, мороженое в вафельном стаканчике';
@@ -230,6 +241,60 @@ describe(`Вёрстка на ширине ${ТЕЛЕФОН}`, () => {
 
         await проверить(intervalScreen);
     });
+
+    /*
+     * Остальные экраны — списком (Р-197).
+     *
+     * Одиннадцать из двадцати четырёх не мерились вовсе, и ровно там ревизия
+     * нашла живой дефект: название занятия с часов распирало каркас на
+     * полторы сотни точек. Там, где экрану нужны особые данные, у него своя
+     * проверка выше; здесь — пустая база и длинное название упражнения,
+     * потому что на пустой вёрстка ломается не реже.
+     */
+    const ОСТАЛЬНЫЕ = [
+        ['календарь', calendar],
+        ['тренер', coach],
+        ['карточка упражнения', exercise],
+        ['справка', guide],
+        ['план', planner],
+        ['программа', program],
+        ['сводка тренеру', report],
+        ['обмен списками', shares],
+        ['анкета', surveyScreen],
+        ['с часов', watch],
+        ['знакомство', intro]
+    ];
+
+    for (const [имя, экран] of ОСТАЛЬНЫЕ) {
+        it(имя, async () => {
+            const e = await seed({ name: ДЛИННОЕ_ИМЯ });
+            await workout(e, [[12, 60], [10, 62.5]]);
+
+            /*
+             * Название занятия приходит от Intervals.icu, и длину ему
+             * назначаем не мы (Р-197). Это та самая строка, на которой
+             * экран «С часов» и ломался.
+             */
+            /*
+             * Ключ и спортсмен — иначе экран «С часов» показывает не
+             * привезённое, а приглашение привязаться, и проверка мерила бы
+             * не то, ради чего написана.
+             */
+            await dbService.setSetting(ICU_KEY, 'поддельный');
+            await dbService.setSetting(ICU_ATHLETE, 'i1');
+
+            await dbService.setSetting(ICU_ACTS, { at: Date.now(), rows: [{
+                id: 'a1',
+                name: 'ОченьДлинноеНазваниеЗанятияКотороеПришлоСЧасовБезЕдиногоПробела',
+                type: 'WeightTraining',
+                start: Date.now() - 86400000,
+                end: Date.now() - 86400000 + 3600000,
+                seconds: 3600, avgHr: 128, maxHr: 165, calories: 520, load: 54
+            }]});
+
+            await проверить(экран, [e.id]);
+        });
+    }
 
     /*
      * Проверка обязана уметь падать: рама, которая ничего не меряет, о любой
