@@ -143,8 +143,6 @@ function syncBlock() {
             <strong>${last ? dates.formatDateTime(last) : t('ещё не было')}</strong>
         </div>
 
-        <div id="sync-status" class="sync-status"></div>
-
         <button class="btn btn-accent" data-action="sync-now">${t('Синхронизировать')}</button>
         <button class="btn btn-ghost" data-action="sync-full">${t('Полный обмен заново')}</button>
         <button class="btn btn-ghost" data-action="sync-out">${t('Выйти')}</button>
@@ -482,26 +480,34 @@ actions.onChange('setting', (el) => {
 
 // ================== СИНХРОНИЗАЦИЯ ==================
 
-/** Ход обмена показывается на месте, без перерисовки всего экрана. */
-function status(text) {
-    const el = document.getElementById('sync-status');
-    if (el) el.textContent = text;
-}
-
 actions.on('sync-in', async () => {
+    /*
+     * Окно ожидания открывается до обращения (§30.2, Р-202).
+     *
+     * Разрешение на всплывающее окно Google браузер даёт только нажатию, и
+     * открыть своё окно надо до `signIn`, синхронно: между ними не должно
+     * быть ни одного `await`, иначе жест потеряется и вход не откроется.
+     */
+    dialog.waiting({ title: t('Вход через Google'), text: t('Открывается окно входа…') });
+
     try {
-        status(t('Открывается окно входа…'));
         const user = await auth.signIn();
 
-        if (!user) return status('');
+        if (!user) {
+            dialog.close();
+            return app.render();
+        }
 
         // Признак «облако включено» — по нему приложение решает поднимать
         // SDK при следующих запусках и синхронизировать без напоминаний
         config.set('syncEnabled', true);
 
-        status(t('Первый обмен…'));
+        dialog.say(t('Первый обмен: выкладываю то, что уже записано.'));
         await sync.run({ silent: true });
+
+        dialog.close();
     } catch (e) {
+        dialog.close();
         await dialog.alert({ title: t('Не удалось войти'), text: осечкаОбмена(e.message) });
     }
 
@@ -509,9 +515,24 @@ actions.on('sync-in', async () => {
 });
 
 actions.on('sync-now', async () => {
-    const off = sync.onStatus((s) => status(s.message));
+    /*
+     * Ход обмена — окном, как у весов и часов (§30.2, Р-202).
+     *
+     * Строка внутри карточки стояла хотя бы рядом с кнопкой, и потому этот
+     * случай был мягче прочих. Но правило теперь одно на всё приложение, а
+     * обмен — самое долгое из того, что приложение делает по нажатию: он
+     * проходит по всем таблицам и упирается в чужую сеть.
+     *
+     * Шаги приходят в ту же строку окна: «выкладываю подходы», «принимаю
+     * чужое» — каждый отвечает на вопрос «работает ли вообще».
+     */
+    dialog.waiting({ title: t('Обмен с облаком'), text: t('Начинаю.') });
+
+    const off = sync.onStatus((s) => dialog.say(s.message));
     const result = await sync.run();
     off();
+
+    dialog.close();
 
     if (result.error) {
         await dialog.alert({ title: t('Обмен не прошёл'), text: осечкаОбмена(result.error) });
@@ -529,8 +550,24 @@ actions.on('sync-full', async () => {
 
     if (!ok) return;
 
+    /*
+     * Полный обмен идёт по всей истории и потому дольше обычного — окно тут
+     * нужнее всего (Р-202).
+     */
+    dialog.waiting({ title: t('Полный обмен'), text: t('Прохожу по всей истории. Это дольше обычного обмена.') });
+
+    const off = sync.onStatus((s) => dialog.say(s.message));
+
     sync.reset();
-    await sync.run();
+    const result = await sync.run();
+    off();
+
+    dialog.close();
+
+    if (result.error) {
+        await dialog.alert({ title: t('Обмен не прошёл'), text: осечкаОбмена(result.error) });
+    }
+
     app.render();
 });
 

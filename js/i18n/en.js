@@ -899,7 +899,6 @@ export const EN = {
     'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удалите значок с домашнего экрана и добавьте заново: во весь экран приложение разворачивается при установке.': 'The app was installed in windowed mode, so the system bar at the bottom stays. To make it disappear for good, remove the icon from your home screen and add it again: the app goes full screen at install time.',
     '{сколько} в архиве': '{сколько} archived',
     'Открывается окно входа…': 'Opening the sign-in window…',
-    'Первый обмен…': 'First sync…',
     'Не удалось войти': 'Could not sign in',
     'Обмен не прошёл': 'Sync failed',
     'Обменяться заново?': 'Sync everything again?',
@@ -1697,4 +1696,12 @@ export const EN = {
     'Столько моделей Google предлагает по вашему ключу.':
         'These are the models Google offers for your key.',
     'записана сейчас': 'written down now',
+    'Вход через Google': 'Signing in with Google',
+    'Первый обмен: выкладываю то, что уже записано.':
+        'First sync: uploading what is already recorded.',
+    'Обмен с облаком': 'Syncing with the cloud',
+    'Начинаю.': 'Starting.',
+    'Полный обмен': 'Full sync',
+    'Прохожу по всей истории. Это дольше обычного обмена.':
+        'Going through the whole history. This takes longer than a normal sync.',
 };

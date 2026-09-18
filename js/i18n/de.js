@@ -839,7 +839,6 @@ export const DE = {
     'Приложение установлено в оконном режиме — системная полоса снизу остаётся. Чтобы она пропала совсем, удалите значок с домашнего экрана и добавьте заново: во весь экран приложение разворачивается при установке.': 'Die App wurde im Fenstermodus installiert, deshalb bleibt die Systemleiste unten. Damit sie ganz verschwindet, entferne das Symbol vom Startbildschirm und füge es neu hinzu: Bei der Installation geht die App auf den ganzen Bildschirm.',
     '{сколько} в архиве': '{сколько} archiviert',
     'Открывается окно входа…': 'Anmeldefenster wird geöffnet …',
-    'Первый обмен…': 'Erster Abgleich …',
     'Не удалось войти': 'Anmeldung fehlgeschlagen',
     'Обмен не прошёл': 'Abgleich fehlgeschlagen',
     'Обменяться заново?': 'Alles neu abgleichen?',
@@ -1695,4 +1694,12 @@ export const DE = {
     'Столько моделей Google предлагает по вашему ключу.':
         'So viele Modelle bietet Google für deinen Schlüssel an.',
     'записана сейчас': 'derzeit eingetragen',
+    'Вход через Google': 'Anmeldung über Google',
+    'Первый обмен: выкладываю то, что уже записано.':
+        'Erster Abgleich: ich lade hoch, was schon erfasst ist.',
+    'Обмен с облаком': 'Abgleich mit der Cloud',
+    'Начинаю.': 'Ich fange an.',
+    'Полный обмен': 'Vollständiger Abgleich',
+    'Прохожу по всей истории. Это дольше обычного обмена.':
+        'Ich gehe die ganze Historie durch. Das dauert länger als ein normaler Abgleich.',
 };
