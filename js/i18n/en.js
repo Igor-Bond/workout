@@ -1668,17 +1668,10 @@ export const EN = {
     'Забираю с часов': 'Fetching from the watch',
     'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
         'Asking Intervals.icu for a month of measurements and sessions. The answer usually comes within a few seconds.',
-    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую или спросите у Google, что он предлагает сейчас.':
-        'Google changes its line-up of models more often than this app ships versions. If one stops answering, type another — or ask Google what it offers right now.',
     'Подобрать модель': 'Find a model',
     'Спрашиваю Google': 'Asking Google',
     'Какие модели этот ключ вправе спрашивать.':
         'Which models this key is allowed to query.',
-    'Отвечающих моделей нет': 'No answering models',
-    'Столько моделей Google предлагает по вашему ключу. Сейчас записана «{модель}».':
-        'These are the models Google offers for your key. “{модель}” is written down at the moment.',
-    'приложение выбрало бы эту': 'the app would pick this one',
-    'записана сейчас': 'written down now',
     '{своими} Google говорит так: «{ответ}»':
         '{своими} Google puts it this way: “{ответ}”',
     '{своими} Код ответа {код}.': '{своими} Response code {код}.',
@@ -1694,4 +1687,11 @@ export const EN = {
         'The whole case has gone: condition, limits and the programme. An eight-week programme takes longer than a short answer — up to a minute.',
     'Ушёл вопрос и вся переписка. Обычно ответ приходит за несколько секунд.':
         'The question and the whole conversation have gone. The answer usually comes within a few seconds.',
+    'советуем': 'recommended',
+    'Google её не предлагает': 'Google no longer offers it',
+    'Списка ещё нет: приложение спросит его у Google при первой возможности. До тех пор название можно вписать руками.':
+        'There is no list yet: the app will ask Google at the first opportunity. Until then you can type the name by hand.',
+    'Обновить список': 'Refresh the list',
+    'Модель «{было}» Google больше не предлагает — выбрана «{стало}».':
+        'Google no longer offers the model “{было}” — “{стало}” was chosen instead.',
 };

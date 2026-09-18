@@ -20,7 +20,7 @@ import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
-import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING } from '../services/ai.js';
+import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING, MODELS_SETTING, MODELS_TTL } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
 import { plan as planCore } from '../core/plan.js';
 import { report as build } from '../core/report.js';
@@ -79,6 +79,56 @@ let принято = '';
 
 /** Показывать ли дело целиком — по нажатию, а не всегда. */
 let раскрыто = false;
+
+/**
+ * Список моделей: запомнить привезённое (§60.3, Р-198).
+ *
+ * Отдельной функцией, потому что зовут её трое: проверка ключа, кнопка
+ * «Обновить список» и молчаливое обновление при входе на экран. Второе
+ * написание тех же двух строк однажды разошлось бы с первым.
+ */
+async function запомнитьСписок(names) {
+    await dbService.setSetting(MODELS_SETTING, { at: Date.now(), names });
+    return names;
+}
+
+/**
+ * Обновить список в стороне — молча (§60.3, Р-198).
+ *
+ * Раз в сутки при открытии экрана. Реже — и человек, у которого Google утром
+ * выключил модель, узнает об этом через неделю; чаще — и приложение ходит в
+ * сеть ради ответа, который не меняется месяцами.
+ *
+ * Молча во всех смыслах: без окна ожидания и без сообщения об осечке. Это не
+ * то, о чём человек просил, — он открыл экран разговора, а не список моделей,
+ * — и мешать ему рассказом о неудаче фоновой затеи незачем. Не вышло сейчас
+ * — выйдет при следующем открытии.
+ *
+ * Обещания не ждём: экран уже отрисован, и держать его ради строки в
+ * настройках значило бы задержать сам разговор.
+ */
+async function освежитьСписок() {
+    const key = await dbService.getSetting(KEY_SETTING, '');
+    if (!ai.ready(key)) return;
+
+    const было = await dbService.getSetting(MODELS_SETTING, null);
+    if (было?.at && Date.now() - было.at < MODELS_TTL) return;
+
+    try {
+        const names = await ai.models({ key });
+        if (names.length === 0) return;
+
+        await запомнитьСписок(names);
+
+        /*
+         * Перерисовываем, только если список и правда стал другим: лишняя
+         * перерисовка стёрла бы набранный в это время вопрос.
+         */
+        if ((было?.names || []).join('|') !== names.join('|')) await app.render();
+    } catch (e) {
+        console.warn('[Тренер] Список моделей не обновился:', e.message);
+    }
+}
 
 /** Собрать дело: сводка без задания плюс действующая программа. */
 async function дело() {
@@ -179,6 +229,16 @@ export const coach = {
     async render() {
         const key = await dbService.getSetting(KEY_SETTING, '');
         const model = await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL);
+
+        /*
+         * Список моделей — живой, из того, что Google отдаёт по этому ключу
+         * (Р-198). Читается из памяти, а обновляется сам и в стороне: см.
+         * `освежитьСписок` ниже.
+         */
+        const список = (await dbService.getSetting(MODELS_SETTING, null))?.names || [];
+
+        // Обновление идёт в стороне: экран не ждёт его и отрисуется сразу
+        освежитьСписок();
 
         if (!ai.ready(key)) {
             return ui.html`
@@ -329,24 +389,44 @@ export const coach = {
             <div class="card">
                 <div class="card-title">${t('Настройки разговора')}</div>
 
-                <div class="field">
-                    <label for="ai-model">${t('Модель')}</label>
-                    <input id="ai-model" type="text" autocomplete="off" spellcheck="false"
-                           value="${model}" data-change="coach-model">
-                </div>
-
-                <p class="hint">${t('Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую или спросите у Google, что он предлагает сейчас.')}</p>
-
                 <!--
-                    Спросить список — не только при вводе ключа (Р-191).
+                    Список живой, а не поле для угадывания (Р-198).
 
-                    Ключ вводят один раз, а модель у Google исчезает когда
-                    угодно после. Тому, у кого ключ давно сохранён, проверка
-                    при вводе уже не поможет: его разговор просто перестанет
-                    отвечать, и вписывать название придётся угадывая.
+                    Названия моделей человек знать не обязан: их придумывает
+                    Google и меняет когда хочет. Приложение спрашивает список
+                    само — при вводе ключа и раз в сутки в стороне, — и
+                    показывает его выбором, отметив ту, которую выбрало бы.
+
+                    Поле ввода остаётся запасным ходом: список приходит по
+                    сети, а сети может не быть, и остаться без единого способа
+                    назвать модель нельзя.
                 -->
+                ${список.length ? ui.html`
+                    <div class="field">
+                        <label for="ai-model">${t('Модель')}</label>
+                        <select id="ai-model" data-change="coach-model">
+                            ${список.map((имя) => ui.html`
+                                <option value="${имя}" ${ui.raw(имя === model ? 'selected' : '')}>
+                                    ${имя}${имя === ai.pick(список) ? ` — ${t('советуем')}` : ''}
+                                </option>
+                            `)}
+                            ${список.includes(model) ? '' : ui.html`
+                                <option value="${model}" selected>${model} — ${t('Google её не предлагает')}</option>
+                            `}
+                        </select>
+                    </div>
+                ` : ui.html`
+                    <div class="field">
+                        <label for="ai-model">${t('Модель')}</label>
+                        <input id="ai-model" type="text" autocomplete="off" spellcheck="false"
+                               value="${model}" data-change="coach-model">
+                    </div>
+
+                    <p class="hint">${t('Списка ещё нет: приложение спросит его у Google при первой возможности. До тех пор название можно вписать руками.')}</p>
+                `}
+
                 <button class="btn btn-ghost btn-sm" data-action="coach-models" ${ui.raw(ждём ? 'disabled' : '')}>
-                    ${t('Подобрать модель')}
+                    ${t('Обновить список')}
                 </button>
 
                 <button class="link-btn is-danger" data-action="coach-forget">${t('Забыть ключ')}</button>
@@ -439,7 +519,7 @@ actions.on('coach-key-save', async () => {
          * верный, а приложение отвечает ошибкой и советует вписать другую —
          * ту, названия которой он знать не может.
          */
-        const доступные = await ai.models({ key });
+        const доступные = await запомнитьСписок(await ai.models({ key }));
 
         if (доступные.length === 0) {
             throw new Error(t('Ключ принят, но ни одной отвечающей модели Google по нему не даёт. Проверьте, что у проекта включён доступ к Gemini API.'));
@@ -522,58 +602,50 @@ actions.on('coach-models', async () => {
         text: t('Какие модели этот ключ вправе спрашивать.')
     });
 
-    let доступные = [];
-
     try {
-        доступные = await ai.models({ key });
+        const доступные = await запомнитьСписок(await ai.models({ key }));
+
+        if (доступные.length === 0) {
+            ошибка = t('Ключ принят, но ни одной отвечающей модели Google по нему не даёт. Проверьте, что у проекта включён доступ к Gemini API.');
+        } else {
+            /*
+             * Записанной больше не предлагают — переставляем на советуемую
+             * (Р-198). Оставить её значило бы оставить разговор сломанным,
+             * зато «как человек велел»: он велел работать, а не хранить
+             * название.
+             *
+             * Молчим, когда всё сошлось: человек нажал «Обновить список» и
+             * видит обновлённый список — это и есть ответ.
+             */
+            const записанная = (await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL)) || DEFAULT_MODEL;
+
+            if (!доступные.includes(записанная)) {
+                const советуем = ai.pick(доступные);
+
+                await dbService.setSetting(MODEL_SETTING, советуем);
+
+                принято = t('Модель «{было}» Google больше не предлагает — выбрана «{стало}».', {
+                    было: записанная, стало: советуем
+                });
+            }
+
+            haptics.tap();
+        }
     } catch (e) {
         ошибка = e.message;
     } finally {
-        ждём = false;
-    }
-
-    if (ошибка) {
         dialog.close();
-        return app.render();
+        ждём = false;
+        await app.render();
     }
-
-    if (доступные.length === 0) {
-        await dialog.alert({
-            title: t('Отвечающих моделей нет'),
-            text: t('Ключ принят, но ни одной отвечающей модели Google по нему не даёт. Проверьте, что у проекта включён доступ к Gemini API.')
-        });
-
-        return app.render();
-    }
-
-    const записанная = (await dbService.getSetting(MODEL_SETTING, DEFAULT_MODEL)) || DEFAULT_MODEL;
-    const советуем = ai.pick(доступные);
-
-    /*
-     * Порядок списка — тот же, что у выбора: советуемая первой. Человек
-     * почти всегда соглашается с первой строкой, и она обязана быть той же,
-     * которую приложение выбрало бы само.
-     */
-    const порядок = [советуем, ...доступные.filter((имя) => имя !== советуем)];
-
-    const выбор = await dialog.choose({
-        title: t('Модель'),
-        text: t('Столько моделей Google предлагает по вашему ключу. Сейчас записана «{модель}».', { модель: записанная }),
-        options: порядок.map((имя) => ({
-            value: имя,
-            label: имя,
-            hint: имя === советуем ? t('приложение выбрало бы эту') : (имя === записанная ? t('записана сейчас') : '')
-        }))
-    });
-
-    if (выбор) {
-        await dbService.setSetting(MODEL_SETTING, выбор);
-        haptics.tap();
-    }
-
-    await app.render();
 });
 
+/**
+ * Выбор модели — списком или строкой (Р-198).
+ *
+ * Один обработчик на оба: пока список не привезён, поле остаётся полем
+ * ввода, и человек не должен оказаться без единого способа назвать модель.
+ */
 actions.onChange('coach-model', async (el) => {
     await dbService.setSetting(MODEL_SETTING, el.value.trim() || DEFAULT_MODEL);
 });

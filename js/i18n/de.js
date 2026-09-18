@@ -1666,17 +1666,10 @@ export const DE = {
     'Забираю с часов': 'Ich hole von der Uhr',
     'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
         'Ich frage Intervals.icu nach einem Monat Messwerte und Einheiten. Die Antwort kommt meist in ein paar Sekunden.',
-    'Состав моделей у Google меняется чаще, чем выходят версии приложения. Перестала отвечать — впишите другую или спросите у Google, что он предлагает сейчас.':
-        'Google ändert seine Modellpalette öfter, als diese App Versionen bekommt. Antwortet eines nicht mehr, trag ein anderes ein — oder frag Google, was es gerade anbietet.',
     'Подобрать модель': 'Modell suchen',
     'Спрашиваю Google': 'Ich frage Google',
     'Какие модели этот ключ вправе спрашивать.':
         'Welche Modelle dieser Schlüssel abfragen darf.',
-    'Отвечающих моделей нет': 'Keine antwortenden Modelle',
-    'Столько моделей Google предлагает по вашему ключу. Сейчас записана «{модель}».':
-        'So viele Modelle bietet Google für deinen Schlüssel an. Eingetragen ist derzeit „{модель}“.',
-    'приложение выбрало бы эту': 'die App würde dieses wählen',
-    'записана сейчас': 'derzeit eingetragen',
     '{своими} Google говорит так: «{ответ}»':
         '{своими} Google sagt dazu: „{ответ}“',
     '{своими} Код ответа {код}.': '{своими} Antwortcode {код}.',
@@ -1692,4 +1685,11 @@ export const DE = {
         'Die ganze Akte ist unterwegs: Verfassung, Einschränkungen und Programm. Ein Achtwochenprogramm dauert länger als eine kurze Antwort — bis zu einer Minute.',
     'Ушёл вопрос и вся переписка. Обычно ответ приходит за несколько секунд.':
         'Die Frage und der ganze Verlauf sind unterwegs. Die Antwort kommt meist in ein paar Sekunden.',
+    'советуем': 'empfohlen',
+    'Google её не предлагает': 'Google bietet es nicht mehr an',
+    'Списка ещё нет: приложение спросит его у Google при первой возможности. До тех пор название можно вписать руками.':
+        'Noch keine Liste: die App fragt Google bei der ersten Gelegenheit. Bis dahin kannst du den Namen von Hand eintragen.',
+    'Обновить список': 'Liste aktualisieren',
+    'Модель «{было}» Google больше не предлагает — выбрана «{стало}».':
+        'Das Modell „{было}“ bietet Google nicht mehr an — gewählt wurde „{стало}“.',
 };
