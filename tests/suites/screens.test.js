@@ -11,7 +11,7 @@
  */
 
 import { describe, it, equal, assert } from '../runner.js';
-import { screen, text, hasAction, press, change, seed, workout } from '../helpers/dom.js';
+import { screen, text, hasAction, press, change, seed, workout, осесть } from '../helpers/dom.js';
 import { app } from '../../js/app.js';
 
 import { home } from '../../js/modules/home.js';
@@ -5648,6 +5648,78 @@ describe('Кондиции: вопрос тренеру из итога', () => 
 
             assert(кнопка, `у строки нет вопроса тренеру: ${строка.textContent.trim()}`);
             assert(строка.textContent.includes(кнопка.dataset.text), 'вопрос уходит о той самой строке');
+        }
+    });
+});
+
+/**
+ * Выбор модели говорит о цене выбора (Р-211), а модель, которую Google убрал,
+ * меняется сама и при фоновом обновлении списка — как и по кнопке.
+ */
+describe('Тренер: модель', () => {
+
+    it('в окне выбора у flash и pro названа их цена', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+        await dbService.setSetting(MODELS_SETTING, { at: Date.now(), names: ['gemini-2.5-flash', 'gemini-2.5-pro'] });
+
+        const было = dialog.choose;
+        let варианты = [];
+
+        dialog.choose = async ({ options }) => {
+            варианты = options;
+            return null;
+        };
+
+        try {
+            await press('coach-model-pick');
+        } finally {
+            dialog.choose = было;
+        }
+
+        const про = варианты.find((в) => в.value === 'gemini-2.5-pro');
+        const флеш = варианты.find((в) => в.value === 'gemini-2.5-flash');
+
+        assert(флеш?.hint.includes('советуем') && флеш.hint.includes('быстрая'), флеш?.hint);
+        assert(про?.hint.includes('дольше'), `цена pro названа: ${про?.hint}`);
+        equal(варианты[0].value, 'gemini-2.5-flash', 'советуемая — первой');
+    });
+
+    it('фоновое обновление уходит с модели, которую Google больше не предлагает', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+        await dbService.setSetting('aiModel', 'gemini-1.0-pro');
+        await dbService.setSetting(MODELS_SETTING, { at: 0, names: ['gemini-1.0-pro'] });
+
+        const настоящий = globalThis.fetch;
+
+        globalThis.fetch = async (url, параметры) => {
+            if (!/\/models\?key=/.test(String(url))) return настоящий(url, параметры);
+
+            return new Response(JSON.stringify({
+                models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }]
+            }), { status: 200 });
+        };
+
+        try {
+            await screen(coach);
+
+            let модель = '';
+
+            for (let i = 0; i < 40 && модель !== 'gemini-2.5-flash'; i++) {
+                await осесть(25);
+                модель = await dbService.getSetting('aiModel', '');
+            }
+
+            equal(модель, 'gemini-2.5-flash', 'иначе первый же вопрос ответит «модель не найдена»');
+
+            const view = await screen(coach);
+            assert(has(view, 'больше не предлагает'), 'подмена названа вслух');
+        } finally {
+            globalThis.fetch = настоящий;
+            await dbService.setSetting('aiModel', '');
+            await press('coach-clear');
+            coach.leave();
         }
     });
 });

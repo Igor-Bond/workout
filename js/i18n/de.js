@@ -1675,8 +1675,7 @@ export const DE = {
     'Ключ годится. Пробую задать вопрос моделью «{модель}».':
         'Der Schlüssel passt. Ich versuche eine Frage mit dem Modell „{модель}“.',
     'Спрашиваю тренера': 'Ich frage den Trainer',
-    'Ушло дело целиком: кондиции, ограничения и программа. Программа на восемь недель считается дольше короткого ответа — бывает до минуты.':
-        'Die ganze Akte ist unterwegs: Verfassung, Einschränkungen und Programm. Ein Achtwochenprogramm dauert länger als eine kurze Antwort — bis zu einer Minute.',
+    'Ушло дело целиком: кондиции, ограничения и программа. Программа на восемь недель считается дольше короткого ответа — бывает до двух минут.': 'Die ganze Akte ist unterwegs: Verfassung, Einschränkungen und Programm. Ein Achtwochenprogramm dauert länger als eine kurze Antwort — bis zu zwei Minuten.',
     'Ушёл вопрос и вся переписка. Обычно ответ приходит за несколько секунд.':
         'Die Frage und der ganze Verlauf sind unterwegs. Die Antwort kommt meist in ein paar Sekunden.',
     'советуем': 'empfohlen',
@@ -1743,4 +1742,8 @@ export const DE = {
     'Питание:': 'Ernährung:',
     'Съедено в среднем {среднее} ккал в день; записи есть за {дни} из последних {всего}.': 'Im Schnitt {среднее} kcal am Tag gegessen; Einträge gibt es für {дни} der letzten {всего}.',
     'Потолок {потолок} ккал: суточный расход около {расход} минус цель дефицита {цель}.': 'Obergrenze {потолок} kcal: Tagesverbrauch von etwa {расход} minus Defizitziel {цель}.',
+    'Ответа нет уже две минуты. Похоже, не дождёмся.': 'Seit zwei Minuten keine Antwort. Sieht so aus, als käme keine mehr.',
+    'самая лёгкая: длинный разбор даётся ей хуже': 'das leichteste: lange Auswertungen fallen ihm schwerer',
+    'быстрая, лимиты щедрые': 'schnell, großzügige Limits',
+    'строже держит длинный формат, но думает дольше и лимиты меньше': 'hält ein langes Format strenger ein, denkt aber länger und hat engere Limits',
 };

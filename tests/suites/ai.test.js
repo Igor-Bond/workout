@@ -12,7 +12,7 @@
  */
 
 import { describe, it, equal, assert } from '../runner.js';
-import { ai, DEFAULT_MODEL } from '../../js/services/ai.js';
+import { ai, DEFAULT_MODEL, LONG_TIMEOUT } from '../../js/services/ai.js';
 
 describe('Выбор модели', () => {
 
@@ -169,5 +169,66 @@ describe('Спасение оборванного', () => {
     it('ошибка без пришедшего — пустая строка, а не исключение', () => {
         equal(ai.salvage(new Error('Нет связи')), '');
         equal(ai.salvage(null), '');
+    });
+});
+
+/**
+ * Срок ожидания — по задаче (Р-211).
+ *
+ * Минута была одна на всё, а программа на восемь недель считается моделью с
+ * размышлением, и обрывать её на шестидесятой секунде значило бы выбросить
+ * почти готовый план.
+ */
+describe('Срок ожидания', () => {
+
+    /** Спросить, когда сеть обрывает запрос по сроку. */
+    async function оборвать(параметры) {
+        const настоящий = globalThis.fetch;
+
+        globalThis.fetch = async () => {
+            const e = new Error('aborted');
+            e.name = 'AbortError';
+            throw e;
+        };
+
+        try {
+            await ai.ask({ key: 'AIzaПроба', messages: [{ text: 'ok' }], ...параметры });
+            return null;
+        } catch (e) {
+            return e.message;
+        } finally {
+            globalThis.fetch = настоящий;
+        }
+    }
+
+    it('для разговора — две минуты, и сказано именно это', async () => {
+        assert(LONG_TIMEOUT >= 120000, 'размышление перед программой занимает десятки секунд');
+        assert((await оборвать({ timeout: LONG_TIMEOUT })).includes('две минуты'));
+    });
+
+    it('для короткого — минута, как и было', async () => {
+        assert((await оборвать({})).includes('минуту'));
+    });
+
+    /*
+     * Настроек ответа нет намеренно: температуру для Gemini 3 Google советует
+     * не трогать, а незнакомое поле размышления он отвергает целиком.
+     */
+    it('в запрос не уходит ни температура, ни бюджет размышления', async () => {
+        const настоящий = globalThis.fetch;
+        let тело = null;
+
+        globalThis.fetch = async (url, параметры) => {
+            тело = JSON.parse(параметры.body);
+            return new Response(JSON.stringify(ответ('ok')), { status: 200 });
+        };
+
+        try {
+            await ai.ask({ key: 'AIzaПроба', messages: [{ text: 'ok' }] });
+        } finally {
+            globalThis.fetch = настоящий;
+        }
+
+        equal(тело.generationConfig, undefined, 'умолчания модели лучше подкрученных');
     });
 });
