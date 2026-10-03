@@ -1741,4 +1741,8 @@ export const EN = {
     'Почти до отказа два занятия подряд и у других: {список}.': 'Close to failure two sessions running for others too: {список}.',
     'Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.': 'Plenty in reserve two sessions running for others too: {список}. Advice with numbers is on each exercise\'s workout screen.',
     'Прошлый раз неровно — от {мин} до {макс}. Держите {до} все круги.': 'Last time it was uneven — from {мин} to {макс}. Hold {до} every round.',
+    'Как идёт программа:': 'How the programme is going:',
+    'Питание:': 'Nutrition:',
+    'Съедено в среднем {среднее} ккал в день; записи есть за {дни} из последних {всего}.': 'Average intake {среднее} kcal a day; there are records for {дни} of the last {всего}.',
+    'Потолок {потолок} ккал: суточный расход около {расход} минус цель дефицита {цель}.': 'Ceiling {потолок} kcal: daily expenditure of about {расход} minus the deficit goal of {цель}.',
 };

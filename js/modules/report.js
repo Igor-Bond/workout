@@ -16,16 +16,8 @@
 import { ui } from '../core/ui.js';
 import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
-import { dbService } from '../services/db.js';
 import { report as build } from '../core/report.js';
-import { estimate } from '../core/estimate.js';
-import { isBackground } from '../core/rhythm.js';
-import { athlete } from '../core/athlete.js';
-import { currentAthlete } from './athlete.js';
-import { recoveryLines } from './watch.js';
-import { currentJournal } from './planner.js';
-import { planJournal } from '../core/journal-plan.js';
-import { dates } from '../core/dates.js';
+import { сводкаДела } from '../services/dossier.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
 
@@ -38,58 +30,8 @@ export const report = {
     nav: 'profile',
 
     async render() {
-        const [entries, sets, exerciseList, weights, профиль] = await Promise.all([
-            dbService.listWorkoutSummaries(),
-            dbService.allSets(),
-            dbService.listExercises({ includeArchived: true }),
-            dbService.listBodyWeight(),
-            currentAthlete()
-        ]);
-
-        текст = build.build({
-            entries,
-            sets,
-            exercises: Object.fromEntries(exerciseList.map((e) => [e.id, e])),
-            weights,
-            shareOf: (exercise) => estimate.shareOf(exercise),
-            background: isBackground,
-
-            // Справочник целиком, а не только сделанное за период (§55):
-            // иначе подзабытое упражнение в план не попадёт никогда, а на
-            // его место придут выдуманные названия
-            catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
-
-            // Сон и пульс покоя с часов, если они привязаны (§62)
-            recovery: await recoveryLines(),
-
-            // Что и почему меняли в программе (§64): единственное, чего нет
-            // в числах
-            journal: planJournal.describe(await currentJournal(), { format: (at) => dates.formatDate(at) }),
-
-            // Объявленное в профиле — на случай пустой истории (Р-147)
-            daysPerWeek: профиль?.days || null,
-
-            // Профиль складывается в строки здесь: ядро не переводит и за
-            // названиями упражнений в базу не ходит (§58)
-            profile: athlete.describe(
-                профиль,
-                new Map(exerciseList.map((e) => [e.id, e.name])),
-                {
-                    male: t('мужчина'),
-                    female: t('женщина'),
-                    // Слово при возрасте склоняется: «44 года», а не «44 лет» (Р-147)
-                    years: format.plural(athlete.age(профиль) || 0, format.WORDS.year),
-                    cm: t('см'),
-                    goal: t('Цель'),
-                    days: t('дней в неделю'),
-                    minutes: t('минут на тренировку'),
-                    equipment: t('Инвентарь'),
-                    limit: t('Ограничение'),
-                    exclude: t('нельзя'),
-                    prefer: t('взамен')
-                }
-            )
-        });
+        // Та же сборка, что уходит тренеру в разговоре (Р-210): одна на двоих
+        текст = await сводкаДела();
 
         return ui.html`
             ${ui.raw(ui.title(t('Сводка для тренера'),

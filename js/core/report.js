@@ -62,7 +62,7 @@ export const report = {
         entries = [], sets = [], exercises = {}, weights = [],
         now = Date.now(), weeks = WEEKS, shareOf = () => 1, background = null,
         profile = [], withRequest = true, catalogue = [], recovery = [], journal = [],
-        daysPerWeek = null
+        daysPerWeek = null, progress = [], nutrition = []
     } = {}) {
         const since = dates.startOfDay(now) - weeks * 7 * DAY;
 
@@ -110,6 +110,29 @@ export const report = {
          */
         if (journal.length) {
             строки.push(t('Решения по программе:'), ...journal.map((s) => `— ${s}`), '');
+        }
+
+        /*
+         * Как идёт программа и питание — следом, до чисел истории (Р-210).
+         *
+         * Оба — то, чего собеседник из чисел не выведет. Исполнение плана:
+         * «по плану сделано 2 из 6» не видно ни в одной строке упражнения,
+         * а без него тренер правит программу, которую человек не успевает
+         * делать. Питание: целый экран данных до тренера не доходил вовсе, и
+         * на «почему стоит вес» он отвечал про тренировки.
+         *
+         * Стоят до раннего выхода по пустой истории: питание бывает и у того,
+         * кто ещё не тренировался, — и ему-то оно и нужнее.
+         *
+         * Строки приходят готовыми: пороги и слова живут там, где их
+         * считают (js/core/progress.js, экран кондиций), а не здесь.
+         */
+        if (progress.length) {
+            строки.push(t('Как идёт программа:'), ...progress.map((s) => `— ${s}`), '');
+        }
+
+        if (nutrition.length) {
+            строки.push(t('Питание:'), ...nutrition.map((s) => `— ${s}`), '');
         }
 
         /*

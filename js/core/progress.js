@@ -132,6 +132,7 @@ export const progress = {
 
         if (противПрибавки) {
             строки.push({
+                topic: 'recovery',
                 kind: 'down',
                 text: t('Сон короче обычного и пульс покоя выше — неделя не для прибавки.')
             });
@@ -175,6 +176,7 @@ export const progress = {
                 });
 
                 строки.push({
+                    topic: 'reserve',
                     kind: 'up',
                     text: противПрибавки
                         ? [основное, t('Но не на этой неделе: сон и пульс против.')].join(' ')
@@ -198,6 +200,7 @@ export const progress = {
 
             if (verdict === 'easier') {
                 строки.push({
+                    topic: 'reserve',
                     kind: 'down',
                     text: t('{упражнение}: два занятия подряд почти до отказа — запас потерян.', { упражнение: name }),
                     action: { type: 'easier', name, step }
@@ -217,6 +220,7 @@ export const progress = {
 
         if (потерян.length) {
             строки.push({
+                topic: 'reserve',
                 kind: 'down',
                 text: t('Почти до отказа два занятия подряд и у других: {список}.', { список: потерян.join(', ') })
             });
@@ -224,6 +228,7 @@ export const progress = {
 
         if (большой.length) {
             строки.push({
+                topic: 'reserve',
                 kind: 'up',
                 text: [
                     t('Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.', { список: большой.join(', ') }),
@@ -238,6 +243,7 @@ export const progress = {
          */
         if (!противПрибавки && recovery?.highResting) {
             строки.push({
+                topic: 'recovery',
                 kind: 'watch',
                 text: t('Пульс покоя выше обычного — стоит присмотреться к самочувствию.')
             });
@@ -263,6 +269,7 @@ export const progress = {
                 const чаще = (adherence.sessions || 0) >= adherence.planned;
 
                 строки.push({
+                    topic: 'adherence',
                     kind: 'watch',
                     text: чаще
                         ? t('За две недели {тренировок} при {всего} по плану, но в дни сетки попали {сделано} — сетка разошлась с вашей неделей.', {
@@ -287,6 +294,7 @@ export const progress = {
                  * то место, где приложение обязано назвать основание.
                  */
                 строки.push({
+                    topic: 'adherence',
                     kind: 'ok',
                     text: [
                         t('План за две недели выполнен полностью — {всего} из {всего}.', { всего: adherence.planned }),
@@ -345,6 +353,7 @@ export const progress = {
                 : '';
 
             const сказать = (kind, основное) => строки.push({
+                topic: 'volume',
                 kind,
                 text: [основное, оговорка].filter(Boolean).join(' ')
             });

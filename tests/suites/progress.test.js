@@ -473,3 +473,31 @@ describe('Предел строк запаса', () => {
         equal(progress.describe({ reserve: шесть.slice(0, 2) }).length, 2);
     });
 });
+
+/**
+ * Тема у каждого наблюдения (Р-210): по ней сводка тренеру отбирает ход
+ * программы и не дублирует запас, который уже стоит в строке упражнения.
+ */
+describe('Темы наблюдений', () => {
+
+    it('у каждого наблюдения есть тема', () => {
+        const строки = progress.describe({
+            reserve: ['А', 'Б', 'В', 'Г'].map((name, i) => ({ name, verdict: i % 2 ? 'harder' : 'easier', step: 'reps' })),
+            recovery: progress.recovery({ sleep: 6 * 3600, resting: { now: 58, base: 52, shift: 6, threshold: 3 } }),
+            adherence: { planned: 6, done: 2, sessions: 2 },
+            volume: { current: 400, previous: 1000 }
+        });
+
+        const без = строки.filter((с) => !['reserve', 'recovery', 'adherence', 'volume'].includes(с.topic));
+
+        equal(без.length, 0, `без темы: ${без.map((с) => с.text).join(' | ')}`);
+    });
+
+    it('запас — своей темой, и сводные строки тоже', () => {
+        const строки = progress.describe({
+            reserve: ['А', 'Б', 'В'].map((name) => ({ name, verdict: 'harder', step: 'reps' }))
+        });
+
+        equal(строки.map((с) => с.topic), ['reserve', 'reserve', 'reserve']);
+    });
+});

@@ -23,19 +23,12 @@ import { dbService } from '../services/db.js';
 import { ai, DEFAULT_MODEL, KEY_SETTING, MODEL_SETTING, MODELS_SETTING, MODELS_TTL } from '../services/ai.js';
 import { prompt } from '../core/prompt.js';
 import { plan as planCore } from '../core/plan.js';
-import { report as build } from '../core/report.js';
-import { athlete } from '../core/athlete.js';
-import { estimate } from '../core/estimate.js';
-import { isBackground } from '../core/rhythm.js';
 import { haptics } from '../core/haptics.js';
 import { t } from '../core/i18n.js';
 import { app } from '../app.js';
-import { currentPlan, currentJournal, putDraft } from './planner.js';
-import { planJournal } from '../core/journal-plan.js';
+import { currentPlan, putDraft } from './planner.js';
 import { dates } from '../core/dates.js';
-import { format } from '../core/format.js';
-import { currentAthlete } from './athlete.js';
-import { recoveryLines } from './watch.js';
+import { сводкаДела } from '../services/dossier.js';
 import { observations } from '../services/howgoing.js';
 
 /**
@@ -146,55 +139,18 @@ async function освежитьСписок() {
     }
 }
 
-/** Собрать дело: сводка без задания плюс действующая программа. */
+/**
+ * Собрать дело: сводка без задания плюс действующая программа.
+ *
+ * Сводка — та же, что на экране «Сводка для тренера», одной сборкой на двоих
+ * (Р-210): тренер внутри приложения не должен знать меньше, чем тренер в
+ * чужой переписке.
+ */
 async function дело() {
-    const [entries, sets, exerciseList, weights, профиль, план] = await Promise.all([
-        dbService.listWorkoutSummaries(),
-        dbService.allSets(),
-        dbService.listExercises({ includeArchived: true }),
-        dbService.listBodyWeight(),
-        currentAthlete(),
+    const [summary, план] = await Promise.all([
+        сводкаДела({ withRequest: false }),
         currentPlan()
     ]);
-
-    const summary = build.build({
-        entries,
-        sets,
-        exercises: Object.fromEntries(exerciseList.map((e) => [e.id, e])),
-        weights,
-        shareOf: (exercise) => estimate.shareOf(exercise),
-        background: isBackground,
-        withRequest: false,
-
-        // Справочник целиком, а не только сделанное за период (§55): иначе
-        // подзабытое упражнение в план не попадёт никогда, а на его место
-        // придут выдуманные названия
-        catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
-
-        // Сон и пульс покоя с часов, если они привязаны (§62)
-        recovery: await recoveryLines(),
-
-        // Что и почему меняли в программе (§64): единственное, чего нет в числах
-        journal: planJournal.describe(await currentJournal(), { format: (at) => dates.formatDate(at) }),
-        profile: athlete.describe(
-            профиль,
-            new Map(exerciseList.map((e) => [e.id, e.name])),
-            {
-                male: t('мужчина'),
-                female: t('женщина'),
-                // Слово при возрасте склоняется: «44 года», а не «44 лет» (Р-147)
-                years: format.plural(athlete.age(профиль) || 0, format.WORDS.year),
-                cm: t('см'),
-                goal: t('Цель'),
-                days: t('дней в неделю'),
-                minutes: t('минут на тренировку'),
-                equipment: t('Инвентарь'),
-                limit: t('Ограничение'),
-                exclude: t('нельзя'),
-                prefer: t('взамен')
-            }
-        )
-    });
 
     /*
      * Где человек в программе (§56.4).

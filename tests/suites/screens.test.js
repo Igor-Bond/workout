@@ -5470,6 +5470,46 @@ describe('Экран: сводка для тренера', () => {
         assert(текст.includes('Тяга резинки'),
             'справочник уходит целиком: иначе подзабытое упражнение в план не попадёт никогда');
     });
+
+    /*
+     * Питание доходит до тренера (Р-210): целый экран данных не доходил ни
+     * строкой, и на «почему стоит вес» тренер отвечал про тренировки.
+     */
+    it('несёт питание, если о нём есть записи', async () => {
+        const e = await seed({ name: 'Жим лёжа' });
+        await workout(e, [[10, 60]]);
+
+        await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+        await dbService.addIntake({ kcal: 640, note: 'обед' });
+
+        const поле = (await screen(report)).querySelector('.report-text');
+        const текст = поле?.value || поле?.textContent || '';
+
+        assert(текст.includes('Питание:'), текст.slice(0, 500));
+        assert(текст.includes('1460'), `средний приход назван числом: ${текст.slice(0, 500)}`);
+    });
+
+    /*
+     * Тренер в разговоре знает то же, что тренер в чужой переписке (Р-210):
+     * сводка собирается одной сборкой на двоих.
+     */
+    it('в разговоре уходит та же сводка, что и здесь', async () => {
+        const e = await seed({ name: 'Жим лёжа' });
+        await workout(e, [[10, 60]]);
+        await dbService.addIntake({ kcal: 820, note: 'завтрак' });
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+        await press('coach-reveal');
+
+        try {
+            const дело = (await screen(coach)).querySelector('textarea[readonly]')?.value || '';
+
+            assert(дело.includes('Питание:'), `питание дошло и до разговора: ${дело.slice(0, 400)}`);
+            assert(!дело.includes('Задание'), 'а задание в разговор не входит (§60)');
+        } finally {
+            await press('coach-reveal');
+        }
+    });
 });
 
 describe('Экран: знакомство', () => {
@@ -5573,5 +5613,41 @@ describe('Прибавка своим весом', () => {
         assert(план.includes('Приседания 3 × 22') && план.includes('Приседания 4 × 17'), план);
 
         await dbService.setSetting(PLAN_KEY, null);
+    });
+});
+
+/**
+ * «Спросить тренера» — и у итога кондиций (Р-210).
+ *
+ * Кнопка жила только на статистике, у «Как идёт программа». А строка
+ * «месяц держите потолок, а вес стоит» — ровно тот вопрос, который задают
+ * тренеру, и задать его с кондиций было нечем.
+ */
+describe('Кондиции: вопрос тренеру из итога', () => {
+
+    it('у каждой строки итога есть «спросить тренера» с её текстом', async () => {
+        await seed();
+
+        await dbService.setSetting(ATHLETE_KEY, {
+            sex: 'male', birthYear: 1982, height: 185, goal: 'убрать живот',
+            limits: [], equipment: []
+        });
+
+        await dbService.setBodyWeight({ at: Date.now() - 30 * DAY, weight: 94.1, waist: 103 });
+        await dbService.setBodyWeight({ weight: 92.6, waist: 101.5 });
+
+        config.set('folded', {});
+
+        const view = await screen(condition);
+        const строки = [...view.querySelectorAll('.plan-rule')].filter((с) => с.closest('.card')?.querySelector('[data-key="digest"]'));
+
+        assert(строки.length > 0, `итог есть: ${text(view).slice(0, 300)}`);
+
+        for (const строка of строки) {
+            const кнопка = строка.querySelector('[data-action="ask-coach"]');
+
+            assert(кнопка, `у строки нет вопроса тренеру: ${строка.textContent.trim()}`);
+            assert(строка.textContent.includes(кнопка.dataset.text), 'вопрос уходит о той самой строке');
+        }
     });
 });

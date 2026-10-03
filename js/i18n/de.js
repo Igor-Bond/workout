@@ -1739,4 +1739,8 @@ export const DE = {
     'Почти до отказа два занятия подряд и у других: {список}.': 'Zwei Einheiten in Folge fast bis zum Muskelversagen auch bei anderen: {список}.',
     'Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.': 'Zwei Einheiten in Folge viel Reserve auch bei anderen: {список}. Den Rat mit Zahlen gibt es beim Ausführen jeder Übung.',
     'Прошлый раз неровно — от {мин} до {макс}. Держите {до} все круги.': 'Letztes Mal war es ungleichmäßig — von {мин} bis {макс}. Halte {до} in jeder Runde.',
+    'Как идёт программа:': 'Wie das Programm läuft:',
+    'Питание:': 'Ernährung:',
+    'Съедено в среднем {среднее} ккал в день; записи есть за {дни} из последних {всего}.': 'Im Schnitt {среднее} kcal am Tag gegessen; Einträge gibt es für {дни} der letzten {всего}.',
+    'Потолок {потолок} ккал: суточный расход около {расход} минус цель дефицита {цель}.': 'Obergrenze {потолок} kcal: Tagesverbrauch von etwa {расход} minus Defizitziel {цель}.',
 };
