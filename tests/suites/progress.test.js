@@ -361,17 +361,17 @@ describe('Способ прибавки в наблюдении', () => {
     });
 
     it('резинкой — резинкой, снарядом — весом, на время — временем', () => {
-        const строки = progress.describe({
-            reserve: [
-                { name: 'Бицепс резинка', verdict: 'harder', step: 'resistance' },
-                { name: 'Жим лёжа', verdict: 'harder', step: 'weight' },
-                { name: 'Планка', verdict: 'harder', step: 'time' }
-            ]
-        });
+        const одна = (name, step) => progress.describe({ reserve: [{ name, verdict: 'harder', step }] })[0].text;
 
-        assert(строки[0].text.includes('резинку жёстче'), строки[0].text);
-        assert(строки[1].text.includes('добавить вес'), строки[1].text);
-        assert(строки[2].text.includes('прибавить время'), строки[2].text);
+        assert(одна('Бицепс резинка', 'resistance').includes('резинку жёстче'));
+        assert(одна('Жим лёжа', 'weight').includes('добавить вес'));
+        assert(одна('Планка', 'time').includes('прибавить время'));
+    });
+
+    it('способ не назван — снаряд, как и везде в приложении', () => {
+        const [строка] = progress.describe({ reserve: [{ name: 'Жим лёжа', verdict: 'harder' }] });
+
+        assert(строка.text.includes('добавить вес'), строка.text);
     });
 
     it('кардио о прибавке по запасу молчит: повторения в запасе к нему не относятся', () => {
@@ -420,5 +420,56 @@ describe('Прибавка против восстановления', () => {
 
         equal(прибавка.action?.type, 'harder');
         assert(строки.some((с) => с.text.includes('Пульс покоя выше')), 'но присмотреться стоит');
+    });
+});
+
+/**
+ * Запас своей строкой — не больше двух упражнений (Р-207).
+ *
+ * Только он рос без меры: по строке на упражнение. Шесть упражнений с
+ * большим запасом давали шесть строк, и исполнение плана уезжало под них.
+ */
+describe('Предел строк запаса', () => {
+
+    const шесть = ['Приседания', 'Отжимания', 'Пресс', 'Планка', 'Выпады', 'Тяга']
+        .map((name) => ({ name, verdict: 'harder', step: 'reps' }));
+
+    it('своей строкой — два, остальные одной строкой по именам', () => {
+        const строки = progress.describe({ reserve: шесть });
+
+        equal(строки.length, 3, текст(строки));
+        assert(строки[0].text.startsWith('Приседания') && строки[1].text.startsWith('Отжимания'), 'первыми — пришедшие первыми');
+        assert(['Пресс', 'Планка', 'Выпады', 'Тяга'].every((имя) => строки[2].text.includes(имя)),
+            `срезанное без слова читается как «больше ничего нет»: ${строки[2].text}`);
+        equal(строки[2].action, undefined, 'у сводной строки кнопки нет — решают на выполнении');
+    });
+
+    it('исполнение плана и объём под запасом не теряются', () => {
+        const строки = progress.describe({
+            reserve: шесть,
+            adherence: { planned: 6, done: 2, sessions: 2 },
+            volume: { current: 400, previous: 1000 }
+        });
+
+        assert(строки.some((с) => с.text.includes('2 из 6')), текст(строки));
+        assert(строки.some((с) => с.text.includes('400 против 1000')), текст(строки));
+        equal(строки.length, 5);
+    });
+
+    it('потерянный запас идёт раньше большого: он про то, что уже тяжело', () => {
+        const строки = progress.describe({
+            reserve: [
+                { name: 'Приседания', verdict: 'harder', step: 'reps' },
+                { name: 'Отжимания', verdict: 'harder', step: 'reps' },
+                { name: 'Бицепс резинка', verdict: 'easier', step: 'resistance' }
+            ]
+        });
+
+        assert(строки[0].text.startsWith('Бицепс резинка'), текст(строки));
+        assert(строки[2].text.includes('Отжимания'), 'третье ушло в сводную строку');
+    });
+
+    it('при двух упражнениях сводной строки нет', () => {
+        equal(progress.describe({ reserve: шесть.slice(0, 2) }).length, 2);
     });
 });

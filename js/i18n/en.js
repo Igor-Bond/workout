@@ -1738,4 +1738,6 @@ export const EN = {
     'Больше времени': 'More time',
     'На время прибавляют секундами — приложение поднимет их на десятую часть:': 'Timed exercises progress in seconds — the app will raise them by a tenth:',
     '{упражнение}: больше времени, {пары}': '{упражнение}: more time, {пары}',
+    'Почти до отказа два занятия подряд и у других: {список}.': 'Close to failure two sessions running for others too: {список}.',
+    'Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.': 'Plenty in reserve two sessions running for others too: {список}. Advice with numbers is on each exercise\'s workout screen.',
 };

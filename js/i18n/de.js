@@ -1736,4 +1736,6 @@ export const DE = {
     'Больше времени': 'Mehr Zeit',
     'На время прибавляют секундами — приложение поднимет их на десятую часть:': 'Bei Übungen auf Zeit steigert man über Sekunden — die App erhöht sie um ein Zehntel:',
     '{упражнение}: больше времени, {пары}': '{упражнение}: mehr Zeit, {пары}',
+    'Почти до отказа два занятия подряд и у других: {список}.': 'Zwei Einheiten in Folge fast bis zum Muskelversagen auch bei anderen: {список}.',
+    'Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.': 'Zwei Einheiten in Folge viel Reserve auch bei anderen: {список}. Den Rat mit Zahlen gibt es beim Ausführen jeder Übung.',
 };
