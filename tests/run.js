@@ -21,6 +21,7 @@ await import('./suites/i18n.test.js');
 await import('./suites/actions.test.js');
 await import('./suites/wakelock.test.js');
 await import('./suites/updater.test.js');
+await import('./suites/sw.test.js');
 await import('./suites/timer.test.js');
 await import('./suites/interval.test.js');
 await import('./suites/fullscreen.test.js');

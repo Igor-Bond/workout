@@ -19,8 +19,12 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v293';
-const CACHE_NAME = `workout-${APP_VERSION}`;
+const APP_VERSION = 'v294';
+
+// По префиксу активация отличает свои прежние кэши от кэшей соседей по
+// адресу — см. там
+const CACHE_PREFIX = 'workout-';
+const CACHE_NAME = `${CACHE_PREFIX}${APP_VERSION}`;
 
 const NETWORK_TIMEOUT = 3000;
 
@@ -167,11 +171,21 @@ self.addEventListener('install', (event) => {
 
 // ================== АКТИВАЦИЯ ==================
 
+/**
+ * Удаляются только прежние версии трекера — по префиксу.
+ *
+ * Хранилище кэшей у браузера одно на источник, а не на каталог: на
+ * igor-bond.github.io в нём же лежат кэши «Нот», шахмат и wortschatz.
+ * Прежнее «всё, кроме своего» стирало их при каждом обновлении трекера, и
+ * соседи без сети переставали открываться (Р-213).
+ */
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
             .then((keys) => Promise.all(
-                keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+                keys
+                    .filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE_NAME)
+                    .map((k) => caches.delete(k))
             ))
             .then(() => self.clients.claim())
     );

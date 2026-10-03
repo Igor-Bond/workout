@@ -99,6 +99,11 @@
 
     Приложению это стоит одной перерегистрации воркера при следующем
     открытии — цена, которую видно только тому, кто заходил на проверки.
+
+    Снимается только своё: воркер, чья область лежит внутри трекера, и кэши
+    с его префиксом. Страница живёт и на Pages, а там у источника, кроме
+    трекера, «Ноты», шахматы и wortschatz — и воркеры, и кэши браузер ведёт
+    по источнику. Снятое подчистую оставляло соседей без офлайна (Р-213).
 -->
 <script>
     globalThis.__WORKOUT_DB__ = 'WorkoutTrackerTestDB';
@@ -106,12 +111,18 @@
     (async () => {
         const управлял = !!navigator.serviceWorker?.controller;
 
+        // Корень трекера — каталог над страницей проверок. Косая черта на
+        // конце обязательна: без неё «/workout» захватил бы и «/workout-old/»
+        const корень = new URL('../', location.href).href;
+
         try {
             for (const reg of await navigator.serviceWorker?.getRegistrations?.() || []) {
-                await reg.unregister();
+                if (reg.scope.startsWith(корень)) await reg.unregister();
             }
 
-            for (const name of await caches?.keys?.() || []) await caches.delete(name);
+            for (const name of await caches?.keys?.() || []) {
+                if (name.startsWith('workout-')) await caches.delete(name);
+            }
         } catch {
             // Ни воркера, ни хранилища кэшей может не быть вовсе — тогда и
             // снимать нечего, а проверкам это безразлично
