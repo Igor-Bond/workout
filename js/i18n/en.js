@@ -1043,7 +1043,7 @@ export const EN = {
     '— несколько упражнений в одном дне соединяй знаком «+»;': '— join several exercises within one day with a “+”;',
     '— пропущенный день не переносится: он вернётся через неделю на своём месте, поэтому ставь в неделю столько, сколько человек и правда сделает;': '— a missed day is not carried over: it comes back a week later in its own place, so put into a week only what will really get done;',
     '— этапы пиши одним планом, с одной датой начала: «Этап 2 (недели 5–8)» приложение исполняет само и переключит сетку в срок;': '— write all stages as one plan with a single start date: “Stage 2 (weeks 5–8)” is executed by the app, which switches the grid on time;',
-    '— если недели различаются, объяви их заголовками «Неделя 1» и «Неделя 2» и дай дни каждой: приложение будет их чередовать.': '— if the weeks differ, head them “Week 1” and “Week 2” and give the days of each: the app will alternate between them.',
+    '— если недели различаются, объяви их заголовками «Неделя 1» и «Неделя 2» и дай дни каждой: приложение будет их чередовать;': '— if the weeks differ, head them “Week 1” and “Week 2” and give the days of each: the app will alternate between them;',
     'Ответь ровно в таком виде, ничего не добавляя:': 'Answer in exactly this shape, adding nothing:',
     'С {дата}, {недели}': 'From {дата}, {недели}',
     'Пн  <упражнение> <подходы> × <повторения>': 'Mon  <exercise> <sets> × <reps>',
@@ -1704,4 +1704,9 @@ export const EN = {
     'Полный обмен': 'Full sync',
     'Прохожу по всей истории. Это дольше обычного обмена.':
         'Going through the whole history. This takes longer than a normal sync.',
+    '— дату начала пиши числами: день.месяц.год.': '— write the start date in numbers: day.month.year.',
+    'План уже идёт?': 'Has the plan already started?',
+    'Он начался {дата} — {сколько} назад. Приложение откроет его на неделе {неделя} из {всего}, а прошедшие недели будут считаться пропущенными. Если дата пришла по ошибке, поправьте её в тексте плана.': 'It started on {дата} — {сколько} ago. The app will open it at week {неделя} of {всего}, and the weeks that have passed will count as missed. If the date came by mistake, fix it in the plan text.',
+    'Утвердить так': 'Approve as is',
+    'Поправлю дату': 'I\'ll fix the date',
 };

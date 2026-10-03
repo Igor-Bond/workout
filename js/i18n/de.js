@@ -983,7 +983,7 @@ export const DE = {
     '— несколько упражнений в одном дне соединяй знаком «+»;': '— mehrere Übungen an einem Tag mit „+“ verbinden;',
     '— пропущенный день не переносится: он вернётся через неделю на своём месте, поэтому ставь в неделю столько, сколько человек и правда сделает;': '— ein verpasster Tag wird nicht nachgeholt: Er kommt eine Woche später an seinem Platz zurück, plane also nur so viel, wie wirklich geschafft wird;',
     '— этапы пиши одним планом, с одной датой начала: «Этап 2 (недели 5–8)» приложение исполняет само и переключит сетку в срок;': '— schreibe alle Phasen als einen Plan mit einem Startdatum: „Phase 2 (Wochen 5–8)“ führt die App selbst aus und wechselt das Raster rechtzeitig;',
-    '— если недели различаются, объяви их заголовками «Неделя 1» и «Неделя 2» и дай дни каждой: приложение будет их чередовать.': '— unterscheiden sich die Wochen, überschreibe sie mit „Woche 1“ und „Woche 2“ und gib die Tage jeder Woche an: die App wechselt sie ab.',
+    '— если недели различаются, объяви их заголовками «Неделя 1» и «Неделя 2» и дай дни каждой: приложение будет их чередовать;': '— unterscheiden sich die Wochen, überschreibe sie mit „Woche 1“ und „Woche 2“ und gib die Tage jeder Woche an: die App wechselt sie ab;',
     'Ответь ровно в таком виде, ничего не добавляя:': 'Antworte genau in dieser Form, ohne etwas hinzuzufügen:',
     'С {дата}, {недели}': 'Ab {дата}, {недели}',
     'Пн  <упражнение> <подходы> × <повторения>': 'Mo  <Übung> <Sätze> × <Wiederholungen>',
@@ -1702,4 +1702,9 @@ export const DE = {
     'Полный обмен': 'Vollständiger Abgleich',
     'Прохожу по всей истории. Это дольше обычного обмена.':
         'Ich gehe die ganze Historie durch. Das dauert länger als ein normaler Abgleich.',
+    '— дату начала пиши числами: день.месяц.год.': '— schreibe das Startdatum in Ziffern: Tag.Monat.Jahr.',
+    'План уже идёт?': 'Läuft der Plan schon?',
+    'Он начался {дата} — {сколько} назад. Приложение откроет его на неделе {неделя} из {всего}, а прошедшие недели будут считаться пропущенными. Если дата пришла по ошибке, поправьте её в тексте плана.': 'Er hat am {дата} begonnen — das ist {сколько} her. Die App öffnet ihn in Woche {неделя} von {всего}, und die vergangenen Wochen gelten als verpasst. Ist das Datum ein Versehen, korrigiere es im Plantext.',
+    'Утвердить так': 'So übernehmen',
+    'Поправлю дату': 'Ich korrigiere das Datum',
 };

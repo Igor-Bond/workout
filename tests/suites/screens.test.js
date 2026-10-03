@@ -829,7 +829,9 @@ describe('Экран: после утверждения плана', () => {
         const былХеш = location.hash;
 
         dialog.alert = async () => true;
-        putDraft(['С 07.09.2026, 8 недель', 'Пн Отжимания 6 × 50', 'Вс отдых'].join('\n'));
+
+        // Завтрашним числом: прошлое начало спросит согласия (Р-203)
+        putDraft([`С ${датаПлана(1)}, 8 недель`, 'Пн Отжимания 6 × 50', 'Вс отдых'].join('\n'));
 
         try {
             await press('sheet-apply');
@@ -842,6 +844,96 @@ describe('Экран: после утверждения плана', () => {
             putDraft('');
             await dbService.setSetting('plan', null);
         }
+    });
+
+});
+
+/** Дата в записи плана через столько-то дней от сегодня: «04.10.2026». */
+function датаПлана(дней) {
+    const d = new Date(Date.now() + дней * DAY);
+    const две = (n) => String(n).padStart(2, '0');
+
+    return `${две(d.getDate())}.${две(d.getMonth() + 1)}.${d.getFullYear()}`;
+}
+
+/**
+ * Новый план, начавшийся в прошлом, спрашивает согласия (Р-203).
+ *
+ * Собеседник повторял образец с давно прошедшей датой, и план открывался на
+ * пятой неделе из восьми — первые недели пропадали молча.
+ */
+describe('Экран: план с прошедшей датой начала', () => {
+
+    /** Утвердить черновик, ответив на вопрос о дате так, как велено. */
+    async function утвердить(текст, ответ) {
+        const было = { alert: dialog.alert, confirm: dialog.confirm };
+        const былХеш = location.hash;
+        const спрошено = [];
+
+        dialog.alert = async () => true;
+        dialog.confirm = async (параметры) => {
+            спрошено.push(параметры);
+            return ответ;
+        };
+
+        putDraft(текст);
+
+        try {
+            await press('sheet-apply');
+        } finally {
+            dialog.alert = было.alert;
+            dialog.confirm = было.confirm;
+            location.hash = былХеш;
+            putDraft('');
+        }
+
+        return спрошено;
+    }
+
+    it('месяц назад — спрашивает и называет неделю, на которой план откроется', async () => {
+        await seed();
+        await dbService.setSetting(PLAN_KEY, null);
+
+        const спрошено = await утвердить(
+            [`С ${датаПлана(-30)}, 8 недель`, 'Пн Отжимания 6 × 50', 'Вс отдых'].join('\n'),
+            false
+        );
+
+        equal(спрошено.length, 1, 'утверждать молча нельзя');
+        assert(спрошено[0].text.includes('5 из 8'), `неделя названа числом: ${спрошено[0].text}`);
+        equal(await dbService.getSetting(PLAN_KEY, null), null, 'отказ ничего не сохраняет');
+    });
+
+    it('согласие утверждает как есть', async () => {
+        await seed();
+        await dbService.setSetting(PLAN_KEY, null);
+
+        await утвердить([`С ${датаПлана(-30)}, 8 недель`, 'Пн Отжимания 6 × 50', 'Вс отдых'].join('\n'), true);
+
+        assert((await dbService.getSetting(PLAN_KEY, null))?.text, 'человек мог вписать прошлую дату нарочно');
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('вчерашнее начало не спрашивает: план, утверждённый вечером, начался утром', async () => {
+        await seed();
+        await dbService.setSetting(PLAN_KEY, null);
+
+        const спрошено = await утвердить([`С ${датаПлана(-1)}, 8 недель`, 'Пн Отжимания 6 × 50'].join('\n'), true);
+
+        equal(спрошено.length, 0);
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('правка действующего плана не спрашивает: его дата в прошлом по праву', async () => {
+        await seed();
+
+        const шапка = `С ${датаПлана(-30)}, 8 недель`;
+        await dbService.setSetting(PLAN_KEY, { text: [шапка, 'Пн Отжимания 6 × 50'].join('\n') });
+
+        const спрошено = await утвердить([шапка, 'Пн Отжимания 6 × 40'].join('\n'), true);
+
+        equal(спрошено.length, 0, 'вопрос при каждой правке приучит жать «да» не читая');
+        await dbService.setSetting(PLAN_KEY, null);
     });
 
 });

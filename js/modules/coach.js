@@ -832,7 +832,7 @@ actions.on('coach-ask', async () => {
         const ответ = await ai.ask({
             key,
             model,
-            system: prompt.INSTRUCTION,
+            system: prompt.instruction(),
             messages: нить.map((m) => ({ role: m.role, text: m.sent || m.text }))
         });
 

@@ -7,8 +7,13 @@
  */
 
 import { describe, it, equal, assert } from '../runner.js';
-import { prompt, INSTRUCTION } from '../../js/core/prompt.js';
+import { prompt } from '../../js/core/prompt.js';
 import { plan } from '../../js/core/plan.js';
+import { report } from '../../js/core/report.js';
+import { i18n } from '../../js/core/i18n.js';
+import { config } from '../../js/config.js';
+
+const INSTRUCTION = prompt.instruction();
 
 const СВОДКА = 'Сводка тренировок — 06.09.2026\n\nО себе:\n— Ограничение: Колено';
 const ПЛАН = 'С 07.09.2026, 8 недель\nПн Бицепс резинка 6 × 50\nВс отдых';
@@ -67,6 +72,74 @@ describe('Наставление', () => {
     it('требует соблюдать ограничения безусловно', () => {
         assert(/ограничени/i.test(INSTRUCTION));
     });
+
+    /*
+     * Образец с постоянной датой через месяц оказался в прошлом (Р-203), а
+     * повторяет его модель охотнее любых слов вокруг.
+     */
+    it('называет сегодняшнее число: модели его взять неоткуда', () => {
+        const текст = prompt.instruction({ now: new Date(2026, 9, 3, 15).getTime() });
+
+        assert(текст.includes('Сегодня 03.10.2026'), текст.slice(0, 300));
+    });
+
+    it('образец плана начинается завтра — и сдвигается вместе с днём', () => {
+        const сегодня = prompt.instruction({ now: new Date(2026, 9, 3, 15).getTime() });
+        const через = prompt.instruction({ now: new Date(2026, 10, 20, 9).getTime() });
+
+        assert(сегодня.includes('С 04.10.2026, 8 недель'), 'завтра, как и в задании сводки');
+        assert(через.includes('С 21.11.2026, 8 недель'), 'постоянной даты в образце быть не может');
+    });
+
+    it('образец переходит через конец месяца и года', () => {
+        assert(prompt.instruction({ now: new Date(2026, 11, 31, 23).getTime() }).includes('С 01.01.2027'));
+    });
+
+    it('образец, повторённый дословно, разбирается в план с той же датой', () => {
+        const now = new Date(2026, 9, 3, 15).getTime();
+        const шапка = prompt.instruction({ now }).split('\n').find((s) => s.startsWith('С '));
+
+        const разобран = plan.parse([шапка, 'Пн Отжимания 6 × 50'].join('\n'));
+
+        equal(разобран.from, new Date(2026, 9, 4).getTime());
+    });
+
+});
+
+/**
+ * Дата образца — числами на любом языке (Р-203).
+ *
+ * По-английски подпись даты словесная, «October 4, 2026», а разбор плана
+ * читает дату только числами: ответ, повторивший образец дословно, не
+ * разбирался.
+ */
+describe('Дата в образце плана', () => {
+
+    /** Переключить язык на время проверки и вернуть как было. */
+    function поАнглийски(body) {
+        const было = config.get('lang');
+
+        try {
+            i18n.set('en');
+            return body();
+        } finally {
+            i18n.set(было);
+        }
+    }
+
+    it('в задании сводки по-английски — числами, и такой ответ разбирается', () => поАнглийски(() => {
+        const now = new Date(2026, 9, 3, 15).getTime();
+        const задание = report.request({ now }).join('\n');
+        const шапка = задание.split('\n').find((s) => /\d{2}\.\d{2}\.\d{4}/.test(s));
+
+        assert(шапка, `дата числами: ${задание.slice(-900)}`);
+        assert(шапка.includes('04.10.2026'), шапка);
+        equal(plan.parse([шапка, 'Mon Push-ups 6 × 50'].join('\n')).from, new Date(2026, 9, 4).getTime());
+    }));
+
+    it('наставление числами и по-английски', () => поАнглийски(() => {
+        assert(prompt.instruction({ now: new Date(2026, 9, 3, 15).getTime() }).includes('04.10.2026'));
+    }));
 
 });
 
