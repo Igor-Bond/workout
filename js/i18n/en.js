@@ -1246,7 +1246,6 @@ export const EN = {
     'Нечего спрашивать.': 'Nothing to ask.',
     'Ответа нет уже минуту. Похоже, не дождёмся.': 'No answer for a minute now. It looks like none is coming.',
     'Нет связи с Google.': 'No connection to Google.',
-    'Ответ не получен: {что}': 'No answer: {что}',
     'Ответ пришёл пустым.': 'The answer came back empty.',
     'Запас в подходе': 'Reps in reserve',
     'Сколько повторений в запасе': 'How many reps left in reserve',
@@ -1667,7 +1666,6 @@ export const EN = {
     'Забираю с часов': 'Fetching from the watch',
     'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
         'Asking Intervals.icu for a month of measurements and sessions. The answer usually comes within a few seconds.',
-    'Подобрать модель': 'Find a model',
     'Спрашиваю Google': 'Asking Google',
     'Какие модели этот ключ вправе спрашивать.':
         'Which models this key is allowed to query.',
@@ -1677,8 +1675,7 @@ export const EN = {
     'Запрос не принят.': 'The request was not accepted.',
     'Доступ запрещён. Возможно, ключ ограничен другим адресом, модель недоступна в вашей стране или у проекта не включён Gemini API.':
         'Access denied. The key may be restricted to another address, the model may not be available in your country, or the project may not have the Gemini API enabled.',
-    'Модель «{модель}» не найдена. Нажмите «Подобрать модель» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.':
-        'Model “{модель}” was not found. Tap “Find a model” in the conversation settings — the app will ask Google what it offers right now.',
+    'Модель «{модель}» не найдена. Нажмите «Обновить список» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.': 'Model “{модель}” was not found. Tap “Refresh the list” in the conversation settings — the app will ask Google what it offers right now.',
     'Ключ годится. Пробую задать вопрос моделью «{модель}».':
         'The key works. Trying a question with the model “{модель}”.',
     'Спрашиваю тренера': 'Asking the coach',
@@ -1709,4 +1706,16 @@ export const EN = {
     'Он начался {дата} — {сколько} назад. Приложение откроет его на неделе {неделя} из {всего}, а прошедшие недели будут считаться пропущенными. Если дата пришла по ошибке, поправьте её в тексте плана.': 'It started on {дата} — {сколько} ago. The app will open it at week {неделя} of {всего}, and the weeks that have passed will count as missed. If the date came by mistake, fix it in the plan text.',
     'Утвердить так': 'Approve as is',
     'Поправлю дату': 'I\'ll fix the date',
+    'Google не принял вопрос: сработал его фильтр содержания. Спросите иначе.': 'Google did not accept the question: its content filter was triggered. Try asking differently.',
+    'Модель израсходовала весь отведённый ей объём на размышление и не успела ответить. Спросите ещё раз или короче.': 'The model used up its whole allowance on thinking and had no room left to answer. Ask again, or more briefly.',
+    'Google не стал отвечать: сработал его фильтр содержания. Спросите иначе.': 'Google declined to answer: its content filter was triggered. Try asking differently.',
+    'Google не стал отвечать: ответ слишком близко повторял чужой текст. Спросите иначе.': 'Google declined to answer: the answer repeated someone else\'s text too closely. Try asking differently.',
+    '{своими} Код Google: {код}.': '{своими} Google\'s code: {код}.',
+    'Ответ оборвался на полуслове: модель упёрлась в предел его длины.': 'The answer broke off mid-word: the model hit its length limit.',
+    'Google оборвал ответ посередине: сработал его фильтр содержания.': 'Google cut the answer off halfway: its content filter was triggered.',
+    'Google оборвал ответ посередине: тот слишком близко повторял чужой текст.': 'Google cut the answer off halfway: it repeated someone else\'s text too closely.',
+    'Ответ оборвался, не дойдя до конца.': 'The answer broke off before it was finished.',
+    'Ниже — то, что успело прийти. Переносить это в план нельзя: план оборван. Попросите короче — например, по этапу за раз.': 'Below is what made it through. It can\'t be moved into the plan: the plan is cut off. Ask for something shorter — one stage at a time, for example.',
+    'Ответ оборвался — дальше ничего не пришло.': 'The answer broke off — nothing more came through.',
+    'Добавлено упражнений: {n}. Ответ тренера оборвался, и карточки заполнены только у {заполнено} — остальные поправьте в справочнике.': 'Exercises added: {n}. The coach\'s answer broke off, so only {заполнено} of the cards were filled in — fix the rest in the catalogue.',
 };

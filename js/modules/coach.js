@@ -201,11 +201,14 @@ async function дело() {
 function сообщение(m, index) {
     const свой = m.role === 'user';
 
-    const план = !свой && prompt.hasPlan(m.text, { parse: planCore.parse, usable: planCore.usable });
+    // Оборванный ответ в план не переносится (Р-205): разбор принял бы и половину
+    const план = !свой && !m.cut && prompt.hasPlan(m.text, { parse: planCore.parse, usable: planCore.usable });
 
     return ui.html`
         <div class="msg ${свой ? 'is-mine' : ''}">
             <div class="msg-body">${m.text}</div>
+
+            ${m.cut ? ui.html`<p class="hint">${t('Ответ оборвался — дальше ничего не пришло.')}</p>` : ''}
 
             ${план ? ui.html`
                 <!--
@@ -554,7 +557,13 @@ actions.on('coach-key-save', async () => {
          */
         dialog.say(t('Ключ годится. Пробую задать вопрос моделью «{модель}».', { модель: модель }));
 
-        await ai.ask({ key, model: модель, messages: [{ text: 'ok' }] });
+        /*
+         * Ответ на «ok» нужен как доказательство доступа, а не ради текста.
+         * Оборванный или пустой по вине модели (Р-205) доказывает его так
+         * же: вопрос дошёл, и модель на него ответила, как сумела.
+         */
+        await ai.ask({ key, model: модель, messages: [{ text: 'ok' }] })
+            .catch((e) => { if (!e.finish) throw e; });
 
         await dbService.setSetting(KEY_SETTING, key);
         if (модель !== записанная) await dbService.setSetting(MODEL_SETTING, модель);
@@ -807,7 +816,7 @@ actions.on('coach-ask', async () => {
     const первый = нить.length === 0;
     const текст = первый ? prompt.first({ summary: await дело(), question: вопрос }) : вопрос;
 
-    нить.push({ role: 'user', text: первый ? вопрос : вопрос, sent: текст });
+    нить.push({ role: 'user', text: вопрос, sent: текст });
 
     ждём = true;
     ошибка = '';
@@ -839,6 +848,24 @@ actions.on('coach-ask', async () => {
         нить.push({ role: 'model', text: ответ });
         haptics.tap();
     } catch (e) {
+        /*
+         * Оборванный ответ показывается — но как оборванный (Р-205).
+         *
+         * Выбросить его значило бы выбросить то, что пришло честно: совет
+         * в три абзаца, оборванный на четвёртом, читать можно. А вот
+         * переносить в план нельзя: обрезанная программа разбирается так же
+         * охотно, как целая, и утвердить её — значит утвердить половину. Поэтому
+         * у такого сообщения нет кнопки переноса, и сказано почему.
+         *
+         * Вопрос при этом остаётся в нити: на него ответили, пусть и не до
+         * конца, — и «продолжи» следующим вопросом поймётся верно.
+         */
+        if (e.partial) {
+            нить.push({ role: 'model', text: e.partial, cut: true });
+            ошибка = [e.message, t('Ниже — то, что успело прийти. Переносить это в план нельзя: план оборван. Попросите короче — например, по этапу за раз.')].join(' ');
+            return;
+        }
+
         ошибка = e.message;
 
         // Неотправленный вопрос из нити убираем: иначе он уедет вторым

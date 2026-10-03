@@ -5312,6 +5312,47 @@ describe('Экран: тренер', () => {
 
         assert(view.querySelector('input#ai-model'), 'сети может не быть — запасной ход обязателен');
     });
+
+    /*
+     * Оборванный план показывается, но не переносится (Р-205): разбор принял
+     * бы и половину программы, а утвердить её значит утвердить половину.
+     */
+    it('оборванный ответ виден, назван оборванным, и кнопки переноса под ним нет', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+        const настоящий = globalThis.fetch;
+        const host = document.getElementById('screen');
+        const было = host.innerHTML;
+
+        globalThis.fetch = async (url, параметры) => {
+            if (!String(url).includes(':generateContent')) return настоящий(url, параметры);
+
+            return new Response(JSON.stringify({
+                candidates: [{
+                    content: { parts: [{ text: 'С 04.10.2026, 8 недель\nПн Отжимания 3 × 20\nВт При' }] },
+                    finishReason: 'MAX_TOKENS'
+                }]
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        };
+
+        try {
+            host.innerHTML = await coach.render();
+            document.getElementById('coach-text').value = 'Составь программу на восемь недель.';
+
+            await press('coach-ask');
+
+            const view = await screen(coach);
+
+            assert(has(view, 'Пн Отжимания 3 × 20'), 'пришедшее не выбрасывается');
+            assert(has(view, 'оборвал'), `сказано, что ответ оборван: ${text(view).slice(0, 400)}`);
+            assert(!hasAction(view, 'coach-to-plan'), 'половину программы в план не переносят');
+        } finally {
+            globalThis.fetch = настоящий;
+            coach.leave();
+            host.innerHTML = было;
+        }
+    });
 });
 
 describe('Экран: программа и тренер', () => {

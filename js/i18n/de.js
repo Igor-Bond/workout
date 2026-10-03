@@ -1187,7 +1187,6 @@ export const DE = {
     'Нечего спрашивать.': 'Nichts zu fragen.',
     'Ответа нет уже минуту. Похоже, не дождёмся.': 'Seit einer Minute keine Antwort. Es sieht nicht so aus, als käme noch eine.',
     'Нет связи с Google.': 'Keine Verbindung zu Google.',
-    'Ответ не получен: {что}': 'Keine Antwort: {что}',
     'Ответ пришёл пустым.': 'Die Antwort kam leer zurück.',
     'Запас в подходе': 'Reserve im Satz',
     'Сколько повторений в запасе': 'Wie viele Wiederholungen bleiben in Reserve',
@@ -1665,7 +1664,6 @@ export const DE = {
     'Забираю с часов': 'Ich hole von der Uhr',
     'Спрашиваю у Intervals.icu замеры и занятия за месяц. Обычно ответ приходит за несколько секунд.':
         'Ich frage Intervals.icu nach einem Monat Messwerte und Einheiten. Die Antwort kommt meist in ein paar Sekunden.',
-    'Подобрать модель': 'Modell suchen',
     'Спрашиваю Google': 'Ich frage Google',
     'Какие модели этот ключ вправе спрашивать.':
         'Welche Modelle dieser Schlüssel abfragen darf.',
@@ -1675,8 +1673,7 @@ export const DE = {
     'Запрос не принят.': 'Die Anfrage wurde nicht angenommen.',
     'Доступ запрещён. Возможно, ключ ограничен другим адресом, модель недоступна в вашей стране или у проекта не включён Gemini API.':
         'Zugriff verweigert. Der Schlüssel ist vielleicht auf eine andere Adresse beschränkt, das Modell in deinem Land nicht verfügbar, oder im Projekt ist die Gemini-API nicht aktiviert.',
-    'Модель «{модель}» не найдена. Нажмите «Подобрать модель» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.':
-        'Modell „{модель}“ wurde nicht gefunden. Tippe in den Gesprächseinstellungen auf „Modell suchen“ — die App fragt Google, was es gerade anbietet.',
+    'Модель «{модель}» не найдена. Нажмите «Обновить список» в настройках разговора — приложение спросит у Google, что он предлагает сейчас.': 'Modell „{модель}“ wurde nicht gefunden. Tippe in den Gesprächseinstellungen auf „Liste aktualisieren“ — die App fragt Google, was es gerade anbietet.',
     'Ключ годится. Пробую задать вопрос моделью «{модель}».':
         'Der Schlüssel passt. Ich versuche eine Frage mit dem Modell „{модель}“.',
     'Спрашиваю тренера': 'Ich frage den Trainer',
@@ -1707,4 +1704,16 @@ export const DE = {
     'Он начался {дата} — {сколько} назад. Приложение откроет его на неделе {неделя} из {всего}, а прошедшие недели будут считаться пропущенными. Если дата пришла по ошибке, поправьте её в тексте плана.': 'Er hat am {дата} begonnen — das ist {сколько} her. Die App öffnet ihn in Woche {неделя} von {всего}, und die vergangenen Wochen gelten als verpasst. Ist das Datum ein Versehen, korrigiere es im Plantext.',
     'Утвердить так': 'So übernehmen',
     'Поправлю дату': 'Ich korrigiere das Datum',
+    'Google не принял вопрос: сработал его фильтр содержания. Спросите иначе.': 'Google hat die Frage nicht angenommen: sein Inhaltsfilter hat angeschlagen. Frag anders.',
+    'Модель израсходовала весь отведённый ей объём на размышление и не успела ответить. Спросите ещё раз или короче.': 'Das Modell hat sein ganzes Kontingent fürs Nachdenken verbraucht und kam nicht mehr zum Antworten. Frag noch einmal oder kürzer.',
+    'Google не стал отвечать: сработал его фильтр содержания. Спросите иначе.': 'Google hat nicht geantwortet: sein Inhaltsfilter hat angeschlagen. Frag anders.',
+    'Google не стал отвечать: ответ слишком близко повторял чужой текст. Спросите иначе.': 'Google hat nicht geantwortet: die Antwort hätte fremden Text zu genau wiederholt. Frag anders.',
+    '{своими} Код Google: {код}.': '{своими} Google-Code: {код}.',
+    'Ответ оборвался на полуслове: модель упёрлась в предел его длины.': 'Die Antwort brach mitten im Wort ab: das Modell stieß an seine Längengrenze.',
+    'Google оборвал ответ посередине: сработал его фильтр содержания.': 'Google hat die Antwort mittendrin abgebrochen: sein Inhaltsfilter hat angeschlagen.',
+    'Google оборвал ответ посередине: тот слишком близко повторял чужой текст.': 'Google hat die Antwort mittendrin abgebrochen: sie wiederholte fremden Text zu genau.',
+    'Ответ оборвался, не дойдя до конца.': 'Die Antwort brach ab, bevor sie fertig war.',
+    'Ниже — то, что успело прийти. Переносить это в план нельзя: план оборван. Попросите короче — например, по этапу за раз.': 'Unten steht, was noch angekommen ist. In den Plan übernehmen lässt sich das nicht: der Plan ist abgeschnitten. Bitte um etwas Kürzeres — zum Beispiel eine Phase nach der anderen.',
+    'Ответ оборвался — дальше ничего не пришло.': 'Die Antwort brach ab — mehr kam nicht an.',
+    'Добавлено упражнений: {n}. Ответ тренера оборвался, и карточки заполнены только у {заполнено} — остальные поправьте в справочнике.': 'Übungen hinzugefügt: {n}. Die Antwort des Trainers brach ab, deshalb sind nur {заполнено} Karten ausgefüllt — korrigiere die übrigen im Katalog.',
 };
