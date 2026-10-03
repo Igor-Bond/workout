@@ -5490,6 +5490,46 @@ describe('Экран: сводка для тренера', () => {
     });
 
     /*
+     * То, чего тренер не видел (Р-212), — через настоящую базу и настоящую
+     * сборку, а не через пересказ данных в проверке ядра.
+     */
+    it('несёт заметку, состав с весов и табату по кругам', async () => {
+        const присед = await seed({ name: 'Приседания', kind: 'reps', group: 'Ноги' });
+
+        // Силовая с заметкой к подходу
+        const силовая = await dbService.createWorkout({ type: 'Силовая' });
+        await dbService.addSet({ workoutId: силовая.id, exerciseId: присед.id, order: 1, setNumber: 1, reps: 40, performedAt: Date.now() - 3 * DAY });
+        await dbService.addSet({ workoutId: силовая.id, exerciseId: присед.id, order: 2, setNumber: 2, reps: 35, note: 'колено ныло', performedAt: Date.now() - 3 * DAY + 60000 });
+        await dbService.updateWorkout(силовая.id, { startedAt: Date.now() - 3 * DAY });
+        await dbService.finishWorkout(силовая.id, Date.now() - 3 * DAY + 1800000);
+
+        // Табата: три круга
+        const табата = await dbService.createWorkout({ type: 'Табата', plan: [{ exerciseId: присед.id, plannedSets: 3, skipped: false }] });
+
+        for (const [i, reps] of [15, 16, 17].entries()) {
+            await dbService.addSet({ workoutId: табата.id, exerciseId: присед.id, order: i + 1, setNumber: i + 1, reps, duration: 20, performedAt: Date.now() - DAY + i * 30000 });
+        }
+
+        await dbService.updateWorkout(табата.id, { startedAt: Date.now() - DAY, interval: { work: 20, rest: 15, rounds: 3, roundRest: 60, lead: 10 } });
+        await dbService.finishWorkout(табата.id, Date.now() - DAY + 600000);
+
+        // Весы с составом
+        await dbService.setBodyWeight({ at: Date.now() - 20 * DAY, weight: 93.6, body: { fat: 25.4, muscle: 37.9 } });
+        await dbService.setBodyWeight({ weight: 92.9, body: { fat: 24.5, muscle: 38.5, water: 46.3 } });
+
+        const поле = (await screen(report)).querySelector('.report-text');
+        const текст = поле?.value || поле?.textContent || '';
+
+        assert(текст.includes('колено ныло'), `заметка дошла: ${текст.slice(0, 900)}`);
+        assert(текст.includes('Состав с весов: жир 24,5 %'), 'состав с весов дошёл');
+        assert(текст.includes('Приседания 15 → 16 → 17'), 'табата — по кругам');
+        assert(текст.includes('последний раз') && текст.includes(': 40, 35'), 'подходы последнего силового занятия');
+
+        const строка = текст.split('\n').find((s) => s.startsWith('— Приседания,')) || '';
+        assert(строка.includes('1 занятие'), `табата в строку силовой не смешана: ${строка}`);
+    });
+
+    /*
      * Тренер в разговоре знает то же, что тренер в чужой переписке (Р-210):
      * сводка собирается одной сборкой на двоих.
      */
