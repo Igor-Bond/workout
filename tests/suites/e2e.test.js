@@ -977,18 +977,15 @@ describe('Сквозной путь: табата подсказывает те�
         await dbService.finishWorkout(силовая.id);
 
         const сегодня = await dbService.createWorkout({ type: 'Табата', plan: план });
+        await dbService.updateWorkout(сегодня.id, { interval: { work: 20, rest: 10, rounds: 3, roundRest: 60, lead: 10 } });
 
         const все = await dbService.listSetsByExercise(приседания.id);
 
-        // Отбор — тот же, что делает экран: только интервальные тренировки
-        const свои = [];
-
-        for (const s of все) {
-            const w = await dbService.getWorkout(s.workoutId);
-            if (s.workoutId !== сегодня.id && w?.interval) свои.push(s);
-        }
-
-        const темп = pace.read(свои, { exclude: сегодня.id });
+        // Отбор — тот самый, которым пользуется экран (Р-209), а не его пересказ
+        const темп = pace.read(
+            pace.comparable(все, await тренировкиПодходов(все), await dbService.getWorkout(сегодня.id)),
+            { exclude: сегодня.id }
+        );
 
         equal(темп.numbers, [15, 16, 17], 'цель берётся у прошлой табаты, а не у ближайшей тренировки');
 
@@ -998,4 +995,64 @@ describe('Сквозной путь: табата подсказывает те�
             'а без отбора взялась бы силовая — ради этого отбор и нужен'
         );
     });
+
+    /*
+     * Сорок секунд работы — не двадцать (Р-209).
+     *
+     * Готовых наборов три, и подсказка брала прошлую интервальную тренировку,
+     * какой бы она ни была: число с сорокасекундных отрезков становилось целью
+     * для двадцатисекундных.
+     */
+    it('табата с другой длиной работы в счёт не идёт', async () => {
+        await clean();
+
+        const приседания = await dbService.createExercise({
+            name: 'Приседания', kind: 'reps', group: 'Ноги'
+        });
+
+        const план = [{ exerciseId: приседания.id, plannedSets: 3, skipped: false }];
+
+        /** Прошедшая табата с этими числами и этой длиной работы. */
+        const табата = async (work, числа) => {
+            const w = await dbService.createWorkout({ type: 'Табата', plan: план });
+
+            for (const [i, reps] of числа.entries()) {
+                await записать(w, приседания, i + 1, i + 1, { duration: work, reps });
+            }
+
+            await dbService.updateWorkout(w.id, { interval: { work, rest: work / 2, rounds: 3, roundRest: 60, lead: 10 } });
+            await dbService.finishWorkout(w.id);
+        };
+
+        await табата(20, [15, 16, 17]);
+        await табата(40, [30, 28, 27]);
+
+        const сегодня = await dbService.createWorkout({ type: 'Табата', plan: план });
+        await dbService.updateWorkout(сегодня.id, { interval: { work: 20, rest: 10, rounds: 3, roundRest: 60, lead: 10 } });
+
+        const все = await dbService.listSetsByExercise(приседания.id);
+        const тренировки = await тренировкиПодходов(все);
+
+        const темп = pace.read(pace.comparable(все, тренировки, await dbService.getWorkout(сегодня.id)), { exclude: сегодня.id });
+
+        equal(темп.numbers, [15, 16, 17], 'двадцать секунд сравниваются с двадцатью, хоть сорок и были позже');
+
+        // А сорокасекундная — со своей
+        await dbService.updateWorkout(сегодня.id, { interval: { work: 40, rest: 20, rounds: 3, roundRest: 60, lead: 10 } });
+
+        const сорок = pace.read(pace.comparable(все, тренировки, await dbService.getWorkout(сегодня.id)), { exclude: сегодня.id });
+
+        equal(сорок.numbers, [30, 28, 27]);
+    });
 });
+
+/** Тренировки, к которым относятся подходы: id → запись. */
+async function тренировкиПодходов(подходы) {
+    const итог = new Map();
+
+    for (const s of подходы) {
+        if (s.workoutId && !итог.has(s.workoutId)) итог.set(s.workoutId, await dbService.getWorkout(s.workoutId));
+    }
+
+    return итог;
+}

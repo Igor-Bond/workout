@@ -1740,4 +1740,5 @@ export const EN = {
     '{упражнение}: больше времени, {пары}': '{упражнение}: more time, {пары}',
     'Почти до отказа два занятия подряд и у других: {список}.': 'Close to failure two sessions running for others too: {список}.',
     'Запас большой два занятия подряд и у других: {список}. Совет с числами — на выполнении каждого.': 'Plenty in reserve two sessions running for others too: {список}. Advice with numbers is on each exercise\'s workout screen.',
+    'Прошлый раз неровно — от {мин} до {макс}. Держите {до} все круги.': 'Last time it was uneven — from {мин} to {макс}. Hold {до} every round.',
 };

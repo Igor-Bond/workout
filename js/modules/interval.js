@@ -71,38 +71,24 @@ async function readPaces(workout) {
     const out = {};
 
     /*
-     * Сравнивать можно только с интервальной тренировкой.
-     *
-     * Приседания живут и в программе, и в табате, и числа у них там разные
-     * по существу: в подходе их делают до отказа с паузой в три минуты, а
-     * здесь — сколько успел за двадцать секунд. Подставить одно вместо
-     * другого значило бы дать заведомо недостижимую цель и объяснить её
-     * ссылкой на прошлый раз, которого не было.
+     * С чем сравнивать, решает ядро (`pace.comparable`, Р-209): только
+     * интервальные тренировки и только с той же длиной работы.
      *
      * Ответ знает сама тренировка, а не подход, поэтому спрашиваем её.
      * Память общая на все упражнения круга: тренировки у них одни и те же.
      */
-    const интервальные = new Map();
-
-    const своя = async (workoutId) => {
-        if (!интервальные.has(workoutId)) {
-            const w = await dbService.getWorkout(workoutId);
-            интервальные.set(workoutId, !!w?.interval);
-        }
-
-        return интервальные.get(workoutId);
-    };
+    const тренировки = new Map();
 
     for (const id of ids) {
         const все = await dbService.listSetsByExercise(id, { limit: ГЛУБИНА });
 
-        const подходящие = [];
-
         for (const s of все) {
-            if (s.workoutId !== workout.id && await своя(s.workoutId)) подходящие.push(s);
+            if (s.workoutId && !тренировки.has(s.workoutId)) {
+                тренировки.set(s.workoutId, await dbService.getWorkout(s.workoutId));
+            }
         }
 
-        const темп = pace.read(подходящие, { exclude: workout.id });
+        const темп = pace.read(pace.comparable(все, тренировки, workout), { exclude: workout.id });
 
         if (темп) out[id] = темп;
     }
