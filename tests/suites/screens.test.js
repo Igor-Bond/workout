@@ -5349,9 +5349,82 @@ describe('Экран: тренер', () => {
             assert(!hasAction(view, 'coach-to-plan'), 'половину программы в план не переносят');
         } finally {
             globalThis.fetch = настоящий;
+            await press('coach-clear');
             coach.leave();
             host.innerHTML = было;
         }
+    });
+
+    /*
+     * Разговор переживает уход на план (Р-208): человек смотрит развёртку и
+     * возвращается сказать «облегчи среду» — а разговора не было.
+     */
+    describe('переписка после ухода с экрана', () => {
+
+        const ПЛАН = 'С 04.10.2026, 8 недель\nПн Отжимания 3 × 20\nВс отдых';
+
+        /** Спросить тренера, получив этот ответ. */
+        async function спросить(ответ) {
+            const настоящий = globalThis.fetch;
+            const host = document.getElementById('screen');
+            const было = host.innerHTML;
+
+            globalThis.fetch = async (url, параметры) => {
+                if (!String(url).includes(':generateContent')) return настоящий(url, параметры);
+
+                return new Response(JSON.stringify({
+                    candidates: [{ content: { parts: [{ text: ответ }] }, finishReason: 'STOP' }]
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            };
+
+            try {
+                host.innerHTML = await coach.render();
+                document.getElementById('coach-text').value = 'Составь программу на восемь недель.';
+                await press('coach-ask');
+            } finally {
+                globalThis.fetch = настоящий;
+                host.innerHTML = было;
+            }
+        }
+
+        it('ушёл на план и вернулся — разговор на месте, и перенести можно снова', async () => {
+            await seed();
+            await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+            try {
+                await спросить(ПЛАН);
+                coach.leave();
+
+                const view = await screen(coach);
+
+                assert(has(view, 'Пн Отжимания 3 × 20'), `разговор не оборвался: ${text(view).slice(0, 300)}`);
+                assert(hasAction(view, 'coach-to-plan'), 'перенести можно и вернувшись');
+                assert(hasAction(view, 'coach-clear'), 'начать заново — по желанию, а не по уходу');
+            } finally {
+                await press('coach-clear');
+            }
+        });
+
+        it('назавтра вчерашний разговор не воскресает: он шёл со вчерашним делом', async () => {
+            await seed();
+            await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+            await спросить(ПЛАН);
+            coach.leave();
+
+            const настоящее = Date.now;
+            Date.now = () => настоящее() + DAY;
+
+            try {
+                const view = await screen(coach);
+
+                assert(!has(view, 'Пн Отжимания 3 × 20'), 'тренер правил бы программу, глядя на вчерашнее');
+                assert(hasAction(view, 'coach-preset'), 'новый день начинается с чистого листа');
+            } finally {
+                Date.now = настоящее;
+                await press('coach-clear');
+            }
+        });
     });
 });
 
