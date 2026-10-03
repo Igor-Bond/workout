@@ -5423,3 +5423,82 @@ describe('Экран: знакомство', () => {
         assert(hasAction(await screen(intro), 'intro-skip'), 'отказ обязан быть на виду');
     });
 });
+
+/**
+ * Прибавка у своего веса — повторениями, а не резинкой (Р-206).
+ *
+ * Совет писался под резинку, и приседания своим весом слышали «пора
+ * увеличить сопротивление, повторения вниз на пятую часть». Исполненный в
+ * точности, он облегчал работу: резинки нет, а повторений меньше.
+ */
+describe('Прибавка своим весом', () => {
+
+    /** Два прошлых занятия, оба с ответом «легко» на последнем подходе. */
+    async function дваЛёгких(ex, повторений) {
+        for (const дней of [4, 2]) {
+            const at = Date.now() - дней * DAY;
+            const w = await dbService.createWorkout({ type: 'Силовая' });
+
+            await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: повторений, rir: 3, performedAt: at });
+            await dbService.updateWorkout(w.id, { startedAt: at });
+            await dbService.finishWorkout(w.id, at + 1800000);
+        }
+    }
+
+    it('на выполнении приседания зовут прибавить повторения — с числами', async () => {
+        const ex = await seed({ name: 'Приседания', kind: 'reps', group: 'Ноги' });
+        await дваЛёгких(ex, 20);
+
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 20, skipped: false }
+        ]});
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('прибавить повторения'), строка.slice(0, 600));
+        assert(строка.includes('было 20, станет 22'), 'числа, а не проценты');
+        assert(!/резинк|сопротивлен/i.test(строка), `резинки у приседаний нет: ${строка.slice(0, 600)}`);
+    });
+
+    it('у резинки совет прежний: жёстче, а повторения вниз', async () => {
+        const ex = await seed({ name: 'Сгибание рук с резинкой', kind: 'reps', group: 'Руки' });
+        await дваЛёгких(ex, 50);
+
+        await dbService.createWorkout({ type: 'Силовая', plan: [
+            { exerciseId: ex.id, plannedSets: 6, targetReps: 50, skipped: false }
+        ]});
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('резинку жёстче'), строка.slice(0, 600));
+        assert(строка.includes('было 50, станет 40'), строка.slice(0, 600));
+    });
+
+    it('«принять прибавку» у приседаний поднимает повторения в плане, а не режет', async () => {
+        await seed({ name: 'Приседания', kind: 'reps', group: 'Ноги' });
+
+        await dbService.setSetting(PLAN_KEY, { text: [`С ${датаПлана(-3)}, 8 недель`, 'Пн Приседания 3 × 20', 'Чт Приседания 4 × 15'].join('\n') });
+
+        const было = dialog.confirm;
+        let спрошено = null;
+
+        dialog.confirm = async (параметры) => {
+            спрошено = параметры;
+            return true;
+        };
+
+        try {
+            await press('accept-harder', { name: 'Приседания', step: 'reps' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        const план = (await dbService.getSetting(PLAN_KEY, null))?.text || '';
+
+        assert(спрошено?.text.includes('3 × 20 → 3 × 22'), спрошено?.text);
+        assert(!/резинк/i.test(спрошено?.text || ''), 'в окне о резинке ни слова');
+        assert(план.includes('Приседания 3 × 22') && план.includes('Приседания 4 × 17'), план);
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+});

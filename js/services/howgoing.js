@@ -25,6 +25,32 @@ import { currentWellness } from '../modules/watch.js';
 
 const DAY = 86400000;
 
+/** Признаки восстановления за неделю — одним счётом для всех, кто их читает. */
+function восстановлениеНедели(rows, now) {
+    const пульс = recovery.resting(rows, { now });
+
+    return progress.recovery({
+        sleep: recovery.sleep(rows, { now }),
+        resting: пульс ? { ...пульс, threshold: recovery.SHIFT } : null
+    });
+}
+
+/**
+ * Против ли сон и пульс прибавки на этой неделе (§63, Р-206).
+ *
+ * Отдельно от наблюдений: тот же ответ нужен экрану выполнения. Совет «пора
+ * тяжелее» стоит там у самой резинки, где решение и принимают, — и спорить с
+ * доводом против он должен так же, как строка на статистике. Иначе одно и то
+ * же приложение на одном экране говорило бы «подождите», а на другом —
+ * «пора».
+ */
+export async function противПрибавки({ now = Date.now() } = {}) {
+    const замеры = await currentWellness();
+    const итог = восстановлениеНедели(замеры.rows, now);
+
+    return итог.shortSleep && итог.highResting;
+}
+
 /**
  * Наблюдения о том, как идёт программа.
  *
@@ -57,15 +83,18 @@ export async function observations({ now = Date.now() } = {}) {
 
     for (const [id, список_занятий] of занятия.entries()) {
         const { verdict } = reserve.verdict(список_занятий);
-        if (verdict) запас.push({ name: exercises[id]?.name || t('упражнение'), verdict });
+
+        // Способ прибавки — по тому, чем упражнение нагружено (Р-206)
+        if (verdict) {
+            запас.push({
+                name: exercises[id]?.name || t('упражнение'),
+                verdict,
+                step: reserve.step(exercises[id] || {}, список_занятий)
+            });
+        }
     }
 
-    const пульс = recovery.resting(замеры.rows, { now });
-
-    const восстановление = progress.recovery({
-        sleep: recovery.sleep(замеры.rows, { now }),
-        resting: пульс ? { ...пульс, threshold: recovery.SHIFT } : null
-    });
+    const восстановление = восстановлениеНедели(замеры.rows, now);
 
     /*
      * Исполнение плана: прошедшие дни, сегодняшний не в счёт.

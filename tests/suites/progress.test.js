@@ -343,3 +343,82 @@ describe('Окно объёма (Р-73)', () => {
     });
 
 });
+
+/**
+ * Способ прибавки назван словами (Р-206).
+ *
+ * «Можно тяжелее» у приседаний своим весом читалось как «возьмите груз», а
+ * груза нет: прибавляют там повторениями.
+ */
+describe('Способ прибавки в наблюдении', () => {
+
+    it('своим весом — повторениями', () => {
+        const [строка] = progress.describe({ reserve: [{ name: 'Приседания', verdict: 'harder', step: 'reps' }] });
+
+        assert(строка.text.includes('прибавить повторения'), строка.text);
+        assert(!/резинк|вес/i.test(строка.text.replace('Приседания', '')), `ни резинки, ни веса тут нет: ${строка.text}`);
+        equal(строка.action.step, 'reps', 'окно прибавки посчитает по тому же способу');
+    });
+
+    it('резинкой — резинкой, снарядом — весом, на время — временем', () => {
+        const строки = progress.describe({
+            reserve: [
+                { name: 'Бицепс резинка', verdict: 'harder', step: 'resistance' },
+                { name: 'Жим лёжа', verdict: 'harder', step: 'weight' },
+                { name: 'Планка', verdict: 'harder', step: 'time' }
+            ]
+        });
+
+        assert(строки[0].text.includes('резинку жёстче'), строки[0].text);
+        assert(строки[1].text.includes('добавить вес'), строки[1].text);
+        assert(строки[2].text.includes('прибавить время'), строки[2].text);
+    });
+
+    it('кардио о прибавке по запасу молчит: повторения в запасе к нему не относятся', () => {
+        equal(progress.describe({ reserve: [{ name: 'Бег', verdict: 'harder', step: null }] }).length, 0);
+    });
+});
+
+/**
+ * Прибавка и сон с пульсом не спорят на одном экране (Р-206).
+ *
+ * Довод «неделя не для прибавки» стоял под строкой с кнопкой «принять
+ * прибавку», и нажатие о нём ничего не знало.
+ */
+describe('Прибавка против восстановления', () => {
+
+    const плохая = progress.recovery({ sleep: 6 * 3600, resting: { now: 58, base: 52, shift: 6, threshold: 3 } });
+
+    it('довод против стоит первым', () => {
+        const строки = progress.describe({
+            reserve: [{ name: 'Бицепс резинка', verdict: 'harder', step: 'resistance' }],
+            recovery: плохая
+        });
+
+        assert(строки[0].text.includes('не для прибавки'), текст(строки));
+    });
+
+    it('у прибавки в такую неделю нет кнопки, и сказано почему', () => {
+        const строки = progress.describe({
+            reserve: [{ name: 'Бицепс резинка', verdict: 'harder', step: 'resistance' }],
+            recovery: плохая
+        });
+
+        const прибавка = строки.find((с) => с.text.includes('Бицепс резинка'));
+
+        equal(прибавка.action, null, 'кнопка правила бы план вопреки доводу над ней');
+        assert(прибавка.text.includes('не на этой неделе'), прибавка.text);
+    });
+
+    it('один высокий пульс прибавку не отменяет: порознь признаки значат мало', () => {
+        const строки = progress.describe({
+            reserve: [{ name: 'Бицепс резинка', verdict: 'harder', step: 'resistance' }],
+            recovery: progress.recovery({ sleep: 8 * 3600, resting: { now: 58, base: 52, shift: 6, threshold: 3 } })
+        });
+
+        const прибавка = строки.find((с) => с.text.includes('Бицепс резинка'));
+
+        equal(прибавка.action?.type, 'harder');
+        assert(строки.some((с) => с.text.includes('Пульс покоя выше')), 'но присмотреться стоит');
+    });
+});
