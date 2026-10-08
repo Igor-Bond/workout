@@ -5997,3 +5997,73 @@ describe('Недобор плана: от тренировки до правки
         assert(!text(await screen(stats)).includes('в плане 4 × 25'));
     });
 });
+
+/**
+ * Новое упражнение — до тренировки, а не после неё (§29.1, Р-217).
+ *
+ * Число в плане для упражнения без истории — прикидка: составитель плана ваших
+ * чисел по нему не видел. Отжимания в наклоне: в плане 25, вышло 16, 14, 14, 10.
+ */
+describe('Новое упражнение в плане', () => {
+
+    const DAY = 86400000;
+
+    async function планНаСегодня(текстДня) {
+        const сегодня = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][new Date().getDay()];
+        const текст = `С ${датаПлана(-1)}, 8 недель\n${сегодня} ${текстДня}`;
+
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+    }
+
+    it('на карточке дня названо то, чего человек ещё не делал', async () => {
+        const знакомое = await seed({ name: 'Отжимания', kind: 'reps', group: 'Трицепс' });
+        await dbService.createExercise({ name: 'Отжимания в наклоне', kind: 'reps', group: 'Плечи' });
+
+        await workout(знакомое, [[20, 0]], { at: Date.now() - 5 * DAY });
+        await планНаСегодня('Отжимания 4 × 35 + Отжимания в наклоне 4 × 25, пауза 5 мин');
+
+        const строка = text(await screen(home));
+
+        assert(строка.includes('Новое: Отжимания в наклоне'), строка.slice(0, 600));
+        assert(строка.includes('число из плана, а не ваше'), 'прикидка названа прикидкой');
+        assert(!строка.includes('Новое: Отжимания,'), 'знакомое упражнение новым не объявлено');
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('если все упражнения знакомы — строки нет', async () => {
+        const знакомое = await seed({ name: 'Отжимания', kind: 'reps', group: 'Трицепс' });
+
+        await workout(знакомое, [[20, 0]], { at: Date.now() - 5 * DAY });
+        await планНаСегодня('Отжимания 4 × 35, пауза 5 мин');
+
+        assert(!text(await screen(home)).includes('Новое:'));
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('у первого подхода сказано, что число из плана — прикидка', async () => {
+        const новое = await seed({ name: 'Отжимания в наклоне', kind: 'reps', group: 'Плечи' });
+
+        await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: новое.id, plannedSets: 4, targetReps: 25, skipped: false }]
+        });
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('Первый раз — ориентиров пока нет'), строка.slice(0, 500));
+        assert(строка.includes('Число из плана — прикидка'), строка.slice(0, 500));
+    });
+
+    it('без числа в плане прикидывать нечего — слов про прикидку нет', async () => {
+        const новое = await seed({ name: 'Баскетбол', kind: 'time', group: 'Кардио' });
+
+        await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: новое.id, plannedSets: 1, targetReps: null, targetDuration: null, skipped: false }]
+        });
+
+        assert(!text(await screen(session)).includes('Число из плана — прикидка'));
+    });
+});

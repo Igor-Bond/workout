@@ -1776,4 +1776,6 @@ export const EN = {
     '{упражнение}: цель {было} → {стало}, {пары}': '{упражнение}: target {было} → {стало}, {пары}',
     'в плане было {было}, сделано {сделано}': 'the plan said {было}, you did {сделано}',
     'План и факт': 'Plan and actual',
+    'Новое: {список} — число из плана, а не ваше. Начните с запасом 2–3.': 'New: {список} — the number is the plan\'s, not yours. Start with 2–3 reps in reserve.',
+    'Число из плана — прикидка: начните с запасом 2–3.': 'The plan\'s number is a guess: start with 2–3 reps in reserve.',
 };
