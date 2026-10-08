@@ -455,6 +455,19 @@ function ходБлок(наблюдения, планЕсть) {
                             </button>
                         ` : ''}
 
+                        <!--
+                            «Поправить план» — у недобора (Р-216): цель по факту,
+                            одним нажатием, там же, где видно и число плана, и то,
+                            что вышло.
+                        -->
+                        ${н.action?.type === 'lower' && планЕсть ? ui.html`
+                            <button class="link-btn" data-action="accept-lower"
+                                    data-name="${н.action.name}" data-from="${String(н.action.from)}"
+                                    data-to="${String(н.action.to)}" data-done="${н.action.done.join(', ')}">
+                                ${t('поправить план')}
+                            </button>
+                        ` : ''}
+
                         <button class="link-btn" data-action="ask-coach" data-text="${н.text}">
                             ${t('спросить тренера')}
                         </button>
@@ -1203,6 +1216,70 @@ actions.on('accept-harder', async (el) => {
         kind: 'change',
         text: слова.note(имя, пары.join('; ')),
         why: t('два занятия подряд запас был большой')
+    });
+
+    haptics.tap();
+    await app.render();
+});
+
+/**
+ * Поправить цель по факту (§63, Р-216).
+ *
+ * Недобор: в плане «4 × 25», сделано 16, 14, 14, 10. Цель правится только там,
+ * где стоит ровно это число: «25» в плане бывает и у других недель, а у
+ * третьего этапа то же упражнение стоит с пятнадцатью, и правка «всего, что не
+ * больше» залезла бы туда, где её никто не просил.
+ *
+ * Подходы остаются, как и у прибавки (§59.1): число подходов — схема, и
+ * трогать её приложение не вправе. Числа называются до вопроса, решение
+ * пишется в журнал с причиной.
+ */
+actions.on('accept-lower', async (el) => {
+    const имя = el.dataset.name;
+    const было = Number(el.dataset.from);
+    const стало = Number(el.dataset.to);
+    const план = await currentPlan();
+
+    if (!имя || !(было > 0) || !(стало > 0) || !план?.text) return;
+
+    const пары = [];
+
+    for (const у of planCore.items(план)) {
+        if (!planCore.same(у.name, имя) || Number(у.reps) !== было || !у.sets) continue;
+
+        const строка = `${у.sets} × ${было} → ${у.sets} × ${стало}`;
+        if (!пары.includes(строка)) пары.push(строка);
+    }
+
+    if (пары.length === 0) {
+        return dialog.alert({
+            title: t('Нечего менять'),
+            text: t('В плане нет «{упражнение}» с числом {число} — возможно, план уже поправлен.', { упражнение: имя, число: было })
+        });
+    }
+
+    const ok = await dialog.confirm({
+        title: t('Цель по факту'),
+        text: [
+            t('В плане «{упражнение}» с числом {число}, а сделано {сделано}. Поставить цель {цель} везде, где стоит {число}?', {
+                упражнение: имя, число: было, сделано: el.dataset.done || '—', цель: стало
+            }),
+            ...пары,
+            t('Подходы остаются прежними. План будет поправлен, решение — записано.')
+        ].join('\n'),
+        confirmText: t('Поправить')
+    });
+
+    if (!ok) return;
+
+    const правленый = planCore.retune(план.text, имя, (r) => (r === было ? стало : r));
+
+    await dbService.setSetting(PLAN_KEY, { ...planCore.parse(правленый), text: правленый });
+
+    await noteDecision({
+        kind: 'change',
+        text: t('{упражнение}: цель {было} → {стало}, {пары}', { упражнение: имя, было, стало, пары: пары.join('; ') }),
+        why: t('в плане было {было}, сделано {сделано}', { было, сделано: el.dataset.done || '—' })
     });
 
     haptics.tap();

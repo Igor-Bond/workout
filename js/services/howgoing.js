@@ -52,6 +52,64 @@ export async function противПрибавки({ now = Date.now() } = {}) {
 }
 
 /**
+ * Где план не выполнен по числам (§63, Р-216).
+ *
+ * Считается по составу самой тренировки — он хранит то, что план просил, —
+ * но показывается только когда то же число ещё стоит в действующем плане.
+ * Иначе «в плане 4 × 25» говорило бы про строку, которой уже нет: либо план
+ * поправили, либо состав взят из прошлой тренировки, а не из плана, и
+ * поправить там нечего.
+ *
+ * workoutId — только эта тренировка (экран итогов); без него — упражнения
+ * последних двух недель, и у каждого берётся самая свежая тренировка, где оно
+ * было: старый недобор, перекрытый хорошим занятием, больше не новость.
+ */
+export async function недоборы({ now = Date.now(), workoutId = null } = {}) {
+    const [сводки, sets, список, план] = await Promise.all([
+        dbService.listWorkoutSummaries(),
+        dbService.allSets(),
+        dbService.listExercises({ includeArchived: true }),
+        currentPlan()
+    ]);
+
+    // Без действующего плана числа сверять не с чем и поправить нечего
+    if (!план?.text || !planCore.active(план, now)) return [];
+
+    const names = Object.fromEntries(список.map((e) => [e.id, e.name]));
+    const строкиПлана = planCore.items(план);
+
+    const свежие = сводки
+        .map((e) => e.workout)
+        .filter((w) => !isBackground(w) && w.plan?.length)
+        .filter((w) => (workoutId ? w.id === workoutId : w.startedAt >= now - 14 * DAY))
+        .sort((a, b) => b.startedAt - a.startedAt);
+
+    const увиденные = new Set();
+    const итог = [];
+
+    for (const w of свежие) {
+        const состав = w.plan.filter((п) => !увиденные.has(п.exerciseId));
+
+        for (const п of состав) увиденные.add(п.exerciseId);
+
+        const свои = sets.filter((s) => s.workoutId === w.id && !s.deletedAt);
+
+        // Делалось ли упражнение до этой тренировки: первый раз — отдельная новость
+        const раньше = new Set(
+            sets.filter((s) => !s.deletedAt && s.workoutId !== w.id && s.performedAt < w.startedAt)
+                .map((s) => s.exerciseId)
+        );
+
+        for (const н of progress.shortfall(состав, свои, { names, earlier: раньше })) {
+            const стоит = строкиПлана.some((с) => planCore.same(с.name, н.name) && Number(с.reps) === н.target);
+            if (стоит) итог.push(н);
+        }
+    }
+
+    return итог;
+}
+
+/**
  * Наблюдения о том, как идёт программа.
  *
  * Возвращает [{ kind, text }] — пустой массив, если сказать нечего.
@@ -148,6 +206,7 @@ export async function observations({ now = Date.now() } = {}) {
 
     return progress.describe({
         reserve: запас,
+        shortfalls: await недоборы({ now }),
         recovery: восстановление,
         adherence: progress.adherence(дни, сделаноВ, { from: сегодня - 13 * DAY, to: сегодня }),
         volume: {

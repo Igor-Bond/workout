@@ -501,3 +501,94 @@ describe('Темы наблюдений', () => {
         equal(строки.map((с) => с.topic), ['reserve', 'reserve', 'reserve']);
     });
 });
+
+/**
+ * Недобор плана по числам (§63, Р-216).
+ *
+ * План знал, сколько и по скольку, факт знал, что вышло, — а друг с другом они
+ * не сравнивались: «выполнено» считало дни, а не числа.
+ */
+describe('Недобор плана', () => {
+
+    const подходы = (id, ...числа) => числа.map((reps, i) => ({ exerciseId: id, setNumber: i + 1, reps }));
+    const состав = (id, sets = 4, target = 25) => [{ exerciseId: id, plannedSets: sets, targetReps: target, skipped: false }];
+    const names = { в: 'Отжимания в наклоне' };
+
+    it('4 × 25, сделано 16, 14, 14, 10 — недобор, цель по факту 14, на 46 % меньше', () => {
+        const [н] = progress.shortfall(состав('в'), подходы('в', 16, 14, 14, 10), { names });
+
+        equal(н.suggest, 14, 'середина сделанного');
+        equal(н.lack, 46, '54 из 100');
+        equal(н.done, [16, 14, 14, 10], 'числа названы в порядке подходов');
+        equal(н.name, 'Отжимания в наклоне');
+    });
+
+    it('подходы читаются по номеру, а не по порядку записи', () => {
+        const вразнобой = [...подходы('в', 16, 14, 14, 10)].reverse();
+
+        equal(progress.shortfall(состав('в'), вразнобой, { names })[0].done, [16, 14, 14, 10]);
+    });
+
+    it('выполненное недобором не называется', () => {
+        equal(progress.shortfall(состав('в'), подходы('в', 25, 25, 25, 25), { names }).length, 0);
+        equal(progress.shortfall(состав('в'), подходы('в', 24, 23, 25, 22), { names }).length, 0, 'разброс внутри двадцати процентов — обычная жизнь');
+    });
+
+    it('один слабый подход в конце — это усталость, а не число, которого нет', () => {
+        equal(progress.shortfall(состав('в'), подходы('в', 25, 25, 25, 12), { names }).length, 0);
+    });
+
+    it('два слабых подряд из трёх — уже недобор', () => {
+        equal(progress.shortfall(состав('в', 3), подходы('в', 25, 15, 14), { names }).length, 1);
+    });
+
+    it('один подход — сравнивать не с чем', () => {
+        equal(progress.shortfall(состав('в'), подходы('в', 10), { names }).length, 0);
+    });
+
+    it('пропущенное, время и малые числа не меряются', () => {
+        const слабо = подходы('в', 3, 3, 3, 3);
+
+        equal(progress.shortfall([{ exerciseId: 'в', plannedSets: 4, targetReps: 25, skipped: true }], подходы('в', 5, 5, 5, 5), { names }).length, 0);
+        equal(progress.shortfall([{ exerciseId: 'в', plannedSets: 4, targetReps: null, targetDuration: 45 }], подходы('в', 5, 5, 5, 5), { names }).length, 0);
+        equal(progress.shortfall(состав('в', 4, 4), слабо, { names }).length, 0, 'у «4 × 4» восемь десятых — это один повтор');
+    });
+
+    it('предлагаемая цель всегда ниже прежней', () => {
+        const [н] = progress.shortfall(состав('в', 4, 25), подходы('в', 24, 24, 10, 10), { names });
+
+        assert(н.suggest < 25, `предложено ${н.suggest}`);
+    });
+
+    it('первый раз называется, если раньше упражнение не делалось', () => {
+        const впервые = progress.shortfall(состав('в'), подходы('в', 16, 14, 14, 10), { names, earlier: new Set() });
+        const знакомое = progress.shortfall(состав('в'), подходы('в', 16, 14, 14, 10), { names, earlier: new Set(['в']) });
+
+        equal(впервые[0].firstTime, true);
+        equal(знакомое[0].firstTime, false);
+    });
+
+    it('в наблюдении — и план, и факт рядом, и про первый раз', () => {
+        const н = progress.shortfall(состав('в'), подходы('в', 16, 14, 14, 10), { names });
+        const [строка] = progress.describe({ shortfalls: н });
+
+        assert(строка.text.includes('в плане 4 × 25, сделано 16, 14, 14, 10 — на 46 % меньше'), строка.text);
+        assert(строка.text.includes('Раньше вы его не делали'), 'число в плане было прикидкой');
+        equal(строка.action.type, 'lower');
+        equal([строка.action.from, строка.action.to], [25, 14]);
+        equal(строка.topic, 'plan');
+    });
+
+    it('своих строк не больше двух, остальные — одной строкой по именам', () => {
+        const много = ['а', 'б', 'в', 'г'].map((id) => ({
+            exerciseId: id, name: id.toUpperCase(), target: 20, plannedSets: 3, done: [10, 10, 10],
+            suggest: 10, lack: 50, firstTime: false
+        }));
+
+        const строки = progress.describe({ shortfalls: много });
+
+        equal(строки.length, 3);
+        assert(строки[2].text.includes('В') && строки[2].text.includes('Г'), строки[2].text);
+        equal(строки[2].action, undefined, 'у сводной строки кнопки нет');
+    });
+});

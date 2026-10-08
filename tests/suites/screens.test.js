@@ -5857,3 +5857,143 @@ describe('Порядок дня: от плана до экрана выполн�
         await dbService.finishWorkout(w.id);
     });
 });
+
+/**
+ * План и факт рядом: недобор называется и правится одной кнопкой (§63, §59.1, Р-216).
+ *
+ * Человек делал программу, не осилил одно упражнение — а приложение молчало:
+ * «выполнено» считало дни, числа плана с фактом не сравнивались.
+ */
+describe('Недобор плана: от тренировки до правки плана', () => {
+
+    const DAY = 86400000;
+
+    const ПЛАН = [
+        'С {дата}, 12 недель',
+        'Этап 1 (недели 1–6): а',
+        'Пн Отжимания в наклоне 4 × 25 + Отжимания 4 × 35',
+        'Вс отдых',
+        'Этап 2 (недели 7–12): б',
+        'Пн Отжимания в наклоне 4 × 15',
+        'Вс отдых'
+    ].join('\n');
+
+    /** Тренировка по этому плану: наклонные отжимания 16, 14, 14, 10 при цели 25. */
+    async function сделатьНедобор() {
+        const наклон = await seed({ name: 'Отжимания в наклоне', kind: 'reps', group: 'Плечи' });
+        const обычные = await dbService.createExercise({ name: 'Отжимания', kind: 'reps', group: 'Трицепс' });
+
+        const текст = ПЛАН.replace('{дата}', датаПлана(-2));
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: наклон.id, plannedSets: 4, targetReps: 25, skipped: false },
+                { exerciseId: обычные.id, plannedSets: 4, targetReps: 35, skipped: false }
+            ]
+        });
+
+        const at = Date.now() - 3600000;
+
+        for (const [i, reps] of [16, 14, 14, 10].entries()) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: наклон.id, order: i + 1, setNumber: i + 1, reps, performedAt: at + i * 60000 });
+        }
+
+        // Обычные выполнены полностью — по ним недобора нет
+        for (const [i, reps] of [35, 35, 35, 35].entries()) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: обычные.id, order: 5 + i, setNumber: i + 1, reps, performedAt: at + 600000 + i * 60000 });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    it('на статистике: числа плана и факта рядом и кнопка «поправить план»', async () => {
+        await сделатьНедобор();
+
+        const view = await screen(stats);
+        const строка = text(view);
+
+        assert(строка.includes('в плане 4 × 25, сделано 16, 14, 14, 10 — на 46 % меньше'), строка.slice(0, 700));
+        assert(строка.includes('Раньше вы его не делали'), 'первый раз назван');
+        assert(hasAction(view, 'accept-lower'), 'поправить можно там же');
+
+        const кнопка = view.querySelector('[data-action="accept-lower"]');
+        equal([кнопка.dataset.from, кнопка.dataset.to], ['25', '14']);
+
+        assert(!строка.includes('Отжимания: в плане'), 'выполненные обычные отжимания недобором не названы');
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('на итогах тренировки — отдельная карточка «План и факт»', async () => {
+        const w = await сделатьНедобор();
+
+        const view = await screen(summary, [w.id]);
+
+        assert(text(view).includes('План и факт'), text(view).slice(0, 500));
+        assert(hasAction(view, 'accept-lower'), 'сразу после тренировки, а не через неделю');
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('«поправить план» правит только то число, что подвело, и пишет решение в журнал', async () => {
+        await сделатьНедобор();
+
+        const было = dialog.confirm;
+        let спрошено = null;
+
+        dialog.confirm = async (параметры) => {
+            спрошено = параметры;
+            return true;
+        };
+
+        try {
+            await press('accept-lower', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        const план = (await dbService.getSetting(PLAN_KEY, null))?.text || '';
+
+        assert(спрошено?.text.includes('4 × 25 → 4 × 14'), `числа названы до вопроса: ${спрошено?.text}`);
+        assert(план.includes('Отжимания в наклоне 4 × 14'), план);
+        assert(план.includes('Отжимания в наклоне 4 × 15'), 'у третьего этапа свои пятнадцать — их не трогаем');
+        assert(план.includes('Отжимания 4 × 35'), 'и соседнее упражнение тоже');
+
+        const журнал = await dbService.getSetting('planJournal', []);
+        assert(журнал.some((з) => з.text.includes('цель 25 → 14') && з.why.includes('16, 14, 14, 10')), JSON.stringify(журнал));
+
+        await dbService.setSetting(PLAN_KEY, null);
+        await dbService.setSetting('planJournal', []);
+    });
+
+    it('после правки плана недобор исчезает: строки с прежним числом больше нет', async () => {
+        await сделатьНедобор();
+
+        const было = dialog.confirm;
+        dialog.confirm = async () => true;
+
+        try {
+            await press('accept-lower', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        assert(!text(await screen(stats)).includes('в плане 4 × 25'), 'иначе приложение просило бы поправить уже поправленное');
+        assert(!hasAction(await screen(stats), 'accept-lower'));
+
+        await dbService.setSetting(PLAN_KEY, null);
+        await dbService.setSetting('planJournal', []);
+    });
+
+    it('без действующего плана недобор не называется: поправить нечего', async () => {
+        await сделатьНедобор();
+        await dbService.setSetting(PLAN_KEY, null);
+
+        assert(!text(await screen(stats)).includes('в плане 4 × 25'));
+    });
+});

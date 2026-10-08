@@ -11,6 +11,8 @@ import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { effort } from '../core/effort.js';
 import { currentActivities } from './watch.js';
+import { progress } from '../core/progress.js';
+import { недоборы } from '../services/howgoing.js';
 import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { kindFields } from '../core/kinds.js';
@@ -306,6 +308,17 @@ export const summary = {
             (workout.plan || []).map((p) => [p.exerciseId, p.note])
         );
 
+        /*
+         * План и факт рядом — сразу после тренировки (§63, Р-216).
+         *
+         * Не осилил упражнение — это видно здесь и сейчас, а не через неделю на
+         * статистике. Те же строки и та же кнопка, что у «Как идёт программа»:
+         * считает одна функция, показывает одна разметка.
+         */
+        const расхождения = progress
+            .describe({ shortfalls: await недоборы({ workoutId: workout.id }) })
+            .filter((с) => с.topic === 'plan');
+
         return ui.html`
             ${ui.title(t('Итоги тренировки'),
                 `${workout.type} · ${dates.formatDateTime(workout.startedAt)}`)}
@@ -359,6 +372,28 @@ export const summary = {
 
                 </div>
             </div>
+
+            ${расхождения.length ? ui.html`
+                <div class="card">
+                    <div class="card-title">${t('План и факт')}</div>
+
+                    ${расхождения.map((с) => ui.html`
+                        <div class="plan-rule note-${с.kind}">
+                            ${с.text}
+
+                            ${с.action?.type === 'lower' ? ui.html`
+                                <span class="row-links">
+                                    <button class="link-btn" data-action="accept-lower"
+                                            data-name="${с.action.name}" data-from="${String(с.action.from)}"
+                                            data-to="${String(с.action.to)}" data-done="${с.action.done.join(', ')}">
+                                        ${t('поправить план')}
+                                    </button>
+                                </span>
+                            ` : ''}
+                        </div>
+                    `)}
+                </div>
+            ` : ''}
 
             <div class="card">
                 <div class="card-title">${t('Заметка к тренировке')}</div>

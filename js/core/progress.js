@@ -93,12 +93,90 @@ export const ТЯЖЕЛЕЕ = {
     time: () => t('можно прибавить время')
 };
 
+/**
+ * Какая часть заявленного числа считается недобором (§63, Р-216).
+ *
+ * Подход ниже восьми десятых плана — не промах на пару повторений, а число,
+ * которое человек на этом упражнении не держит. Разброс внутри этих двадцати
+ * процентов — обычная жизнь: сегодня 24 из 25, завтра 25.
+ */
+export const SHORT_SET = 0.8;
+
+/** Цели меньше этой недобором не меряются: у «3 × 3» восемь десятых — это одно повторение. */
+const SHORT_MIN_TARGET = 5;
+
+/** Сколько недоборов называть своими строками (Р-216); остальные — одной строкой по именам. */
+export const НЕДОБОР_СТРОК = 2;
+
 export const progress = {
 
     MISSED,
     DROP,
     RAMP,
     SHORT_SLEEP,
+
+    /**
+     * Где план не выполнен по числам (§63, Р-216).
+     *
+     * План знает, сколько и по скольку, факт знает, что вышло, — а друг с
+     * другом они не сравнивались. Человек делал программу, не осилил одно
+     * упражнение, и приложение молчало: «выполнено 1 из 1» считает дни, а не
+     * числа. Недобор виден сразу, как только числа положить рядом.
+     *
+     * plan — состав тренировки ([{ exerciseId, plannedSets, targetReps, skipped }]);
+     * sets — подходы этой же тренировки; names — id → название;
+     * earlier — упражнения, которые человек делал до этой тренировки.
+     *
+     * Недобор — когда не меньше половины сделанных подходов (и не меньше двух)
+     * ниже восьми десятых цели. Один слабый подход в конце — усталость, два
+     * подряд — число, которого нет.
+     *
+     * Предлагаемая цель — середина сделанного (медиана), но ниже прежней:
+     * человек показал, что держит именно это.
+     *
+     * Возвращает [{ exerciseId, name, target, plannedSets, done, suggest,
+     * lack, firstTime }], где lack — на сколько процентов меньше плана, а
+     * firstTime — упражнение сделано впервые, и число в плане было прикидкой.
+     */
+    shortfall(plan = [], sets = [], { names = {}, earlier = new Set() } = {}) {
+        const итог = [];
+
+        for (const item of plan) {
+            const target = Number(item?.targetReps);
+            if (!item || item.skipped || !(target >= SHORT_MIN_TARGET)) continue;
+
+            const done = sets
+                .filter((s) => s && s.exerciseId === item.exerciseId && !s.deletedAt && Number(s.reps) > 0)
+                .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
+                .map((s) => Number(s.reps));
+
+            if (done.length < 2) continue;
+
+            const ниже = done.filter((r) => r < target * SHORT_SET).length;
+            if (ниже < Math.max(2, Math.ceil(done.length / 2))) continue;
+
+            const ряд = [...done].sort((a, b) => a - b);
+            const середина = ряд.length % 2
+                ? ряд[(ряд.length - 1) / 2]
+                : (ряд[ряд.length / 2 - 1] + ряд[ряд.length / 2]) / 2;
+
+            const plannedSets = Number(item.plannedSets) || done.length;
+            const всего = done.reduce((a, b) => a + b, 0);
+
+            итог.push({
+                exerciseId: item.exerciseId,
+                name: names[item.exerciseId] || t('упражнение'),
+                target,
+                plannedSets,
+                done,
+                suggest: Math.max(1, Math.min(target - 1, Math.round(середина))),
+                lack: Math.max(1, Math.round((1 - всего / (plannedSets * target)) * 100)),
+                firstTime: !earlier.has(item.exerciseId)
+            });
+        }
+
+        return итог;
+    },
 
     /**
      * Наблюдения о ходе программы.
@@ -111,7 +189,7 @@ export const progress = {
      * исполнение плана, потом объём. Первое меняет сегодняшнюю тренировку,
      * последнее — разговор с тренером через месяц.
      */
-    describe({ reserve = [], recovery = null, adherence = null, volume = null } = {}) {
+    describe({ reserve = [], recovery = null, adherence = null, volume = null, shortfalls = [] } = {}) {
         const строки = [];
 
         /*
@@ -246,6 +324,50 @@ export const progress = {
                 topic: 'recovery',
                 kind: 'watch',
                 text: t('Пульс покоя выше обычного — стоит присмотреться к самочувствию.')
+            });
+        }
+
+        /*
+         * Недобор по числам — упражнением и с цифрами (Р-216).
+         *
+         * Называет и план, и факт рядом: «в плане 4 × 25, сделано 16, 14, 14,
+         * 10». По одному «на 46 % меньше» непонятно, промах это или честный
+         * предел; по паре чисел видно сразу.
+         *
+         * И про первый раз сказано отдельно: число для упражнения, которого
+         * человек не делал, составитель плана взял ниоткуда, — и это не
+         * слабость человека, а прикидка, которую пора поправить.
+         *
+         * Своими строками — не больше двух (как у запаса, Р-207); остальные —
+         * одной строкой по именам, а не молчанием.
+         */
+        for (const н of shortfalls.slice(0, НЕДОБОР_СТРОК)) {
+            строки.push({
+                topic: 'plan',
+                kind: 'watch',
+                text: [
+                    t('{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % меньше.', {
+                        упражнение: н.name,
+                        подходы: н.plannedSets,
+                        цель: н.target,
+                        числа: н.done.join(', '),
+                        процент: н.lack
+                    }),
+                    н.firstTime ? t('Раньше вы его не делали: число в плане было прикидкой.') : ''
+                ].filter(Boolean).join(' '),
+
+                // Что с этим можно сделать (§59.1): цель по факту, одним нажатием
+                action: { type: 'lower', name: н.name, from: н.target, to: н.suggest, done: н.done }
+            });
+        }
+
+        if (shortfalls.length > НЕДОБОР_СТРОК) {
+            строки.push({
+                topic: 'plan',
+                kind: 'watch',
+                text: t('Недобор плана и у других: {список}.', {
+                    список: shortfalls.slice(НЕДОБОР_СТРОК).map((н) => н.name).join(', ')
+                })
             });
         }
 
