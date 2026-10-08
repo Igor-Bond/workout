@@ -174,6 +174,21 @@ async function запомнитьДовес(вес) {
 /** Выбранное упражнение и режим переживают перерисовку экрана. */
 let currentId = null;
 let mode = null;
+
+/**
+ * Чья это тренировка, для которой выбран режим (Р-215).
+ *
+ * Режим стартует с того, что сказано у самой тренировки: «по одному» из
+ * плана дня или из шаблона, иначе — из настроек. Выбирать его раз на экран
+ * нельзя: тренировка, начатая после брошенной, унаследовала бы чужой режим
+ * и не заметила бы своего слова.
+ */
+let режимДля = null;
+
+/** Порядок, с которого начинается эта тренировка (Р-215). */
+function начальныйРежим(workout) {
+    return MODES.some((m) => m.value === workout?.sequence) ? workout.sequence : config.mode();
+}
 let ticker = 0;
 let unsubscribe = [];
 
@@ -1128,9 +1143,14 @@ export const session = {
     nav: 'workout',
 
     async render() {
-        if (mode === null) mode = config.mode();
-
         view = await load();
+
+        // Режим — у каждой тренировки свой старт (Р-215); дальше он живёт
+        // выбором человека, пока тренировка не закрыта
+        if (view && режимДля !== view.workout.id) {
+            mode = начальныйРежим(view.workout);
+            режимДля = view.workout.id;
+        }
 
         if (!view) {
             return ui.html`
@@ -1910,6 +1930,7 @@ async function finishWorkout(workout) {
     restTimer.stop();
     currentId = null;
     mode = null;
+    режимДля = null;
 
     app.go('summary', workout.id, 'done');
 }

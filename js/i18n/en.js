@@ -1762,4 +1762,8 @@ export const EN = {
     'тренировка «{тип}»': 'workout “{тип}”',
     '{дата}, {где}: {текст}': '{дата}, {где}: {текст}',
     'И ещё {сколько} раньше.': 'Plus {сколько} earlier.',
+    'Порядок': 'Order',
+    'Как в настройках': 'As in settings',
+    'по одному': 'one at a time',
+    '— если все упражнения дня грузят одну мышцу (варианты одного движения, несколько упражнений на плечо), допиши в конце строки дня «по одному» — самое тяжёлое первым; если мышцы разные, слов не пиши: день пойдёт по кругу;': '— if all the exercises of a day load one muscle (variants of one movement, several shoulder exercises), add “one at a time” at the end of the day\'s line — the hardest first; if the muscles differ, don\'t write the words: the day will go round robin;',
 };

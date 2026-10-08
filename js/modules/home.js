@@ -627,7 +627,8 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                 <button class="repeat-card is-now" data-action="today-start"
                         data-day="${JSON.stringify(поПлану.items || [поПлану])}"
                         data-rest="${поПлану.rest || ''}"
-                        data-round="${поПлану.roundRest || ''}">
+                        data-round="${поПлану.roundRest || ''}"
+                        data-sequence="${поПлану.sequence || ''}">
                     <span class="rep-label">${t('Сегодня по плану — начать')}</span>
                     <span class="rep-names">${планНазвания(поПлану)}</span>
                     <span class="rep-meta">${планОбъём(поПлану)}</span>
@@ -1293,6 +1294,9 @@ actions.on('today-start', async (el) => {
     const пауза = Number(el.dataset.rest) || 0;
     const кругПауза = Number(el.dataset.round) || 0;
 
+    // Порядок дня, если план его назвал (Р-215)
+    const порядок = el.dataset.sequence === 'linear' ? 'linear' : '';
+
     /*
      * Упражнения может не оказаться — и это обычный случай, а не сбой.
      *
@@ -1388,6 +1392,13 @@ actions.on('today-start', async (el) => {
 
     if (пауза > 0) паузы.restSeconds = пауза;
     if (кругПауза > 0) паузы.roundRest = кругПауза;
+
+    /*
+     * Порядок дня — тем же порядком, что паузы (Р-215): свойство дня, а не
+     * приложения. Только названный: без него тренировка идёт в порядке из
+     * настроек, как и шла.
+     */
+    if (порядок) паузы.sequence = порядок;
 
     if (Object.keys(паузы).length) await dbService.updateWorkout(workout.id, паузы);
 

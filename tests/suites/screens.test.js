@@ -5763,3 +5763,97 @@ describe('Тренер: модель', () => {
         }
     });
 });
+
+/**
+ * Порядок дня доезжает до тренировки (§11, §56.2, Р-215).
+ *
+ * «По одному» из плана дня становится порядком, с которого начинается
+ * тренировка. Раньше она каждый раз стартовала по кругу, и человек переключал
+ * порядок руками на каждом дне с одной мышцей.
+ */
+describe('Порядок дня: от плана до экрана выполнения', () => {
+
+    const DAY = 86400000;
+
+    /** Кнопка режима, которая сейчас нажата. */
+    const режим = (view) => view.querySelector('[data-action="sess-mode"].is-active')?.dataset.mode;
+
+    it('«сегодня по плану» несёт порядок дня на тренировку', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        await dbService.createExercise({ name: 'Fly', kind: 'weight' });
+        const now = Date.now();
+
+        for (const d of [21, 14, 7]) await workout(ex, [[10, 60]], { at: now - d * DAY });
+
+        await положитьПлан(now - 3 * DAY, [[now, 'Bench 4 × 10 + Fly 4 × 10, по одному']]);
+
+        const карточка = (await screen(home)).querySelector('[data-action="today-start"]');
+
+        equal(карточка.dataset.sequence, 'linear', 'порядок едет на самой карточке, а не вычисляется заново');
+
+        const ушли = location.hash;
+
+        await press('today-start', { ...карточка.dataset });
+
+        const начатая = await dbService.getActiveWorkout();
+
+        equal(начатая.sequence, 'linear');
+
+        location.hash = ушли;
+        await dbService.finishWorkout(начатая.id);
+        await dbService.setSetting('plan', null);
+    });
+
+    it('тренировка с порядком начинается в нём, а без него — в порядке из настроек', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const второе = await dbService.createExercise({ name: 'Fly', kind: 'weight' });
+
+        const состав = [
+            { exerciseId: ex.id, plannedSets: 3, targetReps: 10, skipped: false },
+            { exerciseId: второе.id, plannedSets: 3, targetReps: 10, skipped: false }
+        ];
+
+        const с = await dbService.createWorkout({ type: 'Силовая', plan: состав });
+        await dbService.updateWorkout(с.id, { sequence: 'linear' });
+
+        equal(режим(await screen(session)), 'linear', 'слово дня услышано');
+
+        await dbService.finishWorkout(с.id);
+
+        // Следующая тренировка не наследует чужой порядок (Р-215)
+        const было = config.mode();
+        config.set('mode', 'circuit');
+
+        try {
+            const без = await dbService.createWorkout({ type: 'Силовая', plan: состав });
+
+            equal(режим(await screen(session)), 'circuit', 'умолчание из настроек, а не прежняя тренировка');
+
+            await dbService.finishWorkout(без.id);
+        } finally {
+            config.set('mode', было);
+        }
+    });
+
+    it('смена порядка посреди тренировки живёт до её конца', async () => {
+        const ex = await seed({ name: 'Bench', kind: 'weight' });
+        const второе = await dbService.createExercise({ name: 'Fly', kind: 'weight' });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: ex.id, plannedSets: 3, targetReps: 10, skipped: false },
+                { exerciseId: второе.id, plannedSets: 3, targetReps: 10, skipped: false }
+            ]
+        });
+
+        await dbService.updateWorkout(w.id, { sequence: 'linear' });
+        await screen(session);
+
+        await press('sess-mode', { mode: 'free' });
+
+        equal(режим(await screen(session)), 'free', 'выбор человека сильнее слова плана');
+
+        await dbService.finishWorkout(w.id);
+    });
+});

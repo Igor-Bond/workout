@@ -1760,4 +1760,8 @@ export const DE = {
     'тренировка «{тип}»': 'Training „{тип}“',
     '{дата}, {где}: {текст}': '{дата}, {где}: {текст}',
     'И ещё {сколько} раньше.': 'Dazu {сколько} davor.',
+    'Порядок': 'Reihenfolge',
+    'Как в настройках': 'Wie in den Einstellungen',
+    'по одному': 'nacheinander',
+    '— если все упражнения дня грузят одну мышцу (варианты одного движения, несколько упражнений на плечо), допиши в конце строки дня «по одному» — самое тяжёлое первым; если мышцы разные, слов не пиши: день пойдёт по кругу;': '— wenn alle Übungen eines Tages einen Muskel belasten (Varianten einer Bewegung, mehrere Schulterübungen), schreibe am Ende der Tageszeile „nacheinander“ — das Schwerste zuerst; bei verschiedenen Muskeln schreibe nichts: der Tag läuft im Kreis;',
 };

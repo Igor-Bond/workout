@@ -1109,7 +1109,7 @@ export const dbService = {
      */
     async saveTemplate({
         id, name, type = 'Тренировка', items = [], interval = null,
-        rest = null, roundRest = null
+        rest = null, roundRest = null, sequence = null
     }) {
         const now = Date.now();
 
@@ -1123,7 +1123,7 @@ export const dbService = {
          * Нулём, а не пустотой: `undefined` в записи Dexie не стирает поле, и
          * снятая пауза осталась бы в шаблоне навсегда.
          */
-        const поля = { name, type, items, interval, rest, roundRest, updatedAt: now };
+        const поля = { name, type, items, interval, rest, roundRest, sequence, updatedAt: now };
 
         if (id) {
             await db.templates.update(id, поля);

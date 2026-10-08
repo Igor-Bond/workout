@@ -205,6 +205,7 @@ async function build(params) {
                 // запоминает, а «открыть» показывает пустоту (Р-172)
                 rest: template.rest || undefined,
                 roundRest: template.roundRest || undefined,
+                sequence: template.sequence || undefined,
 
                 items: await decorate(template.items)
             };
@@ -263,6 +264,7 @@ async function build(params) {
                 interval: last.interval || undefined,
                 rest: last.restSeconds || undefined,
                 roundRest: last.roundRest || undefined,
+                sequence: last.sequence || undefined,
 
                 items: await decorate(items)
             };
@@ -438,6 +440,22 @@ function restCard() {
             <p class="hint">
                 ${t('Пусто — как в настройках, сейчас это {n} с. В круговом режиме пауза между подходами это же и пауза между упражнениями, а круг кончается, когда пройдены все.', { n: общая })}
             </p>
+
+            <!--
+                Порядок тоже задаётся при сборе (Р-215). Круг хорош, пока
+                соседние упражнения грузят разные мышцы; у трёх видов
+                отжиманий он только заставляет переключаться, и порядок
+                приходилось менять руками на каждой такой тренировке.
+            -->
+            <div class="field">
+                <label>${t('Порядок')}</label>
+                <div class="chips">
+                    ${[['', t('Как в настройках')], ['circuit', t('По кругу')], ['linear', t('По одному')]].map(([value, label]) => ui.html`
+                        <button class="chip ${(draft.sequence || '') === value ? 'is-active' : ''}"
+                                data-action="plan-sequence" data-value="${value}">${label}</button>
+                    `)}
+                </div>
+            </div>
         </div>
     `;
 }
@@ -676,6 +694,11 @@ actions.onChange('plan-rest', (el) => {
     const seconds = Math.round(Number(el.value));
 
     draft[el.dataset.key] = Number.isFinite(seconds) && seconds > 0 ? seconds : undefined;
+});
+
+actions.on('plan-sequence', (el) => {
+    draft.sequence = el.dataset.value || undefined;
+    app.render();
 });
 
 actions.on('plan-preset', (el) => {
@@ -920,7 +943,8 @@ actions.on('plan-save-template', async () => {
 
         // И паузы по той же мерке (§16.1, Р-172)
         rest: draft.rest || null,
-        roundRest: draft.roundRest || null
+        roundRest: draft.roundRest || null,
+        sequence: draft.sequence || null
     });
 
     reset();
@@ -942,7 +966,8 @@ actions.on('plan-as-template', async () => {
         items: toItems(),
         interval: isInterval(draft.type) ? interval.normalize(draft.interval) : undefined,
         rest: draft.rest || null,
-        roundRest: draft.roundRest || null
+        roundRest: draft.roundRest || null,
+        sequence: draft.sequence || null
     });
 
     await dialog.alert({ title: t('Шаблон сохранён'), text: t('«{имя}» теперь в списке шаблонов.', { имя: values.name }) });
@@ -992,6 +1017,9 @@ actions.on('plan-start', async () => {
 
     if (draft.rest > 0) паузы.restSeconds = draft.rest;
     if (draft.roundRest > 0) паузы.roundRest = draft.roundRest;
+
+    // Порядок — тем же порядком, что паузы (Р-215)
+    if (draft.sequence) паузы.sequence = draft.sequence;
 
     if (Object.keys(паузы).length) await dbService.updateWorkout(workout.id, паузы);
 
