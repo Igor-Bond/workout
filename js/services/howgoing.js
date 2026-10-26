@@ -173,7 +173,7 @@ export async function observations({ now = Date.now() } = {}) {
     );
 
     const дни = planCore.active(план, now)
-        ? planCore.expand(план, { from: сегодня - 13 * DAY, days: 14 })
+        ? planCore.expand(план, { from: dates.addDays(сегодня, -13), days: 14 })
             .filter((d) => dates.startOfDay(d.at) < сегодня)
             .map((d) => ({ day: dates.startOfDay(d.at), session: d.session }))
         : [];
@@ -204,16 +204,20 @@ export async function observations({ now = Date.now() } = {}) {
             .map((s) => dates.startOfDay(s.performedAt))
     ).size;
 
+    // Границы окон — календарные, а не кратные 86 400 секундам (Р-218)
+    const неделяНазад = dates.addDays(сегодня, -7);
+    const двеНедели = dates.addDays(сегодня, -14);
+
     return progress.describe({
         reserve: запас,
         shortfalls: await недоборы({ now }),
         recovery: восстановление,
-        adherence: progress.adherence(дни, сделаноВ, { from: сегодня - 13 * DAY, to: сегодня }),
+        adherence: progress.adherence(дни, сделаноВ, { from: dates.addDays(сегодня, -13), to: сегодня }),
         volume: {
-            current: повторений(сегодня - 7 * DAY, сегодня),
-            previous: повторений(сегодня - 14 * DAY, сегодня - 7 * DAY),
-            currentDays: дней(сегодня - 7 * DAY, сегодня),
-            previousDays: дней(сегодня - 14 * DAY, сегодня - 7 * DAY)
+            current: повторений(неделяНазад, сегодня),
+            previous: повторений(двеНедели, неделяНазад),
+            currentDays: дней(неделяНазад, сегодня),
+            previousDays: дней(двеНедели, неделяНазад)
         }
     });
 }

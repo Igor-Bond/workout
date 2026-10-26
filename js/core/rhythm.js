@@ -13,6 +13,7 @@
 const DAY = 86400000;
 
 import { t } from './i18n.js';
+import { startOfDay, addDays } from './days.js';
 
 /**
  * Фоновая тренировка — та, что делается сама собой, без выбора (§29.1).
@@ -79,12 +80,6 @@ const MAX_CYCLE = 3;
  * настоящим.
  */
 const RECENT_WEEKS = 8;
-
-const startOfDay = (ts) => {
-    const d = new Date(ts);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-};
 
 export const rhythm = {
 
@@ -247,7 +242,7 @@ export const rhythm = {
         const medianInterval = Math.max(1, Math.round(rhythm.median(gaps)));
         const spread = rhythm.spread(gaps, medianInterval);
 
-        let nextAt = lastAt + medianInterval * DAY;
+        let nextAt = addDays(lastAt, medianInterval);
 
         // Если тренировки явно привязаны к дням недели, прогноз подтягивается
         // к ближайшему такому дню: «раз в 2,5 дня» на календаре не бывает
@@ -287,7 +282,7 @@ export const rhythm = {
 
         for (let shift = 0; shift <= 3; shift++) {
             for (const direction of shift === 0 ? [0] : [1, -1]) {
-                const candidate = ts + direction * shift * DAY;
+                const candidate = addDays(ts, direction * shift);
 
                 if (candidate < floor) continue;
                 if (target.has((new Date(candidate).getDay() + 6) % 7)) return candidate;
@@ -375,7 +370,7 @@ export const rhythm = {
      * плашки попадает только то, что повторялось, но вперёд идёт редкое.
      */
     frequentWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, min = 2, limit = 3 } = {}) {
-        const since = startOfDay(now) - weeks * 7 * DAY;
+        const since = addDays(startOfDay(now), -weeks * 7);
         const groups = new Map();
 
         for (const entry of entries) {
@@ -448,7 +443,7 @@ export const rhythm = {
      * увидел бы пустое место вместо своих же тренировок.
      */
     dueWorkouts(entries = [], now = Date.now(), { weeks = RECENT_WEEKS, limit = 4, cap = 3, groupOf = null, background = null, includeToday = false } = {}) {
-        const since = startOfDay(now) - weeks * 7 * DAY;
+        const since = addDays(startOfDay(now), -weeks * 7);
         const today = startOfDay(now);
 
         /*

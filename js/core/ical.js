@@ -15,6 +15,8 @@
  * Модуль чистый: занятия на входе, текст файла на выходе.
  */
 
+import { addDays } from './days.js';
+
 const CRLF = '\r\n';
 
 /** Дата в виде 20260907 — как того требует формат для событий на весь день. */
@@ -85,7 +87,7 @@ export const ical = {
                 `UID:${занятие.externalId}@workout-tracker`,
                 `DTSTAMP:${utc(now)}`,
                 `DTSTART;VALUE=DATE:${день}`,
-                `DTEND;VALUE=DATE:${stamp(занятие.date + 86400000)}`,
+                `DTEND;VALUE=DATE:${stamp(addDays(занятие.date, 1))}`,
                 `SUMMARY:${esc(занятие.name)}`,
                 ...(занятие.description ? [`DESCRIPTION:${esc(занятие.description)}`] : []),
                 'TRANSP:TRANSPARENT',

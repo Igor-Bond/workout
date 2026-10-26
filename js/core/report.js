@@ -25,8 +25,6 @@ import { interval } from './interval.js';
 import { format } from './format.js';
 import { dates } from './dates.js';
 
-const DAY = 86400000;
-
 /** Сколько недель охватывает сводка: то же окно, что у очереди составов. */
 const WEEKS = rhythm.RECENT_WEEKS;
 
@@ -94,7 +92,7 @@ export const report = {
         profile = [], withRequest = true, catalogue = [], recovery = [], journal = [],
         daysPerWeek = null, progress = [], nutrition = []
     } = {}) {
-        const since = dates.startOfDay(now) - weeks * 7 * DAY;
+        const since = dates.addDays(dates.startOfDay(now), -weeks * 7);
 
         const свежие = entries.filter((e) => e.workout.startedAt >= since);
         const подходы = sets.filter((s) => !s.deletedAt && s.performedAt >= since);

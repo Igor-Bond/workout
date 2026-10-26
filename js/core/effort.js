@@ -17,6 +17,7 @@
  */
 
 import { t } from './i18n.js';
+import { startOfDay, addDays } from './days.js';
 
 const MINUTE = 60000;
 const DAY = 86400000;
@@ -35,12 +36,6 @@ export const SLACK = 20 * MINUTE;
 export const WINDOW = 7;
 
 const число = (v) => (Number.isFinite(v) && v > 0 ? v : null);
-
-const startOfDay = (ts) => {
-    const d = new Date(ts);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-};
 
 function среднее(values) {
     const свои = values.map(число).filter((v) => v !== null);
@@ -130,7 +125,7 @@ export const effort = {
 
     /** Занятия за последние days дней, свежие первыми. */
     recent(activities = [], { now = Date.now(), days = WINDOW } = {}) {
-        const с = startOfDay(now) - (days - 1) * DAY;
+        const с = addDays(startOfDay(now), -(days - 1));
 
         return activities
             .filter((a) => Number.isFinite(a?.start) && a.start >= с && a.start <= now + DAY)

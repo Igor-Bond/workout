@@ -786,14 +786,14 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
 function weekBlock(entries) {
     const now = Date.now();
     const today = dates.startOfDay(now);
-    const from = today - 6 * DAY;
+    const from = dates.addDays(today, -6);
 
     const own = entries.filter((e) => e.workout.startedAt >= from);
     const trained = new Set(own.map((e) => dates.startOfDay(e.workout.startedAt)));
 
     const cells = [];
     for (let i = 0; i < 7; i++) {
-        const day = from + i * DAY;
+        const day = dates.addDays(from, i);
         const state = [
             trained.has(day) ? 'is-done' : '',
             day === today ? 'is-today' : ''
@@ -878,7 +878,7 @@ async function шагиБлок() {
      * что успело приехать». Рядом с числом того же молчащего дня это давало
      * пару, у которой нет общего смысла.
      */
-    const неделя = сшагами.filter((r) => r.date > последний.date - 7 * DAY);
+    const неделя = сшагами.filter((r) => r.date > dates.addDays(последний.date, -7));
     const среднее = неделя.length
         ? Math.round(неделя.reduce((s, r) => s + r.steps, 0) / неделя.length)
         : 0;

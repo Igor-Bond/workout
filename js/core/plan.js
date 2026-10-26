@@ -19,6 +19,8 @@
  * один и тот же на обоих концах, чтобы ответ не пришлось переписывать.
  */
 
+import { startOfDay, addDays } from './days.js';
+
 /**
  * Дни недели как их нумерует Date: 0 — воскресенье.
  *
@@ -148,13 +150,6 @@ function последняяПауза(текст) {
 const WEEKS = 8;
 
 const DAY = 86400000;
-
-/** Полночь дня. */
-const startOfDay = (ts) => {
-    const d = new Date(ts);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-};
 
 /**
  * Номер дня недели по первому слову строки.
@@ -646,7 +641,21 @@ export const plan = {
     weekOf(план, at = Date.now()) {
         if (!план?.from) return 0;
 
-        return Math.floor((startOfDay(at) - startOfDay(план.from)) / (7 * DAY)) + 1;
+        return Math.floor(plan.dayIndex(план, at) / 7) + 1;
+    },
+
+    /**
+     * Сколько календарных дней прошло от начала плана до этой даты (Р-218).
+     *
+     * Целым числом дней, а не делением миллисекунд на неделю: после весеннего
+     * перевода часов неделя от полуночи понедельника короче 168 часов на час,
+     * и в сам понедельник частное оказывалось чуть меньше целого — приложение
+     * объявляло ещё прежнюю неделю, а с ней и прежнюю сетку.
+     */
+    dayIndex(план, at = Date.now()) {
+        if (!план?.from) return 0;
+
+        return Math.round((startOfDay(at) - startOfDay(план.from)) / DAY);
     },
 
     /**
@@ -764,7 +773,7 @@ export const plan = {
 
     /** Последний день плана. */
     until(план) {
-        return план?.from ? план.from + план.weeks * 7 * DAY - 1 : 0;
+        return план?.from ? addDays(план.from, план.weeks * 7) - 1 : 0;
     },
 
     /** Идёт ли план прямо сейчас. */
@@ -820,7 +829,7 @@ export const plan = {
         if (!план?.from) return null;
 
         for (let i = 0; i < 7; i++) {
-            const at = план.from + i * DAY;
+            const at = addDays(план.from, i);
             const занятие = plan.dayAt(план, at);
             if (занятие) return { at, session: занятие };
         }
@@ -842,10 +851,10 @@ export const plan = {
         const ряд = [];
 
         for (let i = 0; i < days; i++) {
-            const at = начало + i * DAY;
+            const at = addDays(начало, i);
             if (at > конец) break;
 
-            const неделя = Math.floor((at - план.from) / (7 * DAY)) + 1;
+            const неделя = Math.floor(plan.dayIndex(план, at) / 7) + 1;
             ряд.push({ at, week: неделя, session: plan.dayAt(план, at), stage: plan.stageAt(план, at) });
         }
 
@@ -894,9 +903,9 @@ export const plan = {
         if (!план?.from) return null;
 
         const конец = plan.until(план);
-        let at = Math.max(startOfDay(now) + DAY, план.from);
+        let at = Math.max(addDays(startOfDay(now), 1), план.from);
 
-        for (let i = 0; i < 7; i++, at += DAY) {
+        for (let i = 0; i < 7; i++, at = addDays(at, 1)) {
             if (at > конец) return null;
 
             const занятие = plan.dayAt(план, at);

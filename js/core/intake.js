@@ -20,8 +20,6 @@
 import { dates } from './dates.js';
 import { toNumber } from './num.js';
 
-const DAY = 86400000;
-
 /** За сколько дней считать среднее. Неделя: один праздник её не переворачивает. */
 const ОКНО = 7;
 
@@ -38,7 +36,7 @@ export const intake = {
      */
     day(rows = [], { now = Date.now() } = {}) {
         const начало = dates.startOfDay(now);
-        const конец = начало + DAY;
+        const конец = dates.addDays(начало, 1);
 
         const свои = rows.filter((r) => Number.isFinite(r?.at) && r.at >= начало && r.at < конец);
 
@@ -58,7 +56,7 @@ export const intake = {
         const дни = [];
 
         for (let i = 0; i < days; i++) {
-            const сумма = intake.day(rows, { now: now - i * DAY });
+            const сумма = intake.day(rows, { now: dates.addDays(now, -i) });
             if (сумма !== null) дни.push(сумма);
         }
 
@@ -98,7 +96,7 @@ export const intake = {
         let дней = 0;
 
         for (let i = 0; i < limit; i++) {
-            if (intake.day(rows, { now: now - i * DAY }) === null) break;
+            if (intake.day(rows, { now: dates.addDays(now, -i) }) === null) break;
             дней += 1;
         }
 

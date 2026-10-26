@@ -21,6 +21,7 @@
 
 import { t } from './i18n.js';
 import { format } from './format.js';
+import { addDays } from './days.js';
 
 /**
  * Сколько тренировочных дней плана можно пропустить, прежде чем об этом
@@ -69,9 +70,6 @@ export const RAMP = 0.5;
  * именам. Число и совет с числами у каждого и так стоят на выполнении (§59).
  */
 export const ЗАПАС_СТРОК = 2;
-
-/** Сутки в миллисекундах: попадание в день сетки считается с допуском в день. */
-const DAY = 86400000;
 
 /** Ниже этого сон считается коротким. Семь часов — общая нижняя граница. */
 export const SHORT_SLEEP = 7 * 3600;
@@ -572,7 +570,7 @@ export const progress = {
         прошедшие.forEach((d, i) => {
             if (закрыт[i]) return;
 
-            const сосед = [d.day - DAY, d.day + DAY]
+            const сосед = [addDays(d.day, -1), addDays(d.day, 1)]
                 .find((c) => done.has(c) && !занято.has(c) && !свои.has(c));
 
             if (сосед === undefined) return;
@@ -595,8 +593,8 @@ export const progress = {
          * после последнего дня плана попала бы мимо счёта, а она-то и есть
          * доказательство, что человек занимается, просто не по дням.
          */
-        const от = from ?? (прошедшие[0].day - DAY);
-        const до = to ?? (прошедшие[прошедшие.length - 1].day + DAY);
+        const от = from ?? addDays(прошедшие[0].day, -1);
+        const до = to ?? addDays(прошедшие[прошедшие.length - 1].day, 1);
 
         const sessions = [...done].filter((d) => d >= от && d <= до).length;
 

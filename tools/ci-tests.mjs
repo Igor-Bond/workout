@@ -48,7 +48,17 @@ function вСводку(строки) {
 
 const browser = await chromium.launch();
 
-const page = await browser.newPage();
+/*
+ * Часовой пояс с переводом часов (Р-218).
+ *
+ * Бегунок живёт в UTC, а там нет ни 25-часовых суток, ни 23-часовых. Ошибки
+ * вида «сутки — это 86 400 секунд» в таком поясе не воспроизводятся вовсе и
+ * просыпаются у человека в первую неделю после перевода часов: подсвечен один
+ * сегодняшний день из семи, на карте нет тренировок. Страница проверок
+ * поэтому открывается в Europe/Berlin — поясе владельца.
+ */
+const context = await browser.newContext({ timezoneId: 'Europe/Berlin' });
+const page = await context.newPage();
 const ошибки = [];
 
 page.on('pageerror', (e) => ошибки.push(`[страница] ${e.message}`));

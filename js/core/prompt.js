@@ -21,8 +21,6 @@
 import { KINDS } from './kinds.js';
 import { dates } from './dates.js';
 
-const DAY = 86400000;
-
 /**
  * Вид по любому его написанию: код, подпись, подсказка.
  *
@@ -57,7 +55,7 @@ const BY_KIND = Object.fromEntries(KINDS.flatMap((k) => [
  * завтра: тем же днём, каким его начинает задание в сводке (§55).
  */
 export function instruction({ now = Date.now() } = {}) {
-    const завтра = dates.startOfDay(now) + DAY;
+    const завтра = dates.addDays(dates.startOfDay(now), 1);
 
     return [
         'Ты помогаешь человеку вести его тренировки.',

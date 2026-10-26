@@ -195,7 +195,9 @@ export const stats = {
         let run = 1;
 
         for (let i = 1; i < days.length; i++) {
-            run = days[i] - days[i - 1] === DAY ? run + 1 : 1;
+            // Соседние дни — по календарю, а не по 86 400 секундам (Р-218): через перевод
+            // часов сутки длятся 25 часов, и серия рвалась на ровном месте
+            run = dates.daysBetween(days[i - 1], days[i]) === 1 ? run + 1 : 1;
             longestDays = Math.max(longestDays, run);
         }
 
@@ -208,26 +210,24 @@ export const stats = {
 
         // --- недели подряд
         const weeks = [...new Set(days.map(stats.weekStart))].sort((a, b) => a - b);
-        const WEEK = 7 * DAY;
-
         let longestWeeks = 1;
         let weekRun = 1;
 
         for (let i = 1; i < weeks.length; i++) {
-            weekRun = weeks[i] - weeks[i - 1] === WEEK ? weekRun + 1 : 1;
+            weekRun = dates.daysBetween(weeks[i - 1], weeks[i]) === 7 ? weekRun + 1 : 1;
             longestWeeks = Math.max(longestWeeks, weekRun);
         }
 
         const thisWeek = stats.weekStart(now);
         const lastWeek = weeks[weeks.length - 1];
-        const currentWeeks = (thisWeek - lastWeek) <= WEEK ? weekRun : 0;
+        const currentWeeks = dates.daysBetween(lastWeek, thisWeek) <= 7 ? weekRun : 0;
 
         return { days: currentDays, longestDays, weeks: currentWeeks, longestWeeks };
     },
 
     /** Понедельник недели, которой принадлежит момент. */
     weekStart(ts) {
-        return dates.startOfDay(ts) - dates.weekdayIndex(ts) * DAY;
+        return dates.addDays(dates.startOfDay(ts), -dates.weekdayIndex(ts));
     },
 
     /**
@@ -275,10 +275,10 @@ export const stats = {
      * объём ровно настолько, насколько неделя не дожита.
      */
     groupWeeks(sets = [], exercises = {}, { now = Date.now(), weeks = 12, tail = 4 } = {}) {
-        const WEEK = 7 * DAY;
-
+        // Недели — календарные (Р-218): шкала из кратных 604 800 000 миллисекунд после
+        // перевода часов уезжала на час, и неделя без подходов не находила своей метки
         const нынешняя = stats.weekStart(now);
-        const первая = нынешняя - weeks * WEEK;
+        const первая = dates.addDays(нынешняя, -weeks * 7);
 
         const по = new Map();
 
@@ -313,7 +313,7 @@ export const stats = {
         for (const группа of свежие.keys()) if (!по.has(группа)) по.set(группа, new Map());
 
         const шкала = [];
-        for (let i = 0; i < weeks; i++) шкала.push(первая + i * WEEK);
+        for (let i = 0; i < weeks; i++) шкала.push(dates.addDays(первая, i * 7));
 
         return [...по.entries()]
             .map(([группа, недели]) => {
@@ -661,12 +661,12 @@ export const stats = {
 
         // Начинаем с понедельника, чтобы столбцы карты были целыми неделями
         const last = stats.weekStart(now);
-        const start = last - (span - 1) * 7 * DAY;
-        const end = last + 6 * DAY;
+        const start = dates.addDays(last, -(span - 1) * 7);
+        const end = dates.addDays(last, 6);
 
         const result = [];
 
-        for (let day = start; day <= end; day += DAY) {
+        for (let day = start; day <= end; day = dates.addDays(day, 1)) {
             const sets = byDay.get(day) || 0;
 
             result.push({

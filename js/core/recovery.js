@@ -18,6 +18,7 @@
  */
 
 import { t } from './i18n.js';
+import { startOfDay, addDays } from './days.js';
 
 const DAY = 86400000;
 
@@ -39,13 +40,6 @@ export const SHIFT = 3;
 export const HRV_SHIFT = 0.1;
 
 const число = (v) => (Number.isFinite(v) && v > 0 ? v : null);
-
-/** Полночь дня: окна считаются днями, а не отрезками в миллисекундах. */
-const startOfDay = (ts) => {
-    const d = new Date(ts);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-};
 
 /** Среднее по непустым значениям. Null, если сказать не о чем. */
 function среднее(values) {
@@ -72,7 +66,7 @@ export const recovery = {
      * rows — [{ date, sleep, rhr, hrv }], date в миллисекундах.
      */
     recent(rows = [], { now = Date.now(), days = WINDOW } = {}) {
-        const с = startOfDay(now) - (days - 1) * DAY;
+        const с = addDays(startOfDay(now), -(days - 1));
 
         return rows
             .filter((r) => Number.isFinite(r?.date) && r.date >= с && r.date <= now + DAY)
