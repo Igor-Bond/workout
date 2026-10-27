@@ -6080,7 +6080,7 @@ describe('Память дня: порядок и прошлый раз', () => {
     const DAY = 86400000;
 
     /** Завершённая тренировка: подходы идут в этом порядке — [id упражнения, повторы]. */
-    async function прошлая(plan, подходы, { дней = 3 } = {}) {
+    async function прошлая(plan, подходы, { дней = 3, выбор = null } = {}) {
         const w = await dbService.createWorkout({
             type: 'Силовая',
             plan: plan.map((exerciseId) => ({ exerciseId, plannedSets: 3, targetReps: 20, skipped: false }))
@@ -6088,6 +6088,9 @@ describe('Память дня: порядок и прошлый раз', () => {
 
         const at = Date.now() - дней * DAY;
         const счёт = {};
+
+        // Нажатие кнопки режима, записанное на тренировке (Р-221)
+        if (выбор) await dbService.updateWorkout(w.id, { chosenSequence: выбор });
 
         for (const [i, [exerciseId, reps]] of подходы.entries()) {
             счёт[exerciseId] = (счёт[exerciseId] || 0) + 1;
@@ -6165,19 +6168,152 @@ describe('Память дня: порядок и прошлый раз', () => {
         });
     });
 
-    it('слово в плане сильнее истории', async () => {
+    it('слово плана работает, пока истории по этому дню нет', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await снастройкой('circuit', async () => {
+            const { режим, подсказка, w } = await начатая([а.id, б.id], 'linear');
+
+            equal(режим, 'linear', 'в плане сказано «по одному» — так и начинается');
+            assert(!подсказка, 'про историю не говорится: её нет');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('в плане «по одному», а прошлый раз шли по кругу — стартует по кругу и говорит, что в плане другое', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20], [а.id, 30], [б.id, 20]]);
+
+        await снастройкой('linear', async () => {
+            const { режим, view, w } = await начатая([а.id, б.id], 'linear');
+
+            equal(режим, 'circuit', 'сделанное в прошлый раз старше написанного в плане');
+            assert(text(view).includes('как в прошлый раз'), 'сказано, откуда порядок');
+            assert(text(view).includes('В плане сказано «по одному»'), 'и что в плане другое');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('прошлый раз совпал со словом плана — решил план, объяснять нечего', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [а.id, 30], [б.id, 20], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { режим, подсказка, w } = await начатая([а.id, б.id], 'linear');
+
+            equal(режим, 'linear');
+            assert(!подсказка, 'про прошлый раз не говорится: то же самое сказано в плане');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('нажатие кнопки режима записывается на тренировку', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await снастройкой('circuit', async () => {
+            const { w } = await начатая([а.id, б.id]);
+
+            await press('sess-mode', { mode: 'linear' });
+
+            equal((await dbService.getWorkout(w.id)).chosenSequence, 'linear');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('«свободный» не запоминается: это отказ от порядка, а не порядок', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await снастройкой('circuit', async () => {
+            const { w } = await начатая([а.id, б.id]);
+
+            await press('sess-mode', { mode: 'linear' });
+            await press('sess-mode', { mode: 'free' });
+
+            equal((await dbService.getWorkout(w.id)).chosenSequence, 'linear', 'последний порядок, а не последнее нажатие');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('записанный выбор сильнее подходов: начал по кругу, перешёл на «по одному»', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        // Возвраты в начале читаются как круг, но человек нажал «по одному»
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20], [а.id, 30], [б.id, 20], [б.id, 20]], { выбор: 'linear' });
+
+        await снастройкой('circuit', async () => {
+            const { режим, w } = await начатая([а.id, б.id]);
+
+            equal(режим, 'linear');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('по одному подходу вывести не из чего, но кнопка нажата — порядок есть', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20]], { выбор: 'linear' });
+
+        await снастройкой('circuit', async () => {
+            const { режим, w } = await начатая([а.id, б.id]);
+
+            equal(режим, 'linear', 'без нажатия здесь стояла бы настройка');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('по кругу в плане нет слова — а человек повёл по одному: со следующего раза по одному', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await снастройкой('circuit', async () => {
+            const первая = await начатая([а.id, б.id]);
+            equal(первая.режим, 'circuit', 'истории нет — настройка');
+
+            await press('sess-mode', { mode: 'linear' });
+            await dbService.finishWorkout(первая.w.id);
+
+            const вторая = await начатая([а.id, б.id]);
+
+            equal(вторая.режим, 'linear', 'сейчас и в следующий раз');
+            assert(вторая.подсказка);
+
+            await dbService.finishWorkout(вторая.w.id);
+        });
+    });
+
+    it('вернуться к плану — одно нажатие, и оно тоже запоминается', async () => {
         const а = await seed({ name: 'Отжимания', kind: 'reps' });
         const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
 
         await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20], [а.id, 30], [б.id, 20]]);
 
         await снастройкой('circuit', async () => {
-            const { режим, подсказка, w } = await начатая([а.id, б.id], 'linear');
+            const первая = await начатая([а.id, б.id], 'linear');
+            equal(первая.режим, 'circuit', 'история сильнее слова плана');
 
-            equal(режим, 'linear', 'в плане сказано «по одному» — так и идёт');
-            assert(!подсказка, 'про историю не говорится: решило слово плана');
+            await press('sess-mode', { mode: 'linear' });
+            await dbService.finishWorkout(первая.w.id);
 
-            await dbService.finishWorkout(w.id);
+            const вторая = await начатая([а.id, б.id], 'linear');
+
+            equal(вторая.режим, 'linear');
+            assert(!вторая.подсказка, 'теперь это снова слово плана, а не прошлый раз');
+
+            await dbService.finishWorkout(вторая.w.id);
         });
     });
 

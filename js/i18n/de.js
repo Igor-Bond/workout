@@ -1778,6 +1778,7 @@ export const DE = {
     'Число из плана — прикидка: начните с запасом 2–3.': 'Die Zahl aus dem Plan ist eine Schätzung: beginne mit 2–3 Wiederholungen Reserve.',
     'по кругу': 'im Kreis',
     'Порядок — как в прошлый раз у этой тренировки: {порядок}.': 'Die Reihenfolge ist wie beim letzten Mal bei diesem Training: {порядок}.',
+    'Порядок — как в прошлый раз у этой тренировки: {порядок}. В плане сказано «{план}» — вернуться можно кнопкой выше.': 'Die Reihenfolge ist wie beim letzten Mal bei diesem Training: {порядок}. Im Plan steht „{план}“ – mit der Schaltfläche oben kannst du zurückwechseln.',
     '{упражнение}: впервые, и запас большой — {способ}. Число в плане было прикидкой.': '{упражнение}: zum ersten Mal, und viel Reserve — {способ}. Die Zahl im Plan war eine Schätzung.',
     '{упражнение}: впервые, и почти до отказа — число в плане было прикидкой.': '{упражнение}: zum ersten Mal, und fast bis zum Muskelversagen — die Zahl im Plan war eine Schätzung.',
     'Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.': 'Beim ersten Mal ging der Satz fast bis zum Muskelversagen — die Zahl aus dem Plan war eine Schätzung. Beginne heute mit weniger.',

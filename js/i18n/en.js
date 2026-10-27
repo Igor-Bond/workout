@@ -1780,6 +1780,7 @@ export const EN = {
     'Число из плана — прикидка: начните с запасом 2–3.': 'The plan\'s number is a guess: start with 2–3 reps in reserve.',
     'по кругу': 'round robin',
     'Порядок — как в прошлый раз у этой тренировки: {порядок}.': 'The order is the same as last time for this workout: {порядок}.',
+    'Порядок — как в прошлый раз у этой тренировки: {порядок}. В плане сказано «{план}» — вернуться можно кнопкой выше.': 'The order is the same as last time for this workout: {порядок}. The plan says “{план}” — you can switch back with the button above.',
     '{упражнение}: впервые, и запас большой — {способ}. Число в плане было прикидкой.': '{упражнение}: first time, and plenty in reserve — {способ}. The number in the plan was a guess.',
     '{упражнение}: впервые, и почти до отказа — число в плане было прикидкой.': '{упражнение}: first time, and close to failure — the number in the plan was a guess.',
     'Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.': 'The first time the set went close to failure — the plan\'s number was a guess. Start with less today.',
