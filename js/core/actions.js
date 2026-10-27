@@ -19,7 +19,7 @@ const clickHandlers = new Map();
 const changeHandlers = new Map();
 
 function dispatch(map, event, attribute) {
-    const el = event.target.closest(`[${attribute}]`);
+    const el = event.target?.closest?.(`[${attribute}]`);
     if (!el) return;
 
     const name = el.getAttribute(attribute);
@@ -131,12 +131,29 @@ export const actions = {
         // На телефоне это единственный быстрый способ записать подход,
         // не убирая палец с клавиатуры.
         document.addEventListener('keydown', (e) => {
-            if (e.key !== 'Enter') return;
-            const field = e.target.closest('[data-enter]');
-            if (!field) return;
+            if (e.key !== 'Enter' || e.repeat || e.isComposing) return;
+
+            /*
+             * Цель события — не всегда элемент (Р-220): проверки шлют события
+             * прямо в document, и `closest` там нет. Обработчик, упавший на
+             * чужом событии, ронял бы и настоящие.
+             */
+            const цель = e.target?.closest ? e.target : null;
+            if (!цель) return;
+
+            /*
+             * Многострочное поле подтверждается Ctrl+Enter (data-enter-ctrl):
+             * простой Enter там — перенос строки, и отбирать его нельзя. В
+             * однострочном поле работает простой Enter (data-enter).
+             */
+            const действие = (e.ctrlKey || e.metaKey)
+                ? цель.closest('[data-enter-ctrl]')?.dataset.enterCtrl
+                : цель.closest('[data-enter]')?.dataset.enter;
+
+            if (!действие) return;
 
             e.preventDefault();
-            const target = document.querySelector(`[data-action="${field.dataset.enter}"]`);
+            const target = document.querySelector(`[data-action="${действие}"]`);
             if (target) target.click();
         });
 
@@ -198,7 +215,7 @@ function holdRepeat() {
     };
 
     document.addEventListener('pointerdown', (e) => {
-        const el = e.target.closest('[data-hold]');
+        const el = e.target?.closest?.('[data-hold]');
         const action = el?.dataset.action;
         if (!action) return;
 
@@ -213,6 +230,6 @@ function holdRepeat() {
     // Долгое нажатие на телефоне вызывает выделение и системное меню —
     // на кнопке с повтором это мешает и выглядит поломкой
     document.addEventListener('contextmenu', (e) => {
-        if (e.target.closest('[data-hold]')) e.preventDefault();
+        if (e.target?.closest?.('[data-hold]')) e.preventDefault();
     });
 }

@@ -5919,9 +5919,9 @@ describe('Недобор плана: от тренировки до правки
 
         assert(строка.includes('в плане 4 × 25, сделано 16, 14, 14, 10 — на 46 % меньше'), строка.slice(0, 700));
         assert(строка.includes('Раньше вы его не делали'), 'первый раз назван');
-        assert(hasAction(view, 'accept-lower'), 'поправить можно там же');
+        assert(hasAction(view, 'accept-target'), 'поправить можно там же');
 
-        const кнопка = view.querySelector('[data-action="accept-lower"]');
+        const кнопка = view.querySelector('[data-action="accept-target"]');
         equal([кнопка.dataset.from, кнопка.dataset.to], ['25', '14']);
 
         assert(!строка.includes('Отжимания: в плане'), 'выполненные обычные отжимания недобором не названы');
@@ -5935,7 +5935,7 @@ describe('Недобор плана: от тренировки до правки
         const view = await screen(summary, [w.id]);
 
         assert(text(view).includes('План и факт'), text(view).slice(0, 500));
-        assert(hasAction(view, 'accept-lower'), 'сразу после тренировки, а не через неделю');
+        assert(hasAction(view, 'accept-target'), 'сразу после тренировки, а не через неделю');
 
         await dbService.setSetting(PLAN_KEY, null);
     });
@@ -5952,7 +5952,7 @@ describe('Недобор плана: от тренировки до правки
         };
 
         try {
-            await press('accept-lower', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
+            await press('accept-target', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
         } finally {
             dialog.confirm = было;
         }
@@ -5978,13 +5978,13 @@ describe('Недобор плана: от тренировки до правки
         dialog.confirm = async () => true;
 
         try {
-            await press('accept-lower', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
+            await press('accept-target', { name: 'Отжимания в наклоне', from: '25', to: '14', done: '16, 14, 14, 10' });
         } finally {
             dialog.confirm = было;
         }
 
         assert(!text(await screen(stats)).includes('в плане 4 × 25'), 'иначе приложение просило бы поправить уже поправленное');
-        assert(!hasAction(await screen(stats), 'accept-lower'));
+        assert(!hasAction(await screen(stats), 'accept-target'));
 
         await dbService.setSetting(PLAN_KEY, null);
         await dbService.setSetting('planJournal', []);
@@ -6354,7 +6354,7 @@ describe('Первый раз: совет после одного занятия
 
         assert(text(view).includes('впервые, и почти до отказа'), text(view).slice(0, 500));
 
-        const кнопка = view.querySelector('[data-action="accept-lower"]');
+        const кнопка = view.querySelector('[data-action="accept-target"]');
 
         assert(кнопка, 'сразу после тренировки, пока подходы в памяти');
         equal([кнопка.dataset.from, кнопка.dataset.to], ['25', '22']);
@@ -6385,8 +6385,495 @@ describe('Первый раз: совет после одного занятия
         const view = await screen(stats);
 
         assert(text(view).includes('два занятия подряд почти до отказа'), text(view).slice(0, 500));
-        assert(hasAction(view, 'accept-lower'), 'раньше строка только сообщала');
+        assert(hasAction(view, 'accept-target'), 'раньше строка только сообщала');
 
         await dbService.setSetting(PLAN_KEY, null);
+    });
+});
+
+/**
+ * Enter подтверждает подсвеченное действие окна (§30, Р-220).
+ *
+ * Главная кнопка — та, что залита цветом. Из поля ввода до неё приходилось
+ * тянуться пальцем или мышью, хотя руки уже на клавиатуре, а на телефоне клавиша
+ * «Ввод» под цифрами только перебрасывала в никуда: ввод калорий, веса, талии,
+ * названия — везде одно и то же.
+ */
+describe('Окна: Enter подтверждает главное', () => {
+
+    /** Нажать клавишу в узле — так, как её присылает браузер. */
+    const нажать = (узел, key, extra = {}) => {
+        const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...extra });
+        узел.dispatchEvent(e);
+        return e;
+    };
+
+    /** Открыть окно с полями и вернуть обещание вместе с узлами. */
+    function открыть(fields, options = {}) {
+        const обещание = dialog.form({ title: 'Проба', fields, ...options });
+
+        return {
+            обещание,
+            поле: (имя) => document.querySelector(`.dialog-backdrop [name="${имя}"]`),
+            закрыть: () => document.querySelector('.dialog-backdrop [data-value=""]')?.click()
+        };
+    }
+
+    it('Enter в поле ввода записывает, как кнопка «Сохранить»', async () => {
+        const { обещание, поле } = открыть([{ name: 'kcal', label: 'Ккал', type: 'number' }]);
+
+        поле('kcal').value = '820';
+        const e = нажать(поле('kcal'), 'Enter');
+
+        equal((await обещание)?.kcal, 820);
+        assert(e.defaultPrevented, 'Enter забран окном, а не оставлен странице под затемнением');
+    });
+
+    it('обязательное поле пустое — окно остаётся, а ошибка называется по имени', async () => {
+        const { обещание, поле, закрыть } = открыть([{ name: 'name', label: 'Название', required: true }]);
+
+        нажать(поле('name'), 'Enter');
+
+        assert(document.querySelector('.dialog-backdrop'), 'окно не закрылось');
+        assert(document.querySelector('.field-error')?.textContent.includes('Название'), 'сказано, чего не хватает');
+
+        закрыть();
+        equal(await обещание, null);
+    });
+
+    it('в многострочном поле Enter — перенос строки, окно не закрывается', async () => {
+        const { обещание, поле, закрыть } = открыть([{ name: 'note', label: 'Заметка', type: 'textarea' }]);
+
+        const e = нажать(поле('note'), 'Enter');
+
+        assert(!e.defaultPrevented, 'перенос строки не отобран');
+        assert(document.querySelector('.dialog-backdrop'), 'окно на месте');
+
+        закрыть();
+        await обещание;
+    });
+
+    it('а Ctrl+Enter в многострочном поле подтверждает', async () => {
+        const { обещание, поле } = открыть([{ name: 'note', label: 'Заметка', type: 'textarea' }]);
+
+        поле('note').value = 'колено ныло';
+        нажать(поле('note'), 'Enter', { ctrlKey: true });
+
+        equal((await обещание)?.note, 'колено ныло');
+    });
+
+    it('Enter на кнопке «Отмена» нажимает «Отмена», а не главную', async () => {
+        const { обещание } = открыть([{ name: 'x', label: 'Х' }]);
+
+        const отмена = document.querySelector('.dialog-backdrop [data-value=""]');
+        const e = нажать(отмена, 'Enter');
+
+        assert(!e.defaultPrevented, 'нажатие кнопки остаётся за самой кнопкой');
+        assert(document.querySelector('.dialog-backdrop'), 'само по себе событие окно не закрыло');
+
+        отмена.click();
+        equal(await обещание, null);
+    });
+
+    it('удержанный Enter и набор через IME окно не закрывают', async () => {
+        const { обещание, поле, закрыть } = открыть([{ name: 'x', label: 'Х' }]);
+
+        нажать(поле('x'), 'Enter', { repeat: true });
+        нажать(поле('x'), 'Enter', { isComposing: true });
+
+        assert(document.querySelector('.dialog-backdrop'), 'недонабранное слово — не повод закрывать');
+
+        закрыть();
+        await обещание;
+    });
+
+    it('в подтверждении Enter с тела окна нажимает главную «Да»', async () => {
+        const обещание = dialog.confirm({ title: 'Убрать?', text: '', confirmText: 'Да' });
+
+        нажать(document.querySelector('.dialog-backdrop .dialog'), 'Enter');
+
+        equal(await обещание, true);
+    });
+
+    it('у окна выбора главной кнопки нет — Enter там ничего не решает за человека', async () => {
+        const обещание = dialog.choose({
+            title: 'Модель', options: [{ value: 'a', label: 'А' }, { value: 'b', label: 'Б' }]
+        });
+
+        const e = нажать(document.querySelector('.dialog-backdrop .dialog'), 'Enter');
+
+        assert(!e.defaultPrevented);
+        assert(document.querySelector('.dialog-backdrop'), 'выбрать за человека нечего');
+
+        document.querySelector('.dialog-backdrop [data-value=""]')?.click();
+        await обещание;
+    });
+
+    it('после закрытия Enter окну больше не принадлежит', async () => {
+        const { обещание, поле } = открыть([{ name: 'x', label: 'Х' }]);
+
+        поле('x').value = '1';
+        нажать(поле('x'), 'Enter');
+        await обещание;
+
+        // Второй Enter уже ничего не закрывает и не падает
+        const e = нажать(document.body, 'Enter');
+        assert(!e.defaultPrevented);
+    });
+});
+
+/**
+ * Enter и Ctrl+Enter на экранах (§60, Р-220): поля, у которых есть залитая
+ * кнопка рядом, подтверждаются с клавиатуры так же, как окна.
+ */
+describe('Экраны: Enter в полях', () => {
+
+    it('ключ тренера: Enter — «Сохранить и проверить»', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, '');
+
+        const поле = (await screen(coach)).querySelector('#ai-key');
+
+        equal(поле?.dataset.enter, 'coach-key-save');
+    });
+
+    it('вопрос тренеру: Ctrl+Enter отправляет, простой Enter — перенос строки', async () => {
+        await seed();
+        await dbService.setSetting(KEY_SETTING, 'AIzaПроба');
+
+        const поле = (await screen(coach)).querySelector('#coach-text');
+
+        equal(поле?.dataset.enterCtrl, 'coach-ask');
+        assert(!поле?.dataset.enter, 'простой Enter у многострочного поля не отбирается');
+    });
+
+    it('знакомство: Enter в поле шага равен «Далее»', async () => {
+        await seed();
+        await dbService.setSetting('intro', null);
+
+        // Проход начинается заново, а первый шаг — приветствие: год рождения и рост спрашивает второй
+        intro.leave();
+        await screen(intro);
+        await press('intro-next');
+
+        const view = await screen(intro);
+        const поля = [...view.querySelectorAll('input[data-enter="intro-next"]')];
+
+        assert(поля.length >= 2, `у полей шага есть Enter: ${text(view).slice(0, 200)}`);
+    });
+
+    it('знакомство: на шаге с вещами Enter добавляет вещь, а не листает дальше', async () => {
+        await seed();
+        await dbService.setSetting('intro', null);
+
+        intro.leave();
+        await screen(intro);
+        for (let i = 0; i < 2; i++) await press('intro-next');
+
+        const view = await screen(intro);
+
+        equal(view.querySelector('#in-gear')?.dataset.enter, 'intro-gear-add');
+        equal(view.querySelector('#in-limit')?.dataset.enter, 'intro-limit-add');
+    });
+});
+
+/**
+ * Поле подхода помнит прошлый раз — но только вверх (§10.2, §15, Р-220).
+ *
+ * Человек сделал в субботу больше плана — двадцать приседаний вместо
+ * пятнадцати, планку дольше, — а в следующий раз поле снова просило пятнадцать,
+ * и добавлять приходилось руками.
+ */
+describe('Поле подхода: память прошлого раза', () => {
+
+    const DAY = 86400000;
+
+    async function прошлая(exercise, подходы, { target = 15, targetDuration = null, дней = 3 } = {}) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: exercise.id, plannedSets: 3, targetReps: targetDuration ? null : target, targetDuration, skipped: false }]
+        });
+
+        const at = Date.now() - дней * DAY;
+
+        for (const [i, v] of подходы.entries()) {
+            await dbService.addSet({
+                workoutId: w.id, exerciseId: exercise.id, order: i + 1, setNumber: i + 1,
+                ...(targetDuration ? { duration: v } : { reps: v }), performedAt: at + i * 60000
+            });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+    }
+
+    async function начатая(exercise, { target = 15, targetDuration = null } = {}) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: exercise.id, plannedSets: 3, targetReps: targetDuration ? null : target, targetDuration, skipped: false }]
+        });
+
+        const view = await screen(session);
+
+        return { view, w };
+    }
+
+    it('прошлый раз сделано больше плана — в поле встаёт прошлое число', async () => {
+        const ex = await seed({ name: 'Приседания', kind: 'reps' });
+        await прошлая(ex, [20, 20, 20]);
+
+        const { view, w } = await начатая(ex);
+
+        equal(view.querySelector('#f-reps')?.value, '20', 'не пятнадцать из плана, а двадцать, как делали');
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('прошлый раз сделано меньше плана — число плана остаётся: опускать — решение, а не память', async () => {
+        const ex = await seed({ name: 'Приседания', kind: 'reps' });
+        await прошлая(ex, [10, 10, 10]);
+
+        const { view, w } = await начатая(ex);
+
+        equal(view.querySelector('#f-reps')?.value, '15');
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('планка: прошлый раз дольше плана — в поле прошлые секунды', async () => {
+        const ex = await seed({ name: 'Планка', kind: 'time' });
+        await прошлая(ex, [60, 60, 60], { targetDuration: 45 });
+
+        const { view, w } = await начатая(ex, { targetDuration: 45 });
+
+        equal(view.querySelector('#f-duration')?.value, '60');
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('внутри тренировки по-прежнему идёт последний подход этой же тренировки', async () => {
+        const ex = await seed({ name: 'Приседания', kind: 'reps' });
+        await прошлая(ex, [20, 20, 20]);
+
+        const { w } = await начатая(ex);
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 17, performedAt: Date.now() });
+
+        equal((await screen(session)).querySelector('#f-reps')?.value, '17', 'второй подход — от первого, а не от прошлого раза');
+        await dbService.finishWorkout(w.id);
+    });
+});
+
+/**
+ * Перевыполнение плана: от тренировки до правки плана (§63, §59.1, Р-220).
+ *
+ * В субботу сделаны двадцать приседаний вместо пятнадцати и планка дольше
+ * плана — а на следующий раз цифры пришлось добавлять руками, потому что
+ * приложение сравнивало план с фактом только в сторону недобора.
+ */
+describe('Перевыполнение плана: от тренировки до правки плана', () => {
+
+    const ПЛАН = [
+        'С {дата}, 12 недель',
+        'Этап 1 (недели 1–6): а',
+        'Пн Приседания 3 × 15 + Планка 3 × 45 + Подтягивания 3 × 10',
+        'Вс отдых'
+    ].join('\n');
+
+    /** Тренировка: приседания 20, 20, 20 при цели 15; планка 60 × 3 при цели 45; подтягивания как в плане. */
+    async function сделатьБольше({ вид = 'reps', имя = 'Приседания' } = {}) {
+        const присед = await seed({ name: имя, kind: вид, group: 'Ноги' });
+        const планка = await dbService.createExercise({ name: 'Планка', kind: 'time', group: 'Кор' });
+        const тяга = await dbService.createExercise({ name: 'Подтягивания', kind: 'reps', group: 'Спина' });
+
+        // В плане упражнение называется так же, как в справочнике: иначе строку к плану не отнести
+        const текст = ПЛАН.replace('Приседания', имя).replace('{дата}', датаПлана(-2));
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [
+                { exerciseId: присед.id, plannedSets: 3, targetReps: 15, skipped: false },
+                { exerciseId: планка.id, plannedSets: 3, targetReps: null, targetDuration: 45, skipped: false },
+                { exerciseId: тяга.id, plannedSets: 3, targetReps: 10, skipped: false }
+            ]
+        });
+
+        const at = Date.now() - 3600000;
+        let порядок = 0;
+
+        const записать = async (ex, поле, числа) => {
+            for (const [i, v] of числа.entries()) {
+                await dbService.addSet({
+                    workoutId: w.id, exerciseId: ex.id, order: ++порядок, setNumber: i + 1,
+                    [поле]: v, performedAt: at + порядок * 60000
+                });
+            }
+        };
+
+        await записать(присед, 'reps', [20, 20, 20]);
+        await записать(планка, 'duration', [60, 60, 60]);
+        await записать(тяга, 'reps', [10, 10, 10]);
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    const убрать = async () => {
+        await dbService.setSetting(PLAN_KEY, null);
+        await dbService.setSetting('planJournal', []);
+    };
+
+    it('на статистике: план и факт рядом, цвет «вперёд» и кнопка «поправить план»', async () => {
+        await сделатьБольше();
+
+        const view = await screen(stats);
+        const строка = text(view);
+
+        assert(строка.includes('Приседания: в плане 3 × 15, сделано 20, 20, 20 — на 33 % больше'), строка.slice(0, 900));
+        assert(hasAction(view, 'accept-target'), 'поправить можно там же');
+
+        const кнопка = [...view.querySelectorAll('[data-action="accept-target"]')]
+            .find((к) => к.dataset.name === 'Приседания');
+
+        equal([кнопка?.dataset.from, кнопка?.dataset.to], ['15', '20']);
+        assert(!строка.includes('Подтягивания: в плане'), 'выполненное по плану перевыполнением не названо');
+
+        await убрать();
+    });
+
+    it('планка называется в секундах', async () => {
+        await сделатьБольше();
+
+        const строка = text(await screen(stats));
+
+        assert(строка.includes('Планка: в плане 3 × 45 с, сделано 60, 60, 60 с — на 33 % больше'), строка.slice(0, 900));
+
+        await убрать();
+    });
+
+    it('на итогах тренировки — карточка «План и факт» с той же строкой и кнопкой', async () => {
+        const w = await сделатьБольше();
+
+        const view = await screen(summary, [w.id]);
+
+        assert(text(view).includes('План и факт'), text(view).slice(0, 500));
+        assert(text(view).includes('сделано 20, 20, 20'), 'сразу после тренировки, а не через неделю');
+        assert(hasAction(view, 'accept-target'));
+
+        await убрать();
+    });
+
+    it('«поправить план» поднимает то число, что оказалось мало, и пишет решение в журнал', async () => {
+        await сделатьБольше();
+
+        const было = dialog.confirm;
+        let спрошено = null;
+
+        dialog.confirm = async (параметры) => {
+            спрошено = параметры;
+            return true;
+        };
+
+        try {
+            await press('accept-target', { name: 'Приседания', from: '15', to: '20', done: '20, 20, 20' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        const план = (await dbService.getSetting(PLAN_KEY, null))?.text || '';
+
+        assert(спрошено?.text.includes('3 × 15 → 3 × 20'), `числа названы до вопроса: ${спрошено?.text}`);
+        assert(план.includes('Приседания 3 × 20'), план);
+        assert(план.includes('Подтягивания 3 × 10'), 'соседнее упражнение не тронуто');
+
+        const журнал = await dbService.getSetting('planJournal', []);
+        assert(журнал.some((з) => з.text.includes('цель 15 → 20') && з.why.includes('20, 20, 20')), JSON.stringify(журнал));
+
+        await убрать();
+    });
+
+    it('отказ в окне план не меняет', async () => {
+        await сделатьБольше();
+
+        const до = (await dbService.getSetting(PLAN_KEY, null))?.text;
+        const было = dialog.confirm;
+        dialog.confirm = async () => false;
+
+        try {
+            await press('accept-target', { name: 'Приседания', from: '15', to: '20', done: '20, 20, 20' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        equal((await dbService.getSetting(PLAN_KEY, null))?.text, до);
+
+        await убрать();
+    });
+
+    it('после правки перевыполнение исчезает: строки с прежним числом больше нет', async () => {
+        await сделатьБольше();
+
+        const было = dialog.confirm;
+        dialog.confirm = async () => true;
+
+        try {
+            await press('accept-target', { name: 'Приседания', from: '15', to: '20', done: '20, 20, 20' });
+        } finally {
+            dialog.confirm = было;
+        }
+
+        assert(!text(await screen(stats)).includes('Приседания: в плане 3 × 15'), 'иначе приложение просило бы поправить уже поправленное');
+
+        await убрать();
+    });
+
+    it('у резинки «больше плана» — не новое число повторений, а прибавка способом', async () => {
+        await сделатьБольше({ имя: 'Приседания с резинкой' });
+
+        const view = await screen(stats);
+        const строка = text(view);
+
+        assert(строка.includes('Прибавлять надо не повторениями'), строка.slice(0, 900));
+
+        const кнопка = [...view.querySelectorAll('[data-action]')]
+            .find((к) => к.dataset.name === 'Приседания с резинкой');
+
+        equal(кнопка?.dataset.action, 'accept-harder', 'та же кнопка, что у «можно тяжелее»');
+
+        await убрать();
+    });
+
+    it('без действующего плана перевыполнение не называется: поправить нечего', async () => {
+        await сделатьБольше();
+        await dbService.setSetting(PLAN_KEY, null);
+
+        assert(!text(await screen(stats)).includes('в плане 3 × 15'));
+    });
+
+    it('упражнение на время в минутах не меряется: у него в плане минуты, а в подходе секунды', async () => {
+        const игра = await dbService.createExercise({ name: 'Баскетбол', kind: 'time', group: 'Кардио' });
+        await dbService.updateExercise(игра.id, { timeUnit: 'min' });
+
+        const текст = ['С {дата}, 12 недель', 'Этап 1 (недели 1–6): а', 'Пн Баскетбол 3 × 20', 'Вс отдых']
+            .join('\n').replace('{дата}', датаПлана(-2));
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+
+        const w = await dbService.createWorkout({
+            type: 'Кардио',
+            plan: [{ exerciseId: игра.id, plannedSets: 3, targetReps: null, targetDuration: 20, skipped: false }]
+        });
+
+        const at = Date.now() - 3600000;
+
+        for (const [i, секунд] of [1500, 1500, 1500].entries()) {
+            await dbService.addSet({ workoutId: w.id, exerciseId: игра.id, order: i + 1, setNumber: i + 1, duration: секунд, performedAt: at + i * 60000 });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        assert(!text(await screen(stats)).includes('Баскетбол: в плане'), 'минуты плана и секунды подхода не сравниваются');
+
+        await убрать();
     });
 });

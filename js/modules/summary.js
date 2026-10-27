@@ -12,7 +12,7 @@ import { dbService } from '../services/db.js';
 import { effort } from '../core/effort.js';
 import { currentActivities } from './watch.js';
 import { progress } from '../core/progress.js';
-import { недоборы, observations } from '../services/howgoing.js';
+import { расхождения, observations } from '../services/howgoing.js';
 import { currentPlan } from './planner.js';
 import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
@@ -316,8 +316,10 @@ export const summary = {
          * статистике. Те же строки и та же кнопка, что у «Как идёт программа»:
          * считает одна функция, показывает одна разметка.
          */
-        const расхождения = progress
-            .describe({ shortfalls: await недоборы({ workoutId: workout.id }) })
+        const { недобор, перебор } = await расхождения({ workoutId: workout.id });
+
+        const строкиПлана = progress
+            .describe({ shortfalls: недобор, overshoots: перебор })
             .filter((с) => с.topic === 'plan');
 
         /*
@@ -331,8 +333,15 @@ export const summary = {
         // Кнопка прибавки правит план — без плана ей нечего делать и показывать её нельзя
         const планЕсть = !!(await currentPlan())?.text;
 
-        for (const с of (await observations()).filter((x) => x.topic === 'reserve' && x.first && имена.has(x.name))) {
-            расхождения.push(с);
+        /*
+         * Про упражнение, у которого уже есть строка «план и факт», запас не
+         * повторяется (Р-220): число плана и число факта конкретнее и говорят о том
+         * же, а две кнопки прибавки рядом спорили бы друг с другом.
+         */
+        const названные = new Set([...недобор, ...перебор].map((н) => н.name));
+
+        for (const с of (await observations()).filter((x) => x.topic === 'reserve' && x.first && имена.has(x.name) && !названные.has(x.name))) {
+            строкиПлана.push(с);
         }
 
         return ui.html`
@@ -389,11 +398,11 @@ export const summary = {
                 </div>
             </div>
 
-            ${расхождения.length ? ui.html`
+            ${строкиПлана.length ? ui.html`
                 <div class="card">
                     <div class="card-title">${t('План и факт')}</div>
 
-                    ${расхождения.map((с) => ui.html`
+                    ${строкиПлана.map((с) => ui.html`
                         <div class="plan-rule note-${с.kind}">
                             ${с.text}
 
@@ -406,9 +415,9 @@ export const summary = {
                                 </span>
                             ` : ''}
 
-                            ${с.action?.type === 'lower' ? ui.html`
+                            ${['lower', 'raise'].includes(с.action?.type) ? ui.html`
                                 <span class="row-links">
-                                    <button class="link-btn" data-action="accept-lower"
+                                    <button class="link-btn" data-action="accept-target"
                                             data-name="${с.action.name}" data-from="${String(с.action.from)}"
                                             data-to="${String(с.action.to)}" data-done="${с.action.done.join(', ')}">
                                         ${t('поправить план')}

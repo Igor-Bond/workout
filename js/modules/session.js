@@ -1085,7 +1085,11 @@ function currentCard({ workout, sets, exercises, rows }) {
     const prefill = engine.prefill(workout.plan, sets, currentId, {
         weight: estimate.shareOf({ ...exercise, kind: exercise.kind || 'weight' }) === 0
             ? exercise.defaultWeight
-            : null
+            : null,
+
+        // Первый подход прошлого раза в том же дне — тот самый, что назван в
+        // строке «Последний раз» (Р-220): поле его поднимает, но не опускает
+        прошлый: view.last?.sets?.[0]
     });
     const own = engine.setsOf(sets, currentId);
 

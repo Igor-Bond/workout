@@ -1784,4 +1784,9 @@ export const EN = {
     '{упражнение}: впервые, и почти до отказа — число в плане было прикидкой.': '{упражнение}: first time, and close to failure — the number in the plan was a guess.',
     'Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.': 'The first time the set went close to failure — the plan\'s number was a guess. Start with less today.',
     'Впервые запас был большой — число из плана было прикидкой: {способ}.': 'The first time there was plenty in reserve — the plan\'s number was a guess: {способ}.',
+    '{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % меньше.': '{упражнение}: the plan says {подходы} × {цель} s, you did {числа} s — {процент} % less.',
+    '{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % больше.': '{упражнение}: the plan says {подходы} × {цель}, you did {числа} — {процент} % more.',
+    '{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % больше.': '{упражнение}: the plan says {подходы} × {цель} s, you did {числа} s — {процент} % more.',
+    'Больше плана вы сделали и в других: {список}.': 'You did more than the plan in other exercises too: {список}.',
+    'Прибавлять надо не повторениями: {способ}.': 'Don\'t add reps — progress this way: {способ}.',
 };

@@ -71,6 +71,46 @@ function open(innerHtml, defaultValue, { collect = null, setup = null } = {}) {
 
         const onKey = (e) => {
             if (e.key === 'Escape') return finish(defaultValue);
+
+            /*
+             * Enter подтверждает подсвеченное действие окна (Р-220).
+             *
+             * Главная кнопка — та, что залита цветом: «Записать», «Сохранить»,
+             * «Да». Из поля ввода до неё приходилось тянуться пальцем или мышью,
+             * хотя руки уже на клавиатуре, а на телефоне клавиша «Ввод» под
+             * цифрами только перебрасывала в никуда. Ввод калорий, веса, талии,
+             * названия — везде одно и то же.
+             *
+             * Не трогаем то, у чего на Enter своё дело:
+             *  — кнопки, ссылки и списки: они нажимаются сами, и второе нажатие
+             *    закрыло бы окно дважды;
+             *  — выбор файла, флажки: Enter открывает или переключает их;
+             *  — многострочное поле: там Enter — перенос строки, а подтверждает
+             *    Ctrl+Enter (или Cmd+Enter на маке);
+             *  — набор через IME и удержанную клавишу: недонабранное слово не
+             *    повод закрывать окно.
+             *
+             * У окон выбора главной кнопки нет, и Enter там ничего не делает: что
+             * «подсвечено» среди тридцати упражнений, решает человек.
+             */
+            if (e.key === 'Enter') {
+                if (e.repeat || e.isComposing) return;
+
+                const цель = e.target;
+                const своё = цель?.closest?.('button, a[href], select, input[type="file"], input[type="checkbox"], input[type="radio"], input[type="button"]');
+                if (своё) return;
+
+                const многострочное = цель?.matches?.('textarea');
+                if (многострочное && !(e.ctrlKey || e.metaKey)) return;
+
+                const главная = backdrop.querySelector('[data-primary]');
+                if (!главная || главная.disabled) return;
+
+                e.preventDefault();
+                главная.click();
+                return;
+            }
+
             if (e.key !== 'Tab') return;
 
             /*

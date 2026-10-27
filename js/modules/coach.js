@@ -302,7 +302,7 @@ export const coach = {
                             которого нет.
                         -->
                         <input id="ai-key" type="password" autocomplete="off" spellcheck="false"
-                               placeholder="AIza…">
+                               placeholder="AIza…" data-enter="coach-key-save">
                     </div>
 
                     <!--
@@ -364,7 +364,8 @@ export const coach = {
             ${принято ? ui.html`<div class="banner"><span>${принято}</span></div>` : ''}
 
             <div class="card">
-                <textarea id="coach-text" class="report-text" rows="3"
+                <!-- Ctrl+Enter отправляет вопрос, простой Enter — перенос строки (Р-220) -->
+                <textarea id="coach-text" class="report-text" rows="3" data-enter-ctrl="coach-ask"
                           aria-label="${t('Вопрос тренеру')}"
                           placeholder="${t('Например: колено стало лучше, можно усилить субботу?')}">${заготовлено}</textarea>
 

@@ -633,3 +633,141 @@ describe('Первый раз и кнопка у «на грани»', () => {
         equal(строка.action.type, 'easier');
     });
 });
+
+/**
+ * Перевыполнение плана по числам (§63, Р-220) — зеркало недобора.
+ *
+ * Человек сделал в субботу двадцать приседаний вместо пятнадцати, а в
+ * следующий раз добавлять пришлось опять: приложение сравнивало план с
+ * фактом только в одну сторону.
+ */
+describe('Перевыполнение плана', () => {
+
+    const подходы = (id, ...числа) => числа.map((reps, i) => ({ exerciseId: id, setNumber: i + 1, reps }));
+    const по_времени = (id, ...числа) => числа.map((duration, i) => ({ exerciseId: id, setNumber: i + 1, duration }));
+    const состав = (id, sets = 3, target = 15) => [{ exerciseId: id, plannedSets: sets, targetReps: target, skipped: false }];
+    const names = { п: 'Приседания', д: 'Планка' };
+
+    it('3 × 15, сделано 20, 20, 20 — перевыполнение, цель по факту 20, на 33 % больше', () => {
+        const [н] = progress.overshoot(состав('п'), подходы('п', 20, 20, 20), { names });
+
+        equal(н.suggest, 20, 'середина сделанного');
+        equal(н.more, 33);
+        equal(н.done, [20, 20, 20]);
+        equal(н.name, 'Приседания');
+        equal(н.field, 'reps');
+    });
+
+    it('разброс внутри пятой части — обычная жизнь, а не новое число', () => {
+        equal(progress.overshoot(состав('п'), подходы('п', 16, 17, 16), { names }).length, 0, '17 из 15 — это 13 %');
+        equal(progress.overshoot(состав('п'), подходы('п', 15, 15, 15), { names }).length, 0);
+    });
+
+    it('граница: на пятую часть и не меньше двух повторений', () => {
+        equal(progress.overshoot(состав('п'), подходы('п', 18, 18, 18), { names }).length, 1, '18 из 15 — ровно 20 %');
+        equal(progress.overshoot(состав('п', 3, 10), подходы('п', 12, 12, 12), { names }).length, 1, '12 из 10 — пятая часть и два повтора');
+        equal(progress.overshoot(состав('п', 3, 10), подходы('п', 11, 11, 11), { names }).length, 0, 'один повтор — это не перевыполнение');
+    });
+
+    it('один сильный подход в начале — свежие силы, а не новая цель', () => {
+        equal(progress.overshoot(состав('п'), подходы('п', 22, 15, 15), { names }).length, 0);
+    });
+
+    it('два сильных подхода из трёх — уже перевыполнение', () => {
+        equal(progress.overshoot(состав('п'), подходы('п', 20, 20, 15), { names }).length, 1);
+    });
+
+    it('один подход — сравнивать не с чем', () => {
+        equal(progress.overshoot(состав('п'), подходы('п', 30), { names }).length, 0);
+    });
+
+    it('пропущенное и упражнение без цели не меряются', () => {
+        equal(progress.overshoot([{ exerciseId: 'п', plannedSets: 3, targetReps: 15, skipped: true }], подходы('п', 30, 30, 30), { names }).length, 0);
+        equal(progress.overshoot([{ exerciseId: 'п', plannedSets: 3, targetReps: null }], подходы('п', 30, 30, 30), { names }).length, 0);
+    });
+
+    it('малые числа не меряются: у «4 × 4» пять — это один повтор', () => {
+        equal(progress.overshoot(состав('п', 4, 4), подходы('п', 6, 6, 6, 6), { names }).length, 0);
+    });
+
+    it('предлагаемая цель всегда выше прежней', () => {
+        const [н] = progress.overshoot(состав('п'), подходы('п', 18, 18), { names });
+
+        assert(н.suggest > 15, `предложено ${н.suggest}`);
+    });
+
+    it('планка: 3 × 45, сделано по 60 — перевыполнение в секундах', () => {
+        const план = [{ exerciseId: 'д', plannedSets: 3, targetDuration: 45, skipped: false }];
+        const [н] = progress.overshoot(план, по_времени('д', 60, 60, 60), { names });
+
+        equal(н.field, 'duration');
+        equal(н.suggest, 60);
+        equal(н.more, 33);
+        equal(н.step, 'time', 'у планки прибавляют секундами');
+    });
+
+    it('планка: на пять секунд больше — ещё разброс', () => {
+        const план = [{ exerciseId: 'д', plannedSets: 3, targetDuration: 45, skipped: false }];
+
+        equal(progress.overshoot(план, по_времени('д', 50, 50, 50), { names }).length, 0, '50 из 45 — 11 %');
+    });
+
+    it('недобор и перевыполнение не пересекаются', () => {
+        const сильно = подходы('п', 20, 20, 20);
+        const слабо = подходы('п', 8, 8, 8);
+
+        equal(progress.shortfall(состав('п'), сильно, { names }).length, 0);
+        equal(progress.overshoot(состав('п'), слабо, { names }).length, 0);
+    });
+
+    it('первый раз называется, если раньше упражнение не делалось', () => {
+        const впервые = progress.overshoot(состав('п'), подходы('п', 20, 20, 20), { names, earlier: new Set() });
+        const знакомое = progress.overshoot(состав('п'), подходы('п', 20, 20, 20), { names, earlier: new Set(['п']) });
+
+        equal(впервые[0].firstTime, true);
+        equal(знакомое[0].firstTime, false);
+    });
+
+    it('в наблюдении — и план, и факт рядом, цвет «вперёд» и кнопка «поправить план»', () => {
+        const н = progress.overshoot(состав('п'), подходы('п', 20, 20, 20), { names });
+        const [строка] = progress.describe({ overshoots: н });
+
+        assert(строка.text.includes('Приседания: в плане 3 × 15, сделано 20, 20, 20 — на 33 % больше'), строка.text);
+        equal(строка.kind, 'up');
+        equal(строка.topic, 'plan');
+        equal(строка.action.type, 'raise');
+        equal([строка.action.from, строка.action.to], [15, 20]);
+    });
+
+    it('у планки в строке секунды, а не повторения', () => {
+        const план = [{ exerciseId: 'д', plannedSets: 3, targetDuration: 45, skipped: false }];
+        const н = progress.overshoot(план, по_времени('д', 60, 60, 60), { names });
+        const [строка] = progress.describe({ overshoots: н });
+
+        assert(строка.text.includes('в плане 3 × 45 с, сделано 60, 60, 60 с'), строка.text);
+        equal(строка.action.type, 'raise');
+        equal(строка.action.to, 60);
+    });
+
+    it('у резинки «больше плана» — это прибавка способом, а не новое число повторений', () => {
+        const н = progress.overshoot(состав('п'), подходы('п', 20, 20, 20), { names, steps: { п: 'resistance' } });
+        const [строка] = progress.describe({ overshoots: н });
+
+        assert(строка.text.includes('Прибавлять надо не повторениями'), строка.text);
+        equal(строка.action.type, 'harder', 'кнопка та же, что у «можно тяжелее»');
+        equal(строка.action.step, 'resistance');
+    });
+
+    it('своих строк не больше двух, остальные — одной строкой по именам', () => {
+        const много = ['а', 'б', 'в', 'г'].map((id) => ({
+            exerciseId: id, name: id.toUpperCase(), field: 'reps', target: 15, plannedSets: 3, done: [20, 20, 20],
+            suggest: 20, more: 33, step: 'reps', firstTime: false
+        }));
+
+        const строки = progress.describe({ overshoots: много });
+
+        equal(строки.length, 3);
+        assert(строки[2].text.includes('В') && строки[2].text.includes('Г'), строки[2].text);
+        equal(строки[2].action, undefined, 'у сводной строки кнопки нет');
+    });
+});

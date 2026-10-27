@@ -162,3 +162,113 @@ describe('Удержание кнопки', () => {
         equal(counter.count, 0, 'сам pointerdown нажатием не считается — его даёт click');
     });
 });
+
+/**
+ * Enter и Ctrl+Enter в полях (Р-220): простое поле подтверждается Enter,
+ * многострочное — только Ctrl+Enter, а чужие события ничего не роняют.
+ */
+describe('Enter в поле', () => {
+
+    /** Поле с атрибутом и кнопкой, которую оно должно нажать. */
+    function поле(атрибут, действие, тег = 'input') {
+        const root = document.createElement('div');
+        root.innerHTML = `<${тег} ${атрибут}="${действие}"></${тег}><button data-action="${действие}"></button>`;
+        document.body.appendChild(root);
+
+        return { root, input: root.querySelector(тег) };
+    }
+
+    const нажать = (узел, key, extra = {}) => {
+        const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...extra });
+        узел.dispatchEvent(e);
+        return e;
+    };
+
+    it('Enter в поле с data-enter нажимает кнопку с этим действием', async () => {
+        let нажата = 0;
+        actions.on('проба-enter', () => { нажата += 1; });
+
+        const { root, input } = поле('data-enter', 'проба-enter');
+        const e = нажать(input, 'Enter');
+        await wait();
+        root.remove();
+
+        equal(нажата, 1);
+        assert(e.defaultPrevented, 'Enter забран, форма страницы не отправляется');
+    });
+
+    it('простой Enter в многострочном поле — перенос строки, ничего не нажимается', async () => {
+        let нажата = 0;
+        actions.on('проба-ctrl', () => { нажата += 1; });
+
+        const { root, input } = поле('data-enter-ctrl', 'проба-ctrl', 'textarea');
+        const e = нажать(input, 'Enter');
+        await wait();
+        root.remove();
+
+        equal(нажата, 0);
+        assert(!e.defaultPrevented, 'перенос строки остаётся за полем');
+    });
+
+    it('Ctrl+Enter и Cmd+Enter в многострочном поле нажимают кнопку', async () => {
+        let нажата = 0;
+        actions.on('проба-ctrl2', () => { нажата += 1; });
+
+        const { root, input } = поле('data-enter-ctrl', 'проба-ctrl2', 'textarea');
+        нажать(input, 'Enter', { ctrlKey: true });
+        нажать(input, 'Enter', { metaKey: true });
+        await wait();
+        root.remove();
+
+        equal(нажата, 2);
+    });
+
+    it('Ctrl+Enter в простом поле не срабатывает как Enter: это разные поля', async () => {
+        let нажата = 0;
+        actions.on('проба-простое', () => { нажата += 1; });
+
+        const { root, input } = поле('data-enter', 'проба-простое');
+        нажать(input, 'Enter', { ctrlKey: true });
+        await wait();
+        root.remove();
+
+        equal(нажата, 0);
+    });
+
+    it('удержанная клавиша и набор через IME кнопку не нажимают', async () => {
+        let нажата = 0;
+        actions.on('проба-повтор', () => { нажата += 1; });
+
+        const { root, input } = поле('data-enter', 'проба-повтор');
+        нажать(input, 'Enter', { repeat: true });
+        нажать(input, 'Enter', { isComposing: true });
+        await wait();
+        root.remove();
+
+        equal(нажата, 0);
+    });
+
+    it('события не от элемента (документ, окно) ничего не роняют', () => {
+        let упало = false;
+        const слушатель = () => { упало = true; };
+        window.addEventListener('error', слушатель);
+
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+        window.removeEventListener('error', слушатель);
+        equal(упало, false);
+    });
+
+    it('если кнопки с таким действием нет, Enter просто остаётся полю', async () => {
+        const root = document.createElement('div');
+        root.innerHTML = '<input data-enter="нет-такой-кнопки">';
+        document.body.appendChild(root);
+
+        нажать(root.querySelector('input'), 'Enter');
+        await wait();
+        root.remove();
+
+        assert(true, 'без исключения');
+    });
+});

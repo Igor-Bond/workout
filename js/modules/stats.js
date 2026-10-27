@@ -460,8 +460,8 @@ function ходБлок(наблюдения, планЕсть) {
                             одним нажатием, там же, где видно и число плана, и то,
                             что вышло.
                         -->
-                        ${н.action?.type === 'lower' && планЕсть ? ui.html`
-                            <button class="link-btn" data-action="accept-lower"
+                        ${['lower', 'raise'].includes(н.action?.type) && планЕсть ? ui.html`
+                            <button class="link-btn" data-action="accept-target"
                                     data-name="${н.action.name}" data-from="${String(н.action.from)}"
                                     data-to="${String(н.action.to)}" data-done="${н.action.done.join(', ')}">
                                 ${t('поправить план')}
@@ -1234,7 +1234,7 @@ actions.on('accept-harder', async (el) => {
  * трогать её приложение не вправе. Числа называются до вопроса, решение
  * пишется в журнал с причиной.
  */
-actions.on('accept-lower', async (el) => {
+actions.on('accept-target', async (el) => {
     const имя = el.dataset.name;
     const было = Number(el.dataset.from);
     const стало = Number(el.dataset.to);

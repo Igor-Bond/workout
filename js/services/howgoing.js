@@ -52,7 +52,10 @@ export async function противПрибавки({ now = Date.now() } = {}) {
 }
 
 /**
- * Где план не выполнен по числам (§63, Р-216).
+ * Где план не выполнен по числам и где перевыполнен (§63, Р-216, Р-220).
+ *
+ * Возвращает { недобор, перебор } — по одному разбору, потому что условия
+ * зеркальные, а читают одни и те же данные.
  *
  * Считается по составу самой тренировки — он хранит то, что план просил, —
  * но показывается только когда то же число ещё стоит в действующем плане.
@@ -64,7 +67,7 @@ export async function противПрибавки({ now = Date.now() } = {}) {
  * последних двух недель, и у каждого берётся самая свежая тренировка, где оно
  * было: старый недобор, перекрытый хорошим занятием, больше не новость.
  */
-export async function недоборы({ now = Date.now(), workoutId = null } = {}) {
+export async function расхождения({ now = Date.now(), workoutId = null } = {}) {
     const [сводки, sets, список, план] = await Promise.all([
         dbService.listWorkoutSummaries(),
         dbService.allSets(),
@@ -73,9 +76,10 @@ export async function недоборы({ now = Date.now(), workoutId = null } = 
     ]);
 
     // Без действующего плана числа сверять не с чем и поправить нечего
-    if (!план?.text || !planCore.active(план, now)) return [];
+    if (!план?.text || !planCore.active(план, now)) return { недобор: [], перебор: [] };
 
     const names = Object.fromEntries(список.map((e) => [e.id, e.name]));
+    const упражнения = Object.fromEntries(список.map((e) => [e.id, e]));
     const строкиПлана = planCore.items(план);
 
     const свежие = сводки
@@ -85,7 +89,8 @@ export async function недоборы({ now = Date.now(), workoutId = null } = 
         .sort((a, b) => b.startedAt - a.startedAt);
 
     const увиденные = new Set();
-    const итог = [];
+    const недобор = [];
+    const перебор = [];
 
     for (const w of свежие) {
         const состав = w.plan.filter((п) => !увиденные.has(п.exerciseId));
@@ -100,13 +105,36 @@ export async function недоборы({ now = Date.now(), workoutId = null } = 
                 .map((s) => s.exerciseId)
         );
 
-        for (const н of progress.shortfall(состав, свои, { names, earlier: раньше })) {
-            const стоит = строкиПлана.some((с) => planCore.same(с.name, н.name) && Number(с.reps) === н.target);
-            if (стоит) итог.push(н);
+        /*
+         * Упражнения на время в минутах не меряем (Р-220): в плане «Баскетбол
+         * 1 × 90» девяносто — минуты, а подход записан в секундах, и перевод
+         * числа плана в секунды и обратно здесь только прибавил бы ошибок.
+         * Планка и прочее в секундах считаются как повторения.
+         */
+        const меряем = состав.filter((п) => упражнения[п.exerciseId]?.timeUnit !== 'min');
+
+        const стоит = (н) => строкиПлана.some((с) => planCore.same(с.name, н.name) && Number(с.reps) === н.target);
+
+        for (const н of progress.shortfall(меряем, свои, { names, earlier: раньше })) {
+            if (стоит(н)) недобор.push(н);
+        }
+
+        const способы = Object.fromEntries(меряем.map((п) => [
+            п.exerciseId,
+            reserve.step(упражнения[п.exerciseId] || {}, [свои.filter((s) => s.exerciseId === п.exerciseId)])
+        ]));
+
+        for (const н of progress.overshoot(меряем, свои, { names, earlier: раньше, steps: способы })) {
+            if (стоит(н)) перебор.push(н);
         }
     }
 
-    return итог;
+    return { недобор, перебор };
+}
+
+/** Только недоборы — прежнее имя, чтобы остальным не пришлось ничего менять (Р-216). */
+export async function недоборы(параметры = {}) {
+    return (await расхождения(параметры)).недобор;
 }
 
 /**
@@ -249,13 +277,17 @@ export async function observations({ now = Date.now() } = {}) {
             .map((s) => dates.startOfDay(s.performedAt))
     ).size;
 
+    // Недобор и перевыполнение плана по числам (Р-216, Р-220)
+    const { недобор, перебор } = await расхождения({ now });
+
     // Границы окон — календарные, а не кратные 86 400 секундам (Р-218)
     const неделяНазад = dates.addDays(сегодня, -7);
     const двеНедели = dates.addDays(сегодня, -14);
 
     return progress.describe({
         reserve: запас,
-        shortfalls: await недоборы({ now }),
+        shortfalls: недобор,
+        overshoots: перебор,
         recovery: восстановление,
         adherence: progress.adherence(дни, сделаноВ, { from: dates.addDays(сегодня, -13), to: сегодня }),
         volume: {

@@ -299,12 +299,12 @@ function оСебе() {
             <div class="field">
                 <label for="in-year">${t('Год рождения')}</label>
                 <input id="in-year" type="number" min="1900" max="2100" inputmode="numeric"
-                       placeholder="1985" value="${ответы.birthYear}">
+                       data-enter="intro-next" placeholder="1985" value="${ответы.birthYear}">
             </div>
             <div class="field">
                 <label for="in-height">${t('Рост, см')}</label>
                 <input id="in-height" type="number" min="100" max="250" inputmode="numeric"
-                       placeholder="180" value="${ответы.height}">
+                       data-enter="intro-next" placeholder="180" value="${ответы.height}">
             </div>
         </div>
 
@@ -319,7 +319,7 @@ function оСебе() {
             <div class="chips">
                 ${ЦЕЛИ.map((ц) => чип(t(ц), цели.includes(ц), 'intro-goal', ц))}
             </div>
-            <input id="in-goal" type="text" value="${ответы.goal}" autocomplete="off"
+            <input id="in-goal" type="text" value="${ответы.goal}" autocomplete="off" data-enter="intro-next"
                    placeholder="${t('или своими словами')}">
         </div>
 
@@ -332,12 +332,12 @@ function оСебе() {
             <div class="field">
                 <label for="in-days">${t('Дней в неделю')}</label>
                 <input id="in-days" type="number" min="1" max="7" inputmode="numeric"
-                       placeholder="3" value="${ответы.days}">
+                       data-enter="intro-next" placeholder="3" value="${ответы.days}">
             </div>
             <div class="field">
                 <label for="in-minutes">${t('Минут на тренировку')}</label>
                 <input id="in-minutes" type="number" min="5" max="300" inputmode="numeric"
-                       placeholder="60" value="${ответы.minutes}">
+                       data-enter="intro-next" placeholder="60" value="${ответы.minutes}">
             </div>
         </div>
     `;
@@ -408,11 +408,11 @@ function тело() {
         <div class="plan-row-fields">
             <div class="field">
                 <label for="in-weight">${t('Вес, кг')}</label>
-                <input id="in-weight" type="number" inputmode="decimal" placeholder="80" value="${ответы.weight}">
+                <input id="in-weight" type="number" inputmode="decimal" data-enter="intro-next" placeholder="80" value="${ответы.weight}">
             </div>
             <div class="field">
                 <label for="in-waist">${t('Талия, см')}</label>
-                <input id="in-waist" type="number" inputmode="decimal" placeholder="—" value="${ответы.waist}">
+                <input id="in-waist" type="number" inputmode="decimal" data-enter="intro-next" placeholder="—" value="${ответы.waist}">
             </div>
         </div>
 
@@ -442,7 +442,7 @@ function тренер() {
         <div class="field">
             <label for="in-key">${t('Ключ Google')}</label>
             <input id="in-key" type="password" autocomplete="off" spellcheck="false"
-                   placeholder="AIza…" value="${ответы.key}">
+                   data-enter="intro-next" placeholder="AIza…" value="${ответы.key}">
         </div>
 
         <div class="row-links">

@@ -1782,4 +1782,9 @@ export const DE = {
     '{упражнение}: впервые, и почти до отказа — число в плане было прикидкой.': '{упражнение}: zum ersten Mal, und fast bis zum Muskelversagen — die Zahl im Plan war eine Schätzung.',
     'Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.': 'Beim ersten Mal ging der Satz fast bis zum Muskelversagen — die Zahl aus dem Plan war eine Schätzung. Beginne heute mit weniger.',
     'Впервые запас был большой — число из плана было прикидкой: {способ}.': 'Beim ersten Mal blieb viel Reserve — die Zahl aus dem Plan war eine Schätzung: {способ}.',
+    '{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % меньше.': '{упражнение}: laut Plan {подходы} × {цель} s, geschafft {числа} s — {процент} % weniger.',
+    '{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % больше.': '{упражнение}: laut Plan {подходы} × {цель}, geschafft {числа} — {процент} % mehr.',
+    '{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % больше.': '{упражнение}: laut Plan {подходы} × {цель} s, geschafft {числа} s — {процент} % mehr.',
+    'Больше плана вы сделали и в других: {список}.': 'Mehr als im Plan hast du auch bei anderen geschafft: {список}.',
+    'Прибавлять надо не повторениями: {способ}.': 'Nicht über Wiederholungen steigern: {способ}.',
 };

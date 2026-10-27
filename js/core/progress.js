@@ -106,6 +106,63 @@ const SHORT_MIN_TARGET = 5;
 /** Сколько недоборов называть своими строками (Р-216); остальные — одной строкой по именам. */
 export const НЕДОБОР_СТРОК = 2;
 
+/**
+ * Во сколько раз подход должен превзойти цель, чтобы это было перевыполнением
+ * (Р-220): на пятую часть и не меньше чем на два повторения (пять секунд у
+ * времени). «Сделал 16 из 15» — это разброс, а «20 из 15» — другое число.
+ */
+export const OVER_SET = 1.2;
+
+/** Что считать меньшим превышением: у повторений два, у секунд пять. */
+const OVER_MIN = { reps: 2, duration: 5 };
+
+/** Цели меньше этой не меряются: у планки в пять секунд восемь десятых — это секунда. */
+const MIN_TARGET = { reps: SHORT_MIN_TARGET, duration: 10 };
+
+/**
+ * Что план просил по этому упражнению и что вышло — для недобора и
+ * перевыполнения одним разбором (Р-216, Р-220).
+ *
+ * Меряются повторения, а у упражнения на время — секунды: планка тоже
+ * бывает не по плану, и в плане «Планка 3 × 45» сорок пять — те же сорок
+ * пять секунд, что записал подход. Без цели или меньше порога — пропуск.
+ *
+ * Подходы идут по номеру, а не по порядку записи. Меньше двух подходов не
+ * судим: по одному вывода нет.
+ */
+function замеры(plan = [], sets = []) {
+    const итог = [];
+
+    for (const item of plan) {
+        if (!item || item.skipped) continue;
+
+        const field = Number(item.targetReps) > 0 ? 'reps' : Number(item.targetDuration) > 0 ? 'duration' : null;
+        if (!field) continue;
+
+        const target = Number(field === 'reps' ? item.targetReps : item.targetDuration);
+        if (!(target >= MIN_TARGET[field])) continue;
+
+        const done = sets
+            .filter((s) => s && s.exerciseId === item.exerciseId && !s.deletedAt && Number(s[field]) > 0)
+            .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
+            .map((s) => Number(s[field]));
+
+        if (done.length < 2) continue;
+
+        const ряд = [...done].sort((a, b) => a - b);
+        const середина = ряд.length % 2
+            ? ряд[(ряд.length - 1) / 2]
+            : (ряд[ряд.length / 2 - 1] + ряд[ряд.length / 2]) / 2;
+
+        итог.push({
+            item, field, target, done, середина,
+            plannedSets: Number(item.plannedSets) || done.length
+        });
+    }
+
+    return итог;
+}
+
 export const progress = {
 
     MISSED,
@@ -139,36 +196,62 @@ export const progress = {
     shortfall(plan = [], sets = [], { names = {}, earlier = new Set() } = {}) {
         const итог = [];
 
-        for (const item of plan) {
-            const target = Number(item?.targetReps);
-            if (!item || item.skipped || !(target >= SHORT_MIN_TARGET)) continue;
-
-            const done = sets
-                .filter((s) => s && s.exerciseId === item.exerciseId && !s.deletedAt && Number(s.reps) > 0)
-                .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
-                .map((s) => Number(s.reps));
-
-            if (done.length < 2) continue;
-
+        for (const { item, field, target, done, середина, plannedSets } of замеры(plan, sets)) {
             const ниже = done.filter((r) => r < target * SHORT_SET).length;
             if (ниже < Math.max(2, Math.ceil(done.length / 2))) continue;
 
-            const ряд = [...done].sort((a, b) => a - b);
-            const середина = ряд.length % 2
-                ? ряд[(ряд.length - 1) / 2]
-                : (ряд[ряд.length / 2 - 1] + ряд[ряд.length / 2]) / 2;
-
-            const plannedSets = Number(item.plannedSets) || done.length;
             const всего = done.reduce((a, b) => a + b, 0);
 
             итог.push({
                 exerciseId: item.exerciseId,
                 name: names[item.exerciseId] || t('упражнение'),
+                field,
                 target,
                 plannedSets,
                 done,
                 suggest: Math.max(1, Math.min(target - 1, Math.round(середина))),
                 lack: Math.max(1, Math.round((1 - всего / (plannedSets * target)) * 100)),
+                firstTime: !earlier.has(item.exerciseId)
+            });
+        }
+
+        return итог;
+    },
+
+    /**
+     * Где сделано больше плана (§63, Р-220) — зеркало недобора.
+     *
+     * Человек сделал в субботу двадцать приседаний вместо пятнадцати и планку
+     * дольше плана, а на следующий раз пришлось добавлять опять: приложение
+     * знало и план, и факт, но нигде их не сравнивало в эту сторону. Запас по
+     * ответам «легко» тут не нужен: цифра выше цели — сама по себе ответ.
+     *
+     * Перевыполнение — когда не меньше половины сделанных подходов (и не
+     * меньше двух) выше цели на пятую часть и больше, не меньше чем на два
+     * повторения. Предлагаемая цель — середина сделанного, но выше прежней.
+     *
+     * Возвращает то же, что `shortfall`, но с `more` — на сколько процентов
+     * больше плана, — вместо `lack`.
+     */
+    overshoot(plan = [], sets = [], { names = {}, earlier = new Set(), steps = {} } = {}) {
+        const итог = [];
+
+        for (const { item, field, target, done, середина, plannedSets } of замеры(plan, sets)) {
+            const выше = done.filter((r) => r >= target * OVER_SET && r >= target + OVER_MIN[field]).length;
+            if (выше < Math.max(2, Math.ceil(done.length / 2))) continue;
+
+            итог.push({
+                exerciseId: item.exerciseId,
+                name: names[item.exerciseId] || t('упражнение'),
+                field,
+                target,
+                plannedSets,
+                done,
+                suggest: Math.max(target + 1, Math.round(середина)),
+                more: Math.max(1, Math.round((середина / target - 1) * 100)),
+
+                // Чем прибавлять (§59, Р-206): у резинки и снаряда повторения растить нельзя
+                step: steps[item.exerciseId] || (field === 'duration' ? 'time' : 'reps'),
                 firstTime: !earlier.has(item.exerciseId)
             });
         }
@@ -187,7 +270,7 @@ export const progress = {
      * исполнение плана, потом объём. Первое меняет сегодняшнюю тренировку,
      * последнее — разговор с тренером через месяц.
      */
-    describe({ reserve = [], recovery = null, adherence = null, volume = null, shortfalls = [] } = {}) {
+    describe({ reserve = [], recovery = null, adherence = null, volume = null, shortfalls = [], overshoots = [] } = {}) {
         const строки = [];
 
         /*
@@ -368,13 +451,13 @@ export const progress = {
                 topic: 'plan',
                 kind: 'watch',
                 text: [
-                    t('{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % меньше.', {
-                        упражнение: н.name,
-                        подходы: н.plannedSets,
-                        цель: н.target,
-                        числа: н.done.join(', '),
-                        процент: н.lack
-                    }),
+                    (н.field === 'duration'
+                        ? t('{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % меньше.', {
+                            упражнение: н.name, подходы: н.plannedSets, цель: н.target, числа: н.done.join(', '), процент: н.lack
+                        })
+                        : t('{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % меньше.', {
+                            упражнение: н.name, подходы: н.plannedSets, цель: н.target, числа: н.done.join(', '), процент: н.lack
+                        })),
                     н.firstTime ? t('Раньше вы его не делали: число в плане было прикидкой.') : ''
                 ].filter(Boolean).join(' '),
 
@@ -389,6 +472,58 @@ export const progress = {
                 kind: 'watch',
                 text: t('Недобор плана и у других: {список}.', {
                     список: shortfalls.slice(НЕДОБОР_СТРОК).map((н) => н.name).join(', ')
+                })
+            });
+        }
+
+        /*
+         * Перевыполнение — зеркало недобора (Р-220).
+         *
+         * «В плане 3 × 15, сделано 20, 20, 20»: человек добавил сам, и в
+         * следующий раз добавлять пришлось бы опять. Приложение знало и план,
+         * и факт, но в эту сторону их не сравнивало — и поле просило прежние
+         * пятнадцать. Строка называет и то и другое; кнопка «поправить план»
+         * ставит цель по факту. Цвет — «вперёд», а не «внимание»: это не
+         * беда, а повод подтянуть план к человеку.
+         *
+         * Свои строки — не больше двух, остальные одной строкой по именам.
+         */
+        for (const н of overshoots.slice(0, НЕДОБОР_СТРОК)) {
+            строки.push({
+                topic: 'plan',
+                kind: 'up',
+                text: [
+                    (н.field === 'duration'
+                        ? t('{упражнение}: в плане {подходы} × {цель} с, сделано {числа} с — на {процент} % больше.', {
+                            упражнение: н.name, подходы: н.plannedSets, цель: н.target, числа: н.done.join(', '), процент: н.more
+                        })
+                        : t('{упражнение}: в плане {подходы} × {цель}, сделано {числа} — на {процент} % больше.', {
+                            упражнение: н.name, подходы: н.plannedSets, цель: н.target, числа: н.done.join(', '), процент: н.more
+                        })),
+                    /*
+                     * У резинки и снаряда прибавляют не повторениями (§59,
+                     * Р-206): программа прямо говорит «сопротивлением, а не
+                     * повторениями». Поэтому «сделано больше» там превращается в
+                     * прибавку по способу, а не в новую цель по повторениям.
+                     */
+                    ['weight', 'resistance'].includes(н.step)
+                        ? t('Прибавлять надо не повторениями: {способ}.', { способ: ТЯЖЕЛЕЕ[н.step]() })
+                        : '',
+                    н.firstTime ? t('Раньше вы его не делали: число в плане было прикидкой.') : ''
+                ].filter(Boolean).join(' '),
+
+                action: ['weight', 'resistance'].includes(н.step)
+                    ? { type: 'harder', name: н.name, step: н.step }
+                    : { type: 'raise', name: н.name, from: н.target, to: н.suggest, done: н.done }
+            });
+        }
+
+        if (overshoots.length > НЕДОБОР_СТРОК) {
+            строки.push({
+                topic: 'plan',
+                kind: 'up',
+                text: t('Больше плана вы сделали и в других: {список}.', {
+                    список: overshoots.slice(НЕДОБОР_СТРОК).map((н) => н.name).join(', ')
                 })
             });
         }
