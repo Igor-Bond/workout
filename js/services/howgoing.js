@@ -145,14 +145,59 @@ export async function observations({ now = Date.now() } = {}) {
      */
     const поЧастоте = [...занятия.entries()].sort((a, b) => b[1].length - a[1].length);
 
+    /*
+     * Сколько у упражнения занятий за всё время (Р-219) — по рабочим подходам,
+     * без зарядки. Одно занятие значит «впервые»: число для такого упражнения
+     * составитель плана взял из головы, и ждать второго занятия, чтобы это
+     * сказать, нечего.
+     */
+    const занятийВсего = new Map();
+
+    for (const s of рабочие) {
+        if (!занятийВсего.has(s.exerciseId)) занятийВсего.set(s.exerciseId, new Set());
+        занятийВсего.get(s.exerciseId).add(s.workoutId);
+    }
+
+    // Что план просил в последний раз, — по свежей тренировке, где упражнение было
+    const цели = new Map();
+
+    for (const e of [...сводки].sort((a, b) => b.workout.startedAt - a.workout.startedAt)) {
+        if (isBackground(e.workout)) continue;
+
+        for (const п of e.workout.plan || []) {
+            if (!цели.has(п.exerciseId) && Number(п.targetReps) > 0) цели.set(п.exerciseId, Number(п.targetReps));
+        }
+    }
+
+    const строкиПлана = план?.text ? planCore.items(план) : [];
+
     for (const [id, список_занятий] of поЧастоте) {
-        const { verdict } = reserve.verdict(список_занятий);
+        const впервые = (занятийВсего.get(id)?.size || 0) <= 1;
+
+        // Первый раз судим по одному занятию, знакомое упражнение — по двум (§59, Р-219)
+        const { verdict } = reserve.verdict(список_занятий, { need: впервые ? 1 : reserve.NEED });
 
         // Способ прибавки — по тому, чем упражнение нагружено (Р-206)
         if (verdict) {
+            const имя = exercises[id]?.name || t('упражнение');
+            const сделано = (список_занятий[список_занятий.length - 1] || []).map((s) => s.reps).filter((r) => r > 0);
+            const цель = цели.get(id);
+
+            /*
+             * «Поправить план» у «запас потерян» (Р-219): цель чуть ниже, одним
+             * нажатием. Только пока то же число стоит в действующем плане —
+             * как и у недобора (Р-216): иначе поправить нечего.
+             */
+            const легче = verdict === 'easier' && цель && reserve.eased(цель)
+                && строкиПлана.some((с) => planCore.same(с.name, имя) && Number(с.reps) === цель)
+                ? { from: цель, to: reserve.eased(цель), done: сделано }
+                : null;
+
             запас.push({
-                name: exercises[id]?.name || t('упражнение'),
+                name: имя,
                 verdict,
+                first: впервые,
+                lower: легче,
                 step: reserve.step(exercises[id] || {}, список_занятий)
             });
         }

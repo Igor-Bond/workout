@@ -6067,3 +6067,326 @@ describe('Новое упражнение в плане', () => {
         assert(!text(await screen(session)).includes('Число из плана — прикидка'));
     });
 });
+
+/**
+ * Приложение помнит день: порядок и «прошлый раз» — с той же тренировки (Р-219).
+ *
+ * Порядок стартовал по кругу каждый раз, хотя по записанным подходам видно, как
+ * человек вёл этот день; «прошлый раз» брался из тренировки того же типа — то
+ * есть из субботней вместо понедельничной.
+ */
+describe('Память дня: порядок и прошлый раз', () => {
+
+    const DAY = 86400000;
+
+    /** Завершённая тренировка: подходы идут в этом порядке — [id упражнения, повторы]. */
+    async function прошлая(plan, подходы, { дней = 3 } = {}) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: plan.map((exerciseId) => ({ exerciseId, plannedSets: 3, targetReps: 20, skipped: false }))
+        });
+
+        const at = Date.now() - дней * DAY;
+        const счёт = {};
+
+        for (const [i, [exerciseId, reps]] of подходы.entries()) {
+            счёт[exerciseId] = (счёт[exerciseId] || 0) + 1;
+
+            await dbService.addSet({
+                workoutId: w.id, exerciseId, order: i + 1, setNumber: счёт[exerciseId], reps,
+                performedAt: at + i * 60000
+            });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    /** Новая тренировка с этим составом — и режим, с которого она началась. */
+    async function начатая(plan, sequence) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: plan.map((exerciseId) => ({ exerciseId, plannedSets: 3, targetReps: 20, skipped: false }))
+        });
+
+        if (sequence) await dbService.updateWorkout(w.id, { sequence });
+
+        const view = await screen(session);
+
+        return {
+            режим: view.querySelector('[data-action="sess-mode"].is-active')?.dataset.mode,
+            подсказка: text(view).includes('как в прошлый раз'),
+            view,
+            w
+        };
+    }
+
+    /** Порядок из настроек — какой нужен проверке; потом он возвращается. */
+    async function снастройкой(режим, проверка) {
+        const было = config.mode();
+        config.set('mode', режим);
+
+        try {
+            await проверка();
+        } finally {
+            config.set('mode', было);
+        }
+    }
+
+    it('прошлый раз шли по одному — и сегодня начинается по одному, хотя в настройках круг', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [а.id, 30], [б.id, 20], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { режим, подсказка, w } = await начатая([а.id, б.id]);
+
+            equal(режим, 'linear');
+            assert(подсказка, 'сказано, откуда порядок: иначе непонятно, кто его решил');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('прошлый раз шли по кругу — и сегодня по кругу, хотя в настройках «по одному»', async () => {
+        const а = await seed({ name: 'Бицепс', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 50], [б.id, 25], [а.id, 50], [б.id, 25]]);
+
+        await снастройкой('linear', async () => {
+            const { режим, w } = await начатая([а.id, б.id]);
+
+            equal(режим, 'circuit');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('слово в плане сильнее истории', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20], [а.id, 30], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { режим, подсказка, w } = await начатая([а.id, б.id], 'linear');
+
+            equal(режим, 'linear', 'в плане сказано «по одному» — так и идёт');
+            assert(!подсказка, 'про историю не говорится: решило слово плана');
+
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('другой состав — другой день: чужая история порядка не задаёт', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+        const в = await dbService.createExercise({ name: 'Приседания', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [а.id, 30], [б.id, 20], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { режим, w } = await начатая([а.id, в.id]);
+
+            equal(режим, 'circuit', 'отжимания с приседаниями — не тот день');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('истории не из чего вывести (по одному подходу) — порядок из настроек', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { режим, w } = await начатая([а.id, б.id]);
+
+            equal(режим, 'circuit');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('человек сменил порядок — подсказка «как в прошлый раз» уходит', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Узким хватом', kind: 'reps' });
+
+        await прошлая([а.id, б.id], [[а.id, 30], [а.id, 30], [б.id, 20], [б.id, 20]]);
+
+        await снастройкой('circuit', async () => {
+            const { подсказка, w } = await начатая([а.id, б.id]);
+            assert(подсказка);
+
+            await press('sess-mode', { mode: 'circuit' });
+
+            assert(!text(await screen(session)).includes('как в прошлый раз'), 'выбор человека объяснять незачем');
+            await dbService.finishWorkout(w.id);
+        });
+    });
+
+    it('«прошлый раз» — из того же дня, а не из любой тренировки того же типа', async () => {
+        const а = await seed({ name: 'Отжимания', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс', kind: 'reps' });
+        const в = await dbService.createExercise({ name: 'Приседания', kind: 'reps' });
+
+        // Тот же день: отжимания 30, пять дней назад
+        await прошлая([а.id, б.id], [[а.id, 30], [б.id, 25]], { дней: 5 });
+
+        // Другой день с теми же отжиманиями — позже и с другим числом
+        await прошлая([а.id, в.id], [[а.id, 10], [в.id, 15]], { дней: 2 });
+
+        const { view, w } = await начатая([а.id, б.id]);
+
+        assert(text(view).includes('Последний раз 30 повт.'), `ориентир из того же дня: ${text(view).slice(0, 400)}`);
+        assert(!text(view).includes('Последний раз 10 повт.'), 'а не из другого дня того же типа');
+
+        await dbService.finishWorkout(w.id);
+    });
+});
+
+/**
+ * Первый раз — по одному занятию, а не по двум (§59, Р-219).
+ *
+ * Число для упражнения без истории составитель плана взял из головы, и второго
+ * занятия ждать незачем: «легко» или «на грани» с первого раза уже говорит, что
+ * оно занижено или завышено.
+ */
+describe('Первый раз: совет после одного занятия', () => {
+
+    const DAY = 86400000;
+
+    async function занятие(exercise, reps, rir, { дней = 3, target = 20 } = {}) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{ exerciseId: exercise.id, plannedSets: 3, targetReps: target, skipped: false }]
+        });
+
+        const at = Date.now() - дней * DAY;
+
+        for (let i = 0; i < 3; i++) {
+            await dbService.addSet({
+                workoutId: w.id, exerciseId: exercise.id, order: i + 1, setNumber: i + 1, reps,
+                ...(i === 2 && rir ? { rir } : {}), performedAt: at + i * 60000
+            });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    async function планС(строка) {
+        const текст = `С ${датаПлана(-2)}, 8 недель\nПн ${строка}\nВс отдых`;
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+    }
+
+    it('на выполнении: впервые «легко» — совет сразу, не через два занятия', async () => {
+        const ex = await seed({ name: 'Тяга резинки сверху', kind: 'reps' });
+        await занятие(ex, 20, 3);
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая', plan: [{ exerciseId: ex.id, plannedSets: 3, targetReps: 20, skipped: false }]
+        });
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('Впервые запас был большой'), строка.slice(0, 600));
+        assert(!строка.includes('Два занятия подряд запас был большой'), 'второго занятия не ждали');
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('на выполнении: впервые «на грани» — начните с меньшего', async () => {
+        const ex = await seed({ name: 'Узким хватом', kind: 'reps' });
+        await занятие(ex, 25, 1, { target: 25 });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая', plan: [{ exerciseId: ex.id, plannedSets: 3, targetReps: 25, skipped: false }]
+        });
+
+        assert(text(await screen(session)).includes('Впервые подход шёл почти до отказа'));
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('текущее занятие в счёт не идёт: по первому же подходу вывода ещё нет', async () => {
+        const ex = await seed({ name: 'Тяга резинки сверху', kind: 'reps' });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая', plan: [{ exerciseId: ex.id, plannedSets: 3, targetReps: 20, skipped: false }]
+        });
+
+        await dbService.addSet({ workoutId: w.id, exerciseId: ex.id, order: 1, setNumber: 1, reps: 20, rir: 3, performedAt: Date.now() });
+
+        assert(!text(await screen(session)).includes('Впервые запас был большой'), 'тренировка ещё идёт');
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('знакомое упражнение — по-прежнему по двум занятиям', async () => {
+        const ex = await seed({ name: 'Тяга резинки сверху', kind: 'reps' });
+        await занятие(ex, 20, 3, { дней: 6 });
+        await занятие(ex, 20, 3, { дней: 3 });
+
+        const w = await dbService.createWorkout({
+            type: 'Силовая', plan: [{ exerciseId: ex.id, plannedSets: 3, targetReps: 20, skipped: false }]
+        });
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('Два занятия подряд запас был большой'), строка.slice(0, 600));
+        assert(!строка.includes('Впервые'));
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('на итогах: первый раз «на грани» — с кнопкой «поправить план»', async () => {
+        const ex = await seed({ name: 'Узким хватом', kind: 'reps' });
+        await планС('Узким хватом 3 × 25');
+
+        const w = await занятие(ex, 25, 1, { target: 25, дней: 0 });
+
+        const view = await screen(summary, [w.id]);
+
+        assert(text(view).includes('впервые, и почти до отказа'), text(view).slice(0, 500));
+
+        const кнопка = view.querySelector('[data-action="accept-lower"]');
+
+        assert(кнопка, 'сразу после тренировки, пока подходы в памяти');
+        equal([кнопка.dataset.from, кнопка.dataset.to], ['25', '22']);
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('на итогах: первый раз «легко» — с кнопкой прибавки, если план есть', async () => {
+        const ex = await seed({ name: 'Тяга резинки сверху', kind: 'reps' });
+        await планС('Тяга резинки сверху 3 × 20');
+
+        const w = await занятие(ex, 20, 3, { дней: 0 });
+
+        assert(hasAction(await screen(summary, [w.id]), 'accept-harder'));
+
+        await dbService.setSetting(PLAN_KEY, null);
+
+        assert(!hasAction(await screen(summary, [w.id]), 'accept-harder'), 'без плана править нечего — кнопки нет');
+    });
+
+    it('«запас потерян» после двух занятий теперь с кнопкой на статистике', async () => {
+        const ex = await seed({ name: 'Узким хватом', kind: 'reps' });
+        await планС('Узким хватом 3 × 25');
+
+        await занятие(ex, 25, 1, { target: 25, дней: 5 });
+        await занятие(ex, 25, 1, { target: 25, дней: 2 });
+
+        const view = await screen(stats);
+
+        assert(text(view).includes('два занятия подряд почти до отказа'), text(view).slice(0, 500));
+        assert(hasAction(view, 'accept-lower'), 'раньше строка только сообщала');
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+});

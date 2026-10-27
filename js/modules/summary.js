@@ -12,7 +12,8 @@ import { dbService } from '../services/db.js';
 import { effort } from '../core/effort.js';
 import { currentActivities } from './watch.js';
 import { progress } from '../core/progress.js';
-import { недоборы } from '../services/howgoing.js';
+import { недоборы, observations } from '../services/howgoing.js';
+import { currentPlan } from './planner.js';
 import { engine } from '../core/engine.js';
 import { records } from '../core/records.js';
 import { kindFields } from '../core/kinds.js';
@@ -319,6 +320,21 @@ export const summary = {
             .describe({ shortfalls: await недоборы({ workoutId: workout.id }) })
             .filter((с) => с.topic === 'plan');
 
+        /*
+         * И первые разы — тут же (Р-219): «легко» или «на грани» у упражнения,
+         * которого человек не делал. Число для него составитель плана взял из
+         * головы, и правка нужна сейчас, пока подходы в памяти, а не после
+         * второго занятия, когда приложение дозреет само.
+         */
+        const имена = new Set(blocks.map((b) => exercises[b.exerciseId]?.name).filter(Boolean));
+
+        // Кнопка прибавки правит план — без плана ей нечего делать и показывать её нельзя
+        const планЕсть = !!(await currentPlan())?.text;
+
+        for (const с of (await observations()).filter((x) => x.topic === 'reserve' && x.first && имена.has(x.name))) {
+            расхождения.push(с);
+        }
+
         return ui.html`
             ${ui.title(t('Итоги тренировки'),
                 `${workout.type} · ${dates.formatDateTime(workout.startedAt)}`)}
@@ -380,6 +396,15 @@ export const summary = {
                     ${расхождения.map((с) => ui.html`
                         <div class="plan-rule note-${с.kind}">
                             ${с.text}
+
+                            ${с.action?.type === 'harder' && планЕсть ? ui.html`
+                                <span class="row-links">
+                                    <button class="link-btn" data-action="accept-harder"
+                                            data-name="${с.action.name}" data-step="${с.action.step || 'weight'}">
+                                        ${t('принять прибавку')}
+                                    </button>
+                                </span>
+                            ` : ''}
 
                             ${с.action?.type === 'lower' ? ui.html`
                                 <span class="row-links">

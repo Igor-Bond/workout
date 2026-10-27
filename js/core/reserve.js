@@ -192,6 +192,21 @@ export const reserve = {
         return Math.round(n) + Math.max(1, Math.round(n * reserve.RAISE));
     },
 
+    /**
+     * Повторения чуть легче — когда подход шёл на пределе (Р-219): минус десятая
+     * часть, но не меньше одного повторения.
+     *
+     * «Почти до отказа» значит, что в запасе одно повторение, а цель — около
+     * двух: недостаёт ровно одного-двух. Большая уступка — это уже недобор
+     * плана (Р-216), у него своя мера.
+     */
+    eased(value) {
+        const n = Number(value);
+        if (!Number.isFinite(n) || n <= 1) return null;
+
+        return Math.max(1, Math.round(n) - Math.max(1, Math.round(n * reserve.RAISE)));
+    },
+
     /** Как изменится число в плане при прибавке этим способом. */
     next(step, value) {
         return step === 'reps' || step === 'time' ? reserve.more(value) : reserve.lighter(value);

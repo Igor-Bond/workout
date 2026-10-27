@@ -20,6 +20,7 @@ import { isBackground } from '../core/rhythm.js';
 import { restTimer } from '../core/timer.js';
 import { hold } from '../core/hold.js';
 import { reserve } from '../core/reserve.js';
+import { ТЯЖЕЛЕЕ as ТЯЖЕЛЕЕ_СЛОВА } from '../core/progress.js';
 import { противПрибавки as сонИПульсПротив } from '../services/howgoing.js';
 import { haptics } from '../core/haptics.js';
 import { beeper } from '../core/beeper.js';
@@ -185,9 +186,37 @@ let mode = null;
  */
 let режимДля = null;
 
-/** Порядок, с которого начинается эта тренировка (Р-215). */
-function начальныйРежим(workout) {
-    return MODES.some((m) => m.value === workout?.sequence) ? workout.sequence : config.mode();
+/**
+ * Откуда взят порядок: 'plan' — слово в плане, 'history' — как в прошлый раз,
+ * 'config' — из настроек (Р-219). По нему экран говорит, почему порядок такой.
+ */
+let режимОткуда = 'config';
+
+/** С какого режима началась тренировка: пока он не тронут, экран объясняет, откуда он (Р-219). */
+let режимСтарта = null;
+
+/**
+ * Порядок, с которого начинается эта тренировка (Р-215, Р-219).
+ *
+ * Три источника, и старшинство у них такое: слово в самом дне плана («по
+ * одному») — человек сказал прямо; иначе то, как шла прошлая тренировка с тем
+ * же составом, — он уже показал руками, что ему удобно; иначе настройка.
+ *
+ * История выводится из записанных подходов, а не хранится: порядок, которым
+ * человек вёл тренировку, и есть его ответ. Смена порядка посреди тренировки
+ * поэтому «запоминается» сама — она оставляет подходы в другом порядке.
+ */
+async function начальныйРежим(workout, проведённые = []) {
+    if (MODES.some((m) => m.value === workout?.sequence)) {
+        return { режим: workout.sequence, откуда: 'plan' };
+    }
+
+    const прошлая = engine.sameDay(workout, проведённые, { background: isBackground });
+    const прошлый = прошлая ? engine.sequenceOf(await dbService.listSets(прошлая.id)) : null;
+
+    if (прошлый) return { режим: прошлый, откуда: 'history' };
+
+    return { режим: config.mode(), откуда: 'config' };
 }
 let ticker = 0;
 let unsubscribe = [];
@@ -259,6 +288,7 @@ async function load() {
         workout, sets, exercises, rows, kind, history,
         bodyWeight: body?.weight || 0,
         last: сравнимый(history, workout, проведённые),
+        проведённые,
         best: records.best(history, kind, workout.id),
 
         // Совет «пора тяжелее» слышит сон и пульс так же, как статистика (Р-206)
@@ -288,13 +318,25 @@ async function load() {
 function сравнимый(history, workout, проведённые) {
     const типы = new Map(проведённые.map((w) => [w.id, w.type]));
 
+    /*
+     * Первым — тот же день: тренировка с тем же составом (Р-219).
+     *
+     * Тип у плановых тренировок один, «Силовая», и по нему понедельник не
+     * отличить от субботы: отжимания из понедельника «на грани» сравнивались с
+     * субботними, где они лёгкие. Состав упражнений — то, что делает день
+     * днём, и не требует ни плана под рукой, ни дня недели.
+     */
+    const деньТот = engine.sameDay(workout, проведённые, { background: isBackground });
+    const этогоДня = деньТот ? history.filter((s) => s.workoutId === деньТот.id) : [];
+
     const тот_же = history.filter((s) => типы.get(s.workoutId) === workout.type);
     const не_фон = history.filter((s) => {
         const тип = типы.get(s.workoutId);
         return тип !== undefined && !isBackground({ type: тип });
     });
 
-    return records.lastSession(тот_же, workout.id)
+    return records.lastSession(этогоДня, workout.id)
+        || records.lastSession(тот_же, workout.id)
         || records.lastSession(не_фон, workout.id)
         || records.lastSession(history, workout.id);
 }
@@ -713,19 +755,44 @@ function запасБлок() {
  * И сон с пульсом здесь слышны так же, как на статистике: в неделю, когда
  * они против, совет говорит «но не сейчас» и перестаёт выделяться цветом.
  */
-function советЗапаса({ history, kind, exercises, last, противПрибавки }) {
-    const занятия = records.sessions(history || []).map((s) => s.sets);
-    const итог = reserve.verdict(занятия);
+function советЗапаса({ history, kind, exercises, last, противПрибавки, workout }) {
+    /*
+     * Впервые — по одному занятию, текущее не в счёт (Р-219).
+     *
+     * Число для упражнения без истории составитель плана взял из головы, и
+     * второго занятия ждать незачем. Считаются прошлые занятия без нынешнего:
+     * оно ещё идёт, и совет по его первому подходу объявлял бы вывод раньше
+     * времени.
+     */
+    const прошлые = records.sessions((history || []).filter((s) => s.workoutId !== workout?.id)).map((s) => s.sets);
+    const впервые = прошлые.length === 1;
+
+    const занятия = впервые ? прошлые : records.sessions(history || []).map((s) => s.sets);
+    const итог = reserve.verdict(занятия, { need: впервые ? 1 : reserve.NEED });
 
     if (итог.verdict === 'easier') {
         return ui.html`
             <p class="hint">
-                ${t('Два занятия подряд подход шёл почти до отказа. Это тяжелее, чем нужно: цель — оставлять около двух повторений.')}
+                ${впервые
+                    ? t('Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.')
+                    : t('Два занятия подряд подход шёл почти до отказа. Это тяжелее, чем нужно: цель — оставлять около двух повторений.')}
             </p>
         `;
     }
 
     if (итог.verdict !== 'harder') return null;
+
+    if (впервые) {
+        const способ = reserve.step({ ...(exercises?.[currentId] || {}), kind }, занятия);
+
+        if (!способ) return null;
+
+        const совет = t('Впервые запас был большой — число из плана было прикидкой: {способ}.', { способ: ТЯЖЕЛЕЕ_СЛОВА[способ]() });
+
+        return противПрибавки
+            ? ui.html`<p class="hint">${совет} ${t('Но не на этой неделе: сон и пульс против.')}</p>`
+            : ui.html`<p class="hint is-accent">${совет}</p>`;
+    }
 
     const способ = reserve.step({ ...(exercises?.[currentId] || {}), kind }, занятия);
     if (!способ) return null;
@@ -1159,7 +1226,11 @@ export const session = {
         // Режим — у каждой тренировки свой старт (Р-215); дальше он живёт
         // выбором человека, пока тренировка не закрыта
         if (view && режимДля !== view.workout.id) {
-            mode = начальныйРежим(view.workout);
+            const старт = await начальныйРежим(view.workout, view.проведённые);
+
+            mode = старт.режим;
+            режимСтарта = старт.режим;
+            режимОткуда = старт.откуда;
             режимДля = view.workout.id;
         }
 
@@ -1193,6 +1264,15 @@ export const session = {
                     `)}
                 </div>
             </div>
+
+            <!--
+                Откуда порядок — словами, пока человек его не менял (Р-219): без
+                этого тренировка вдруг начиналась «по одному», и непонятно, кто
+                это решил.
+            -->
+            ${режимОткуда === 'history' && mode === режимСтарта ? ui.html`
+                <p class="hint">${t('Порядок — как в прошлый раз у этой тренировки: {порядок}.', { порядок: t(mode === 'linear' ? 'по одному' : 'по кругу') })}</p>
+            ` : ''}
 
             ${complete ? ui.html`
                 <div class="banner"><span>${t('План выполнен — можно завершать')}</span></div>
@@ -1942,6 +2022,7 @@ async function finishWorkout(workout) {
     currentId = null;
     mode = null;
     режимДля = null;
+    режимСтарта = null;
 
     app.go('summary', workout.id, 'done');
 }

@@ -184,3 +184,22 @@ describe('Прибавка повторениями', () => {
         equal(reserve.next('weight', 20), 16, 'вес больше — вниз');
     });
 });
+
+describe('Чуть легче (Р-219)', () => {
+
+    it('минус десятая часть, но не меньше одного повторения', () => {
+        equal(reserve.eased(25), 22);
+        equal(reserve.eased(10), 9);
+        equal(reserve.eased(5), 4);
+    });
+
+    it('единица и пустое — не к чему уступать', () => {
+        equal(reserve.eased(1), null);
+        equal(reserve.eased(0), null);
+        equal(reserve.eased(null), null);
+    });
+
+    it('ниже прежней цели всегда', () => {
+        for (const n of [2, 3, 8, 15, 30, 50, 100]) assert(reserve.eased(n) < n, `для ${n}: ${reserve.eased(n)}`);
+    });
+});

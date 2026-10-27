@@ -592,3 +592,44 @@ describe('Недобор плана', () => {
         equal(строки[2].action, undefined, 'у сводной строки кнопки нет');
     });
 });
+
+/**
+ * Первый раз судится по одному занятию, а «запас потерян» получает кнопку (Р-219).
+ */
+describe('Первый раз и кнопка у «на грани»', () => {
+
+    it('впервые и запас большой — так и сказано, и число в плане названо прикидкой', () => {
+        const [строка] = progress.describe({ reserve: [{ name: 'Тяга резинки сверху', verdict: 'harder', step: 'resistance', first: true }] });
+
+        assert(строка.text.includes('впервые, и запас большой'), строка.text);
+        assert(строка.text.includes('Число в плане было прикидкой'), строка.text);
+        assert(!строка.text.includes('два занятия подряд'), 'второго занятия ждать не пришлось');
+        equal(строка.first, true);
+        equal(строка.action.type, 'harder', 'прибавка — той же кнопкой');
+    });
+
+    it('впервые и почти до отказа — с кнопкой «поправить план»: цель чуть ниже', () => {
+        const [строка] = progress.describe({
+            reserve: [{ name: 'Отжимания узким хватом', verdict: 'easier', step: 'reps', first: true, lower: { from: 25, to: 22, done: [25, 25, 25, 25] } }]
+        });
+
+        assert(строка.text.includes('впервые, и почти до отказа'), строка.text);
+        equal(строка.action.type, 'lower');
+        equal([строка.action.from, строка.action.to], [25, 22]);
+    });
+
+    it('после двух занятий «запас потерян» тоже с кнопкой — раньше была одна новость', () => {
+        const [строка] = progress.describe({
+            reserve: [{ name: 'Пресс', verdict: 'easier', step: 'reps', first: false, lower: { from: 25, to: 22, done: [25, 24] } }]
+        });
+
+        assert(строка.text.includes('два занятия подряд почти до отказа'), строка.text);
+        equal(строка.action.type, 'lower');
+    });
+
+    it('без числа в плане кнопки нет: поправить нечего', () => {
+        const [строка] = progress.describe({ reserve: [{ name: 'Пресс', verdict: 'easier', step: 'reps', first: false, lower: null }] });
+
+        equal(строка.action.type, 'easier');
+    });
+});

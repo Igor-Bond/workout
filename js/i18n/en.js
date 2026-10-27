@@ -1778,4 +1778,10 @@ export const EN = {
     'План и факт': 'Plan and actual',
     'Новое: {список} — число из плана, а не ваше. Начните с запасом 2–3.': 'New: {список} — the number is the plan\'s, not yours. Start with 2–3 reps in reserve.',
     'Число из плана — прикидка: начните с запасом 2–3.': 'The plan\'s number is a guess: start with 2–3 reps in reserve.',
+    'по кругу': 'round robin',
+    'Порядок — как в прошлый раз у этой тренировки: {порядок}.': 'The order is the same as last time for this workout: {порядок}.',
+    '{упражнение}: впервые, и запас большой — {способ}. Число в плане было прикидкой.': '{упражнение}: first time, and plenty in reserve — {способ}. The number in the plan was a guess.',
+    '{упражнение}: впервые, и почти до отказа — число в плане было прикидкой.': '{упражнение}: first time, and close to failure — the number in the plan was a guess.',
+    'Впервые подход шёл почти до отказа — число из плана было прикидкой. Сегодня начните с меньшего.': 'The first time the set went close to failure — the plan\'s number was a guess. Start with less today.',
+    'Впервые запас был большой — число из плана было прикидкой: {способ}.': 'The first time there was plenty in reserve — the plan\'s number was a guess: {способ}.',
 };
