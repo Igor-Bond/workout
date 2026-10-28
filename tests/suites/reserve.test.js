@@ -203,3 +203,23 @@ describe('Чуть легче (Р-219)', () => {
         for (const n of [2, 3, 8, 15, 30, 50, 100]) assert(reserve.eased(n) < n, `для ${n}: ${reserve.eased(n)}`);
     });
 });
+
+/**
+ * Прибавлять время можно секундами, а не минутами (Р-222): баскетбол девяносто
+ * минут не «удлиняют на десятую часть», у него растёт интенсивность.
+ */
+describe('Способ прибавки у упражнения на время', () => {
+
+    it('в секундах — прибавляют секунды', () => {
+        equal(reserve.step({ kind: 'time', name: 'Планка' }), 'time');
+        equal(reserve.step({ kind: 'time', name: 'Планка', timeUnit: 'sec' }), 'time');
+    });
+
+    it('в минутах — прибавлять нечем: совета нет', () => {
+        equal(reserve.step({ kind: 'time', name: 'Баскетбол', timeUnit: 'min' }), null);
+    });
+
+    it('единица времени на повторения и вес не влияет', () => {
+        equal(reserve.step({ kind: 'weight', name: 'Жим лёжа', timeUnit: 'min' }), 'weight');
+    });
+});

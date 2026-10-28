@@ -7013,3 +7013,112 @@ describe('Перевыполнение плана: от тренировки д�
         await убрать();
     });
 });
+
+/**
+ * Упражнения на время: вопрос про запас и совет «прибавить время» (§59, Р-222).
+ *
+ * «Сколько повторений в запасе» у планки и баскетбола — вопрос ни о чём, а совет
+ * «прибавить время» у матча на девяносто минут читался как «играйте дольше».
+ */
+describe('Упражнения на время: запас и совет', () => {
+
+    const DAY = 86400000;
+
+    /** Тренировка с одним упражнением: завершённая или идущая. */
+    async function занятие(exercise, подходы, { дней = null, rir = null, kind = 'time' } = {}) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: [{
+                exerciseId: exercise.id, plannedSets: подходы.length, skipped: false,
+                targetReps: kind === 'reps' ? подходы[0] : null,
+                targetDuration: kind === 'time' ? подходы[0] : null
+            }]
+        });
+
+        if (дней === null) return w;
+
+        const at = Date.now() - дней * DAY;
+
+        for (const [i, v] of подходы.entries()) {
+            await dbService.addSet({
+                workoutId: w.id, exerciseId: exercise.id, order: i + 1, setNumber: i + 1,
+                ...(kind === 'time' ? { duration: v } : { reps: v }),
+                ...(rir ? { rir } : {}), performedAt: at + i * 60000
+            });
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    it('у планки спрашивают «сколько сил», а у отжиманий — «сколько повторений»', async () => {
+        const планка = await seed({ name: 'Планка', kind: 'time' });
+        const w = await занятие(планка, [45, 45]);
+
+        const время = text(await screen(session));
+
+        assert(время.includes('Сколько сил в запасе'), время.slice(0, 600));
+        assert(время.includes('небольшой запас'), 'ответ «около двух» у времени ничего не значит');
+        assert(!время.includes('Сколько повторений в запасе'));
+
+        await dbService.finishWorkout(w.id);
+
+        const отжимания = await dbService.createExercise({ name: 'Отжимания', kind: 'reps', group: 'Грудь' });
+        const w2 = await занятие(отжимания, [20, 20], { kind: 'reps' });
+
+        const повторы = text(await screen(session));
+
+        assert(повторы.includes('Сколько повторений в запасе'), повторы.slice(0, 600));
+        assert(повторы.includes('около двух'));
+
+        await dbService.finishWorkout(w2.id);
+    });
+
+    it('планка: два занятия с «легко» — совет «прибавить время» на статистике', async () => {
+        const планка = await seed({ name: 'Планка', kind: 'time' });
+
+        await занятие(планка, [45, 45, 45], { дней: 6, rir: 3 });
+        await занятие(планка, [45, 45, 45], { дней: 2, rir: 3 });
+
+        assert(text(await screen(stats)).includes('Планка: два занятия подряд запас большой — можно прибавить время'));
+    });
+
+    it('баскетбол в минутах: прибавлять время нечем — совета «прибавить время» нет', async () => {
+        const игра = await seed({ name: 'Баскетбол', kind: 'time' });
+        await dbService.updateExercise(игра.id, { timeUnit: 'min' });
+
+        await занятие(игра, [5400], { дней: 6, rir: 3 });
+        await занятие(игра, [5400], { дней: 2, rir: 3 });
+
+        const строка = text(await screen(stats));
+
+        assert(!строка.includes('Баскетбол: два занятия подряд запас большой'), строка.slice(0, 900));
+        assert(!строка.includes('прибавить время'), 'матч не удлиняют на десятую часть');
+    });
+
+    it('баскетбол: на экране выполнения нет совета «прибавить время», а планка его получает', async () => {
+        const игра = await seed({ name: 'Баскетбол', kind: 'time' });
+        await dbService.updateExercise(игра.id, { timeUnit: 'min' });
+
+        await занятие(игра, [5400], { дней: 6, rir: 3 });
+        await занятие(игра, [5400], { дней: 2, rir: 3 });
+
+        const w = await занятие(игра, [5400]);
+        const игра_экран = text(await screen(session));
+
+        assert(!игра_экран.includes('пора прибавить время'), игра_экран.slice(0, 900));
+        await dbService.finishWorkout(w.id);
+
+        const планка = await dbService.createExercise({ name: 'Планка', kind: 'time', group: 'Кор' });
+
+        await занятие(планка, [45, 45], { дней: 5, rir: 3 });
+        await занятие(планка, [45, 45], { дней: 1, rir: 3 });
+
+        const w2 = await занятие(планка, [45, 45]);
+
+        assert(text(await screen(session)).includes('пора прибавить время'), 'для планки совет остался');
+        await dbService.finishWorkout(w2.id);
+    });
+});
