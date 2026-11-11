@@ -1207,6 +1207,16 @@ function полеПовторений(kind, prefill, value) {
     `;
 }
 
+/** Цели плана той тренировки, из которой взят «прошлый раз», по текущему упражнению (Р-224). */
+function целиПрошлогоРаза({ last, проведённые }) {
+    if (!last) return undefined;
+
+    const тогда = (проведённые || []).find((w) => w.id === last.workoutId);
+    const строка = (тогда?.plan || []).find((p) => p?.exerciseId === currentId);
+
+    return строка ? { reps: Number(строка.targetReps) || null, duration: Number(строка.targetDuration) || null } : undefined;
+}
+
 function currentCard({ workout, sets, exercises, rows }) {
     const row = rows.find((r) => r.exerciseId === currentId);
     if (!row) return ui.empty(t('Добавь упражнение, чтобы начать.'));
@@ -1223,7 +1233,11 @@ function currentCard({ workout, sets, exercises, rows }) {
         // строке «Последний раз» (Р-220): поле его поднимает, но не опускает.
         // Только из той же схемы подходов (Р-223): пятьдесят из тяжёлого дня
         // 6 × 50 не должны вставать в поле лёгкого 12 × 35
-        прошлый: view.last?.схемаТа ? view.last.sets?.[0] : undefined
+        прошлый: view.last?.схемаТа ? view.last.sets?.[0] : undefined,
+
+        // Что просил план в тот раз (Р-224): память вверх — это «сделал больше,
+        // чем просили», и сравнивать надо с той целью, а не с нынешней
+        прошлаяЦель: целиПрошлогоРаза(view)
     });
     const own = engine.setsOf(sets, currentId);
 

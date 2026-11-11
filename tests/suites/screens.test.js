@@ -7316,6 +7316,34 @@ describe('Схема подходов: тяжёлый и лёгкий день',
         await dbService.finishWorkout(w.id);
     });
 
+    it('этап снизил повторения: прошлые пятьдесят не перебивают план в тридцать пять', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        // Две недели назад план просил пятьдесят и пятьдесят сделано; теперь этап ниже
+        await день([а.id, б.id], 6, 50, { дней: 14 });
+
+        const { поле, строка, w } = await сегодня([а.id, б.id], 6, 35);
+
+        equal(поле, '35', 'план понизили нарочно: резинка жёстче, а повторения вниз');
+        assert(строка.includes('Последний раз 50 повт.'), 'сам прошлый раз называется как был');
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('плана не опускали, а прошлый раз сделали больше — поле поднимается, как в Р-220', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        // План просил тридцать пять, сделано пятьдесят; сегодня план всё те же тридцать пять
+        await день([а.id, б.id], 6, 50, { дней: 14, цель: 35 });
+
+        const { поле, w } = await сегодня([а.id, б.id], 6, 35);
+
+        equal(поле, '50');
+        await dbService.finishWorkout(w.id);
+    });
+
     it('правило запаса считает по схеме: чередование «почти отказ» и «легко» больше не глушит совет', async () => {
         const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
         const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
