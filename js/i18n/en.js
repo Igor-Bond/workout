@@ -1172,6 +1172,8 @@ export const EN = {
     'Отсчёт': 'Countdown',
     'приготовься': 'get ready',
     'секунд осталось': 'seconds left',
+    'прошло': 'elapsed',
+    'другая схема: {подходов}': 'different scheme: {подходов}',
     'секунд идёт': 'seconds so far',
     'Нет в справочнике': 'Not in the catalogue',
     'План называет упражнения, которых у вас нет. Их заведёт утверждение плана — или заведите прямо сейчас, чтобы посмотреть, что вышло.': 'The plan names exercises you do not have. Approving the plan will add them — or add them right now to see what came out.',

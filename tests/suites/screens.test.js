@@ -7122,3 +7122,231 @@ describe('Упражнения на время: запас и совет', () =>
         await dbService.finishWorkout(w2.id);
     });
 });
+
+/**
+ * Секундомер у игры и пробежки, обратный отсчёт у удержания (§57, Р-223).
+ *
+ * Баскетбол на девяносто минут отсчитывался назад: «90» из плана принималось за
+ * цель и молча срезалось до получаса — на экране «секунд осталось 1800».
+ */
+describe('Отсчёт: вперёд или назад', () => {
+
+    /** Запустить отсчёт, перевести часы на двадцать секунд (пять — подготовка) и снять показ. */
+    async function впроцессе(exercise, planItem) {
+        const w = await dbService.createWorkout({ type: 'Силовая', plan: [{ exerciseId: exercise.id, skipped: false, ...planItem }] });
+
+        // Обработчик читает поле из страницы, а `screen` отдаёт узел сбоку: на время нажатия узел встаёт
+        // на страницу, а следы прошлых проверок с тем же id убираются, иначе прочиталось бы чужое число
+        document.querySelectorAll('#f-duration, #f-reps, #f-weight, #f-distance').forEach((узел) => узел.remove());
+
+        const начальный = await screen(session);
+        document.body.appendChild(начальный);
+
+        try {
+            await press('sess-hold-start');
+        } finally {
+            начальный.remove();
+        }
+
+        const настоящее = Date.now;
+        Date.now = () => настоящее() + 20000;
+
+        let view;
+
+        try {
+            view = await screen(session);
+        } finally {
+            Date.now = настоящее;
+        }
+
+        const показ = {
+            число: view.querySelector('#hold-number')?.textContent.trim(),
+            подпись: view.querySelector('#hold-label')?.textContent.trim()
+        };
+
+        // Часы вернулись: это снова подготовка, и остановка — отмена без записи
+        await press('sess-hold-stop');
+        await dbService.deleteWorkout(w.id);
+
+        return показ;
+    }
+
+    it('баскетбол в минутах идёт вперёд: «прошло 00:15», а не «секунд осталось»', async () => {
+        const игра = await seed({ name: 'Баскетбол тест', kind: 'time' });
+        await dbService.updateExercise(игра.id, { timeUnit: 'min' });
+
+        const показ = await впроцессе(игра, { plannedSets: 1, targetDuration: 5400 });
+
+        equal(показ.подпись, 'прошло');
+        equal(показ.число, '00:15', 'пятнадцать секунд работы, а не 1785 из полусотни минут');
+    });
+
+    it('кардио тоже идёт вперёд', async () => {
+        const бег = await seed({ name: 'Бег тест', kind: 'distance' });
+
+        const показ = await впроцессе(бег, { plannedSets: 1, targetDuration: 1200 });
+
+        equal(показ.подпись, 'прошло');
+        equal(показ.число, '00:15');
+    });
+
+    it('планка в секундах по-прежнему считает назад до цели', async () => {
+        const планка = await seed({ name: 'Планка тест', kind: 'time' });
+
+        const показ = await впроцессе(планка, { plannedSets: 3, targetDuration: 45 });
+
+        equal(показ.подпись, 'секунд осталось', JSON.stringify(показ));
+        equal(показ.число, '30', 'сорок пять минус пятнадцать ' + JSON.stringify(показ));
+    });
+
+    it('планка без цели — секундомер в секундах, как и была', async () => {
+        const планка = await seed({ name: 'Планка без цели', kind: 'time' });
+
+        const показ = await впроцессе(планка, { plannedSets: 1, targetDuration: null });
+
+        equal(показ.подпись, 'секунд идёт', JSON.stringify(показ));
+        equal(показ.число, '15', JSON.stringify(показ));
+    });
+});
+
+/**
+ * Прошлый раз — из занятия с той же схемой подходов (§15, §59, Р-223).
+ *
+ * Тяжёлый и лёгкий дни бывают из одних упражнений: 6 × 50 и 12 × 35. Последней с
+ * этим составом оказывался соседний день другой схемы, и на лёгком дне поле,
+ * поднимаясь до прошлого раза (Р-220), заполнялось пятьюдесятью при плане в
+ * тридцать пять.
+ */
+describe('Схема подходов: тяжёлый и лёгкий день', () => {
+
+    const DAY = 86400000;
+
+    /** Завершённый день: у каждого упражнения подходов × повторов, ответ о запасе — rir. */
+    async function день(ids, подходов, повторов, { дней, rir = null, цель = повторов }) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: ids.map((exerciseId) => ({ exerciseId, plannedSets: подходов, targetReps: цель, skipped: false }))
+        });
+
+        const at = Date.now() - дней * DAY;
+        let n = 0;
+
+        for (const exerciseId of ids) {
+            for (let i = 1; i <= подходов; i++) {
+                await dbService.addSet({
+                    workoutId: w.id, exerciseId, order: ++n, setNumber: i, reps: повторов,
+                    ...(rir ? { rir } : {}), performedAt: at + n * 30000
+                });
+            }
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + 1800000);
+
+        return w;
+    }
+
+    /** Сегодняшний день — и экран выполнения с первым упражнением. */
+    async function сегодня(ids, подходов, повторов) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: ids.map((exerciseId) => ({ exerciseId, plannedSets: подходов, targetReps: повторов, skipped: false }))
+        });
+
+        const view = await screen(session);
+
+        return { view, w, поле: view.querySelector('#f-reps')?.value, строка: text(view) };
+    }
+
+    it('лёгкий день после тяжёлого: ориентир — прошлый лёгкий, а не вчерашний тяжёлый', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        await день([а.id, б.id], 6, 50, { дней: 7 });
+        await день([а.id, б.id], 12, 35, { дней: 3 });
+        await день([а.id, б.id], 6, 50, { дней: 1 });
+
+        const { поле, строка, w } = await сегодня([а.id, б.id], 12, 35);
+
+        assert(строка.includes('Последний раз 35 повт.'), `лёгкий с лёгким: ${строка.slice(0, 300)}`);
+        assert(!строка.includes('другая схема'), 'схема та же — пометки нет');
+        equal(поле, '35', 'не пятьдесят из вчерашнего тяжёлого дня');
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('лёгкий день, а в истории только тяжёлый: ориентир назван из другой схемы, а поле — по плану', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        await день([а.id, б.id], 6, 50, { дней: 2 });
+
+        const { поле, строка, w } = await сегодня([а.id, б.id], 12, 35);
+
+        assert(строка.includes('Последний раз 50 повт. (другая схема: 6 подходов)'), строка.slice(0, 300));
+        equal(поле, '35', 'память поднимает число только внутри той же схемы');
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('тяжёлый день после лёгкого: поле — число плана', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        await день([а.id, б.id], 12, 35, { дней: 2 });
+
+        const { поле, строка, w } = await сегодня([а.id, б.id], 6, 50);
+
+        equal(поле, '50');
+        assert(строка.includes('другая схема: 12 подходов'), строка.slice(0, 300));
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('внутри своей схемы память «вверх» работает, как в Р-220', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        // В тот лёгкий день сделано по сорок — больше плана в тридцать пять
+        await день([а.id, б.id], 12, 40, { дней: 3, цель: 35 });
+
+        const { поле, w } = await сегодня([а.id, б.id], 12, 35);
+
+        equal(поле, '40');
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('правило запаса считает по схеме: чередование «почти отказ» и «легко» больше не глушит совет', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        // Тяжёлый день — почти отказ, лёгкий — легко; идут вперемешку
+        await день([а.id, б.id], 6, 50, { дней: 13, rir: 1 });
+        await день([а.id, б.id], 12, 35, { дней: 10, rir: 3 });
+        await день([а.id, б.id], 6, 50, { дней: 6, rir: 1 });
+        await день([а.id, б.id], 12, 35, { дней: 3, rir: 3 });
+
+        const лёгкий = await сегодня([а.id, б.id], 12, 35);
+
+        assert(лёгкий.строка.includes('Два занятия подряд запас был большой'), `у лёгкого дня запас большой: ${лёгкий.строка.slice(0, 500)}`);
+        await dbService.finishWorkout(лёгкий.w.id);
+
+        const тяжёлый = await сегодня([а.id, б.id], 6, 50);
+
+        assert(тяжёлый.строка.includes('Два занятия подряд подход шёл почти до отказа'), `а у тяжёлого — предел: ${тяжёлый.строка.slice(0, 500)}`);
+        await dbService.finishWorkout(тяжёлый.w.id);
+    });
+
+    it('план поменяли с трёх подходов на четыре — совет не глохнет: считается по всем занятиям', async () => {
+        const а = await seed({ name: 'Бицепс схема', kind: 'reps' });
+        const б = await dbService.createExercise({ name: 'Пресс схема', kind: 'reps' });
+
+        await день([а.id, б.id], 3, 20, { дней: 8, rir: 3 });
+        await день([а.id, б.id], 3, 20, { дней: 3, rir: 3 });
+
+        const { строка, w } = await сегодня([а.id, б.id], 4, 20);
+
+        assert(строка.includes('Два занятия подряд запас был большой'), `старые занятия в счёте: ${строка.slice(0, 500)}`);
+        await dbService.finishWorkout(w.id);
+    });
+});

@@ -1190,6 +1190,8 @@ export const DE = {
     'Ответ пришёл пустым.': 'Die Antwort kam leer zurück.',
     'Запас в подходе': 'Reserve im Satz',
     'Сколько повторений в запасе': 'Wie viele Wiederholungen bleiben in Reserve',
+    'прошло': 'vergangen',
+    'другая схема: {подходов}': 'anderes Schema: {подходов}',
     'Сколько сил в запасе': 'Wie viel Kraft bleibt in Reserve',
     'небольшой запас': 'etwas Reserve',
     'запас небольшой': 'kleine Reserve',

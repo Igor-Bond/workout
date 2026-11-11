@@ -52,15 +52,26 @@ export const engine = {
      * может совпасть, а работы это разные. Незавершённая и удалённая — не в счёт.
      */
     sameDay(workout, workouts = [], { background = () => false } = {}) {
+        return engine.sameDays(workout, workouts, { background })[0] || null;
+    },
+
+    /**
+     * Все завершённые тренировки с тем же составом, свежие первыми (Р-223).
+     *
+     * Нужны все, а не одна: тяжёлый и лёгкий дни бывают из одних упражнений, и
+     * последняя с этим составом — соседний день другой схемы. Последнюю той же
+     * схемы ищут среди этого списка.
+     */
+    sameDays(workout, workouts = [], { background = () => false } = {}) {
         const состав = engine.composition(workout?.plan);
-        if (!состав) return null;
+        if (!состав) return [];
 
         const фон = !!background(workout);
 
         return [...workouts]
             .filter((w) => w && w.id !== workout.id && w.status === 'done' && !w.deletedAt
                 && !!background(w) === фон && engine.composition(w.plan) === состав)
-            .sort((a, b) => b.startedAt - a.startedAt)[0] || null;
+            .sort((a, b) => b.startedAt - a.startedAt);
     },
 
     /**
