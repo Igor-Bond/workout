@@ -27,6 +27,8 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine } from '../core/engine.js';
+import { duration } from '../core/duration.js';
+import { config } from '../config.js';
 import { rhythm, isBackground } from '../core/rhythm.js';
 import { intake } from '../core/intake.js';
 import { stats } from '../core/stats.js';
@@ -366,6 +368,47 @@ function планНазвания(день) {
  * их пять, ряд из пяти пар нечитаем, и полезнее одно число — сколько всего
  * подходов, потому что по нему день и выравнивали.
  */
+/**
+ * Сколько займёт сегодняшний день плана — строкой для карточки (Р-225).
+ *
+ * Сперва по истории: те же упражнения человек уже делал, и длились они почти
+ * одинаково. Нет истории — по паузам плана: подходы и то, что написано между
+ * ними. Дня без подходов («Баскетбол») по плану не посчитать, и без истории
+ * строки нет вовсе: выдумывать нечего.
+ */
+function длительностьДня(день, exercises, workouts) {
+    const строки = день.items || [день];
+    const known = строки.map((у) => ({ у, e: exercises.find((e) => planCore.same(e.name, у.name)) }));
+
+    // История: только когда каждое упражнение дня нашлось в справочнике
+    if (known.every((к) => к.e)) {
+        const такой = { id: null, plan: known.map((к) => ({ exerciseId: к.e.id })) };
+        const оценка = duration.fromHistory(такой, workouts, { background: isBackground });
+
+        if (оценка) return duration.label(оценка);
+    }
+
+    if (!строки.some((у) => у.sets)) return '';
+
+    const минут = duration.fromPlan({
+        items: known.map(({ у, e }) => ({
+            sets: у.sets || 0,
+            work: duration.workSeconds({ reps: у.reps, exercise: e }),
+
+            // Тот же порядок, что и на тренировке: своя пауза строки, пауза дня,
+            // пауза упражнения, общая настройка (§16)
+            rest: у.rest || день.rest || e?.restSeconds || config.get('restSeconds')
+        })),
+        linear: день.sequence === 'linear' || config.mode() !== 'circuit',
+        roundRest: день.roundRest || 0
+    });
+
+    return подписьПоПлану(минут);
+}
+
+/** Строка по плану: «≈ 65 мин по паузам плана», пустая, если считать нечего. */
+const подписьПоПлану = (минут) => (минут ? duration.label({ source: 'plan', minutes: минут }) : '');
+
 function планОбъём(день) {
     const список = день.items || [день];
 
@@ -386,7 +429,7 @@ function планОбъём(день) {
  * кнопке внизу, которая завершает перебор. На карточке крупно — упражнения:
  * по ним узнают тренировку, а тип и дни это лишь уточняют.
  */
-function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи, ежедневное, поПлану, план, новые = []) {
+function startBlock(last, templates, suggestion, names, due, frequent, очередь, записи, ежедневное, поПлану, план, новые = [], длительность = '') {
 
     /*
      * При действующем плане «Следом» — это план, а не очередь (Р-72).
@@ -631,7 +674,7 @@ function startBlock(last, templates, suggestion, names, due, frequent, очер�
                         data-sequence="${поПлану.sequence || ''}">
                     <span class="rep-label">${t('Сегодня по плану — начать')}</span>
                     <span class="rep-names">${планНазвания(поПлану)}</span>
-                    <span class="rep-meta">${планОбъём(поПлану)}</span>
+                    <span class="rep-meta">${планОбъём(поПлану)}${длительность ? ` · ${длительность}` : ''}</span>
 
                     <!-- Новое в дне — до тренировки, а не после неё (Р-217) -->
                     ${новые.length ? ui.html`
@@ -1229,7 +1272,8 @@ export const home = {
                 ежедневное,
                 поПлану,
                 объявленный,
-                новыеВДне
+                новыеВДне,
+                поПлану ? длительностьДня(поПлану, exercises, workouts) : ''
             )}
 
             <!--

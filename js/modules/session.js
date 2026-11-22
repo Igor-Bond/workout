@@ -14,6 +14,7 @@ import { actions } from '../core/actions.js';
 import { dialog } from '../core/dialog.js';
 import { dbService } from '../services/db.js';
 import { engine, STATE } from '../core/engine.js';
+import { duration } from '../core/duration.js';
 import { records } from '../core/records.js';
 import { estimate } from '../core/estimate.js';
 import { isBackground } from '../core/rhythm.js';
@@ -1400,6 +1401,20 @@ export const session = {
         const totals = engine.totals(workout.plan, sets);
         const complete = engine.isComplete(workout.plan, sets);
 
+        /*
+         * Сколько ещё осталось (Р-225): по темпу этой тренировки, а пока он
+         * неизвестен, — по тому, сколько обычно длились такие же. Считается при
+         * каждой перерисовке, то есть после каждого подхода; секундомер наверху
+         * тикает сам, а оценка на месте не стоит дёргаться раз в секунду.
+         */
+        const осталось = duration.remaining({
+            planned: totals.planned,
+            done: totals.done,
+            times: sets.filter((s) => !s.deletedAt).map((s) => s.performedAt),
+            startedAt: workout.startedAt,
+            typical: duration.fromHistory(workout, view.проведённые, { background: isBackground })
+        });
+
         return ui.html`
             <div class="sess-head">
                 <div>
@@ -1407,6 +1422,7 @@ export const session = {
                     <div class="sess-meta">
                         <strong id="sess-elapsed">${format.duration(Date.now() - workout.startedAt)}</strong>
                         · ${t('подходов: {done} из {planned}', { done: totals.done, planned: totals.planned })}
+                        ${осталось ? `· ${t('ещё ≈ {время}', { время: duration.words(осталось) })}` : ''}
                     </div>
                 </div>
                 <div class="chips">

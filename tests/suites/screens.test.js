@@ -7378,3 +7378,166 @@ describe('Схема подходов: тяжёлый и лёгкий день',
         await dbService.finishWorkout(w.id);
     });
 });
+
+/**
+ * Сколько займёт тренировка: карточка дня и ход занятия (§29.1, §12, Р-225).
+ *
+ * Человек не знал до начала, час это или полтора: приложение знало и план, и
+ * историю, но времени нигде не называло, кроме табаты.
+ */
+describe('Длительность: карточка дня и ход тренировки', () => {
+
+    const DAY = 86400000;
+    const MIN = 60000;
+
+    /** Завершённая тренировка: каждое упражнение — шесть подходов, длилась столько-то минут. */
+    async function занятие(ids, минут, дней = 3) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: ids.map((exerciseId) => ({ exerciseId, plannedSets: 6, targetReps: 30, skipped: false }))
+        });
+
+        const at = Date.now() - дней * DAY;
+        let n = 0;
+
+        for (const exerciseId of ids) {
+            for (let i = 1; i <= 6; i++) {
+                await dbService.addSet({ workoutId: w.id, exerciseId, order: ++n, setNumber: i, reps: 30, performedAt: at + n * MIN });
+            }
+        }
+
+        await dbService.updateWorkout(w.id, { startedAt: at });
+        await dbService.finishWorkout(w.id, at + минут * MIN);
+
+        return w;
+    }
+
+    async function планНаСегодня(текстДня) {
+        const сегодня = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'][new Date().getDay()];
+        const текст = `С ${датаПлана(-1)}, 8 недель\n${сегодня} ${текстДня}`;
+
+        await dbService.setSetting(PLAN_KEY, { ...planCore.parse(текст), text: текст });
+    }
+
+    it('на карточке дня — по истории: те же упражнения длились около часа', async () => {
+        const а = await seed({ name: 'Махи длит', kind: 'reps', group: 'Плечи' });
+        const б = await dbService.createExercise({ name: 'Разведение длит', kind: 'reps', group: 'Спина' });
+
+        for (const [минут, дней] of [[56, 21], [61, 14], [67, 7]]) await занятие([а.id, б.id], минут, дней);
+
+        await планНаСегодня('Махи длит 6 × 30 + Разведение длит 6 × 18, пауза 5 мин, по одному');
+
+        const строка = text(await screen(home));
+
+        assert(строка.includes('≈ 61 мин'), строка.slice(0, 700));
+        assert(!строка.includes('по паузам плана'), 'история есть — считать по паузам незачем');
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('истории нет — по паузам плана, и так и подписано', async () => {
+        await seed({ name: 'Махи длит', kind: 'reps', group: 'Плечи' });
+        await dbService.createExercise({ name: 'Разведение длит', kind: 'reps', group: 'Спина' });
+
+        await планНаСегодня('Махи длит 6 × 30 + Разведение длит 6 × 18, пауза 5 мин, по одному');
+
+        const строка = text(await screen(home));
+
+        assert(строка.includes('≈ 68 мин по паузам плана'), строка.slice(0, 700));
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('день, который то час двадцать, то два, называется границами, а не одним числом', async () => {
+        const игра = await seed({ name: 'Баскетбол длит', kind: 'time', group: 'Кардио' });
+
+        for (const [минут, дней] of [[79, 21], [117, 14], [93, 7]]) {
+            const w = await dbService.createWorkout({ type: 'Кардио', plan: [{ exerciseId: игра.id, plannedSets: 1, skipped: false }] });
+            const at = Date.now() - дней * DAY;
+
+            await dbService.addSet({ workoutId: w.id, exerciseId: игра.id, order: 1, setNumber: 1, duration: 1800, performedAt: at + 10 * MIN });
+            await dbService.updateWorkout(w.id, { startedAt: at });
+            await dbService.finishWorkout(w.id, at + минут * MIN);
+        }
+
+        await планНаСегодня('Баскетбол длит');
+
+        const строка = text(await screen(home));
+
+        assert(строка.includes('от 79 до 117 мин'), строка.slice(0, 700));
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    it('без подходов и без истории строки нет: выдумывать нечего', async () => {
+        await seed({ name: 'Баскетбол длит', kind: 'time', group: 'Кардио' });
+        await планНаСегодня('Баскетбол длит');
+
+        const строка = text(await screen(home));
+
+        assert(!строка.includes('по паузам плана') && !строка.includes('≈'), строка.slice(0, 700));
+
+        await dbService.setSetting(PLAN_KEY, null);
+    });
+
+    /** Идущая тренировка из двух упражнений по шесть подходов; подходы — через столько минут. */
+    async function идущая(ids, сделано, шагМинут, началасьМинутНазад) {
+        const w = await dbService.createWorkout({
+            type: 'Силовая',
+            plan: ids.map((exerciseId) => ({ exerciseId, plannedSets: 6, targetReps: 30, skipped: false }))
+        });
+
+        const начало = Date.now() - началасьМинутНазад * MIN;
+        await dbService.updateWorkout(w.id, { startedAt: начало });
+
+        for (let i = 0; i < сделано; i++) {
+            await dbService.addSet({
+                workoutId: w.id, exerciseId: ids[0], order: i + 1, setNumber: i + 1, reps: 30,
+                performedAt: начало + (i + 1) * шагМинут * MIN
+            });
+        }
+
+        return w;
+    }
+
+    it('на тренировке с третьего подхода: оставшиеся подходы на темп, девять по пять минут', async () => {
+        const а = await seed({ name: 'Махи длит', kind: 'reps', group: 'Плечи' });
+        const б = await dbService.createExercise({ name: 'Разведение длит', kind: 'reps', group: 'Спина' });
+
+        const w = await идущая([а.id, б.id], 3, 5, 16);
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('подходов: 3 из 12'), строка.slice(0, 400));
+        assert(строка.includes('ещё ≈ 45 мин'), строка.slice(0, 400));
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('раньше третьего подхода — по прошлым занятиям: обычно час, прошло двадцать минут', async () => {
+        const а = await seed({ name: 'Махи длит', kind: 'reps', group: 'Плечи' });
+        const б = await dbService.createExercise({ name: 'Разведение длит', kind: 'reps', group: 'Спина' });
+
+        await занятие([а.id, б.id], 60, 14);
+        await занятие([а.id, б.id], 60, 7);
+
+        const w = await идущая([а.id, б.id], 1, 5, 20);
+
+        const строка = text(await screen(session));
+
+        assert(строка.includes('ещё ≈ 40 мин'), строка.slice(0, 400));
+
+        await dbService.finishWorkout(w.id);
+    });
+
+    it('нечем считать — строки про остаток нет', async () => {
+        const а = await seed({ name: 'Махи длит', kind: 'reps', group: 'Плечи' });
+        const б = await dbService.createExercise({ name: 'Разведение длит', kind: 'reps', group: 'Спина' });
+
+        const w = await идущая([а.id, б.id], 1, 5, 10);
+
+        assert(!text(await screen(session)).includes('ещё ≈'));
+
+        await dbService.finishWorkout(w.id);
+    });
+});

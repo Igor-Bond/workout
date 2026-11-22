@@ -19,7 +19,7 @@
  * иначе у пользователей останется старый кэш.
  */
 
-const APP_VERSION = 'v305';
+const APP_VERSION = 'v306';
 
 // По префиксу активация отличает свои прежние кэши от кэшей соседей по
 // адресу — см. там
@@ -50,6 +50,7 @@ const PRECACHE_URLS = [
 
     'js/core/actions.js',
     'js/core/days.js',
+    'js/core/duration.js',
     'js/core/dates.js',
     'js/core/digest.js',
     'js/core/dialog.js',
