@@ -28,7 +28,7 @@ import { t } from '../core/i18n.js';
 import { app } from '../app.js';
 import { currentPlan, putDraft } from './planner.js';
 import { dates } from '../core/dates.js';
-import { сводкаДела } from '../services/dossier.js';
+import { сводкаДела, местоВПрограмме } from '../services/dossier.js';
 import { observations } from '../services/howgoing.js';
 
 /**
@@ -185,12 +185,7 @@ async function дело() {
      * строки собеседник правит начало программы, когда человек живёт уже в
      * её середине, — и делает это уверенно, потому что ошибиться ему нечем.
      */
-    const где = план && planCore.active(план)
-        ? [
-            t('Сейчас неделя {n} из {всего}', { n: planCore.weekOf(план), всего: план.weeks }),
-            planCore.stageAt(план)?.label || ''
-        ].filter(Boolean).join('. ')
-        : '';
+    const где = местоВПрограмме(план);
 
     return prompt.dossier({ summary, plan: план?.text || '', now: где });
 }
@@ -868,7 +863,8 @@ actions.on('coach-ask', async () => {
         const ответ = await ai.ask({
             key,
             model,
-            system: prompt.instruction(),
+            // Новый план — после действующего, а не «завтра» внутри него (Р-226)
+            system: prompt.instruction({ start: planCore.start(await currentPlan()) }),
             messages: нить.map((m) => ({ role: m.role, text: m.sent || m.text })),
 
             // Программа считается с размышлением, и минуты ей мало (Р-211)

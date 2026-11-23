@@ -23,10 +23,27 @@ import { planJournal } from '../core/journal-plan.js';
 import { dates } from '../core/dates.js';
 import { format } from '../core/format.js';
 import { t } from '../core/i18n.js';
-import { currentAthlete } from '../modules/athlete.js';
+import { currentAthlete, currentGoals } from '../modules/athlete.js';
 import { recoveryLines } from '../modules/watch.js';
-import { currentJournal } from '../modules/planner.js';
+import { currentJournal, currentPlan } from '../modules/planner.js';
+import { plan as planCore } from '../core/plan.js';
 import { питаниеСтроками } from '../modules/condition.js';
+
+/**
+ * Где человек в действующей программе: «Сейчас неделя 6 из 12. Этап 2 …» (§56.4).
+ *
+ * Текст плана этого не говорит — он один на все недели, — и без строки
+ * собеседник правит начало программы, когда человек живёт уже в её середине.
+ * Одна на двоих: ту же строку читает тренер в приложении (js/modules/coach.js).
+ */
+export function местоВПрограмме(план, now = Date.now()) {
+    return план && planCore.active(план, now)
+        ? [
+            t('Сейчас неделя {n} из {всего}', { n: planCore.weekOf(план, now), всего: план.weeks }),
+            planCore.stageAt(план, now)?.label || ''
+        ].filter(Boolean).join('. ')
+        : '';
+}
 
 /**
  * Текст сводки.
@@ -35,8 +52,8 @@ import { питаниеСтроками } from '../modules/condition.js';
  * оно обязательно, в разговоре внутри приложения спорило бы с вопросом
  * человека (§60).
  */
-export async function сводкаДела({ withRequest = true } = {}) {
-    const [entries, sets, exerciseList, weights, профиль, ход, питание, восстановление, журнал] = await Promise.all([
+export async function сводкаДела({ withRequest = true, now = Date.now() } = {}) {
+    const [entries, sets, exerciseList, weights, профиль, ход, питание, восстановление, журнал, план, цели] = await Promise.all([
         dbService.listWorkoutSummaries(),
         dbService.allSets(),
         dbService.listExercises({ includeArchived: true }),
@@ -45,7 +62,9 @@ export async function сводкаДела({ withRequest = true } = {}) {
         observations(),
         питаниеСтроками(),
         recoveryLines(),
-        currentJournal()
+        currentJournal(),
+        currentPlan(),
+        currentGoals()
     ]);
 
     return report.build({
@@ -56,11 +75,15 @@ export async function сводкаДела({ withRequest = true } = {}) {
         shareOf: (exercise) => estimate.shareOf(exercise),
         background: isBackground,
         withRequest,
+        now,
 
         // Справочник целиком, а не только сделанное за период (§55): иначе
         // подзабытое упражнение в план не попадёт никогда, а на его место
         // придут выдуманные названия
         catalogue: exerciseList.filter((e) => !e.archived && !athlete.excluded(профиль).has(e.id)),
+
+        // Цели числом рядом с тем, что есть сейчас (Р-230)
+        goals: report.goalLines(цели, weights[weights.length - 1] || null),
 
         // Сон и пульс покоя с часов, если они привязаны (§62)
         recovery: восстановление,
@@ -80,6 +103,15 @@ export async function сводкаДела({ withRequest = true } = {}) {
 
         // Питание (§68, Р-210): съеденное против потолка и проверка весами
         nutrition: питание,
+
+        /*
+         * Действующая программа идёт во внешнюю сводку вместе с заданием (Р-226).
+         * Внутри приложения её подаёт тренеру `prompt.dossier`, и здесь она не
+         * нужна: дважды названная, она читалась бы как две программы.
+         */
+        program: withRequest && план?.text
+            ? { text: план.text, where: местоВПрограмме(план, now), startAt: planCore.start(план, now) }
+            : null,
 
         // Объявленное в профиле — на случай пустой истории (Р-147)
         daysPerWeek: профиль?.days || null,

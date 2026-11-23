@@ -231,6 +231,24 @@ describe('Оценка сна и шаги', () => {
         assert(строки[0].includes('9100'), `шаги: ${строки[0]}`);
     });
 
+    /*
+     * Цель стоит рядом с числом (Р-230): «4114 в день» без «из десяти тысяч»
+     * читалось как норма, а шаги — вторая цель человека после силы.
+     */
+    it('цель по шагам стоит рядом с числом', () => {
+        const rows = [0, 1, 2].map((i) => ({ date: NOW - i * DAY, steps: 4000 }));
+        const строки = recovery.describe(rows, { now: NOW, stepsGoal: 10000 });
+
+        assert(строки[0].includes('4000') && строки[0].includes('цель 10000'), `шаги и цель: ${строки[0]}`);
+    });
+
+    it('цели нет или она ноль — строка прежняя', () => {
+        const rows = [0, 1, 2].map((i) => ({ date: NOW - i * DAY, steps: 4000 }));
+
+        assert(!recovery.describe(rows, { now: NOW })[0].includes('цель'));
+        assert(!recovery.describe(rows, { now: NOW, stepsGoal: 0 })[0].includes('цель'));
+    });
+
     it('разбор берёт шаги и оценку', () => {
         const rows = icu.read([{ id: '2026-09-05', steps: 9273, sleepScore: 71, sleepSecs: 17520, restingHR: 48 }]);
 

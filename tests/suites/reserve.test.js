@@ -19,7 +19,7 @@ describe('Запас занятия', () => {
     });
 
     it('берётся с последнего отмеченного, а не с последнего вообще', () => {
-        equal(reserve.of(занятие(HIGH, TARGET, null, null)), TARGET,
+        equal(reserve.of(занятие(HIGH, TARGET, TARGET, null)), TARGET,
             'молчание не ответ и сказанного не отменяет');
     });
 
@@ -33,6 +33,66 @@ describe('Запас занятия', () => {
         equal(reserve.of([{ reps: 10, rir: 'много' }]), null);
     });
 
+});
+
+/**
+ * Ответ из первой половины занятия запасом не считается (Р-228).
+ *
+ * Человек отвечает на вопрос на первом подходе и дальше его не трогает:
+ * «легко» на первом из шести — это разминка, а не нагрузка. У владельца так
+ * вышло с разведением, мостиком и приседаниями, и сводка называла их «запас
+ * большой».
+ */
+describe('Запас занятия: ответ с первых подходов', () => {
+
+    it('ответ только на первом подходе из нескольких запасом не считается', () => {
+        equal(reserve.of(занятие(HIGH, null, null, null, null, null)), null,
+            'в первом подходе запас велик у всех');
+        equal(reserve.of(занятие(TARGET, null, null, null)), null);
+    });
+
+    it('граница — вторая половина: из четырёх считаются третий и четвёртый', () => {
+        equal(reserve.of(занятие(null, HIGH, null, null)), null, 'второй из четырёх — ровно половина, ещё рано');
+        equal(reserve.of(занятие(null, null, HIGH, null)), HIGH);
+        equal(reserve.of(занятие(null, null, null, LOW)), LOW);
+    });
+
+    it('из шести — четвёртый и позже', () => {
+        equal(reserve.of(занятие(HIGH, HIGH, HIGH, null, null, null)), null);
+        equal(reserve.of(занятие(HIGH, null, null, TARGET, null, null)), TARGET);
+    });
+
+    it('один подход из одного — это и есть последний', () => {
+        equal(reserve.of(занятие(HIGH)), HIGH);
+    });
+
+    it('из двух считается только второй', () => {
+        equal(reserve.of(занятие(HIGH, null)), null);
+        equal(reserve.of(занятие(null, HIGH)), HIGH);
+    });
+
+    it('если ответ был и в начале, и в конце, берётся конец', () => {
+        equal(reserve.of(занятие(HIGH, null, null, null, null, LOW)), LOW);
+    });
+
+    it('правило прогрессии не верит ответам с первых подходов', () => {
+        const сеансы = [
+            занятие(HIGH, null, null, null),
+            занятие(HIGH, null, null, null)
+        ];
+
+        equal(reserve.verdict(сеансы).verdict, null, 'два «легко» на разминке — не повод брать резинку жёстче');
+        equal(reserve.verdict(сеансы).seen, 0, 'и в счёт ответов они не идут');
+    });
+
+    it('а ответы с последних подходов правило слушает, как и раньше', () => {
+        const сеансы = [
+            занятие(HIGH, null, null, HIGH),
+            занятие(null, null, HIGH, HIGH)
+        ];
+
+        equal(reserve.verdict(сеансы).verdict, 'harder');
+    });
 });
 
 describe('Правило прогрессии', () => {

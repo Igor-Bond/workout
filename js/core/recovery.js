@@ -155,7 +155,7 @@ export const recovery = {
      * приезжали или в них одни пропуски. Молчание тут честнее выдуманного
      * «данных нет» в каждом разделе.
      */
-    describe(rows = [], { now = Date.now() } = {}) {
+    describe(rows = [], { now = Date.now(), stepsGoal = 0 } = {}) {
         const строки = [];
 
         const сон = recovery.sleep(rows, { now });
@@ -201,7 +201,14 @@ export const recovery = {
         const шаги = recovery.steps(rows, { now });
 
         if (шаги !== null) {
-            строки.push(t('Шаги: в среднем {n} в день', { n: Math.round(шаги) }));
+            /*
+             * Цель стоит рядом с числом (Р-230): «4114 в день» без «из десяти
+             * тысяч» тренер читал как норму, а человек просит именно шаги — вторая
+             * цель после силы — и сводка не говорила, далеко ли он от неё.
+             */
+            строки.push(Number(stepsGoal) > 0
+                ? t('Шаги: в среднем {n} в день, цель {цель}', { n: Math.round(шаги), цель: Math.round(stepsGoal) })
+                : t('Шаги: в среднем {n} в день', { n: Math.round(шаги) }));
         }
 
 

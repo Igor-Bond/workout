@@ -277,9 +277,11 @@ function привезеноБлок(замеры, занятия) {
  * которую собеседник читает как шум.
  */
 export async function recoveryLines({ now = Date.now() } = {}) {
-    const [{ rows }, занятия] = await Promise.all([currentWellness(), currentActivities()]);
+    const [{ rows }, занятия, цельШагов] = await Promise.all([
+        currentWellness(), currentActivities(), dbService.getSetting(ICU_STEPS_GOAL, 0)
+    ]);
 
-    return [...recovery.describe(rows, { now }), ...effort.describe(занятия, { now })];
+    return [...recovery.describe(rows, { now, stepsGoal: цельШагов }), ...effort.describe(занятия, { now })];
 }
 
 
